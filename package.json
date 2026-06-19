@@ -4,6 +4,7 @@
   "private": true,
   "description": "Web Holy Grail — opinionated dev-среда для производства честных сайтов микробизнесу",
   "license": "UNLICENSED",
+  "type": "module",
   "packageManager": "pnpm@11.8.0",
   "engines": {
     "node": ">=20.11.0",
@@ -17,10 +18,17 @@
     "smoke": "pnpm --filter veo55-client run smoke",
     "compose:up": "infisical run -- docker compose -f sites/veo55/deploy/local/docker-compose.yml up -d",
     "compose:down": "docker compose -f sites/veo55/deploy/local/docker-compose.yml down",
-    "compose:logs": "docker compose -f sites/veo55/deploy/local/docker-compose.yml logs -f"
+    "compose:logs": "docker compose -f sites/veo55/deploy/local/docker-compose.yml logs -f",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "typescript": "^5.6.3",
-    "@types/node": "^22.10.0"
+    "@changesets/cli": "^2.31.0",
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
+    "@types/node": "^22.10.0",
+    "husky": "^9.1.7",
+    "typescript": "^5.6.3"
   }
 }

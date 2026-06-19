@@ -1,0 +1,3 @@
+# Fast pre-commit: only typecheck affected workspaces.
+# Heavy lint/test gates live in CI when configured.
+pnpm -r --filter "...[HEAD]" run lint

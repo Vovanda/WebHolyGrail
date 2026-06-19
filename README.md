@@ -51,6 +51,14 @@ pnpm compose:up           # client + cms + sqlite
 | `pnpm compose:up` | docker compose up -d (с подтянутыми Infisical-секретами) |
 | `pnpm compose:down` | остановить контейнеры |
 | `pnpm compose:logs` | логи всех контейнеров стримом |
+| `pnpm changeset` | завести запись о грядущей версии (после фичи/фикса) |
+| `pnpm version-packages` | применить накопленные changesets → бамп версий + CHANGELOG |
+
+## Версионирование
+
+- **[Changesets](https://github.com/changesets/changesets)** — каждая существенная фича/фикс сопровождается changeset (`pnpm changeset` → выбрать пакет + bump-тип + описание). Релиз: `pnpm version-packages` бампит версии и обновляет `CHANGELOG.md`.
+- **commitlint** — pre-commit-хук валидирует conventional-commit формат (`type(scope): summary`). Плохие сообщения не уходят в историю.
+- **husky** — управляет git-хуками. `pnpm install` автоматически их активирует через `prepare`.
 
 ## Секреты
 
