@@ -4,6 +4,7 @@ import * as migration_20260619_135514_timeline_sort from './20260619_135514_time
 import * as migration_20260619_142243_wave_divider_flipped from './20260619_142243_wave_divider_flipped';
 import * as migration_20260619_144314_contacts_hours from './20260619_144314_contacts_hours';
 import * as migration_20260619_171022_dogs_collection from './20260619_171022_dogs_collection';
+import * as migration_20260619_171313_litters_collection from './20260619_171313_litters_collection';
 
 export const migrations = [
   {
@@ -35,5 +36,10 @@ export const migrations = [
     up: migration_20260619_171022_dogs_collection.up,
     down: migration_20260619_171022_dogs_collection.down,
     name: '20260619_171022_dogs_collection',
+  },
+  {
+    up: migration_20260619_171313_litters_collection.up,
+    down: migration_20260619_171313_litters_collection.down,
+    name: '20260619_171313_litters_collection',
   },
 ];
