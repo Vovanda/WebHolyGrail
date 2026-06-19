@@ -6,9 +6,11 @@
 *.pem
 *.key
 *.ppk
-/secrets/
-**/secrets/
+# Любой файл/папка с "secret" в имени блокируется (ловит и secret, и secrets).
+# Исключение — docs/secrets/ (там README про устройство, без реальных значений).
+*secret*
 !docs/secrets/
+!docs/secrets/**
 .infisical.json
 
 # --- Node / pnpm ---
@@ -28,6 +30,7 @@ build/
 .vercel/
 .cache/
 *.tsbuildinfo
+next-env.d.ts
 
 # --- БД и медиа ---
 *.sqlite
