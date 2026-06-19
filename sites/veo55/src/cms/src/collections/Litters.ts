@@ -106,14 +106,27 @@ export const Litters: CollectionConfig = {
       type: 'group',
       admin: {
         description:
-          'Красивая графическая карточка пары (обычно собирается в Canva: фото родителей + краткие регалии). Можно оставить пустым — карточка пары тогда не показывается.',
+          'Графическая карточка пары родителей с регалиями (традиционно собирается в Canva). Можно несколько вариантов — отрисуются галереей. Пусто — карточка не показывается.',
       },
       fields: [
         {
-          name: 'image',
-          label: 'Картинка визитки',
-          type: 'upload',
-          relationTo: 'media',
+          name: 'images',
+          label: 'Картинки визитки',
+          type: 'array',
+          labels: { singular: 'Картинка', plural: 'Картинки' },
+          admin: {
+            description:
+              'Одна или несколько визиток. Порядок отображения = порядок в списке. Первая считается основной для превью.',
+          },
+          fields: [
+            {
+              name: 'image',
+              label: 'Файл',
+              type: 'upload',
+              relationTo: 'media',
+              required: true,
+            },
+          ],
         },
         {
           name: 'caption',

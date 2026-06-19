@@ -66,9 +66,13 @@ export type LitterStatus = 'active' | 'archived' | 'hidden';
  * щенками. См. адаптивную раскладку в `client/blocks/content/LitterCardBlock`.
  */
 export interface PairCard {
-  /** Готовая графическая карточка пары (одна картинка). */
-  readonly image: MediaRef;
-  /** Опциональная подпись под картинкой (краткие регалии пары, дата вязки). */
+  /**
+   * Готовые графические карточки пары — одна или несколько вариантов
+   * (например с разными надписями / для разных каналов). Порядок = порядок
+   * в массиве; первая считается основной. Пустой массив = визитки нет.
+   */
+  readonly images: ReadonlyArray<{ readonly id: string; readonly image: MediaRef }>;
+  /** Опциональная подпись под визиткой (краткие регалии пары, дата вязки). */
   readonly caption?: string;
 }
 
