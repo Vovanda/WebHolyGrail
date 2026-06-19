@@ -366,7 +366,7 @@ function PuppyCard({ puppy }: { readonly puppy: Puppy }) {
             Фото скоро
           </div>
         )}
-        <StateBadge state={puppy.state} />
+        <StateBadge state={puppy.state} sex={puppy.sex} />
       </div>
       <div className="px-4 py-3 flex-1 flex flex-col">
         <h4 className="font-display text-lg font-semibold text-ink leading-tight">{label}</h4>
@@ -419,9 +419,27 @@ function puppyColorAdj(color: Puppy['color'] | undefined, sex: Puppy['sex']): st
  *  Размещение — bottom-left ленточкой, как «печать» на фотобумаге.
  *  Uppercase + letter-spacing 0.14em + тяжёлый вес — классическая «брендовая лента».
  */
-function StateBadge({ state }: { readonly state: Puppy['state'] }) {
+function StateBadge({
+  state,
+  sex,
+}: {
+  readonly state: Puppy['state'];
+  readonly sex: Puppy['sex'];
+}) {
   if (state === 'hidden') return null;
-  const label = state === 'available' ? 'Свободен' : state === 'reserved' ? 'Бронь' : 'Продан';
+  // Род существительного по полу щенка: male → «Свободен/Продан», female → «Свободна/Продана».
+  // «Бронь» — нейтральное существительное без рода, не склоняется.
+  const female = sex === 'female';
+  const label =
+    state === 'available'
+      ? female
+        ? 'Свободна'
+        : 'Свободен'
+      : state === 'reserved'
+        ? 'Бронь'
+        : female
+          ? 'Продана'
+          : 'Продан';
   const tone =
     state === 'available'
       ? 'bg-accent text-ink shadow-[0_4px_14px_rgba(212,164,55,0.55)]'

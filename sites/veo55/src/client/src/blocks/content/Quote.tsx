@@ -138,12 +138,12 @@ export function Quote({
   );
 
   return (
-    <section className="bg-bg py-12 md:py-16">
+    <section className="bg-bg pt-10 md:pt-14 pb-8 md:pb-10">
       <div className="mx-auto max-w-content px-6">
         <h2 className="text-center font-display text-3xl md:text-h2 font-semibold text-ink">
           О нас
         </h2>
-        <div className="mx-auto mt-4 mb-10 h-[1.5px] w-16 bg-accent opacity-85 rounded-full" />
+        <div className="mx-auto mt-4 mb-8 h-[1.5px] w-16 bg-accent opacity-85 rounded-full" />
 
         {showPhotoColumn ? (
           <div className="grid gap-9 md:grid-cols-[3fr_2fr] items-center">

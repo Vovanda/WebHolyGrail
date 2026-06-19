@@ -63,7 +63,7 @@ export function Prose({
   const useDropcap = data.variant === 'editorial-with-dropcap';
 
   return (
-    <section className="bg-bg pt-2 pb-12 md:pb-16">
+    <section className="bg-bg pt-2 pb-10 md:pb-14">
       <div className={cn(proseRoot({ variant: data.variant }), 'hg-vine')}>
         {paragraphs.map((paragraph, idx) => (
           <p
