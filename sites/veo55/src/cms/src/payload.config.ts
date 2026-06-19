@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 import { sqliteAdapter } from '@payloadcms/db-sqlite';
 import { lexicalEditor } from '@payloadcms/richtext-lexical';
+import { s3Storage } from '@payloadcms/storage-s3';
 import { ru } from '@payloadcms/translations/languages/ru';
 import { en } from '@payloadcms/translations/languages/en';
 import { buildConfig } from 'payload';
@@ -58,4 +59,39 @@ export default buildConfig({
   serverURL: process.env.PAYLOAD_PUBLIC_SERVER_URL ?? 'http://localhost:3001',
   cors: [process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'],
   csrf: [process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'],
+  plugins: [
+    /**
+     * S3-совместимое хранилище для Media → VK Object Storage.
+     *
+     * - Bucket: `veo55` (VK Cloud, регион ru-msk).
+     * - Public CDN: `https://cdn.veo55.ru/<key>` — переопределено через `generateFileURL`.
+     *   По дефолту Payload отдавал бы прямой S3-URL (hb.ru-msk.vkcloud-storage.ru), но у Володи
+     *   уже настроен CDN-домен поверх того же бакета, отдаём ссылки через него.
+     * - Prefix `media/` отделяет загрузки CMS от исторических ассетов в бакете
+     *   (legacy лежит в `images/<date>/...`, его не трогаем).
+     * - Креды берутся из env (Infisical в проде, .env.local в dev).
+     */
+    s3Storage({
+      collections: {
+        media: {
+          prefix: 'media',
+          generateFileURL: ({ filename, prefix }) =>
+            `https://cdn.veo55.ru/${prefix ? prefix + '/' : ''}${filename}`,
+        },
+      },
+      bucket: process.env.S3_BUCKET ?? 'veo55',
+      // ACL public-read — иначе CDN отдаёт 403 (объекты приватные по дефолту).
+      // VK Object Storage поддерживает стандартные S3 ACL.
+      acl: 'public-read',
+      config: {
+        credentials: {
+          accessKeyId: process.env.S3_ACCESS_KEY_ID ?? '',
+          secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? '',
+        },
+        region: process.env.S3_REGION ?? 'ru-msk',
+        endpoint: process.env.S3_ENDPOINT ?? 'https://hb.ru-msk.vkcloud-storage.ru',
+        forcePathStyle: true,
+      },
+    }),
+  ],
 });

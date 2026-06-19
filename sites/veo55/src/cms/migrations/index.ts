@@ -6,6 +6,8 @@ import * as migration_20260619_144314_contacts_hours from './20260619_144314_con
 import * as migration_20260619_171022_dogs_collection from './20260619_171022_dogs_collection';
 import * as migration_20260619_171313_litters_collection from './20260619_171313_litters_collection';
 import * as migration_20260619_171505_litter_card_block from './20260619_171505_litter_card_block';
+import * as migration_20260619_194643_add_s3_storage_prefix from './20260619_194643_add_s3_storage_prefix';
+import * as migration_20260619_195944_rename_paircard_image_to_images from './20260619_195944_rename_paircard_image_to_images';
 
 export const migrations = [
   {
@@ -47,5 +49,15 @@ export const migrations = [
     up: migration_20260619_171505_litter_card_block.up,
     down: migration_20260619_171505_litter_card_block.down,
     name: '20260619_171505_litter_card_block',
+  },
+  {
+    up: migration_20260619_194643_add_s3_storage_prefix.up,
+    down: migration_20260619_194643_add_s3_storage_prefix.down,
+    name: '20260619_194643_add_s3_storage_prefix',
+  },
+  {
+    up: migration_20260619_195944_rename_paircard_image_to_images.up,
+    down: migration_20260619_195944_rename_paircard_image_to_images.down,
+    name: '20260619_195944_rename_paircard_image_to_images',
   },
 ];
