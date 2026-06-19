@@ -2,6 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import type { BlockNode, SiteSettings } from '@veo55/contracts';
 
 import { cn } from '@/lib/utils';
+import { Carousel } from './Carousel';
 
 /**
  * Quote / Testimonial — **первый общий компонент Holy Grail** (см. R5++).
@@ -87,7 +88,10 @@ export interface QuoteData {
   readonly body: string;
   readonly author: string;
   readonly role?: string | undefined;
+  /** Одно фото (legacy). Если задан и photoUrls пустой — используется. */
   readonly photoUrl?: string | undefined;
+  /** Карусель фото (новое). Перебивает photoUrl. */
+  readonly photoUrls?: readonly string[] | undefined;
   readonly variant?: QuoteVariantProps['variant'] | undefined;
 }
 
@@ -98,11 +102,23 @@ export function Quote({
   readonly node: BlockNode & { data?: Partial<QuoteData> };
   readonly settings: SiteSettings;
 }) {
+  // Payload-array возвращает [{ url }, ...]; legacy в коде допускает string[].
+  // Принимаем оба формата + одиночный photoUrl (старое поле).
+  const rawPhotos = (node.data?.photoUrls ?? []) as readonly (string | { url?: string })[];
+  const photoUrls: readonly string[] =
+    rawPhotos.length > 0
+      ? rawPhotos
+          .map((p) => (typeof p === 'string' ? p : p?.url))
+          .filter((u): u is string => Boolean(u))
+      : node.data?.photoUrl
+        ? [node.data.photoUrl]
+        : [];
+
   const data: QuoteData = {
     body: node.data?.body ?? defaultBody,
     author: node.data?.author ?? 'Савкина Ольга Владимировна',
     role: node.data?.role ?? 'Основатель питомника',
-    photoUrl: node.data?.photoUrl,
+    photoUrls,
     variant: node.data?.variant ?? 'card-accent-left',
   };
 
@@ -132,7 +148,7 @@ export function Quote({
         {showPhotoColumn ? (
           <div className="grid gap-9 md:grid-cols-[3fr_2fr] items-center">
             {figureEl}
-            <PhotoFrame photoUrl={data.photoUrl} alt={data.author} />
+            <PhotoFrame photoUrls={data.photoUrls ?? []} alt={data.author} />
           </div>
         ) : (
           <div className="mx-auto max-w-[720px]">{figureEl}</div>
@@ -143,33 +159,38 @@ export function Quote({
 }
 
 function PhotoFrame({
-  photoUrl,
+  photoUrls,
   alt,
 }: {
-  readonly photoUrl?: string | undefined;
+  readonly photoUrls: readonly string[];
   readonly alt: string;
 }) {
-  return (
-    <div
-      className="
-        relative w-full h-[380px] md:h-[460px] rounded-xl overflow-hidden
-        bg-surface-hover border border-border
-        flex items-center justify-center
-      "
-    >
-      {photoUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={photoUrl} alt={alt} className="w-full h-full object-cover" />
-      ) : (
+  if (photoUrls.length === 0) {
+    return (
+      <div className="relative w-full h-[380px] md:h-[460px] rounded-xl overflow-hidden bg-surface-hover border border-border flex items-center justify-center">
         <span className="text-muted font-display italic text-base px-6 text-center">
           Фото {alt}
           <br />
           <small className="text-sm">(загрузим из CMS)</small>
         </span>
-      )}
-    </div>
+      </div>
+    );
+  }
+
+  return (
+    <Carousel
+      slides={photoUrls.map((url) => ({ url, alt }))}
+      interval={5000}
+      arrows
+      swipe
+      objectFit="cover"
+      height="460px"
+      background="#F3EFE7"
+      rounded="14px"
+    />
   );
 }
 
+// Текст 1:1 из оригинала veo55/main.html L713.
 const defaultBody =
-  'Я являлась заводчиком восточноевропейских овчарок и основателем питомника ВЕО «Омская Дружина». Моя история с веэо началась более 30 лет назад, когда я ещё девочкой первый раз увидела овчарку — с тех пор я не переставала восхищаться её преданностью, умом и силой духа — с гордой любовью занимаюсь разведением ВЕО.';
+  'Я являюсь заводчиком восточноевропейских овчарок и основателем питомника ВЕО «Омская Дружина». Моя история с этой породой началась более 30 лет назад, когда в нашей семье появилась первая собака. С тех пор я не перестаю восхищаться её преданностью, умом и силой духа — и с огромной любовью занимаюсь разведением ВЕО.';

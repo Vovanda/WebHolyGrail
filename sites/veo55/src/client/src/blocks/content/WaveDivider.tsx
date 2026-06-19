@@ -1,24 +1,24 @@
 import type { BlockNode, SiteSettings } from '@veo55/contracts';
 
 /**
- * WaveDivider — волнистый разделитель секций как на veo55 (`.veo-div`).
- *
- * @remarks
- * SVG 96px высоты, симметричный изгиб сверху и снизу.
- * Цвет линии — `--color-border` (stone-бежевый), на cream-фоне выглядит мягко.
- *
- * Используется между крупными секциями страницы (Hero → Litter → About → Timeline).
+ * WaveDivider — волнистый разделитель секций. SVG 72px высоты.
+ * `flipped: true` → зеркально по вертикали (для чередования между секциями).
  */
 export function WaveDivider({
-  node: _node,
-  settings: _settings,
+  node,
 }: {
-  readonly node: BlockNode;
+  readonly node: BlockNode & { data?: { flipped?: boolean } };
   readonly settings: SiteSettings;
 }) {
+  const flipped = node.data?.flipped === true;
   return (
-    <div aria-hidden className="h-[96px] w-full leading-none">
-      <svg viewBox="0 0 1200 96" preserveAspectRatio="none" className="block w-full h-full">
+    <div aria-hidden className="h-[72px] -my-8 md:-my-10 w-full leading-none">
+      <svg
+        viewBox="0 0 1200 96"
+        preserveAspectRatio="none"
+        className="block w-full h-full"
+        style={flipped ? { transform: 'scaleY(-1)' } : undefined}
+      >
         <path
           d="M0,48 C200,8 400,88 600,48 C800,8 1000,88 1200,48"
           fill="none"

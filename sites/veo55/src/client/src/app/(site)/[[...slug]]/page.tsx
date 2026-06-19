@@ -59,7 +59,12 @@ export default async function CatchallPage({ params }: { params: Promise<Params>
         </section>
       ) : (
         page.blocks.map((block) => (
-          <div key={block.id}>{renderBlockNode(block, activeSettings)}</div>
+          <div key={block.id}>
+            {renderBlockNode(
+              { blockType: block.blockType, id: block.id, data: block as Record<string, unknown> },
+              activeSettings,
+            )}
+          </div>
         ))
       )}
     </>

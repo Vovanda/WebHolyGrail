@@ -17,7 +17,25 @@ export const QuoteBlock: Block = {
     { name: 'body', label: 'Текст цитаты', type: 'textarea', required: true },
     { name: 'author', label: 'Автор', type: 'text', required: true },
     { name: 'role', label: 'Должность / роль', type: 'text' },
-    { name: 'photo', label: 'Фото автора', type: 'upload', relationTo: 'media' },
+    {
+      name: 'photoUrls',
+      label: 'Фото автора (одно или несколько → карусель)',
+      type: 'array',
+      labels: { singular: 'Фото', plural: 'Фото' },
+      admin: {
+        description:
+          'Если несколько — будут крутиться каруселью с автосменой 5 сек, со стрелками и свайпом.',
+      },
+      fields: [
+        {
+          name: 'url',
+          label: 'URL',
+          type: 'text',
+          required: true,
+          admin: { description: 'Например: https://cdn.veo55.ru/images/about/olga-1.jpg' },
+        },
+      ],
+    },
     {
       name: 'variant',
       label: 'Вариант дизайна',

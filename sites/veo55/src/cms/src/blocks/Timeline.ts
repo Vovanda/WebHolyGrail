@@ -10,6 +10,31 @@ export const TimelineBlock: Block = {
   fields: [
     { name: 'heading', label: 'Заголовок секции', type: 'text', defaultValue: 'Наш путь' },
     {
+      name: 'visibleCount',
+      label: 'Сколько записей показывать сразу',
+      type: 'number',
+      defaultValue: 3,
+      admin: {
+        description:
+          'Остальные доступны по кнопке «Показать всю историю». 0 = показать все сразу без кнопки.',
+      },
+    },
+    {
+      name: 'sort',
+      label: 'Порядок записей',
+      type: 'select',
+      defaultValue: 'year-desc',
+      options: [
+        { label: 'По году ↓ (новые сверху) — для истории', value: 'year-desc' },
+        { label: 'По году ↑ (старые сверху) — для roadmap', value: 'year-asc' },
+        { label: 'Ручной порядок (как в админке)', value: 'manual' },
+      ],
+      admin: {
+        description:
+          'При year-desc / year-asc автоматически сортирует — при добавлении новой записи её не нужно перетаскивать.',
+      },
+    },
+    {
       name: 'entries',
       label: 'Записи (drag для смены порядка)',
       type: 'array',

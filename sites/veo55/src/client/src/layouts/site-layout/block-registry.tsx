@@ -3,6 +3,8 @@ import type { BlockNode, SiteSettings } from '@veo55/contracts';
 
 import { Header } from '@/blocks/content/Header';
 import { Footer } from '@/blocks/content/Footer';
+import { BannerSliderBlock } from '@/blocks/content/BannerSliderBlock';
+import { NavDrawer } from '@/blocks/content/NavDrawer';
 import { Hero } from '@/blocks/content/Hero';
 import { Quote } from '@/blocks/content/Quote';
 import { Timeline } from '@/blocks/content/Timeline';
@@ -23,6 +25,8 @@ type BlockRenderer = (node: BlockNode, settings: SiteSettings, children?: ReactN
 const REGISTRY: Record<string, BlockRenderer> = {
   header: (node, settings) => <Header node={node} settings={settings} />,
   footer: (node, settings) => <Footer node={node} settings={settings} />,
+  'banner-slider': (node, settings) => <BannerSliderBlock node={node} settings={settings} />,
+  'nav-drawer': (node, settings) => <NavDrawer node={node} settings={settings} />,
   hero: (node, settings) => <Hero node={node} settings={settings} />,
   quote: (node, settings) => <Quote node={node} settings={settings} />,
   timeline: (node, settings) => <Timeline node={node} settings={settings} />,

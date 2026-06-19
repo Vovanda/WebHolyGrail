@@ -28,7 +28,7 @@ export async function getPageBySlug(slug: string): Promise<PageDoc | null> {
   });
 
   const response = await fetch(`${CMS_URL}/api/pages?${query.toString()}`, {
-    next: { revalidate: 60, tags: ['pages', `page:${slug}`] },
+    cache: 'no-store',
   });
 
   if (!response.ok) {
@@ -46,7 +46,7 @@ export async function getPageBySlug(slug: string): Promise<PageDoc | null> {
  */
 export async function getSiteSettings(): Promise<SiteSettings | null> {
   const response = await fetch(`${CMS_URL}/api/globals/site-settings?depth=1`, {
-    next: { revalidate: 300, tags: ['site-settings'] },
+    cache: 'no-store',
   });
 
   if (!response.ok) {
