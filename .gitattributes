@@ -1,0 +1,26 @@
+# Unify line endings to LF (Docker images run Linux)
+* text=auto eol=lf
+
+# Bash scripts must be LF
+*.sh text eol=lf
+
+# Windows-specific stays CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.avif binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
