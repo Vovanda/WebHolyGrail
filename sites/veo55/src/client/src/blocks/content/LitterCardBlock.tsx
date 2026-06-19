@@ -357,10 +357,20 @@ function PuppyCard({ puppy }: { readonly puppy: Puppy }) {
   const label = puppyLabel(puppy);
   const alt = resolveMediaAlt(puppy.photo) ?? label;
   return (
-    <article className="bg-surface rounded-xl overflow-hidden shadow-[0_4px_14px_rgba(43,34,26,0.06)] flex flex-col">
-      <div className="relative aspect-[4/5] bg-surface-hover">
+    /**
+     * Карточка «дышит» (бренд-правило veo55: padding 24-32px, gap 24-32px).
+     * Hover-лифт — лёгкое translateY -2 + усиленная тёплая тень, без агрессивного
+     * scale (Володя 2026-06-15 — «эффекты не отвлекают от контента»).
+     * Радиус 14px, shadow `rgba(43,34,26,0.08)` — из legacy `.veo-pup`.
+     */
+    <article className="group bg-paper rounded-[14px] overflow-hidden shadow-[0_6px_18px_rgba(43,34,26,0.08)] hover:shadow-[0_10px_28px_rgba(43,34,26,0.14)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col">
+      <div className="relative aspect-[4/5] bg-surface-hover overflow-hidden">
         {url ? (
-          <img src={url} alt={alt} className="absolute inset-0 w-full h-full object-cover" />
+          <img
+            src={url}
+            alt={alt}
+            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+          />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-muted font-display italic text-sm">
             Фото скоро
@@ -368,10 +378,12 @@ function PuppyCard({ puppy }: { readonly puppy: Puppy }) {
         )}
         <StateBadge state={puppy.state} sex={puppy.sex} />
       </div>
-      <div className="px-4 py-3 flex-1 flex flex-col">
-        <h4 className="font-display text-lg font-semibold text-ink leading-tight">{label}</h4>
+      <div className="px-6 py-5 flex-1 flex flex-col">
+        <h4 className="font-display text-xl font-semibold text-ink leading-tight">{label}</h4>
         {puppy.notes && (
-          <p className="mt-1 font-display italic text-muted text-sm leading-snug">{puppy.notes}</p>
+          <p className="mt-2 font-display italic text-muted text-sm leading-relaxed">
+            {puppy.notes}
+          </p>
         )}
       </div>
     </article>
@@ -461,18 +473,20 @@ function StateBadge({
 }
 
 function puppyGridClass(count: number): string {
+  // Gap 32px (gap-8) — бренд veo55 «карточки должны дышать», между ними тот же
+  // воздух что в padding'ах самих карточек (px-6 py-5).
   // 1 → одиночная центрированная карточка.
   if (count === 1) return 'mx-auto max-w-md';
   // 2 → 2 колонки на десктопе.
-  if (count === 2) return 'grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto';
+  if (count === 2) return 'grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-3xl mx-auto';
   // 3 → 3 в строку на десктопе (по запросу Володи: 3 → 1 ряд).
-  if (count === 3) return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6';
+  if (count === 3) return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8';
   // 4 → 2x2 квадрат на десктопе (по запросу Володи: 4 → 2x2, не 4 в ряд).
-  if (count === 4) return 'grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto';
+  if (count === 4) return 'grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-3xl mx-auto';
   // 5-6 → 3 колонки (2 ряда).
-  if (count <= 6) return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6';
+  if (count <= 6) return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8';
   // 7-10 → 4 колонки.
-  return 'grid grid-cols-2 lg:grid-cols-4 gap-6';
+  return 'grid grid-cols-2 lg:grid-cols-4 gap-8';
 }
 
 function resolveMediaUrl(ref: MediaRef | undefined): string | undefined {
