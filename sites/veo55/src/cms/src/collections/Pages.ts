@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
+import { PAGE_BLOCKS } from '../blocks';
+
 /**
  * Pages — страницы сайта из блоков.
  *
@@ -47,10 +49,11 @@ export const Pages: CollectionConfig = {
       name: 'blocks',
       label: 'Блоки страницы',
       type: 'blocks',
-      // Будет наполнен в Шаге 4 (Hero, RichText, Gallery, CTA, Form, Contacts...).
-      // Пустой массив — валидно в Payload, поле появляется в админке как пустой
-      // блок-конструктор без вариантов выбора блока.
-      blocks: [],
+      blocks: PAGE_BLOCKS,
+      admin: {
+        description:
+          'Перетаскивайте блоки для смены порядка. Можно добавить несколько одинаковых блоков (например 2 цитаты подряд).',
+      },
     },
     {
       name: 'seo',
