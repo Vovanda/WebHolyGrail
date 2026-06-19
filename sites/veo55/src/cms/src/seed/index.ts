@@ -62,8 +62,11 @@ async function main() {
   const homeBlocks = [
     {
       blockType: 'hero' as const,
-      title: 'Щенки ВЕО с документами РКФ',
-      subtitle: 'Питомник «Омская Дружина» · Омск',
+      title: 'Щенки {accent} с документами РКФ',
+      titleAccent: 'ВЕО',
+      subtitle: 'Питомник восточноевропейских овчарок «Омская Дружина» · г. Омск',
+      subtitleShort: 'Питомник ВЕО «Омская Дружина» · г. Омск',
+      bannerHeading: 'Есть щенки',
     },
     {
       blockType: 'wave-divider' as const,
@@ -124,13 +127,17 @@ async function main() {
     _status: 'published' as const,
   };
 
+  // Payload generated types для blocks-union строже чем наш runtime-shape; runtime
+  // Payload валидирует сам, так что type-cast тут безопасный (seed одноразовый).
   if (existingHome.docs.length > 0) {
     const id = existingHome.docs[0]!.id;
     console.log(`[seed]   exists (id=${id}) — updating`);
-    await payload.update({ collection: 'pages', id, data: homeData });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await payload.update({ collection: 'pages', id, data: homeData as any });
   } else {
     console.log('[seed]   creating');
-    await payload.create({ collection: 'pages', data: homeData });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await payload.create({ collection: 'pages', data: homeData as any });
   }
 
   console.log('[seed] done.');

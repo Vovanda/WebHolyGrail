@@ -16,6 +16,48 @@
     line-height: var(--line-height-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    position: relative;
+  }
+  /* Декоративные лапки фоном страницы — низкий opacity (≤0.05), не отвлекает.
+   * paw-trail.svg 80×400 повторяется vertical по бокам viewport. */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: url('/decor/paw-trail.svg'), url('/decor/paw-trail.svg');
+    background-repeat: repeat-y, repeat-y;
+    background-position:
+      left 24px top,
+      right 24px top;
+    background-size: 80px auto;
+    opacity: 0.05;
+  }
+  /* Декоративные лозы по бокам — только на широких экранах (≥1280px).
+   * vine SVGs уже содержат opacity 0.35 и amber цвет (#A8802A) внутри.
+   * z-index: 0 — под контентом (body > * имеет z-index: 1). */
+  @media (min-width: 1280px) {
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image: url('/decor/vine-left.svg'), url('/decor/vine-right.svg');
+      background-repeat: no-repeat, no-repeat;
+      background-position:
+        left 0 top,
+        right 0 top;
+      background-size:
+        80px auto,
+        80px auto;
+    }
+  }
+  /* Контент над декоративным фоном. */
+  body > * {
+    position: relative;
+    z-index: 1;
   }
   h1,
   h2,
