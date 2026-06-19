@@ -63,3 +63,7 @@ desktop.ini
 .claude/settings.local.json
 .playwright-mcp/
 .tmp/
+
+# --- Локальные скриншоты/референсы (для меня, не для репы) ---
+/veo55-*.png
+/check-users.mjs
