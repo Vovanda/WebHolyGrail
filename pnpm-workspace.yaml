@@ -2,12 +2,14 @@
 # Each site contributes three workspaces: contracts (shared types),
 # src/client (Next), src/cms (Payload). packages/* — shared libs (grow from sites).
 packages:
-  - "sites/*/contracts"
-  - "sites/*/src/client"
-  - "sites/*/src/cms"
-  - "packages/*"
+  - 'sites/*/contracts'
+  - 'sites/*/src/client'
+  - 'sites/*/src/cms'
+  - 'packages/*'
 
 # pnpm 11 security: postinstall scripts must be opted-in per package.
-# esbuild — native binary download for Vitest/Tinypool.
+# - esbuild: Vitest / Tinypool native binary download.
+# - sharp: image processing for Payload Media (resize/optimization). Native bindings.
 allowBuilds:
   esbuild: true
+  sharp: true
