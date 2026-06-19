@@ -3,7 +3,9 @@ import type { ReactNode } from 'react';
 import { Cormorant_Garamond, Inter, Caveat } from 'next/font/google';
 
 import { getSiteSettings } from '@/lib/api-client';
-import { ThemeBootstrap, DEFAULT_THEME_CONFIG } from '@/lib/theme-bootstrap';
+import { ThemeBootstrap } from '@/lib/theme-bootstrap';
+import { SiteLayout } from '@/layouts/site-layout';
+import { FALLBACK_SITE_SETTINGS } from '@/layouts/presets/fallback-site-settings';
 import '@/styles/globals.css';
 
 /**
@@ -36,25 +38,20 @@ const fontScript = Caveat({
   display: 'swap',
 });
 
-/**
- * Корневой layout — title и description приходят из SiteSettings (Payload global),
- * читаемого серверным компонентом с revalidate-тегом. Когда `siteName` меняется
- * в админке — публичный <title> обновляется в течение 5 мин.
- */
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getSiteSettings().catch(() => null);
-  const siteName = settings?.siteName ?? 'Питомник «Омская Дружина»';
+  const settings = (await getSiteSettings().catch(() => null)) ?? FALLBACK_SITE_SETTINGS;
   return {
-    title: { default: siteName, template: `%s — ${siteName}` },
+    title: { default: settings.siteName, template: `%s — ${settings.siteName}` },
     description: 'Питомник восточноевропейской овчарки в Омске',
   };
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   // SiteSettings приходит из CMS (R3 — через @veo55/contracts).
-  // Если CMS отвалилась или global ещё не заполнен — используем дефолты, не падаем.
-  const settings = await getSiteSettings().catch(() => null);
-  const themeConfig = settings?.theme ?? DEFAULT_THEME_CONFIG;
+  // Если CMS недоступна или global ещё не заполнен — fallback-конфиг, не пустой экран.
+  const settings = (await getSiteSettings().catch(() => null)) ?? FALLBACK_SITE_SETTINGS;
+  const layoutConfig = settings.layout ?? FALLBACK_SITE_SETTINGS.layout!;
+  const themeConfig = settings.theme ?? FALLBACK_SITE_SETTINGS.theme!;
 
   return (
     <html
@@ -65,7 +62,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         {/* Synchronous theme bootstrap — runs before first paint, kills FOUC. */}
         <ThemeBootstrap config={themeConfig} />
       </head>
-      <body className="min-h-screen flex flex-col font-sans">{children}</body>
+      <body className="min-h-screen font-sans">
+        <SiteLayout config={layoutConfig} settings={settings}>
+          {children}
+        </SiteLayout>
+      </body>
     </html>
   );
 }

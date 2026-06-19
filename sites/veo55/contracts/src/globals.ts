@@ -1,6 +1,7 @@
 import type { MediaRef } from './media';
 import type { LinkRef } from './blocks';
 import type { ThemeConfig } from './theme';
+import type { SiteLayoutConfig } from './layout';
 
 /**
  * Глобальные настройки сайта — синглтон. Источник правды — Payload Global `SiteSettings`.
@@ -25,6 +26,8 @@ export interface SiteSettings {
   readonly social?: readonly SocialLink[];
   /** Конфигурация темы (light/dark/auto + user-toggle). */
   readonly theme?: ThemeConfig;
+  /** Конфигурация layout — какие панели в каких слотах. См. R11. */
+  readonly layout?: SiteLayoutConfig;
 }
 
 export interface ContactsInfo {

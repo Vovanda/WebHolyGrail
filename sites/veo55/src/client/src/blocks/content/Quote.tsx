@@ -1,0 +1,175 @@
+import { cva, type VariantProps } from 'class-variance-authority';
+import type { BlockNode, SiteSettings } from '@veo55/contracts';
+
+import { cn } from '@/lib/utils';
+
+/**
+ * Quote / Testimonial — **первый общий компонент Holy Grail** (см. R5++).
+ *
+ * @remarks
+ * Универсальный паттерн — цитата с подписью. Должен переноситься в любой клиент
+ * без переписки кода: меняется `variant`, остальное работает.
+ *
+ * **Варианты дизайна (CVA):**
+ *  - `card-accent-left` — veo55-editorial: border-left янтарь + paper-карточка
+ *    + большая `❝` 78px + Cormorant italic body + Inter UPPERCASE подпись.
+ *    Применение: блок «О нас», манифест-выдержка.
+ *  - `minimal-modern` — без бордера, sans-serif, тонкая подпись справа. Для SaaS / визиток.
+ *  - `photo-card` — фото слева/справа от текста, square-фрейм. Для отзывов клиентов.
+ *
+ * Дефолт — `card-accent-left` (для veo55).
+ * Фото-слот опционален и работает только в `photo-card` варианте.
+ */
+const quoteCard = cva('relative', {
+  variants: {
+    variant: {
+      'card-accent-left': [
+        'bg-surface rounded-r-xl shadow-[0_4px_14px_rgba(43,34,26,0.06)]',
+        'border-l-[3px] border-accent',
+        'py-7 pr-8 pl-16',
+        'font-display italic font-medium text-ink',
+        'text-xl md:text-2xl leading-snug',
+      ],
+      'minimal-modern': [
+        'bg-transparent border-0 py-4',
+        'font-sans text-ink text-lg leading-relaxed',
+      ],
+      'photo-card': [
+        'bg-surface rounded-xl shadow-md',
+        'p-6 font-sans text-ink text-base leading-relaxed',
+      ],
+    },
+  },
+  defaultVariants: { variant: 'card-accent-left' },
+});
+
+const quoteMark = cva('absolute select-none leading-none not-italic', {
+  variants: {
+    variant: {
+      'card-accent-left':
+        'left-[18px] top-[-2px] font-display font-bold text-accent text-[78px] opacity-85',
+      'minimal-modern': 'hidden',
+      'photo-card': 'left-3 top-1 font-display text-accent text-5xl opacity-60',
+    },
+  },
+  defaultVariants: { variant: 'card-accent-left' },
+});
+
+const quoteCaption = cva('mt-6 not-italic', {
+  variants: {
+    variant: {
+      'card-accent-left': 'font-sans font-bold uppercase text-[14.5px] tracking-[0.075em] text-ink',
+      'minimal-modern': 'font-sans font-semibold text-sm text-muted',
+      'photo-card': 'font-sans font-semibold text-sm text-ink',
+    },
+  },
+  defaultVariants: { variant: 'card-accent-left' },
+});
+
+const quoteRole = cva('block mt-1 normal-case font-normal', {
+  variants: {
+    variant: {
+      'card-accent-left': 'text-muted font-display italic text-[17px] tracking-normal',
+      'minimal-modern': 'text-muted font-sans text-xs',
+      'photo-card': 'text-muted font-sans italic text-sm',
+    },
+  },
+  defaultVariants: { variant: 'card-accent-left' },
+});
+
+type QuoteVariantProps = VariantProps<typeof quoteCard>;
+
+/**
+ * Контракт пропсов блока — JSON-сериализуем (R5+).
+ * `variant` приходит из CMS как string-литерал; компонент валидирует через CVA.
+ */
+export interface QuoteData {
+  readonly body: string;
+  readonly author: string;
+  readonly role?: string | undefined;
+  readonly photoUrl?: string | undefined;
+  readonly variant?: QuoteVariantProps['variant'] | undefined;
+}
+
+export function Quote({
+  node,
+  settings: _settings,
+}: {
+  readonly node: BlockNode & { data?: Partial<QuoteData> };
+  readonly settings: SiteSettings;
+}) {
+  const data: QuoteData = {
+    body: node.data?.body ?? defaultBody,
+    author: node.data?.author ?? 'Савкина Ольга Владимировна',
+    role: node.data?.role ?? 'Основатель питомника',
+    photoUrl: node.data?.photoUrl,
+    variant: node.data?.variant ?? 'card-accent-left',
+  };
+
+  const showPhotoColumn = data.variant === 'card-accent-left' || data.variant === 'photo-card';
+
+  const figureEl = (
+    <figure className={cn(quoteCard({ variant: data.variant }), 'm-0')}>
+      <span aria-hidden className={quoteMark({ variant: data.variant })}>
+        {'“'}
+      </span>
+      <blockquote className="m-0">{data.body}</blockquote>
+      <figcaption className={quoteCaption({ variant: data.variant })}>
+        {data.author}
+        {data.role && <span className={quoteRole({ variant: data.variant })}>{data.role}</span>}
+      </figcaption>
+    </figure>
+  );
+
+  return (
+    <section className="bg-bg py-12 md:py-16">
+      <div className="mx-auto max-w-content px-6">
+        <h2 className="text-center font-display text-3xl md:text-h2 font-semibold text-ink">
+          О нас
+        </h2>
+        <div className="mx-auto mt-4 mb-10 h-[1.5px] w-16 bg-accent opacity-85 rounded-full" />
+
+        {showPhotoColumn ? (
+          <div className="grid gap-9 md:grid-cols-[3fr_2fr] items-center">
+            {figureEl}
+            <PhotoFrame photoUrl={data.photoUrl} alt={data.author} />
+          </div>
+        ) : (
+          <div className="mx-auto max-w-[720px]">{figureEl}</div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function PhotoFrame({
+  photoUrl,
+  alt,
+}: {
+  readonly photoUrl?: string | undefined;
+  readonly alt: string;
+}) {
+  return (
+    <div
+      className="
+        relative w-full h-[380px] md:h-[460px] rounded-xl overflow-hidden
+        bg-surface-hover border border-border
+        flex items-center justify-center
+      "
+    >
+      {photoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={photoUrl} alt={alt} className="w-full h-full object-cover" />
+      ) : (
+        <span className="text-muted font-display italic text-base px-6 text-center">
+          Фото {alt}
+          <br />
+          <small className="text-sm">(загрузим из CMS)</small>
+        </span>
+      )}
+    </div>
+  );
+}
+
+const defaultBody =
+  'Я являлась заводчиком восточноевропейских овчарок и основателем питомника ВЕО «Омская Дружина». Моя история с веэо началась более 30 лет назад, когда я ещё девочкой первый раз увидела овчарку — с тех пор я не переставала восхищаться её преданностью, умом и силой духа — с гордой любовью занимаюсь разведением ВЕО.';

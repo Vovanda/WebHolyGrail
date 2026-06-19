@@ -55,4 +55,17 @@
     margin: 16px auto 0;
     border-radius: 1px;
   }
+
+  /* Drop-cap (буквица) для Prose variant editorial-with-dropcap.
+   * Стиль 1:1 из veo-ui.css `.veo-desc p:first-of-type::first-letter`. */
+  .with-dropcap::first-letter {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-style: normal;
+    font-size: 64px;
+    float: left;
+    line-height: 0.9;
+    padding: 8px 12px 0 0;
+    color: var(--color-accent);
+  }
 }

@@ -22,6 +22,12 @@ export interface BlockNode {
    * Payload генерирует автоматически.
    */
   readonly id: string;
+  /**
+   * Данные блока — поля что мама заполнила в Payload-админке. Структура зависит
+   * от `blockType`; конкретный блок-компонент знает свой shape и читает через
+   * type-narrowing. Это **источник правды контента** (R0).
+   */
+  readonly data?: Readonly<Record<string, unknown>>;
 }
 
 /**

@@ -22,4 +22,13 @@ export type { SiteSettings, ContactsInfo, SocialLink } from './globals';
 
 export type { ThemeConfig, ThemeName } from './theme';
 
+export type {
+  SiteLayoutConfig,
+  PanelConfig,
+  PanelContent,
+  SlotName,
+  PanelVisibility,
+  PanelMobileStrategy,
+} from './layout';
+
 export type { FormSubmission, FormSubmissionStatus, FormSubmissionInput } from './forms';
