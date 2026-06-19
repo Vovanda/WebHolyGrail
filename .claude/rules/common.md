@@ -134,6 +134,19 @@ CMS отдаёт данные **в форме `contracts/`**, не в форме
 
 **`client/blocks/niche/` должна быть почти пустой.** Если она пухнет — значит обобщения не дожимаем.
 
+## R5+++ Темизация — через токены, не через `dark:` Tailwind
+
+**Тема = override CSS-переменных через `data-theme="<name>"` атрибут на `<html>`.** Компонент пишет `bg-bg text-ink` всегда — меняется только что эти токены значат.
+
+- ❌ **Никаких** `bg-white`, `bg-black`, `text-gray-900`, `bg-slate-50` — даже белый/чёрный приходят из токенов (`bg-bg`, `text-ink`).
+- ❌ **Никаких** `dark:` Tailwind-prefix'ов в компонентах — это второй параллельный канал темизации, дублирующий tokens.
+- ✅ Только `bg-bg`, `bg-surface`, `text-ink`, `text-muted`, `border-border`, `bg-accent`, etc — имена из `tokens.css`.
+- ✅ Темы добавляются в `tokens.css` как `:root[data-theme='dark'] { ... }` блоки. Контракт `SiteSettings.theme.mode = 'light' | 'dark' | 'auto'` управляет какой блок применяется.
+
+**Если в shadcn-копии встретилось `bg-background text-foreground` / `bg-primary text-primary-foreground`** — переименовать на наши имена при копировании. Никаких параллельных систем токенов в проекте.
+
+**Гарантия:** при включении любой темы (dark, contrast, sepia) **ни один компонент не переписывается**.
+
 ## R6. Без догм
 
 - **Inline `style`** — для рантайм-динамики (`style={{ '--col': cols }}`).

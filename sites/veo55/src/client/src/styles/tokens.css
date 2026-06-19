@@ -77,10 +77,56 @@
   --vine-axis-r: 170px;
 }
 
-@media (prefers-color-scheme: dark) {
-  /* Dark theme отложим до Шага 6+ (R7/R9). Сейчас сайт визитки — dark избыточен.
-   * Заглушка даёт безопасный фолбэк если браузер запросит dark. */
-  :root {
-    color-scheme: light;
-  }
+/* ────────────────────────────────────────────────────────────────────────────
+ * Theme system — `[data-theme="<name>"]` на <html>.
+ *
+ * Дефолт = light (значения в `:root` выше).
+ * Темы переопределяют CSS-переменные, не Tailwind config / не компоненты.
+ * Компонент видит `bg-bg text-ink` всегда — меняется только что эти токены значат.
+ *
+ * Bootstrap:
+ *   - ThemeBootstrap (в `app/layout.tsx`) инлайнит script в <head> до first paint.
+ *   - Читает localStorage('hg-theme') → если есть, проставляет атрибут синхронно.
+ *   - Иначе использует SiteSettings.theme.mode (приходит с SSR).
+ *
+ * Доступные темы: light (дефолт, выше) и dark (ниже, заготовка).
+ * Конкретные цвета dark подбираем когда первый клиент захочет dark-режим (R9).
+ * Сейчас здесь — структурный shell с inverted-палитрой по принципу, не точная подгонка.
+ *
+ * TODO (holygrail-themepalette): Шаг 6+ — переменные станут SSR-инжектируемыми
+ * из Payload-глобала Tokens (color-picker'ы в админке). На сервере при рендере
+ * добавляется <style id="hg-tokens">:root{--color-accent: <hex>;...}</style>
+ * перед этим файлом → override без правки кода. Тогда админ меняет брендинг
+ * прямо в CMS, без участия разработчика. См. reference/roadmap-tokens-editor.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-bg: #1a1612; /* тёмный шоколад (инвертированный cream) */
+  --color-surface: #221c17; /* приподнятая плашка */
+  --color-surface-hover: #2d251d;
+  --color-ink: #f5ebd9; /* светлый кремовый текст */
+  --color-muted: #a89d8b; /* приглушённый тёплый */
+  --color-border: #3a322a;
+
+  /* accent остаётся янтарным — он узнаваем и читается на тёмном */
+  --color-accent: #e4b54a;
+  --color-accent-hover: #c89a35;
+  --color-accent-soft: #4a3a1e; /* затемнённый янтарь для бейджей */
+
+  --color-success: #5ab86d;
+  --color-success-soft: #1f3a26;
+
+  --color-vk: #4a9eff;
+  --color-vk-hover: #2d7fd6;
+
+  --color-danger: #d96a6a;
+
+  --color-selection-bg: #f5ebd9;
+  --color-selection-fg: #1a1612;
 }
+
+/* Auto-mode: если SiteSettings.theme.mode='auto' и юзер не переопределил —
+ * проставляется data-theme="dark" через ThemeBootstrap по prefers-color-scheme.
+ * Поэтому отдельный @media-блок не нужен — всё через атрибут. */

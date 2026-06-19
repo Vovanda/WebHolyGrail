@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Cormorant_Garamond, Inter, Caveat } from 'next/font/google';
 
 import { getSiteSettings } from '@/lib/api-client';
+import { ThemeBootstrap, DEFAULT_THEME_CONFIG } from '@/lib/theme-bootstrap';
 import '@/styles/globals.css';
 
 /**
@@ -49,12 +50,21 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // SiteSettings приходит из CMS (R3 — через @veo55/contracts).
+  // Если CMS отвалилась или global ещё не заполнен — используем дефолты, не падаем.
+  const settings = await getSiteSettings().catch(() => null);
+  const themeConfig = settings?.theme ?? DEFAULT_THEME_CONFIG;
+
   return (
     <html
       lang="ru"
       className={`${fontDisplay.variable} ${fontBody.variable} ${fontScript.variable}`}
     >
+      <head>
+        {/* Synchronous theme bootstrap — runs before first paint, kills FOUC. */}
+        <ThemeBootstrap config={themeConfig} />
+      </head>
       <body className="min-h-screen flex flex-col font-sans">{children}</body>
     </html>
   );

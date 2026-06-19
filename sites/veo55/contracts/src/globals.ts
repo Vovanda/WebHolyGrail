@@ -1,5 +1,6 @@
 import type { MediaRef } from './media';
 import type { LinkRef } from './blocks';
+import type { ThemeConfig } from './theme';
 
 /**
  * Глобальные настройки сайта — синглтон. Источник правды — Payload Global `SiteSettings`.
@@ -22,6 +23,8 @@ export interface SiteSettings {
   readonly footerNav?: readonly LinkRef[];
   /** Соцсети для footer. */
   readonly social?: readonly SocialLink[];
+  /** Конфигурация темы (light/dark/auto + user-toggle). */
+  readonly theme?: ThemeConfig;
 }
 
 export interface ContactsInfo {

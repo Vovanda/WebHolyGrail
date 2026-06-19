@@ -12,32 +12,14 @@
  * 3. Reэкспортировать здесь.
  */
 
-export type {
-  MediaDoc,
-  MediaSize,
-  MediaRef,
-} from './media';
+export type { MediaDoc, MediaSize, MediaRef } from './media';
 
-export type {
-  BlockNode,
-  LayoutBlock,
-  ImageRef,
-  LinkRef,
-} from './blocks';
+export type { BlockNode, LayoutBlock, ImageRef, LinkRef } from './blocks';
 
-export type {
-  PageDoc,
-  PageSeo,
-} from './pages';
+export type { PageDoc, PageSeo } from './pages';
 
-export type {
-  SiteSettings,
-  ContactsInfo,
-  SocialLink,
-} from './globals';
+export type { SiteSettings, ContactsInfo, SocialLink } from './globals';
 
-export type {
-  FormSubmission,
-  FormSubmissionStatus,
-  FormSubmissionInput,
-} from './forms';
+export type { ThemeConfig, ThemeName } from './theme';
+
+export type { FormSubmission, FormSubmissionStatus, FormSubmissionInput } from './forms';
