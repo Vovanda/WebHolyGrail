@@ -43,13 +43,17 @@ export async function LitterCardBlock({
   const litterRef = node.data?.litter;
   const showSold = node.data?.showSold ?? false;
 
-  // CMS populated relation возвращает объект; если строка id — тянем сами.
-  const litter: LitterDoc | null =
-    typeof litterRef === 'object' && litterRef !== null
-      ? (litterRef as LitterDoc)
-      : typeof litterRef === 'string'
-        ? await getLitterById(litterRef)
+  // Всегда тянем сами с depth=2 чтобы получить populated mother/father (вплоть до
+  // Dogs+Media). Родительский getPageBySlug ходит с depth=1 и расходует его на
+  // сам блок → relation внутри Litter возвращается id-строкой, без имени и регалий.
+  const litterId: string | null =
+    typeof litterRef === 'string'
+      ? litterRef
+      : litterRef && typeof litterRef === 'object'
+        ? String((litterRef as { id?: string | number }).id ?? '')
         : null;
+
+  const litter: LitterDoc | null = litterId ? await getLitterById(litterId) : null;
 
   if (!litter) {
     return process.env.NODE_ENV === 'development' ? (

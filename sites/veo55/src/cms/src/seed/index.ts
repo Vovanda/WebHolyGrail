@@ -225,8 +225,187 @@ async function main() {
     await payload.create({ collection: 'pages', data: homeData as any });
   }
 
+  // ── Помёт «Литера Н, 2026» (Чипса) ─────────────────────────────
+  // Первый живой помёт для проверки end-to-end:
+  //   Dogs (Chipsa, Bars) → Litter с nested puppies (3 шт.: avail, reserved, sold)
+  //                       → Page /litera-n-2026 с LitterCard + Prose «отборное поведение»
+  await seedChipsaLitter(payload);
+
   console.log('[seed] done.');
   process.exit(0);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function seedChipsaLitter(payload: any) {
+  console.log('[seed] Помёт Чипсы (литера Н, 2026)');
+
+  // 1. Родители — Dogs
+  const motherSlug = 'chipsa';
+  const fatherSlug = 'bars';
+
+  const existingMother = await payload.find({
+    collection: 'dogs',
+    where: { slug: { equals: motherSlug } },
+    limit: 1,
+  });
+  let motherId = existingMother.docs[0]?.id;
+  if (!motherId) {
+    console.log(`[seed]   creating dog "${motherSlug}"`);
+    const created = await payload.create({
+      collection: 'dogs',
+      data: {
+        name: 'Чипса',
+        slug: motherSlug,
+        sex: 'female',
+        color: 'cheprachny',
+        titles: [
+          { text: 'Чемпион РКФ' },
+          { text: 'Юный чемпион России' },
+          { text: 'Победитель ВЕО-монопородной выставки' },
+        ],
+        _status: 'published',
+      },
+    });
+    motherId = created.id;
+  } else {
+    console.log(`[seed]   dog "${motherSlug}" exists (id=${motherId})`);
+  }
+
+  const existingFather = await payload.find({
+    collection: 'dogs',
+    where: { slug: { equals: fatherSlug } },
+    limit: 1,
+  });
+  let fatherId = existingFather.docs[0]?.id;
+  if (!fatherId) {
+    console.log(`[seed]   creating dog "${fatherSlug}"`);
+    const created = await payload.create({
+      collection: 'dogs',
+      data: {
+        name: 'Барс',
+        slug: fatherSlug,
+        sex: 'male',
+        color: 'cherny',
+        titles: [{ text: 'Чемпион России' }, { text: 'Рабочий класс' }],
+        _status: 'published',
+      },
+    });
+    fatherId = created.id;
+  } else {
+    console.log(`[seed]   dog "${fatherSlug}" exists (id=${fatherId})`);
+  }
+
+  // 2. Помёт
+  const litterSlug = 'litera-n-2026';
+  const existingLitter = await payload.find({
+    collection: 'litters',
+    where: { slug: { equals: litterSlug } },
+    limit: 1,
+  });
+
+  const litterData = {
+    title: 'Помёт литера Н, 2026',
+    slug: litterSlug,
+    dob: '2026-03-15T00:00:00.000Z',
+    status: 'active' as const,
+    mother: motherId,
+    father: fatherId,
+    showMotherTitles: true,
+    showMotherDescription: false,
+    showFatherTitles: true,
+    showFatherDescription: false,
+    puppies: [
+      {
+        name: 'Найра',
+        sex: 'female' as const,
+        color: 'cheprachny' as const,
+        state: 'available' as const,
+        notes: 'Спокойная, контактная, лидер на прогулке',
+      },
+      {
+        name: 'Норд',
+        sex: 'male' as const,
+        color: 'cherny' as const,
+        state: 'reserved' as const,
+        notes: 'Крупный, активный',
+      },
+      {
+        name: 'Найт',
+        sex: 'male' as const,
+        color: 'zonarny' as const,
+        state: 'sold' as const,
+        notes: 'Уехал в Калининград',
+      },
+    ],
+    _status: 'published' as const,
+  };
+
+  let litterId: string;
+  if (existingLitter.docs.length > 0) {
+    litterId = existingLitter.docs[0].id;
+    if (FORCE) {
+      console.log(`[seed]   litter exists (id=${litterId}) — FORCE updating`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await payload.update({ collection: 'litters', id: litterId, data: litterData as any });
+    } else {
+      console.log(
+        `[seed]   litter exists (id=${litterId}) — skip (SEED_FORCE=1 чтобы перезаписать)`,
+      );
+    }
+  } else {
+    console.log('[seed]   creating litter');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const created = await payload.create({ collection: 'litters', data: litterData as any });
+    litterId = created.id;
+  }
+
+  // 3. Страница помёта
+  const pageSlug = litterSlug;
+  const existingPage = await payload.find({
+    collection: 'pages',
+    where: { slug: { equals: pageSlug } },
+    limit: 1,
+  });
+
+  const pageData = {
+    title: 'Помёт литера Н, 2026 (Чипса)',
+    slug: pageSlug,
+    blocks: [
+      {
+        blockType: 'litter-card' as const,
+        litter: litterId,
+        showSold: false,
+      },
+      // «Произвольная вставка» (R: «секция для произвольного блока в рамке»):
+      // делается соседним Prose-блоком, не полем внутри LitterCard.
+      {
+        blockType: 'prose' as const,
+        body: 'Помёт «Чипса» — особенный: РКФ присвоила ему статус «Отборное разведение / Selected Breeding», что доступно единицам помётов ВЕО в России. Это значит, что родители прошли максимально жёсткие проверки здоровья, рабочих качеств и характера, а сами щенки растут под контролем эксперта-кинолога с первого дня жизни.',
+        variant: 'editorial-with-dropcap',
+      },
+    ],
+    seo: {
+      title: 'Помёт литера Н 2026 (Чипса × Барс) · Питомник «Омская Дружина»',
+      description:
+        'Щенки восточноевропейской овчарки от пары Чипса × Барс, помёт литера Н 2026. Отборное разведение РКФ. Питомник «Омская Дружина», Омск.',
+    },
+    _status: 'published' as const,
+  };
+
+  if (existingPage.docs.length > 0) {
+    const id = existingPage.docs[0].id;
+    if (FORCE) {
+      console.log(`[seed]   page exists (id=${id}) — FORCE updating`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await payload.update({ collection: 'pages', id, data: pageData as any });
+    } else {
+      console.log(`[seed]   page exists (id=${id}) — skip`);
+    }
+  } else {
+    console.log('[seed]   creating page');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await payload.create({ collection: 'pages', data: pageData as any });
+  }
 }
 
 main().catch((err) => {
