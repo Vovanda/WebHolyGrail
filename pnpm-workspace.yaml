@@ -6,3 +6,8 @@ packages:
   - "sites/*/src/client"
   - "sites/*/src/cms"
   - "packages/*"
+
+# pnpm 11 security: postinstall scripts must be opted-in per package.
+# esbuild — native binary download for Vitest/Tinypool.
+allowBuilds:
+  esbuild: true

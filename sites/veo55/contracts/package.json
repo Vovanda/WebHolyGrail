@@ -1,0 +1,25 @@
+{
+  "name": "@veo55/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Типы-разъём между client (Next) и cms (Payload). Однонаправленная зависимость: client/cms импортируют отсюда, обратной зависимости нет (R3).",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./pages": "./src/pages.ts",
+    "./media": "./src/media.ts",
+    "./blocks": "./src/blocks.ts",
+    "./globals": "./src/globals.ts",
+    "./forms": "./src/forms.ts"
+  },
+  "scripts": {
+    "lint": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5"
+  }
+}
