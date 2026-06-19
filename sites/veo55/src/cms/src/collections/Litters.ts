@@ -40,7 +40,7 @@ export const Litters: CollectionConfig = {
       type: 'text',
       required: true,
       admin: {
-        description: 'Например: «Помёт литера Н, 2026» или «Чипса × Барс, осень 2026».',
+        description: 'Отображается в шапке секции помёта и в админ-списке.',
       },
     },
     {
@@ -51,7 +51,7 @@ export const Litters: CollectionConfig = {
       unique: true,
       index: true,
       admin: {
-        description: 'Часть URL после /puppies/. Например: litera-n-2026 или chipsa-2026.',
+        description: 'Часть URL после /puppies/. Латиница, цифры, дефисы.',
       },
     },
     {
@@ -254,7 +254,7 @@ export const Litters: CollectionConfig = {
           label: 'Заметка под карточкой',
           type: 'text',
           admin: {
-            description: 'Короткая фраза («крупный, активный», «домашний любимец»). Опционально.',
+            description: 'Короткая характеристика щенка. Опционально.',
           },
         },
       ],

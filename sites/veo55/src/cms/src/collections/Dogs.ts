@@ -44,7 +44,7 @@ export const Dogs: CollectionConfig = {
       unique: true,
       index: true,
       admin: {
-        description: 'Часть URL после /dog/. Без ведущего слэша. Например: zorka-veo.',
+        description: 'Часть URL после /dog/. Латиница, цифры, дефисы.',
       },
     },
     {
@@ -121,7 +121,7 @@ export const Dogs: CollectionConfig = {
           label: 'Место / организация',
           type: 'text',
           admin: {
-            description: 'Например: «Москва, Евразия 2024» или «РКФ-FCI».',
+            description: 'Город и название мероприятия, либо организация.',
           },
         },
       ],
