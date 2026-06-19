@@ -7,57 +7,55 @@
 @layer base {
   html {
     color-scheme: light;
+    scrollbar-gutter: stable;
+    background-color: var(--color-page-bg);
   }
   body {
-    background-color: var(--color-bg);
+    position: relative;
+    min-height: 100vh;
+    background: transparent;
     color: var(--color-ink);
     font-family: var(--font-sans);
     font-size: var(--text-body);
     line-height: var(--line-height-body);
+    padding-top: 12px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    position: relative;
   }
-  /* Декоративные лапки фоном страницы — низкий opacity (≤0.05), не отвлекает.
-   * paw-trail.svg 80×400 повторяется vertical по бокам viewport. */
-  body::before {
-    content: '';
+  .hg-paw-trail {
     position: fixed;
     inset: 0;
     pointer-events: none;
     z-index: 0;
-    background-image: url('/decor/paw-trail.svg'), url('/decor/paw-trail.svg');
-    background-repeat: repeat-y, repeat-y;
-    background-position:
-      left 24px top,
-      right 24px top;
-    background-size: 80px auto;
-    opacity: 0.05;
+    overflow: hidden;
   }
-  /* Декоративные лозы по бокам — только на широких экранах (≥1280px).
-   * vine SVGs уже содержат opacity 0.35 и amber цвет (#A8802A) внутри.
-   * z-index: 0 — под контентом (body > * имеет z-index: 1). */
-  @media (min-width: 1280px) {
-    body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-      background-image: url('/decor/vine-left.svg'), url('/decor/vine-right.svg');
-      background-repeat: no-repeat, no-repeat;
-      background-position:
-        left 0 top,
-        right 0 top;
-      background-size:
-        80px auto,
-        80px auto;
+  .hg-paw-trail > span {
+    position: absolute;
+    transform-origin: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--hg-rot, 0deg)) scale(0.7) translateY(8px);
+    animation-name: hg-paw-step;
+    animation-duration: var(--hg-dur, 8s);
+    animation-delay: var(--hg-delay, 0s);
+    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
+  }
+  @keyframes hg-paw-step {
+    /* Появляется со scale-overshoot, остаётся (forwards). */
+    0% {
+      opacity: 0;
+      transform: translate(-50%, -50%) rotate(var(--hg-rot, 0deg)) scale(0.7) translateY(8px);
     }
-  }
-  /* Контент над декоративным фоном. */
-  body > * {
-    position: relative;
-    z-index: 1;
+    60% {
+      opacity: var(--hg-op, 0.13);
+      transform: translate(-50%, -50%) rotate(var(--hg-rot, 0deg)) scale(1.02) translateY(0);
+    }
+    100% {
+      opacity: var(--hg-op, 0.13);
+      transform: translate(-50%, -50%) rotate(var(--hg-rot, 0deg)) scale(1) translateY(0);
+    }
   }
   h1,
   h2,
@@ -85,6 +83,87 @@
 }
 
 @layer components {
+  /* Inline-emoji с фиксированным baseline-fix. Из veo-ui.css `.emoji`. */
+  .veo-emoji {
+    font-family: var(--font-emoji);
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1;
+    display: inline-block;
+    vertical-align: -2px;
+  }
+
+  /* Лозы по краям секции. 1:1 из оригинала veo-ui.css L21-49.
+   * `.hg-vine` — обе стороны, `.hg-vine-l` — слева, `.hg-vine-r` — справа.
+   * --hg-vine-peek: на узких экранах лоза заходит в контент на 80px,
+   * на ≥1280px — целиком в боковом воздухе. */
+  .hg-vine,
+  .hg-vine-l,
+  .hg-vine-r {
+    position: relative;
+    /* Заход лозы внутрь секции. На широких peek=90 (центр на ~+35px внутри),
+     * на узких 170 (центр на +115). */
+    --hg-vine-peek: clamp(90px, calc((1280px - 100vw) / 640 * 80 + 90px), 170px);
+    --hg-vine-w: 110px;
+    /* Tile = 2 листика по высоте 110 = 220px. Offset L↔R = 110px (один листик). */
+    --hg-vine-tile: 220px;
+    /* Сдвиг чётных (вторых) лоз в каждом тропу X-внутрь, к центру секции. */
+    --hg-vine-inset: 70px;
+  }
+  .hg-vine > *,
+  .hg-vine-l > *,
+  .hg-vine-r > * {
+    position: relative;
+    z-index: 1;
+  }
+  /* Левая сторона: сверху-вниз L → R → L → R через два repeat-y слоя с offset. */
+  .hg-vine::before,
+  .hg-vine-l::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: calc(100% - var(--hg-vine-peek));
+    width: var(--hg-vine-w);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.32;
+    background-image:
+      url('https://cdn.veo55.ru/vines/vine-left.webp'),
+      url('https://cdn.veo55.ru/vines/vine-right.webp');
+    background-repeat: repeat-y, repeat-y;
+    background-position:
+      right 0 top 55px,
+      right var(--hg-vine-inset) top calc(var(--hg-vine-tile) / 2 + 55px);
+    background-size:
+      var(--hg-vine-w) var(--hg-vine-tile),
+      var(--hg-vine-w) var(--hg-vine-tile);
+  }
+  /* Правая: на y=0 — vine-right, на y=tile/2 — vine-left. Противофаза с левой
+   * стороной (слева на тех же y стоят L, R соответственно). */
+  .hg-vine::after,
+  .hg-vine-r::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(100% - var(--hg-vine-peek));
+    width: var(--hg-vine-w);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.32;
+    background-image:
+      url('https://cdn.veo55.ru/vines/vine-right.webp'),
+      url('https://cdn.veo55.ru/vines/vine-left.webp');
+    background-repeat: repeat-y, repeat-y;
+    background-position:
+      left 0 top 0,
+      left var(--hg-vine-inset) top calc(var(--hg-vine-tile) / 2);
+    background-size:
+      var(--hg-vine-w) var(--hg-vine-tile),
+      var(--hg-vine-w) var(--hg-vine-tile);
+  }
+
   /* Линия-divider под H1/H2 — заменила ❦ fleurons (Володе не зашли в veo55).
    * Использовать как: <h1 class="veo-heading">…</h1> или вручную добавить элемент. */
   .veo-heading-line::after {
