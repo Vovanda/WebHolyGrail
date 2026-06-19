@@ -220,6 +220,21 @@ function ParentsBar({
 }) {
   const motherName = typeof mother === 'object' ? mother.name : null;
   const fatherName = typeof father === 'object' ? father.name : null;
+  /**
+   * Перенос имён собак только по пробелу: «БЕТЭЛЬГЕЙЗЕ ЛАЭРС МАРС-АРЭС» не должно
+   * разрываться по дефису на «МАРС-» + «АРЭС». Браузер по умолчанию ломает по
+   * дефису как валидную точку переноса. Решение — wrap каждого слова в
+   * `whitespace-nowrap inline-block`, тогда дефис внутри слова остаётся связным.
+   */
+  const renderWordWrapped = (name: string | null) =>
+    name
+      ? name.split(/\s+/).map((word, i, arr) => (
+          <span key={i} className="whitespace-nowrap inline-block">
+            {word}
+            {i < arr.length - 1 ? ' ' : ''}
+          </span>
+        ))
+      : '—';
   const hasAnyDetails =
     (showMotherTitles && typeof mother === 'object' && (mother.titles?.length ?? 0) > 0) ||
     (showFatherTitles && typeof father === 'object' && (father.titles?.length ?? 0) > 0) ||
@@ -238,14 +253,14 @@ function ParentsBar({
         <div>
           <p className="font-sans uppercase tracking-[0.1em] text-[11px] text-muted">Отец</p>
           <h3 className="font-display text-xl md:text-2xl font-semibold text-ink mt-1 leading-tight">
-            {fatherName ?? '—'}
+            {renderWordWrapped(fatherName)}
           </h3>
         </div>
         <div className="font-display text-2xl md:text-3xl text-muted/70 select-none">×</div>
         <div>
           <p className="font-sans uppercase tracking-[0.1em] text-[11px] text-muted">Мать</p>
           <h3 className="font-display text-xl md:text-2xl font-semibold text-ink mt-1 leading-tight">
-            {motherName ?? '—'}
+            {renderWordWrapped(motherName)}
           </h3>
         </div>
       </div>
