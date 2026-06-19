@@ -4,6 +4,7 @@ import { QuoteBlock } from './Quote';
 import { TimelineBlock } from './Timeline';
 import { ProseBlock } from './Prose';
 import { WaveDividerBlock } from './WaveDivider';
+import { LitterCardBlock } from './LitterCard';
 
 /**
  * Все доступные блоки для Pages.blocks. Добавляется здесь, появляется в
@@ -20,4 +21,5 @@ export const PAGE_BLOCKS = [
   TimelineBlock,
   ProseBlock,
   WaveDividerBlock,
+  LitterCardBlock,
 ];

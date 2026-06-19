@@ -5,6 +5,7 @@ import * as migration_20260619_142243_wave_divider_flipped from './20260619_1422
 import * as migration_20260619_144314_contacts_hours from './20260619_144314_contacts_hours';
 import * as migration_20260619_171022_dogs_collection from './20260619_171022_dogs_collection';
 import * as migration_20260619_171313_litters_collection from './20260619_171313_litters_collection';
+import * as migration_20260619_171505_litter_card_block from './20260619_171505_litter_card_block';
 
 export const migrations = [
   {
@@ -41,5 +42,10 @@ export const migrations = [
     up: migration_20260619_171313_litters_collection.up,
     down: migration_20260619_171313_litters_collection.down,
     name: '20260619_171313_litters_collection',
+  },
+  {
+    up: migration_20260619_171505_litter_card_block.up,
+    down: migration_20260619_171505_litter_card_block.down,
+    name: '20260619_171505_litter_card_block',
   },
 ];
