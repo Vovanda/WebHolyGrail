@@ -1,23 +1,37 @@
 /*
- * Design tokens — единый источник правды для цвета/отступа/радиуса/типографики.
- * Хардкодов значений в JSX / Tailwind config быть не должно (R2).
- * Палитра подобрана близко к визуалу veo55.ru (тёплый натуральный, не AI-generic).
+ * Design tokens — единый источник правды для цвета/отступа/радиуса/типографики (R2).
+ *
+ * Значения взяты ИЗ ЖИВОГО veo55 (`veo55/src/assets/veo-ui.css:root`), не угаданы.
+ * См. holy-grail/reference/veo55-visual-pasport в MCP для обоснования каждого.
+ *
+ * Шрифт-переменные (`--font-display`, `--font-sans`, `--font-script`) выставляются
+ * через next/font в `app/layout.tsx` — здесь только fallback-стек.
  */
 
 :root {
-  /* ── Цвет (light theme) ─────────────────────────── */
-  --color-bg: #faf8f3; /* тёплый off-white */
-  --color-surface: #ffffff;
-  --color-ink: #1f1a14; /* почти чёрный, тёплый */
-  --color-muted: #6b6259;
-  --color-border: #e7e0d3;
+  /* ── Цвет ───────────────────────────────────────── */
+  --color-bg: #fbfaf6; /* cream — фон страницы */
+  --color-surface: #ffffff; /* paper — плашка/карточка */
+  --color-surface-hover: #f0e8d6; /* soft — hover-фон */
+  --color-ink: #2b221a; /* тёплый шоколад — текст и заголовки */
+  --color-muted: #7a6f5f; /* warm taupe — мета */
+  --color-border: #e5dcc9; /* бежевый stone — бордер */
 
-  --color-primary: #4a3a26; /* тёмно-коричневый — основной */
-  --color-primary-fg: #faf8f3;
-  --color-accent: #c89556; /* охра — акценты, CTA */
+  --color-accent: #d4a437; /* горчично-янтарный — CTA, акцент */
+  --color-accent-hover: #a8802a; /* hover */
+  --color-accent-soft: #fbefc9; /* бледный янтарь — бейджи */
+
+  --color-success: #1c8a3b;
+  --color-success-soft: #e8f6ec;
+
+  --color-vk: #0077ff;
+  --color-vk-hover: #0062cc;
 
   --color-danger: #b54848;
-  --color-success: #3f7c43;
+
+  /* Selection: тёмный фон + светлый текст, чтобы янтарь не сливался. */
+  --color-selection-bg: #2b221a;
+  --color-selection-fg: #faf8f2;
 
   /* ── Радиусы ────────────────────────────────────── */
   --radius-sm: 4px;
@@ -27,19 +41,45 @@
   --radius-full: 9999px;
 
   /* ── Типографика ────────────────────────────────── */
-  --font-sans:
-    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --font-display: 'PT Serif', Georgia, 'Times New Roman', Times, serif;
+  /* Имена переменных --font-display/--font-sans/--font-script ПЕРЕЗАПИСЫВАЮТСЯ
+   * в layout.tsx через next/font (CSS vars). Здесь — fallback-стек на случай если
+   * next/font не загрузился (offline / CSP). */
+  --font-display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter', -apple-system, 'Segoe UI', Roboto, system-ui, 'Helvetica Neue', sans-serif;
+  --font-script: 'Caveat', 'Brush Script MT', cursive; /* только подпись Ольги */
+
+  /* ── Размеры заголовков ─────────────────────────── */
+  --text-h1: 52px;
+  --text-h2: 38px;
+  --text-h3: 26px;
+  --text-body: 16px;
+  --line-height-body: 1.65;
 
   /* ── Контейнеры ─────────────────────────────────── */
-  --container-content: 72rem; /* 1152px — основной */
-  --container-wide: 90rem; /* 1440px — для hero */
+  --container-content: 880px; /* контентные страницы (faq, /catalog, /dog) */
+  --container-wide: 1300px; /* главная и широкие layouts (как .veo-home) */
+
+  /* ── Декор ──────────────────────────────────────── */
+  --decor-accent-line-w: 64px;
+  --decor-accent-line-h: 1.5px;
+  --decor-accent-line-opacity: 0.85;
+  --decor-vine-w: 110px;
+  --decor-vine-opacity: 0.5;
+  --decor-divider-h: 96px;
+
+  /* ── Соосность лоз с секциями (КРИТИЧЕСКОЕ) ─────── */
+  /* Ось стебля левой лозы = 150px от левого края wide-контейнера.
+   * Ось стебля правой лозы = 170px от правого края.
+   * Карусели, сетки карточек и любые секции внутри wide-контейнера должны
+   * иметь padding-left/right ≥ этих значений чтобы их визуальные края
+   * совпадали с осями лоз. См. holy-grail/reference/veo55-visual-pasport. */
+  --vine-axis-l: 150px;
+  --vine-axis-r: 170px;
 }
 
 @media (prefers-color-scheme: dark) {
-  /* Dark theme отложим до того момента когда понадобится — R7/R9.
-   * Сейчас сайт визитки, dark mode избыточен. Заглушка ниже даёт
-   * безопасный фолбэк если браузер запросит dark, чтобы не выглядело сломанным. */
+  /* Dark theme отложим до Шага 6+ (R7/R9). Сейчас сайт визитки — dark избыточен.
+   * Заглушка даёт безопасный фолбэк если браузер запросит dark. */
   :root {
     color-scheme: light;
   }
