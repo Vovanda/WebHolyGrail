@@ -1,0 +1,8 @@
+# Workspaces for Web Holy Grail monorepo.
+# Each site contributes three workspaces: contracts (shared types),
+# src/client (Next), src/cms (Payload). packages/* — shared libs (grow from sites).
+packages:
+  - "sites/*/contracts"
+  - "sites/*/src/client"
+  - "sites/*/src/cms"
+  - "packages/*"

@@ -1,0 +1,26 @@
+{
+  "name": "web-holy-grail",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Web Holy Grail — opinionated dev-среда для производства честных сайтов микробизнесу",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@11.8.0",
+  "engines": {
+    "node": ">=20.11.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter './sites/*' run dev",
+    "build": "pnpm --filter './sites/*' run build",
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test",
+    "smoke": "pnpm --filter veo55-client run smoke",
+    "compose:up": "infisical run -- docker compose -f sites/veo55/deploy/local/docker-compose.yml up -d",
+    "compose:down": "docker compose -f sites/veo55/deploy/local/docker-compose.yml down",
+    "compose:logs": "docker compose -f sites/veo55/deploy/local/docker-compose.yml logs -f"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/node": "^22.10.0"
+  }
+}

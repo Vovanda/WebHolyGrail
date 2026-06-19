@@ -26,7 +26,31 @@ WebHolyGrail/                   # монорепо-зонтик
 
 ## Старт
 
-> Заполнится по мере подъёма Шага 3 (см. PLAN).
+### Требования
+- Node ≥ 20.11 (рекомендация: 22 LTS)
+- pnpm ≥ 9 (включается через `corepack enable`)
+- Docker Desktop / Engine
+- Infisical CLI ([инструкция](https://infisical.com/docs/cli/overview))
+
+### Первый запуск (когда инфра поднята — Шаги 3+)
+```bash
+corepack enable
+pnpm install
+infisical login          # один раз
+pnpm compose:up           # client + cms + sqlite
+```
+
+### Полезные скрипты
+| Скрипт | Что делает |
+|---|---|
+| `pnpm dev` | dev-сервер для всех sites/* (Next + Payload) |
+| `pnpm build` | production-сборка |
+| `pnpm lint` | ESLint по всем workspace'ам |
+| `pnpm test` | Vitest по всем workspace'ам |
+| `pnpm smoke` | Playwright smoke (главная + админка открываются) |
+| `pnpm compose:up` | docker compose up -d (с подтянутыми Infisical-секретами) |
+| `pnpm compose:down` | остановить контейнеры |
+| `pnpm compose:logs` | логи всех контейнеров стримом |
 
 ## Секреты
 

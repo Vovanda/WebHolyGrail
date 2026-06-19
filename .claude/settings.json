@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(pnpm:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(node:*)",
+      "Bash(corepack:*)",
+      "Bash(tsc:*)",
+      "Bash(vitest:*)",
+      "Bash(eslint:*)",
+      "Bash(prettier:*)",
+      "Bash(playwright:*)",
+      "Bash(docker:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker-compose:*)",
+      "Bash(infisical:*)",
+      "Bash(winget:*)",
+      "Bash(choco:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(rsync:*)",
+      "Bash(plink:*)",
+      "Bash(pscp:*)",
+      "Bash(psftp:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(mkdir:*)",
+      "Bash(touch:*)",
+      "Bash(cp:*)",
+      "Bash(mv:*)",
+      "Bash(echo:*)",
+      "Bash(pwd)",
+      "Bash(date)",
+      "Bash(env)",
+      "Bash(which:*)",
+      "Bash(command:*)",
+      "PowerShell(*)",
+      "mcp__claude_ai_Memory__*",
+      "mcp__playwright__*"
+    ],
+    "deny": [
+      "Bash(rm -rf /:*)",
+      "Bash(rm -rf ~:*)",
+      "Bash(rm -rf /*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard HEAD*)"
+    ]
+  }
+}
