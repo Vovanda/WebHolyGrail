@@ -12,6 +12,7 @@ import { Users } from './collections/Users';
 import { Media } from './collections/Media';
 import { Pages } from './collections/Pages';
 import { FormSubmissions } from './collections/FormSubmissions';
+import { Dogs } from './collections/Dogs';
 import { SiteSettings } from './globals/SiteSettings';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -31,7 +32,7 @@ export default buildConfig({
       titleSuffix: '— Питомник veo55',
     },
   },
-  collections: [Users, Media, Pages, FormSubmissions],
+  collections: [Users, Media, Pages, FormSubmissions, Dogs],
   globals: [SiteSettings],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET ?? '',
