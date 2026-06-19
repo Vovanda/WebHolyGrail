@@ -12,7 +12,9 @@
     "./media": "./src/media.ts",
     "./blocks": "./src/blocks.ts",
     "./globals": "./src/globals.ts",
-    "./forms": "./src/forms.ts"
+    "./forms": "./src/forms.ts",
+    "./dogs": "./src/dogs.ts",
+    "./litters": "./src/litters.ts"
   },
   "scripts": {
     "lint": "tsc --noEmit",

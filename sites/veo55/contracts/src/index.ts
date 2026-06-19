@@ -32,3 +32,15 @@ export type {
 } from './layout';
 
 export type { FormSubmission, FormSubmissionStatus, FormSubmissionInput } from './forms';
+
+export type { DogDoc, DogTitle, DogSex, DogColor } from './dogs';
+
+export type {
+  LitterDoc,
+  LitterStatus,
+  Puppy,
+  PuppyState,
+  PairCard,
+  LitterCardBlockNode,
+  LitterPairImage,
+} from './litters';
