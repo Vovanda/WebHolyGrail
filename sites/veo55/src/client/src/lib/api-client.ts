@@ -1,4 +1,4 @@
-import type { PageDoc, SiteSettings } from '@veo55/contracts';
+import type { LitterDoc, PageDoc, SiteSettings } from '@veo55/contracts';
 
 /**
  * Минимальный клиент к Payload CMS REST API.
@@ -54,4 +54,25 @@ export async function getSiteSettings(): Promise<SiteSettings | null> {
   }
 
   return (await response.json()) as SiteSettings;
+}
+
+/**
+ * Получить помёт по id с populated родителями (depth=2 — Litter → Dogs → Media).
+ *
+ * @remarks
+ * Возвращает помёт независимо от `status` (фильтрация active/archived/hidden —
+ * на стороне рендера блока, а не запроса; админ может попросить превью скрытого
+ * помёта). `_status: published` Payload-доступа отрабатывает на read-уровне
+ * (см. `Litters.access.read`).
+ */
+export async function getLitterById(id: string): Promise<LitterDoc | null> {
+  const response = await fetch(`${CMS_URL}/api/litters/${encodeURIComponent(id)}?depth=2`, {
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  return (await response.json()) as LitterDoc;
 }

@@ -10,6 +10,7 @@ import { Quote } from '@/blocks/content/Quote';
 import { Timeline } from '@/blocks/content/Timeline';
 import { Prose } from '@/blocks/content/Prose';
 import { WaveDivider } from '@/blocks/content/WaveDivider';
+import { LitterCardBlock } from '@/blocks/content/LitterCardBlock';
 import { PageOutlet } from '@/blocks/system/PageOutlet';
 
 /**
@@ -32,6 +33,7 @@ const REGISTRY: Record<string, BlockRenderer> = {
   timeline: (node, settings) => <Timeline node={node} settings={settings} />,
   prose: (node, settings) => <Prose node={node} settings={settings} />,
   'wave-divider': (node, settings) => <WaveDivider node={node} settings={settings} />,
+  'litter-card': (node, settings) => <LitterCardBlock node={node} settings={settings} />,
   'page-outlet': (_node, _settings, children) => <PageOutlet>{children}</PageOutlet>,
 };
 
