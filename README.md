@@ -54,10 +54,12 @@ pnpm compose:up           # client + cms + sqlite
 
 ## Секреты
 
+Полная инструкция — [`docs/secrets/README.md`](./docs/secrets/README.md). Кратко:
+
 - Хранилище: **Infisical** (Cloud free на старте).
-- `.env` НИКОГДА не коммитим. `.env.example` — шаблон.
-- Локально: `infisical login`, дальше `pnpm dev` под `infisical run --`.
-- На VPS: `infisical run -- docker compose up -d`.
+- `.env` НИКОГДА не коммитим. `.env.example` — шаблон-документация (в git).
+- Локально: `infisical login` → `infisical init` в `sites/veo55/` → `infisical run --env=dev -- pnpm dev`.
+- На VPS: service-token + `infisical run --env=prod --token=$INFISICAL_TOKEN -- docker compose up -d`.
 
 ## Принципы
 

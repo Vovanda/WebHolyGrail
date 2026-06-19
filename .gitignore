@@ -6,7 +6,9 @@
 *.pem
 *.key
 *.ppk
-secrets/
+/secrets/
+**/secrets/
+!docs/secrets/
 .infisical.json
 
 # --- Node / pnpm ---
