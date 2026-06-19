@@ -37,6 +37,8 @@ export interface ContactsInfo {
   readonly email?: string;
   /** Физический адрес одной строкой. */
   readonly address?: string;
+  /** Часы работы одной строкой: «ПН-ВС 11:00–22:00». */
+  readonly hours?: string;
   /** Карта (Yandex/Google) — embed URL или координаты. */
   readonly mapEmbedUrl?: string;
 }
