@@ -71,43 +71,44 @@ export async function LitterCardBlock({
     return true;
   });
 
-  const hasPair = Boolean(resolveMediaUrl(litter.pairCard?.image));
+  const pairImages = (litter.pairCard?.images ?? []).filter((it) => resolveMediaUrl(it.image));
+  const hasPair = pairImages.length > 0;
   const descriptionParagraphs = lexicalToParagraphs(litter.description);
   const dobLabel = formatDob(litter.dob);
   const pairAndSinglePuppy = hasPair && visiblePuppies.length === 1;
 
   return (
-    <section className="bg-bg py-12 md:py-20">
-      <div className="mx-auto max-w-wide px-6">
-        <header className="text-center mb-8 md:mb-12">
-          <h2 className="font-display text-3xl md:text-h2 font-semibold text-ink">
+    /**
+     * Вертикальные отступы:
+     *  - top больше bottom — секция «дышит» от предыдущего блока (hero/wave),
+     *    к следующему блоку («О нас») подходит **плотнее**, иначе образуется
+     *    пустыня между секциями (фидбек Володи 2026-06-19).
+     *  - bottom 36–48px укладывается в бренд-правило veo55 (32 mobile / 48 desktop
+     *    между секциями), pair с pt квоты «О нас» даёт читабельный шов без воздуха.
+     */
+    <section className="bg-bg pt-12 md:pt-16 pb-9 md:pb-12">
+      <div className="mx-auto max-w-[1150px] px-6">
+        <header className="text-center mb-10 md:mb-14">
+          <h2 className="font-display text-3xl md:text-h2 font-semibold text-ink leading-tight">
             {litter.title}
           </h2>
           {dobLabel && (
-            <p className="mt-2 font-sans text-muted text-sm md:text-base">
+            <p className="mt-3 font-display italic text-muted text-base md:text-lg">
               Дата рождения · {dobLabel}
             </p>
           )}
-          <div className="mx-auto mt-4 h-[1.5px] w-16 bg-accent opacity-85 rounded-full" />
+          <div className="mx-auto mt-5 h-[1.5px] w-16 bg-accent opacity-85 rounded-full" />
         </header>
 
         {pairAndSinglePuppy ? (
-          <div className="grid gap-8 lg:grid-cols-[3fr_2fr] items-start">
-            <PairCardFigure image={litter.pairCard!.image} caption={litter.pairCard?.caption} />
+          <div className="grid gap-10 lg:grid-cols-[3fr_2fr] items-start">
+            <PairCardGallery images={pairImages} caption={litter.pairCard?.caption} />
             <div className="mx-auto w-full max-w-md">
               <PuppyCard puppy={visiblePuppies[0]!} />
             </div>
           </div>
         ) : (
           <>
-            {hasPair && litter.pairCard?.image && (
-              <PairCardFigure
-                image={litter.pairCard.image}
-                caption={litter.pairCard.caption}
-                className="mb-10 md:mb-14"
-              />
-            )}
-
             <ParentsBar
               mother={litter.mother}
               father={litter.father}
@@ -117,8 +118,16 @@ export async function LitterCardBlock({
               showFatherDescription={litter.showFatherDescription}
             />
 
+            {hasPair && (
+              <PairCardGallery
+                images={pairImages}
+                caption={litter.pairCard?.caption}
+                className="mt-10 md:mt-14"
+              />
+            )}
+
             {descriptionParagraphs.length > 0 && (
-              <div className="mx-auto max-w-[880px] my-10 md:my-14 font-display italic text-ink text-lg md:text-[20px] leading-[1.55] text-left">
+              <div className="mx-auto max-w-[880px] mt-10 md:mt-14 font-display italic text-ink text-lg md:text-[20px] leading-[1.55] text-left">
                 {descriptionParagraphs.map((p, i) => (
                   <p key={i} className={i > 0 ? 'mt-4' : undefined}>
                     {p}
@@ -128,7 +137,7 @@ export async function LitterCardBlock({
             )}
 
             {visiblePuppies.length > 0 && (
-              <div className={puppyGridClass(visiblePuppies.length)}>
+              <div className={cn('mt-12 md:mt-16', puppyGridClass(visiblePuppies.length))}>
                 {visiblePuppies.map((p) => (
                   <PuppyCard key={p.id} puppy={p} />
                 ))}
@@ -141,27 +150,52 @@ export async function LitterCardBlock({
   );
 }
 
-function PairCardFigure({
-  image,
+/**
+ * PairCardGallery — рендер одной или нескольких визиток пары.
+ *
+ * - 1 визитка → центрированное крупное фото (как в `.veo-litter .vizitka` оригинала)
+ * - 2 → две колонки sm:grid-cols-2 равными ширинами
+ * - 3+ → grid 2 / 3 колонки с одинаковыми gap'ами
+ *
+ * Подпись (`caption`) — общая для всей галереи, по центру под изображениями.
+ * Радиус 14px и тёплая тень — параметры из legacy `.veo-litter .vizitka`.
+ */
+function PairCardGallery({
+  images,
   caption,
   className,
 }: {
-  readonly image: MediaRef;
+  readonly images: ReadonlyArray<{ readonly id: string; readonly image: MediaRef }>;
   readonly caption?: string | undefined;
   readonly className?: string | undefined;
 }) {
-  const url = resolveMediaUrl(image);
-  const alt = resolveMediaAlt(image) ?? 'Визитка пары';
-  if (!url) return null;
+  const items = images
+    .map((it) => ({ id: it.id, url: resolveMediaUrl(it.image), alt: resolveMediaAlt(it.image) }))
+    .filter((it): it is { id: string; url: string; alt: string | undefined } => Boolean(it.url));
+  if (items.length === 0) return null;
+
+  const single = items.length === 1;
+  const gridCols =
+    items.length === 2
+      ? 'sm:grid-cols-2'
+      : items.length === 3
+        ? 'sm:grid-cols-2 lg:grid-cols-3'
+        : 'sm:grid-cols-2 lg:grid-cols-3';
+
   return (
-    <figure className={cn('mx-auto max-w-3xl', className)}>
-      <img
-        src={url}
-        alt={alt}
-        className="w-full h-auto rounded-xl shadow-[0_4px_18px_rgba(43,34,26,0.08)]"
-      />
+    <figure className={cn('mx-auto', single ? 'max-w-[680px]' : 'max-w-5xl', className)}>
+      <div className={single ? '' : cn('grid gap-5 md:gap-6', gridCols)}>
+        {items.map((it) => (
+          <img
+            key={it.id}
+            src={it.url}
+            alt={it.alt ?? 'Визитка пары'}
+            className="w-full h-auto rounded-[14px] shadow-[0_8px_24px_rgba(43,34,26,0.12)]"
+          />
+        ))}
+      </div>
       {caption && (
-        <figcaption className="mt-3 text-center font-display italic text-muted text-[15px] md:text-base">
+        <figcaption className="mx-auto max-w-2xl mt-5 md:mt-6 text-center font-display italic text-muted text-[15px] md:text-base leading-relaxed">
           {caption}
         </figcaption>
       )}
@@ -184,25 +218,95 @@ function ParentsBar({
   readonly showFatherTitles: boolean;
   readonly showFatherDescription: boolean;
 }) {
+  const motherName = typeof mother === 'object' ? mother.name : null;
+  const fatherName = typeof father === 'object' ? father.name : null;
+  const hasAnyDetails =
+    (showMotherTitles && typeof mother === 'object' && (mother.titles?.length ?? 0) > 0) ||
+    (showFatherTitles && typeof father === 'object' && (father.titles?.length ?? 0) > 0) ||
+    (showMotherDescription && typeof mother === 'object') ||
+    (showFatherDescription && typeof father === 'object');
+
+  /**
+   * Сворачиваемое раскрытие — нативный <details>/<summary>.
+   * Server-component-совместимо (без 'use client').
+   * Регалии родителей по умолчанию скрыты — как на оригинале veo55.ru.
+   */
   return (
-    <div className="grid gap-6 md:gap-10 md:grid-cols-2 mb-2">
-      <ParentSlot
-        role="Мать"
-        dog={mother}
-        showTitles={showMotherTitles}
-        showDescription={showMotherDescription}
-      />
-      <ParentSlot
-        role="Отец"
-        dog={father}
-        showTitles={showFatherTitles}
-        showDescription={showFatherDescription}
-      />
+    <div className="mx-auto max-w-3xl">
+      {/* Шапка: «Отец × Мать» с именами, по центру. */}
+      <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center text-center mb-4">
+        <div>
+          <p className="font-sans uppercase tracking-[0.1em] text-[11px] text-muted">Отец</p>
+          <h3 className="font-display text-xl md:text-2xl font-semibold text-ink mt-1 leading-tight">
+            {fatherName ?? '—'}
+          </h3>
+        </div>
+        <div className="font-display text-2xl md:text-3xl text-muted/70 select-none">×</div>
+        <div>
+          <p className="font-sans uppercase tracking-[0.1em] text-[11px] text-muted">Мать</p>
+          <h3 className="font-display text-xl md:text-2xl font-semibold text-ink mt-1 leading-tight">
+            {motherName ?? '—'}
+          </h3>
+        </div>
+      </div>
+
+      {hasAnyDetails && (
+        <details className="group mt-7 [&_summary]:list-none [&_summary::-webkit-details-marker]:hidden">
+          {/**
+           * Disclosure-триггер по паттерну Timeline.ExpandToggle:
+           *  ─── Полные регалии родителей и подробности ⌄ ───
+           * Две тонкие hairline-линии по бокам визуально объединяют шапку
+           * родителей и развёрнутый блок — даёт «вырезку» вместо плоской
+           * школьной кнопки. Hover/open → шоколадно-янтарный текст бренда,
+           * chevron вращается на 180°.
+           */}
+          <summary
+            className={cn(
+              'group/sum flex items-center gap-5 cursor-pointer select-none',
+              'text-muted hover:text-accent group-open:text-ink transition-colors',
+            )}
+          >
+            <span aria-hidden className="flex-1 h-px bg-border" />
+            <span className="inline-flex items-center gap-2 font-display italic text-base md:text-[17px] tracking-[0.2px] whitespace-nowrap">
+              Полные регалии родителей и подробности
+              <svg
+                viewBox="0 0 20 20"
+                aria-hidden
+                className="h-4 w-4 transition-transform duration-300 ease-out group-open:rotate-180"
+              >
+                <path
+                  d="M5 7l5 6 5-6"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+            <span aria-hidden className="flex-1 h-px bg-border" />
+          </summary>
+          <div className="grid gap-8 md:gap-12 md:grid-cols-2 mt-7 md:mt-9">
+            <ParentDetails
+              role="Отец"
+              dog={father}
+              showTitles={showFatherTitles}
+              showDescription={showFatherDescription}
+            />
+            <ParentDetails
+              role="Мать"
+              dog={mother}
+              showTitles={showMotherTitles}
+              showDescription={showMotherDescription}
+            />
+          </div>
+        </details>
+      )}
     </div>
   );
 }
 
-function ParentSlot({
+function ParentDetails({
   role,
   dog,
   showTitles,
@@ -222,11 +326,11 @@ function ParentSlot({
   }
   const descriptionParagraphs = showDescription ? lexicalToParagraphs(dog.description) : [];
   return (
-    <div className="text-center md:text-left">
+    <div className="text-left">
       <p className="font-sans uppercase tracking-[0.08em] text-xs text-muted">{role}</p>
-      <h3 className="font-display text-2xl md:text-3xl font-semibold text-ink mt-1">{dog.name}</h3>
+      <h4 className="font-display text-lg md:text-xl font-semibold text-ink mt-1">{dog.name}</h4>
       {showTitles && dog.titles && dog.titles.length > 0 && (
-        <ul className="mt-2 space-y-0.5 font-display italic text-muted text-sm md:text-base">
+        <ul className="mt-2 space-y-0.5 font-display italic text-muted text-sm">
           {dog.titles.map((t, i) => (
             <li key={i}>
               {t.text}
@@ -250,7 +354,8 @@ function ParentSlot({
 
 function PuppyCard({ puppy }: { readonly puppy: Puppy }) {
   const url = resolveMediaUrl(puppy.photo);
-  const alt = resolveMediaAlt(puppy.photo) ?? puppy.name ?? 'Щенок';
+  const label = puppyLabel(puppy);
+  const alt = resolveMediaAlt(puppy.photo) ?? label;
   return (
     <article className="bg-surface rounded-xl overflow-hidden shadow-[0_4px_14px_rgba(43,34,26,0.06)] flex flex-col">
       <div className="relative aspect-[4/5] bg-surface-hover">
@@ -264,14 +369,7 @@ function PuppyCard({ puppy }: { readonly puppy: Puppy }) {
         <StateBadge state={puppy.state} />
       </div>
       <div className="px-4 py-3 flex-1 flex flex-col">
-        <div className="flex items-baseline justify-between gap-2">
-          <h4 className="font-display text-lg font-semibold text-ink truncate">
-            {puppy.name ?? (puppy.sex === 'male' ? 'Кобель' : 'Сука')}
-          </h4>
-          <span className="font-sans text-xs text-muted shrink-0">
-            {puppy.sex === 'male' ? 'кобель' : 'сука'}
-          </span>
-        </div>
+        <h4 className="font-display text-lg font-semibold text-ink leading-tight">{label}</h4>
         {puppy.notes && (
           <p className="mt-1 font-display italic text-muted text-sm leading-snug">{puppy.notes}</p>
         )}
@@ -280,21 +378,62 @@ function PuppyCard({ puppy }: { readonly puppy: Puppy }) {
   );
 }
 
+/**
+ * Лейбл щенка — кличка если задана, иначе computed из окраса и пола.
+ * Кличек у новорождённых щенков обычно ещё нет — традиция в питомниках обозначать
+ * их по окрасу и полу («зонарная девочка», «чепрачный мальчик»).
+ */
+function puppyLabel(puppy: Puppy): string {
+  if (puppy.name && puppy.name.trim()) return puppy.name;
+  const sexNoun = puppy.sex === 'male' ? 'мальчик' : 'девочка';
+  const colorAdj = puppyColorAdj(puppy.color, puppy.sex);
+  return colorAdj ? `${colorAdj} ${sexNoun}` : puppy.sex === 'male' ? 'Кобель' : 'Сука';
+}
+
+function puppyColorAdj(color: Puppy['color'] | undefined, sex: Puppy['sex']): string | null {
+  if (!color) return null;
+  const m = sex === 'male';
+  switch (color) {
+    case 'cheprachny':
+      return m ? 'Чепрачный' : 'Чепрачная';
+    case 'zonarny':
+      return m ? 'Зонарный' : 'Зонарная';
+    case 'cherny':
+      return m ? 'Чёрный' : 'Чёрная';
+    default:
+      return null;
+  }
+}
+
+/**
+ * StateBadge — статус щенка лентой поверх фото.
+ *
+ * Бренд-правила (veo55 `brand_palette.md`, `anti_grayscale_reserved.md`):
+ *  - Никакого grayscale на «забронированных» — это «траурно» (Володя 2026-06-17).
+ *  - Свободно → яркий горчично-янтарный (`--accent`) с лифт-тенью — «солнце над травой».
+ *  - Бронь → бледный янтарь (`--accent-soft` fon + `--accent-dark` text) — узнаваемый бренд,
+ *    но не конкурирует со «Свободно» по громкости.
+ *  - Продан (рендерится только когда `showSold`) → тёплый шоколад (`--ink/85`),
+ *    лента «архив».
+ *
+ *  Размещение — bottom-left ленточкой, как «печать» на фотобумаге.
+ *  Uppercase + letter-spacing 0.14em + тяжёлый вес — классическая «брендовая лента».
+ */
 function StateBadge({ state }: { readonly state: Puppy['state'] }) {
   if (state === 'hidden') return null;
-  const label =
-    state === 'available' ? 'Свободен' : state === 'reserved' ? 'Забронирован' : 'Продан';
+  const label = state === 'available' ? 'Свободен' : state === 'reserved' ? 'Бронь' : 'Продан';
   const tone =
     state === 'available'
-      ? 'bg-accent text-ink'
+      ? 'bg-accent text-ink shadow-[0_4px_14px_rgba(212,164,55,0.55)]'
       : state === 'reserved'
-        ? 'bg-surface text-ink border border-border'
-        : 'bg-ink/80 text-bg';
+        ? 'bg-accent-soft text-accent-dark ring-1 ring-accent/30'
+        : 'bg-ink/85 text-bg ring-1 ring-ink/20';
   return (
     <span
       className={cn(
-        'absolute top-2 left-2 z-10 px-2 py-0.5 rounded-md',
-        'font-sans uppercase tracking-[0.06em] text-[11px] font-semibold',
+        'absolute bottom-3 left-3 z-10 px-3 py-1.5 rounded-full',
+        'font-sans uppercase tracking-[0.14em] text-[11px] font-bold',
+        'backdrop-blur-[1px]',
         tone,
       )}
     >
@@ -306,15 +445,15 @@ function StateBadge({ state }: { readonly state: Puppy['state'] }) {
 function puppyGridClass(count: number): string {
   // 1 → одиночная центрированная карточка.
   if (count === 1) return 'mx-auto max-w-md';
-  // 2 → 2 колонки на десктопе, центрирование контейнером.
+  // 2 → 2 колонки на десктопе.
   if (count === 2) return 'grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto';
-  // 3 → 3 колонки на десктопе.
+  // 3 → 3 в строку на десктопе (по запросу Володи: 3 → 1 ряд).
   if (count === 3) return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6';
-  // 4 → 4 колонки на десктопе ровно.
-  if (count === 4) return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6';
-  // 5-6 → 3 колонки (2 ровных ряда из 3 / неровный).
+  // 4 → 2x2 квадрат на десктопе (по запросу Володи: 4 → 2x2, не 4 в ряд).
+  if (count === 4) return 'grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto';
+  // 5-6 → 3 колонки (2 ряда).
   if (count <= 6) return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6';
-  // 7-10 → 4 колонки (2-3 ряда).
+  // 7-10 → 4 колонки.
   return 'grid grid-cols-2 lg:grid-cols-4 gap-6';
 }
 
