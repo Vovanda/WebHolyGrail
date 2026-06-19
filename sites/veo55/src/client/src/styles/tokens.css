@@ -10,8 +10,9 @@
 
 :root {
   /* ── Цвет ───────────────────────────────────────── */
-  --color-bg: #fbfaf6; /* cream — фон страницы */
-  --color-surface: #ffffff; /* paper — плашка/карточка */
+  --color-page-bg: #fffafa; /* snow — фон body (под контент-карточкой), 1:1 из живого veo55 */
+  --color-bg: #ffffff; /* белая контент-карточка над body (1:1 из живого .sp-page-builder .page-content) */
+  --color-surface: #fbfaf6; /* paper-cream — плашка / внутренние карточки */
   --color-surface-hover: #f0e8d6; /* soft — hover-фон */
   --color-ink: #2b221a; /* тёплый шоколад — текст и заголовки */
   --color-muted: #7a6f5f; /* warm taupe — мета */
@@ -41,11 +42,14 @@
   --radius-full: 9999px;
 
   /* ── Типографика ────────────────────────────────── */
-  /* Имена переменных --font-display/--font-sans/--font-script ПЕРЕЗАПИСЫВАЮТСЯ
-   * в layout.tsx через next/font (CSS vars). Здесь — fallback-стек на случай если
-   * next/font не загрузился (offline / CSP). */
-  --font-display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-  --font-sans: 'Inter', -apple-system, 'Segoe UI', Roboto, system-ui, 'Helvetica Neue', sans-serif;
+  /* Имена переменных --font-display/--font-sans/--font-script/--font-emoji
+   * ПЕРЕЗАПИСЫВАЮТСЯ в layout.tsx через next/font. Здесь — fallback-стек. */
+  --font-emoji:
+    'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Twemoji Mozilla', sans-serif;
+  --font-display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif, var(--font-emoji);
+  --font-sans:
+    'Inter', -apple-system, 'Segoe UI', Roboto, system-ui, 'Helvetica Neue', sans-serif,
+    var(--font-emoji);
   --font-script: 'Caveat', 'Brush Script MT', cursive; /* только подпись Ольги */
 
   /* ── Размеры заголовков ─────────────────────────── */
@@ -68,13 +72,19 @@
   --decor-divider-h: 96px;
 
   /* ── Соосность лоз с секциями (КРИТИЧЕСКОЕ) ─────── */
-  /* Ось стебля левой лозы = 150px от левого края wide-контейнера.
-   * Ось стебля правой лозы = 170px от правого края.
-   * Карусели, сетки карточек и любые секции внутри wide-контейнера должны
-   * иметь padding-left/right ≥ этих значений чтобы их визуальные края
-   * совпадали с осями лоз. См. holy-grail/reference/veo55-visual-pasport. */
-  --vine-axis-l: 150px;
-  --vine-axis-r: 170px;
+  /* Лозы стоят в зигзаге двумя осями:
+   *  - Внешняя (нечётная Л/П): ось `--vine-axis-l` / `-r` от края секции.
+   *  - Внутренняя (чётная Л/П): сдвинута к центру на `--hg-vine-inset` (70px).
+   *  - Средняя линия (между внешней и внутренней) — для выравнивания
+   *    декоративных элементов которые должны попадать «в зигзаг».
+   * Карусели, сетки и любые декоры внутри секции должны выравниваться
+   * по одной из этих линий. */
+  --vine-axis-l: 210px; /* 150 + 60 — после сдвига к центру (peek base 90) */
+  --vine-axis-r: 230px; /* 170 + 60 */
+  --vine-axis-l-inner: 280px; /* 210 + 70 — внутренняя ось зигзага слева */
+  --vine-axis-r-inner: 300px; /* 230 + 70 — внутренняя ось справа */
+  --vine-axis-l-mid: 245px; /* (210 + 280) / 2 — средняя линия зигзага слева */
+  --vine-axis-r-mid: 265px; /* (230 + 300) / 2 — средняя линия справа */
 }
 
 /* ────────────────────────────────────────────────────────────────────────────

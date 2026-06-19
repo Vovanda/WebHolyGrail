@@ -9,13 +9,20 @@ import { renderPanelContent } from './renderPanelContent';
  * @remarks
  * Один компонент рендерит любую конфигурацию `SiteLayoutConfig`. Когда меняется
  * композиция панелей — внешний вид сайта меняется без правки страничных компонентов.
- * См. R11 в `.claude/rules/common.md` и memo `HolyGrail/reference/veo55-visual-pasport`.
+ * См. R11 в `.claude/rules/common.md` и `.claude/rules/layouts.md` для дисциплины.
  *
- * **Текущая имплементация (Шаг 4.2b — минимальная):** работают слоты `top` / `center` /
- * `bottom` через CSS Flexbox. Слоты `left` / `right` / `overlay` зарезервированы в
- * контракте, рендер появится когда придёт первый кейс (магазин с категориями /
- * SaaS с overlay-search). До тех пор панели в этих слотах **игнорируются** с
- * предупреждением в dev-консоль — чтобы конфиг не молча терялся.
+ * **Имплементированные слоты:**
+ *  - `top` / `bottom` — обычные горизонтальные полосы (flex column).
+ *  - `center` — основной контент. Ширина регулируется `panel.size` (см. centerWidthClass).
+ *  - `left` / `right` — **drawer-слои поверх контента** (не отъедают ширину). Сами
+ *    drawer-компоненты (`'use client'`) управляют своим open/close-стейтом через
+ *    sticky-кнопку. Layout их просто хостит — никакого глобального стейта.
+ *
+ *  - `overlay` — пока не реализован (для fullscreen-search / modal-host).
+ *
+ * **Почему drawer'ы не отъедают ширину:** на landing'е (R7 — нулевая нагрузка) контент
+ * стабилен по ширине, drawer выезжает поверх с overlay-затемнением. Это паттерн из
+ * AVOX, упрощённый под landing — без resize, без двойных табов. См. AVOX MainLayout.
  */
 export function SiteLayout({
   config,
@@ -30,8 +37,18 @@ export function SiteLayout({
 
   warnUnimplementedSlots(grouped);
 
+  // classic-site = веб-визитка: контент-карточка cream поверх пергамента body.
+  // Карточка занимает max-w-wide и тянется через весь center-слот целиком,
+  // чтобы все вложенные секции рисовались на одном непрерывном фоне.
+  // Тень + скруглённый нижний край — 1:1 из оригинала veo-ui.css:
+  //   box-shadow: 0 0 34px rgba(43,34,26,.08); border-radius: 0 0 18px 18px;
+  const isClassicSite = (config.grid?.template ?? 'classic-site') === 'classic-site';
+  const centerContentClass = isClassicSite
+    ? 'relative flex-1 flex flex-col mx-auto w-full max-w-wide bg-bg shadow-[0_0_34px_rgba(43,34,26,0.08)] rounded-b-[18px] overflow-hidden'
+    : 'flex-1 flex flex-col';
+
   return (
-    <div className="flex flex-col min-h-screen bg-bg text-ink">
+    <div className="relative flex flex-col gap-6 min-h-screen text-ink">
       {grouped.top.length > 0 && (
         <div data-slot="top" className="flex flex-col">
           {grouped.top.map((panel) => (
@@ -40,7 +57,7 @@ export function SiteLayout({
         </div>
       )}
 
-      <div data-slot="center" className="flex-1 flex flex-col">
+      <div data-slot="center" className={centerContentClass}>
         {grouped.center.length > 0
           ? grouped.center.map((panel) => (
               <PanelHost
@@ -60,17 +77,54 @@ export function SiteLayout({
           ))}
         </div>
       )}
+
+      {grouped.left.map((panel) => (
+        <PanelHost key={panel.id} panel={panel} settings={settings} />
+      ))}
+      {grouped.right.map((panel) => (
+        <PanelHost key={panel.id} panel={panel} settings={settings} />
+      ))}
     </div>
   );
 }
 
 /**
- * Один host вокруг каждой панели. Сейчас тонкий wrapper; в будущем сюда переедет
- * логика collapse/resize/mobile-overlay (когда понадобятся `left` / `right`).
+ * Map для `panel.size` → tailwind ширинного wrapper-класса в center-слоте.
  *
- * `pageChildren` пробрасывается только в page-outlet панель — туда уходит контент
- * страничного маршрута (`app/(site)/.../page.tsx`). Остальные панели рендерят
- * свой контент из конфига.
+ * @remarks
+ * Семантика, не px. Контракт `panel.size` — строка/число; для center трактуем как:
+ *  - `'full'` — full-bleed (банеры, hero-фоны)
+ *  - `'wide'` — основной контент сайта (≤ 1300px)
+ *  - `'content'` — текст (≤ 880px, читабельный inline-length)
+ *  - `'narrow'` — формы / focus-read (≤ 640px)
+ *  - undefined → default `'wide'`
+ *
+ * Числовые значения / произвольный CSS пока **не** поддерживаем — добавим когда
+ * понадобится реальный кейс (R9). Для left/right `panel.size` интерпретируется
+ * самим drawer-блоком (ширина в px).
+ */
+function centerWidthClass(size: PanelConfig['size']): string {
+  switch (size) {
+    case 'full':
+      return '';
+    case 'content':
+      return 'mx-auto w-full max-w-content px-6';
+    case 'narrow':
+      return 'mx-auto w-full max-w-[640px] px-6';
+    case 'wide':
+    case undefined:
+      return 'mx-auto w-full max-w-wide px-6';
+    default:
+      return 'mx-auto w-full max-w-wide px-6';
+  }
+}
+
+/**
+ * Wrapper вокруг каждой панели. Для center применяет ширинный класс; для left/right
+ * рендерит без обёртки (drawer-компонент сам отвечает за fixed-позицию и анимацию).
+ *
+ * `pageChildren` пробрасывается только в page-outlet — туда уходит контент
+ * страничного маршрута. Остальные панели рендерят свой контент из конфига.
  */
 function PanelHost({
   panel,
@@ -81,6 +135,33 @@ function PanelHost({
   readonly settings: SiteSettings;
   readonly pageChildren?: ReactNode;
 }) {
+  if (panel.slot === 'left' || panel.slot === 'right') {
+    return (
+      <section data-panel-id={panel.id} data-panel-slot={panel.slot}>
+        {renderPanelContent(panel.content, settings, pageChildren)}
+      </section>
+    );
+  }
+
+  if (panel.slot === 'center') {
+    const wrapClass = centerWidthClass(panel.size);
+    return (
+      <section
+        data-panel-id={panel.id}
+        data-panel-slot={panel.slot}
+        data-panel-size={panel.size ?? 'wide'}
+      >
+        {wrapClass ? (
+          <div className={wrapClass}>
+            {renderPanelContent(panel.content, settings, pageChildren)}
+          </div>
+        ) : (
+          renderPanelContent(panel.content, settings, pageChildren)
+        )}
+      </section>
+    );
+  }
+
   return (
     <section data-panel-id={panel.id} data-panel-slot={panel.slot}>
       {renderPanelContent(panel.content, settings, pageChildren)}
@@ -88,16 +169,10 @@ function PanelHost({
   );
 }
 
-/**
- * Distinguishes the special system panel that hosts the current page route's content.
- */
 function isPageOutletPanel(panel: PanelConfig): boolean {
   return panel.content.kind === 'block' && panel.content.node.blockType === 'page-outlet';
 }
 
-/**
- * Группирует панели по slot для удобного рендера.
- */
 function groupPanelsBySlot(panels: readonly PanelConfig[]): Record<SlotName, PanelConfig[]> {
   const grouped: Record<SlotName, PanelConfig[]> = {
     top: [],
@@ -113,13 +188,9 @@ function groupPanelsBySlot(panels: readonly PanelConfig[]): Record<SlotName, Pan
   return grouped;
 }
 
-/**
- * В dev-режиме предупреждает что левая/правая/overlay панели в конфиге есть,
- * но движок их пока не рендерит. Чтобы конфиг не молча терялся.
- */
 function warnUnimplementedSlots(grouped: Record<SlotName, PanelConfig[]>): void {
   if (process.env.NODE_ENV !== 'development') return;
-  const unimplemented: SlotName[] = ['left', 'right', 'overlay'];
+  const unimplemented: SlotName[] = ['overlay'];
   for (const slot of unimplemented) {
     if (grouped[slot].length > 0) {
       const ids = grouped[slot].map((p) => p.id).join(', ');

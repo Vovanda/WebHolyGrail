@@ -1,15 +1,12 @@
 import Link from 'next/link';
 import type { BlockNode, SiteSettings } from '@veo55/contracts';
 
+import { SocialIcon } from '@/components/SocialIcon';
+
 /**
- * Header — sticky-шапка сайта veo55.
- *
- * @remarks
- * Палитра тёмного header'а — `#1d1612` (та же что у `.veo-banner` живого veo55),
- * чтобы хедер визуально продолжал баннер сверху и оба смотрелись одной полосой.
- *
- * Лого — пока SVG-плейсхолдер с лапкой (paw-svg будет когда мама пришлёт настоящий
- * логотип). Имя сайта рядом с лапкой, телефон справа, navigation между.
+ * Header — sticky-шапка. На десктопе:
+ *  [Лого слева, квадрат] — [Главные пункты nav, центр] — [Телефон + соцсети, справа]
+ * На мобиле: nav скрыт, всё работает через NavDrawer (бургер sticky right).
  */
 export function Header({
   settings,
@@ -18,35 +15,34 @@ export function Header({
   readonly settings: SiteSettings;
 }) {
   const phone = settings.contacts?.phone;
+  const social = settings.social ?? [];
   const nav = settings.mainNav ?? [];
 
   return (
-    <header className="sticky top-0 z-40 text-bg shadow-md" style={{ background: '#1d1612' }}>
-      <div className="mx-auto flex max-w-wide items-center gap-6 px-6 py-3">
-        {/* Лого: лапа + имя сайта */}
-        <Link href="/" className="flex items-center gap-3 group shrink-0" aria-label="На главную">
-          <span
-            aria-hidden
-            className="
-              grid place-items-center h-9 w-9 rounded-full bg-accent/15
-              text-accent group-hover:bg-accent/25 transition-colors
-            "
-          >
-            <svg viewBox="0 0 24 24" className="h-5 w-5 fill-current" aria-hidden>
-              {/* Простая лапа-силуэт; заменим на присланный лого */}
-              <ellipse cx="12" cy="16" rx="5" ry="4" />
-              <ellipse cx="5" cy="11" rx="2" ry="2.5" />
-              <ellipse cx="19" cy="11" rx="2" ry="2.5" />
-              <ellipse cx="9" cy="7" rx="1.8" ry="2.3" />
-              <ellipse cx="15" cy="7" rx="1.8" ry="2.3" />
-            </svg>
-          </span>
-          <span className="font-display text-lg md:text-xl font-semibold tracking-wide text-bg group-hover:text-accent transition-colors">
-            {settings.siteName ?? 'Питомник «Омская Дружина»'}
-          </span>
+    <header
+      className="sticky top-0 z-30 text-ink border-b border-border/60"
+      style={{ background: 'var(--color-page-bg)' }}
+    >
+      <div className="mx-auto flex max-w-wide items-center gap-6 pl-6 pr-20 md:pr-24 py-3">
+        {/* Logo — слева, квадрат, заметный */}
+        <Link
+          href="/"
+          className="flex items-center shrink-0 transition-transform hover:scale-105"
+          aria-label={settings.siteName ?? 'На главную'}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={
+              typeof settings.logo === 'object'
+                ? (settings.logo?.url ?? '/branding/logo.png')
+                : '/branding/logo.png'
+            }
+            alt={settings.siteName ?? 'Питомник'}
+            className="h-11 w-11 md:h-12 md:w-12 rounded-xl object-cover shadow-sm border border-border"
+          />
         </Link>
 
-        {/* Nav — между лого и phone, центрирована за счёт flex-1 */}
+        {/* Nav — центр, только desktop */}
         <nav className="hidden md:flex flex-1 items-center justify-center gap-7 text-sm">
           {nav.map((item) => (
             <Link
@@ -54,26 +50,40 @@ export function Header({
               href={item.href}
               target={item.external ? '_blank' : undefined}
               rel={item.external ? 'noopener noreferrer' : undefined}
-              className="text-bg/85 hover:text-accent transition-colors"
+              className="font-display text-base text-ink/85 hover:text-accent transition-colors whitespace-nowrap"
             >
               {item.label}
             </Link>
           ))}
         </nav>
 
-        {/* Телефон справа */}
-        {phone ? (
-          <a
-            href={`tel:${phone}`}
-            className="hidden sm:inline-block font-display text-base md:text-lg font-semibold text-accent hover:text-accent-hover transition-colors shrink-0"
-          >
-            {phone}
-          </a>
-        ) : (
-          <span className="hidden sm:inline-block text-bg/30 text-xs italic shrink-0">
-            phone in CMS
-          </span>
-        )}
+        {/* Right — phone + social. На мобиле phone уползает в drawer, иконки тоже. */}
+        <div className="ml-auto md:ml-0 flex items-center gap-4">
+          {phone && (
+            <a
+              href={`tel:${phone.replace(/[^+\d]/g, '')}`}
+              className="hidden sm:inline font-display text-accent text-sm md:text-base font-semibold hover:text-accent-hover transition-colors whitespace-nowrap"
+            >
+              {phone}
+            </a>
+          )}
+          {social.length > 0 && (
+            <div className="hidden md:flex items-center gap-2">
+              {social.map((s) => (
+                <a
+                  key={s.url}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={s.label ?? s.platform}
+                  className="grid place-items-center h-8 w-8 rounded-full text-muted hover:text-accent hover:bg-accent/10 transition-colors"
+                >
+                  <SocialIcon platform={s.platform} />
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );
