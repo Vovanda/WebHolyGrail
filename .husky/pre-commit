@@ -1,3 +1,11 @@
-# Fast pre-commit: only typecheck affected workspaces.
-# Heavy lint/test gates live in CI when configured.
-pnpm -r --filter "...[HEAD]" run lint
+# Pre-commit: format staged files (lint-staged) + scan staged for secrets (gitleaks).
+# Heavy typecheck / unit tests live in CI (see .github/workflows when set up).
+
+pnpm exec lint-staged
+
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --config .gitleaks.toml
+else
+  echo "warn: gitleaks not installed, skipping staged-secret scan"
+  echo "      install via: winget install Gitleaks.Gitleaks"
+fi

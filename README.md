@@ -27,12 +27,14 @@ WebHolyGrail/                   # монорепо-зонтик
 ## Старт
 
 ### Требования
+
 - Node ≥ 20.11 (рекомендация: 22 LTS)
 - pnpm ≥ 9 (включается через `corepack enable`)
 - Docker Desktop / Engine
 - Infisical CLI ([инструкция](https://infisical.com/docs/cli/overview))
 
 ### Первый запуск (когда инфра поднята — Шаги 3+)
+
 ```bash
 corepack enable
 pnpm install
@@ -41,18 +43,23 @@ pnpm compose:up           # client + cms + sqlite
 ```
 
 ### Полезные скрипты
-| Скрипт | Что делает |
-|---|---|
-| `pnpm dev` | dev-сервер для всех sites/* (Next + Payload) |
-| `pnpm build` | production-сборка |
-| `pnpm lint` | ESLint по всем workspace'ам |
-| `pnpm test` | Vitest по всем workspace'ам |
-| `pnpm smoke` | Playwright smoke (главная + админка открываются) |
-| `pnpm compose:up` | docker compose up -d (с подтянутыми Infisical-секретами) |
-| `pnpm compose:down` | остановить контейнеры |
-| `pnpm compose:logs` | логи всех контейнеров стримом |
-| `pnpm changeset` | завести запись о грядущей версии (после фичи/фикса) |
+
+| Скрипт                  | Что делает                                                 |
+| ----------------------- | ---------------------------------------------------------- |
+| `pnpm dev`              | dev-сервер для всех sites/\* (Next + Payload)              |
+| `pnpm build`            | production-сборка                                          |
+| `pnpm lint`             | ESLint по всем workspace'ам                                |
+| `pnpm test`             | Vitest по всем workspace'ам                                |
+| `pnpm smoke`            | Playwright smoke (главная + админка открываются)           |
+| `pnpm compose:up`       | docker compose up -d (с подтянутыми Infisical-секретами)   |
+| `pnpm compose:down`     | остановить контейнеры                                      |
+| `pnpm compose:logs`     | логи всех контейнеров стримом                              |
+| `pnpm changeset`        | завести запись о грядущей версии (после фичи/фикса)        |
 | `pnpm version-packages` | применить накопленные changesets → бамп версий + CHANGELOG |
+
+## Инфра
+
+Карта всего что в репо стоит и зачем — `docs/infra-journal.md`. Обновляется при каждом значимом добавлении инфры (новый хук, новая dev-зависимость, новая утилита).
 
 ## Версионирование
 
