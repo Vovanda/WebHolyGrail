@@ -42,6 +42,11 @@ export default buildConfig({
     client: {
       url: process.env.DATABASE_URI ?? 'file:./data/veo55.db',
     },
+    // Отключаем drizzle push: схема меняется только через явные миграции.
+    // Workflow — `.claude/skills/payload-migration/SKILL.md`:
+    //   pnpm migrate:create <name> → правка SQL при необходимости → pnpm migrate.
+    push: false,
+    migrationDir: path.resolve(dirname, '../migrations'),
   }),
   i18n: {
     supportedLanguages: { ru, en },

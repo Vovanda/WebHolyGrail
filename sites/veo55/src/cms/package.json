@@ -11,7 +11,14 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
-    "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/index.ts"
+    "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/index.ts",
+    "seed:media": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/seed-media.ts",
+    "migrate": "cross-env NODE_OPTIONS=--no-deprecation payload migrate",
+    "migrate:create": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:create",
+    "migrate:status": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:status",
+    "migrate:down": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:down",
+    "migrate:refresh": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:refresh",
+    "migrate:fresh": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:fresh"
   },
   "dependencies": {
     "@payloadcms/db-sqlite": "^3.40.0",
@@ -32,6 +39,7 @@
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.2",
     "dotenv": "^17.4.2",
+    "drizzle-kit": "^0.31.7",
     "tsx": "^4.22.4",
     "typescript": "^5.6.3",
     "vitest": "^2.1.5"
