@@ -1,0 +1,46 @@
+/*
+ * Design tokens — единый источник правды для цвета/отступа/радиуса/типографики.
+ * Хардкодов значений в JSX / Tailwind config быть не должно (R2).
+ * Палитра подобрана близко к визуалу veo55.ru (тёплый натуральный, не AI-generic).
+ */
+
+:root {
+  /* ── Цвет (light theme) ─────────────────────────── */
+  --color-bg: #faf8f3; /* тёплый off-white */
+  --color-surface: #ffffff;
+  --color-ink: #1f1a14; /* почти чёрный, тёплый */
+  --color-muted: #6b6259;
+  --color-border: #e7e0d3;
+
+  --color-primary: #4a3a26; /* тёмно-коричневый — основной */
+  --color-primary-fg: #faf8f3;
+  --color-accent: #c89556; /* охра — акценты, CTA */
+
+  --color-danger: #b54848;
+  --color-success: #3f7c43;
+
+  /* ── Радиусы ────────────────────────────────────── */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* ── Типографика ────────────────────────────────── */
+  --font-sans:
+    'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-display: 'PT Serif', Georgia, 'Times New Roman', Times, serif;
+
+  /* ── Контейнеры ─────────────────────────────────── */
+  --container-content: 72rem; /* 1152px — основной */
+  --container-wide: 90rem; /* 1440px — для hero */
+}
+
+@media (prefers-color-scheme: dark) {
+  /* Dark theme отложим до того момента когда понадобится — R7/R9.
+   * Сейчас сайт визитки, dark mode избыточен. Заглушка ниже даёт
+   * безопасный фолбэк если браузер запросит dark, чтобы не выглядело сломанным. */
+  :root {
+    color-scheme: light;
+  }
+}
