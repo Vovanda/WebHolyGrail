@@ -65,5 +65,7 @@ desktop.ini
 .tmp/
 
 # --- Локальные скриншоты/референсы (для меня, не для репы) ---
-/veo55-*.png
+/*.png
+/*.jpeg
+/*.jpg
 /check-users.mjs

@@ -112,7 +112,7 @@ git push --no-verify
 - `CLAUDE.md` — корневая инструкция (для агента и человека).
 - `.claude/rules/common.md` — R1–R9 развёрнуто.
 - `.claude/settings.json` — project allow-list команд + enabled plugins (`frontend-design@claude-plugins-official`).
-- `.claude/settings.local.json` (gitignored) — personal SSH-ключи Володи + PuTTY paths.
+- `.claude/settings.local.json` (gitignored) — личные SSH-ключи + PuTTY paths разработчика.
 
 ## Что НЕ установлено (и почему — фиксируем чтобы не повторять обсуждение)
 
