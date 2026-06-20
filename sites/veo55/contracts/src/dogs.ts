@@ -52,8 +52,14 @@ export interface DogDoc {
   readonly dob?: string;
   /** Окрас. */
   readonly color?: DogColor;
-  /** Фотографии собаки в порядке отображения. Первая = главная. */
-  readonly photos?: readonly MediaRef[];
+  /**
+   * Фотографии собаки в порядке отображения. Первая = главная.
+   *
+   * Форма `{ id, image }` — это Payload array-row: каждая строка имеет
+   * автогенерируемый `id`, а само медиа лежит в поле `image`. Так же сделан
+   * `LitterDoc.images` — единый паттерн для галерей в коллекциях.
+   */
+  readonly photos?: readonly { readonly id: string; readonly image: MediaRef }[];
   /**
    * Регалии — массив отдельных строк. Порядок отображения = порядок в массиве
    * (заводчик сам решает что вперёд: свежее или весомое).

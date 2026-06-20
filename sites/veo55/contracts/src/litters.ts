@@ -57,8 +57,11 @@ export interface Puppy {
 export type LitterStatus = 'active' | 'archived' | 'hidden';
 
 /**
- * Визитка пары — красивая фотография родителей с подписью регалий, обычно
- * собранная мамой в редакторе типа Canva.
+ * Визитка пары — заводческий термин. См. `docs/glossary.md → Визитка пары`.
+ *
+ * Картинка(и) родителей помёта + краткая подпись с регалиями. Покупателю
+ * это показывают первым перед щенками: «вот мама + папа, вот их титулы».
+ * Обычно собрана заводчиком в редакторе типа Canva.
  *
  * @remarks
  * **Опциональна целиком.** Бывают помёты без визитки — тогда блок её просто
@@ -92,12 +95,15 @@ export interface PairCard {
  */
 export interface LitterDoc {
   readonly id: string;
-  /** ЧПУ-slug: `/puppies/<slug>`. Часто соответствует литере: `litera-n-2026`. */
-  readonly slug: string;
   /** Заголовок для админки и шапки секции — «Помёт литера Н, 2026». */
   readonly title: string;
   /** Дата рождения помёта ISO `YYYY-MM-DD`. */
   readonly dob: string;
+  /**
+   * Буква помёта в латинской транслитерации: `n`, `o`, `ya`, `zh`, `sch`…
+   * Полный URL детальной — `/puppies/<dob>/<letter>`.
+   */
+  readonly letter: string;
   /** Мать — ссылка на запись {@link DogDoc} (relation). */
   readonly mother: string | DogDoc;
   /** Отец — ссылка на запись {@link DogDoc} (relation). */
@@ -152,3 +158,32 @@ export interface LitterCardBlockNode {
 
 /** Доп. поле блока — расширенная визитка пары, см. {@link ImageRef} для совместимости. */
 export type LitterPairImage = ImageRef;
+
+/**
+ * Декомпозиция `LitterCardBlockNode` на 3 атомарных блока — даёт возможность
+ * располагать заголовок/визитку/щенков произвольно (между ними любые
+ * Prose/Quote/AchievementBanner) и фреймить каждый независимо. Все три
+ * ссылаются на одну и ту же запись `Litters` через `litterId`.
+ */
+export interface LitterHeaderBlockNode {
+  readonly blockType: 'litter-header';
+  readonly id: string;
+  /** ID записи в коллекции `Litters`. */
+  readonly litterId: string;
+}
+
+/** См. {@link LitterHeaderBlockNode}. Визитка пары родителей. */
+export interface LitterPairCardBlockNode {
+  readonly blockType: 'litter-pair-card';
+  readonly id: string;
+  readonly litterId: string;
+}
+
+/** См. {@link LitterHeaderBlockNode}. Сетка карточек щенков. */
+export interface LitterPuppiesBlockNode {
+  readonly blockType: 'litter-puppies';
+  readonly id: string;
+  readonly litterId: string;
+  /** См. {@link LitterCardBlockNode.showSold}. */
+  readonly showSold?: boolean;
+}

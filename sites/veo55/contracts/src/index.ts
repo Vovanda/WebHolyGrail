@@ -42,5 +42,10 @@ export type {
   PuppyState,
   PairCard,
   LitterCardBlockNode,
+  LitterHeaderBlockNode,
+  LitterPairCardBlockNode,
+  LitterPuppiesBlockNode,
   LitterPairImage,
 } from './litters';
+
+export type { ReusableBlockDoc, ReusableRefBlockNode, PageRefBlockNode } from './reusable';
