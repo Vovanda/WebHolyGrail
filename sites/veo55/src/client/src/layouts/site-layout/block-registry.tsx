@@ -11,6 +11,7 @@ import { Timeline } from '@/blocks/primitives/Timeline';
 import { Prose } from '@/blocks/primitives/Prose';
 import { WaveDivider } from '@/blocks/primitives/WaveDivider';
 import { AchievementBanner } from '@/blocks/primitives/AchievementBanner';
+import { CertifiedNotice } from '@/blocks/primitives/CertifiedNotice';
 import { ReusableRef } from '@/blocks/primitives/ReusableRef';
 import { PageRef } from '@/blocks/primitives/PageRef';
 import { LitterCardBlock } from '@/blocks/veo55/litter/LitterCardBlock';
@@ -44,6 +45,7 @@ const REGISTRY: Record<string, BlockRenderer> = {
   'litter-pair-card': (node, settings) => <LitterPairCardBlock node={node} settings={settings} />,
   'litter-puppies': (node, settings) => <LitterPuppies node={node} settings={settings} />,
   'achievement-banner': (node, settings) => <AchievementBanner node={node} settings={settings} />,
+  'certified-notice': (node, settings) => <CertifiedNotice node={node} settings={settings} />,
   'reusable-ref': (node, settings) => <ReusableRef node={node} settings={settings} />,
   'page-ref': (node, settings) => <PageRef node={node} settings={settings} />,
   'page-outlet': (_node, _settings, children) => <PageOutlet>{children}</PageOutlet>,
