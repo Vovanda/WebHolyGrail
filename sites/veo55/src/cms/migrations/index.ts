@@ -13,6 +13,7 @@ import * as migration_20260620_042358_litter_decomposition from './20260620_0423
 import * as migration_20260620_045212_reusable_and_page_refs from './20260620_045212_reusable_and_page_refs';
 import * as migration_20260620_045620_block_visibility from './20260620_045620_block_visibility';
 import * as migration_20260620_050000_litter_letter from './20260620_050000_litter_letter';
+import * as migration_20260620_122900_certified_notice from './20260620_122900_certified_notice';
 
 export const migrations = [
   {
@@ -89,5 +90,10 @@ export const migrations = [
     up: migration_20260620_050000_litter_letter.up,
     down: migration_20260620_050000_litter_letter.down,
     name: '20260620_050000_litter_letter',
+  },
+  {
+    up: migration_20260620_122900_certified_notice.up,
+    down: migration_20260620_122900_certified_notice.down,
+    name: '20260620_122900_certified_notice',
   },
 ];

@@ -9,6 +9,7 @@ import { LitterHeaderBlock } from './LitterHeader';
 import { LitterPairCardBlock } from './LitterPairCard';
 import { LitterPuppiesBlock } from './LitterPuppies';
 import { AchievementBannerBlock } from './AchievementBanner';
+import { CertifiedNoticeBlock } from './CertifiedNotice';
 import { ReusableRefBlock } from './ReusableRef';
 import { PageRefBlock } from './PageRef';
 import { withVisibility } from './_visibility';
@@ -38,6 +39,7 @@ export const REUSABLE_INNER_BLOCKS = [
   LitterPairCardBlock,
   LitterPuppiesBlock,
   AchievementBannerBlock,
+  CertifiedNoticeBlock,
 ].map(withVisibility);
 
 export const PAGE_BLOCKS = [

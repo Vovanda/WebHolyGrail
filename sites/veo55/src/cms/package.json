@@ -15,6 +15,8 @@
     "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/index.ts",
     "seed:media": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/seed-media.ts",
     "seed:home-achievement": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/seed-home-achievement.ts",
+    "seed:home-certified-notice": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/seed-home-certified-notice.ts",
+    "seed:puppies-page-certified-notice": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/seed-puppies-page-certified-notice.ts",
     "seed:timeline-paws": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/seed-timeline-paws.ts",
     "seed:home-litter-decomposition": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/seed-home-litter-decomposition.ts",
     "seed:home-fix-litter": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/seed-home-fix-litter.ts",
