@@ -17,7 +17,10 @@ import { Dogs } from './collections/Dogs';
 import { Litters } from './collections/Litters';
 import { ReusableBlocks } from './collections/ReusableBlocks';
 import { Posts } from './collections/Posts';
+import { Comments } from './collections/Comments';
 import { SiteSettings } from './globals/SiteSettings';
+import { SyncVkPostsTask } from './jobs/sync-vk-posts.task';
+import { FetchPedigreeTask } from './jobs/fetch-pedigree.task';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -42,7 +45,17 @@ export default buildConfig({
       baseDir: dirname,
     },
   },
-  collections: [Users, Media, Pages, FormSubmissions, Dogs, Litters, ReusableBlocks, Posts],
+  collections: [
+    Users,
+    Media,
+    Pages,
+    FormSubmissions,
+    Dogs,
+    Litters,
+    ReusableBlocks,
+    Posts,
+    Comments,
+  ],
   globals: [SiteSettings],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET ?? '',
@@ -67,6 +80,41 @@ export default buildConfig({
   serverURL: process.env.PAYLOAD_PUBLIC_SERVER_URL ?? 'http://localhost:3001',
   cors: [process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'],
   csrf: [process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'],
+  /**
+   * Jobs Queue — Payload-native «облегчённый hangfire»: коллекция
+   * `payload-jobs` в админке (status / retries / output / error) + ручной
+   * запуск, scheduling из `task.schedule[]`, выполнение через `autoRun`.
+   *
+   * Активные tasks:
+   *  - `sync-vk-posts` — каждые 15 мин (queue `social-sync`)
+   *  - `fetch-pedigree` — раз в неделю (queue `pedigree`)
+   *
+   * Runner (`autoRun`) — каждую минуту проверяет all queues и забирает
+   * следующий ready job. Не использовать одновременно с `pnpm payload
+   * jobs:handle-schedules` bin — будут дубли.
+   *
+   * В админке коллекция видна (`hidden: false`), группа «Лента».
+   */
+  jobs: {
+    tasks: [SyncVkPostsTask, FetchPedigreeTask],
+    autoRun: [
+      {
+        cron: '* * * * *', // каждую минуту чекаем queue
+        allQueues: true,
+      },
+    ],
+    jobsCollectionOverrides: ({ defaultJobsCollection }) => ({
+      ...defaultJobsCollection,
+      labels: { singular: 'Задача (job)', plural: 'Задачи (jobs)' },
+      admin: {
+        ...defaultJobsCollection.admin,
+        hidden: false,
+        group: 'Лента',
+        description:
+          'Фоновые задачи: синхронизация VK-постов, импорт родословной РКФ. Можно запустить вручную через «Run».',
+      },
+    }),
+  },
   plugins: [
     /**
      * S3-совместимое хранилище для Media → VK Object Storage.

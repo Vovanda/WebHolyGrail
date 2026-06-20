@@ -18,7 +18,7 @@ dotenvConfig({ path: '.env' });
 
 const { getPayload } = await import('payload');
 const config = (await import('../payload.config')).default;
-const { vkFetchWall } = await import('../lib/social/vk-adapter');
+const { vkFetchWall, vkFetchComments } = await import('../lib/social/vk-adapter');
 
 async function main() {
   const count = Number(process.argv[2] ?? 30);
@@ -40,6 +40,9 @@ async function main() {
   let updated = 0;
   let skipped = 0;
   let purged = 0;
+  let commentsCreated = 0;
+  let commentsUpdated = 0;
+  let commentsDeleted = 0;
   const syncedAt = new Date().toISOString();
   for (const p of posts) {
     const existing = await payload.find({
@@ -68,6 +71,7 @@ async function main() {
     }
 
     const data = { ...p, syncedAt };
+    let postDocId: string | number;
     if (existingDoc) {
       await payload.update({
         collection: 'posts',
@@ -75,19 +79,113 @@ async function main() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         data: data as any,
       });
+      postDocId = existingDoc.id;
       updated++;
     } else {
-      await payload.create({
+      const createdDoc = await payload.create({
         collection: 'posts',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         data: data as any,
       });
+      postDocId = createdDoc.id;
       created++;
+    }
+
+    // ── Sync комментов ─────────────────────────────────────────
+    // Если у поста есть комменты — проверяем количество в БД vs VK.
+    // Если совпадает — пропускаем (delta-фильтр, экономим VK-запросы как
+    // в legacy `cron-news-db-sync.php`). Иначе тянем все комменты заново
+    // (replies включаются через thread_items_count=10).
+    if (p.metrics.comments > 0) {
+      const dbCount = await payload.count({
+        collection: 'comments',
+        where: { post: { equals: postDocId } },
+      });
+      if (dbCount.totalDocs === p.metrics.comments) {
+        // delta: count совпадает — ничего не изменилось, пропускаем.
+        continue;
+      }
+      try {
+        const { items } = await vkFetchComments(p.sourceId, 100, p.sourceOwnerId);
+        // Flatten replies в плоский список (parentId связь сохраняется).
+        const flat: typeof items = [];
+        const walk = (arr: typeof items) => {
+          for (const c of arr) {
+            flat.push(c);
+            if (c.replies && c.replies.length > 0) walk(c.replies);
+          }
+        };
+        walk(items);
+
+        // Upsert каждого коммента
+        const seenIds = new Set<string>();
+        for (const c of flat) {
+          seenIds.add(c.id);
+          const existingC = await payload.find({
+            collection: 'comments',
+            where: {
+              and: [{ source: { equals: c.source } }, { sourceId: { equals: c.id } }],
+            },
+            limit: 1,
+            depth: 0,
+          });
+          const cData = {
+            source: c.source,
+            sourceId: c.id,
+            post: postDocId,
+            sourceOwnerId: c.sourceOwnerId,
+            parentId: c.parentId,
+            date: c.date,
+            dateIso: c.dateIso,
+            text: c.text,
+            author: c.author,
+            likes: c.likes,
+            syncedAt,
+          };
+          if (existingC.docs[0]) {
+            await payload.update({
+              collection: 'comments',
+              id: existingC.docs[0].id,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              data: cData as any,
+            });
+            commentsUpdated++;
+          } else {
+            await payload.create({
+              collection: 'comments',
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              data: cData as any,
+            });
+            commentsCreated++;
+          }
+        }
+
+        // Удалить из БД комменты которых уже нет в VK (комментатор удалил
+        // или модератор скрыл). Сравнение по sourceId, scope — этот пост.
+        const all = await payload.find({
+          collection: 'comments',
+          where: { post: { equals: postDocId } },
+          limit: 1000,
+          depth: 0,
+        });
+        for (const doc of all.docs) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const sid = (doc as any).sourceId as string;
+          if (!seenIds.has(sid)) {
+            await payload.delete({ collection: 'comments', id: doc.id });
+            commentsDeleted++;
+          }
+        }
+      } catch (err) {
+        // VK rate-limit / network — не валим весь sync.
+        console.warn(`[sync:vk-posts] comments fetch failed for sourceId=${p.sourceId}:`, err);
+      }
     }
   }
 
   console.log(
-    `[sync:vk-posts] OK. created=${created} updated=${updated} skipped=${skipped} purged=${purged}.`,
+    `[sync:vk-posts] OK. posts: created=${created} updated=${updated} skipped=${skipped} purged=${purged}. ` +
+      `comments: created=${commentsCreated} updated=${commentsUpdated} deleted=${commentsDeleted}.`,
   );
   process.exit(0);
 }
