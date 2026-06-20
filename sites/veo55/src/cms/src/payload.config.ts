@@ -16,6 +16,7 @@ import { FormSubmissions } from './collections/FormSubmissions';
 import { Dogs } from './collections/Dogs';
 import { Litters } from './collections/Litters';
 import { ReusableBlocks } from './collections/ReusableBlocks';
+import { Posts } from './collections/Posts';
 import { SiteSettings } from './globals/SiteSettings';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -41,7 +42,7 @@ export default buildConfig({
       baseDir: dirname,
     },
   },
-  collections: [Users, Media, Pages, FormSubmissions, Dogs, Litters, ReusableBlocks],
+  collections: [Users, Media, Pages, FormSubmissions, Dogs, Litters, ReusableBlocks, Posts],
   globals: [SiteSettings],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET ?? '',
