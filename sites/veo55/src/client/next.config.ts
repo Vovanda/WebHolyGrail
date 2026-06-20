@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost' },
       { protocol: 'http', hostname: 'cms' },
+      // Прод-домены проксирующего nginx (через VPS sawking.tech)
+      { protocol: 'https', hostname: 'sawking.tech' },
+      { protocol: 'https', hostname: '*.sawking.tech' },
     ],
   },
   experimental: {
