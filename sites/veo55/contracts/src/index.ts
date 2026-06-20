@@ -33,7 +33,7 @@ export type {
 
 export type { FormSubmission, FormSubmissionStatus, FormSubmissionInput } from './forms';
 
-export type { DogDoc, DogTitle, DogSex, DogColor } from './dogs';
+export type { DogDoc, DogTitle, DogSex, DogColor, PedigreeAncestor } from './dogs';
 
 export type {
   LitterDoc,
@@ -51,3 +51,5 @@ export type {
 export type { ReusableBlockDoc, ReusableRefBlockNode, PageRefBlockNode } from './reusable';
 
 export type { CertifiedNoticeBlockNode, CertifiedNoticeCriterion } from './notices';
+
+export type { PedigreeBlockNode } from './pedigree';
