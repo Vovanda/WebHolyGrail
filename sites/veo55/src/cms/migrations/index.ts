@@ -10,6 +10,8 @@ import * as migration_20260619_194643_add_s3_storage_prefix from './20260619_194
 import * as migration_20260619_195944_rename_paircard_image_to_images from './20260619_195944_rename_paircard_image_to_images';
 import * as migration_20260620_013915_add_achievement_banner from './20260620_013915_add_achievement_banner';
 import * as migration_20260620_042358_litter_decomposition from './20260620_042358_litter_decomposition';
+import * as migration_20260620_045212_reusable_and_page_refs from './20260620_045212_reusable_and_page_refs';
+import * as migration_20260620_045620_block_visibility from './20260620_045620_block_visibility';
 import * as migration_20260620_050000_litter_letter from './20260620_050000_litter_letter';
 
 export const migrations = [
@@ -72,6 +74,16 @@ export const migrations = [
     up: migration_20260620_042358_litter_decomposition.up,
     down: migration_20260620_042358_litter_decomposition.down,
     name: '20260620_042358_litter_decomposition',
+  },
+  {
+    up: migration_20260620_045212_reusable_and_page_refs.up,
+    down: migration_20260620_045212_reusable_and_page_refs.down,
+    name: '20260620_045212_reusable_and_page_refs',
+  },
+  {
+    up: migration_20260620_045620_block_visibility.up,
+    down: migration_20260620_045620_block_visibility.down,
+    name: '20260620_045620_block_visibility',
   },
   {
     up: migration_20260620_050000_litter_letter.up,

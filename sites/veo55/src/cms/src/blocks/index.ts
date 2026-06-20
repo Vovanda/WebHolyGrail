@@ -9,6 +9,9 @@ import { LitterHeaderBlock } from './LitterHeader';
 import { LitterPairCardBlock } from './LitterPairCard';
 import { LitterPuppiesBlock } from './LitterPuppies';
 import { AchievementBannerBlock } from './AchievementBanner';
+import { ReusableRefBlock } from './ReusableRef';
+import { PageRefBlock } from './PageRef';
+import { withVisibility } from './_visibility';
 
 /**
  * Все доступные блоки для Pages.blocks. Добавляется здесь, появляется в
@@ -18,7 +21,12 @@ import { AchievementBannerBlock } from './AchievementBanner';
  * Header / Footer / PageOutlet — это **layout-блоки** (живут в SiteSettings.layout.panels),
  * не в Pages.blocks. Тут только content-блоки страницы.
  */
-export const PAGE_BLOCKS = [
+/**
+ * Блоки доступные внутри `ReusableBlocks.content` — всё кроме `reusable-ref`,
+ * чтобы исключить циклы (reusable не ссылается на reusable). Если потребуется
+ * вложение — добавить depth-guard в рендерер на клиенте.
+ */
+export const REUSABLE_INNER_BLOCKS = [
   BannerSliderBlock,
   HeroBlock,
   QuoteBlock,
@@ -30,4 +38,10 @@ export const PAGE_BLOCKS = [
   LitterPairCardBlock,
   LitterPuppiesBlock,
   AchievementBannerBlock,
+].map(withVisibility);
+
+export const PAGE_BLOCKS = [
+  ...REUSABLE_INNER_BLOCKS,
+  withVisibility(ReusableRefBlock),
+  withVisibility(PageRefBlock),
 ];

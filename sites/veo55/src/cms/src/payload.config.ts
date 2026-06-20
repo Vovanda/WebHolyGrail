@@ -15,6 +15,7 @@ import { Pages } from './collections/Pages';
 import { FormSubmissions } from './collections/FormSubmissions';
 import { Dogs } from './collections/Dogs';
 import { Litters } from './collections/Litters';
+import { ReusableBlocks } from './collections/ReusableBlocks';
 import { SiteSettings } from './globals/SiteSettings';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -33,8 +34,14 @@ export default buildConfig({
     meta: {
       titleSuffix: '— Питомник veo55',
     },
+    // Для custom React-компонентов в админке (UI-поля, beforeFields и т.п.):
+    // payload генерирует importMap. baseDir = src/, дальше пути в полях вида
+    // `/admin/components/<File>#default` ресолвятся в client-bundle.
+    importMap: {
+      baseDir: dirname,
+    },
   },
-  collections: [Users, Media, Pages, FormSubmissions, Dogs, Litters],
+  collections: [Users, Media, Pages, FormSubmissions, Dogs, Litters, ReusableBlocks],
   globals: [SiteSettings],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET ?? '',
@@ -65,7 +72,7 @@ export default buildConfig({
      *
      * - Bucket: `veo55` (VK Cloud, регион ru-msk).
      * - Public CDN: `https://cdn.veo55.ru/<key>` — переопределено через `generateFileURL`.
-     *   По дефолту Payload отдавал бы прямой S3-URL (hb.ru-msk.vkcloud-storage.ru), но у Володи
+     *   По дефолту Payload отдавал бы прямой S3-URL (hb.ru-msk.vkcloud-storage.ru), но у проекта
      *   уже настроен CDN-домен поверх того же бакета, отдаём ссылки через него.
      * - Prefix `media/` отделяет загрузки CMS от исторических ассетов в бакете
      *   (legacy лежит в `images/<date>/...`, его не трогаем).
