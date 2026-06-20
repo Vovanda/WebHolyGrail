@@ -122,11 +122,14 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
 }
 
 /**
- * Маршрут каталога собак: одиночный сегмент `/catalog` или `/dogs`.
+ * Маршрут списка собак питомника: `/dogs`.
+ *
+ * Раньше принимал `/catalog` тоже, но `/catalog` стал РКФ-прокси (отдельный
+ * route `app/(site)/catalog/page.tsx`) — список собак переехал на `/dogs`.
  */
 function isCatalogUrl(segments: string[] | undefined): boolean {
   const seg = segments ?? [];
-  return seg.length === 1 && (seg[0] === 'catalog' || seg[0] === 'dogs');
+  return seg.length === 1 && seg[0] === 'dogs';
 }
 
 export default async function CatchallPage({ params }: { params: Promise<Params> }) {
