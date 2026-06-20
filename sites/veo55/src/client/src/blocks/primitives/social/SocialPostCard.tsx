@@ -6,6 +6,7 @@ import { SocialText } from './SocialText';
 import { SocialMediaGrid } from './SocialMediaGrid';
 import { SocialLikePopup } from './SocialLikePopup';
 import { SocialComments } from './SocialComments';
+import { CommentsToggleButton } from './CommentsToggleButton';
 import { formatRelativeDate, formatCompactNumber } from './format';
 
 /**
@@ -106,7 +107,7 @@ export function SocialPostCard({
           <strong className="text-ink font-semibold">{formatCompactNumber(metrics.likes)}</strong>
         </SocialLikePopup>
         {metrics.comments > 0 ? (
-          <CommentsAnchor count={metrics.comments} />
+          <CommentsToggleButton postId={String(post.id)} count={metrics.comments} />
         ) : (
           <span className="inline-flex items-center gap-1.5">
             <span className="text-base">💬</span>
@@ -133,28 +134,15 @@ export function SocialPostCard({
         )}
       </div>
 
-      {/* Comments lazy */}
+      {/* Comments lazy (раскрывается через summary или клик 💬-чипа в footer) */}
       {comments && comments.length > 0 && (
         <SocialComments
+          postId={String(post.id)}
           comments={comments}
           postLikes={metrics.likes}
           totalCount={metrics.comments}
         />
       )}
     </article>
-  );
-}
-
-/**
- * Чип-якорь к блоку комментов: некликабельный, но обозначает «есть N коммов
- * раскрыть ниже». Раскрытие — через `<details>` ниже (legacy `data-toggle-comments`
- * сейчас не нужен — раскрытие нативное через summary).
- */
-function CommentsAnchor({ count }: { readonly count: number }) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className="text-base">💬</span>
-      <strong className="text-ink font-semibold">{formatCompactNumber(count)}</strong>
-    </span>
   );
 }

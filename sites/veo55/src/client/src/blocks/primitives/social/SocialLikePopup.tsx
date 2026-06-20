@@ -42,15 +42,18 @@ export function SocialLikePopup({
     e.preventDefault();
     const btn = btnRef.current;
     if (!btn) return;
+    // Логика 1:1 с legacy `news.php → showLikePopup`. Координаты в
+    // document-space (page coords, с учётом скролла), `position: absolute`
+    // на body. Без scroll-offset popup улетает при скролле.
     const rect = btn.getBoundingClientRect();
-    // Прикидываем ширину popup'а ~280px (clamp до viewport ниже).
     const POPUP_W = 290;
     const MARGIN = 8;
     const targetCenterX = rect.left + rect.width / 2;
     const desired = targetCenterX - POPUP_W / 2;
-    const left = Math.max(MARGIN, Math.min(desired, window.innerWidth - POPUP_W - MARGIN));
-    const top = rect.top + window.scrollY - 8; // 8px воздух между popup и кнопкой
-    const arrowOffset = Math.max(8, Math.min(POPUP_W - 8, targetCenterX - left));
+    const leftViewport = Math.max(MARGIN, Math.min(desired, window.innerWidth - POPUP_W - MARGIN));
+    const left = leftViewport + window.scrollX;
+    const top = rect.top + window.scrollY; // `translateY(-100%)` ниже сдвигает на высоту popup'а вверх
+    const arrowOffset = Math.max(8, Math.min(POPUP_W - 8, targetCenterX - leftViewport));
     setPopup({ left, top, arrowOffset });
   }
 
@@ -70,9 +73,12 @@ export function SocialLikePopup({
             position: 'absolute',
             left: popup.left,
             top: popup.top,
-            transform: 'translateY(-100%)',
+            // -12px = поднимаем над кнопкой (popup-height + воздух), без
+            // знания реального popup-height используем translateY(-100%)
+            // + дополнительный margin-top чтобы воздух был
+            transform: 'translateY(calc(-100% - 12px))',
           }}
-          className="z-[9999] pointer-events-none rounded-lg bg-ink text-bg px-3.5 py-2 text-[12.5px] font-semibold font-sans whitespace-nowrap shadow-[0_6px_20px_rgba(0,0,0,0.22)] max-w-[calc(100vw-16px)] animate-[social-popup_180ms_ease-out]"
+          className="z-[9999] pointer-events-none rounded-lg bg-ink text-bg px-3.5 py-2 text-[12.5px] font-semibold font-sans whitespace-nowrap shadow-[0_6px_20px_rgba(0,0,0,0.22)] max-w-[calc(100vw-16px)]"
         >
           <span
             aria-hidden

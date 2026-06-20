@@ -18,25 +18,46 @@ import { formatRelativeDate, formatCompactNumber } from './format';
  * Аватарка имени — если есть `photo`, иначе плейсхолдер из инициалов.
  */
 export function SocialComments({
+  postId,
   comments,
   postLikes,
   totalCount,
 }: {
+  /** Используется для связи с CommentsToggleButton в footer'е (клик 💬). */
+  readonly postId?: string;
   readonly comments: readonly SocialComment[];
   readonly postLikes: number;
   readonly totalCount?: number;
 }) {
   if (comments.length === 0) return null;
 
+  // Top-level комменты (parentId='0') — это видимые карточки. Replies
+  // прикрепляются рекурсивно при рендере (см. CommentRow).
+  const topLevel = comments.filter((c) => !c.parentId || c.parentId === '0');
+  const repliesByParent = new Map<string, SocialComment[]>();
+  for (const c of comments) {
+    if (c.parentId && c.parentId !== '0') {
+      const arr = repliesByParent.get(c.parentId) ?? [];
+      arr.push(c);
+      repliesByParent.set(c.parentId, arr);
+    }
+  }
+  // Прикрепляем replies к каждому top-level через клонирование
+  const enriched: SocialComment[] = topLevel.map((c) => ({
+    ...c,
+    replies: c.replies && c.replies.length > 0 ? c.replies : (repliesByParent.get(c.id) ?? []),
+  }));
+
   const open = postLikes >= 85;
   const showAll = postLikes >= 196;
-  const visibleN = showAll ? comments.length : 3;
-  const visible = comments.slice(0, visibleN);
-  const rest = comments.slice(visibleN);
-  const totalLabel = formatCompactNumber(totalCount ?? comments.length);
+  const visibleN = showAll ? enriched.length : 3;
+  const visible = enriched.slice(0, visibleN);
+  const rest = enriched.slice(visibleN);
+  const totalLabel = formatCompactNumber(totalCount ?? enriched.length);
 
   return (
     <details
+      data-comments-of={postId}
       className={cn(
         'border-t border-[#f4ead7] bg-[#FDFCF8]',
         '[&>summary]:list-none [&>summary::-webkit-details-marker]:hidden',

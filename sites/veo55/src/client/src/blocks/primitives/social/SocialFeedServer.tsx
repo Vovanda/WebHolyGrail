@@ -1,6 +1,6 @@
-import type { BlockNode, SiteSettings, SocialSource } from '@veo55/contracts';
+import type { BlockNode, SiteSettings, SocialComment, SocialSource } from '@veo55/contracts';
 
-import { listPosts } from '@/lib/api-client';
+import { listCommentsForPosts, listPosts } from '@/lib/api-client';
 
 import { SocialFeed } from './SocialFeed';
 
@@ -51,6 +51,31 @@ export async function SocialFeedServer({
   // питомника. Если выйдем за — следующая итерация infinite scroll.
   const posts = await listPosts({ sources, limit: Math.max(count, 200) }).catch(() => []);
 
+  // Server-fetch ВСЕ комменты для всех видимых постов одним запросом.
+  // Группируем по post-id на сервере → отдаём в `<SocialFeed>` как Map.
+  // Дерево replies строится client-side по `parentId`.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const postIds = posts.map((p) => (p as any).id as string | number);
+  const allComments =
+    postIds.length > 0
+      ? await listCommentsForPosts(postIds).catch(() => [] as readonly SocialComment[])
+      : [];
+  const commentsByPost = new Map<string, SocialComment[]>();
+  for (const c of allComments) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const postIdRaw = (c as any).post;
+    const key = String(typeof postIdRaw === 'object' && postIdRaw ? postIdRaw.id : postIdRaw);
+    const arr = commentsByPost.get(key) ?? [];
+    arr.push(c);
+    commentsByPost.set(key, arr);
+  }
+  // Сериализуем Map → Record для передачи в client component (Map не serializable
+  // через RSC props).
+  const commentsByPostRecord: Record<string, SocialComment[]> = {};
+  commentsByPost.forEach((arr, key) => {
+    commentsByPostRecord[key] = arr;
+  });
+
   // Короткое название для VK-чипа (1:1 с legacy `.veo-news__group` — там
   // «Омская Дружина», а не «Питомник ВЕО "Омская Дружина"»). Полное имя
   // используется в seo-meta и других местах через `VK_GROUP_NAME`.
@@ -62,6 +87,7 @@ export async function SocialFeedServer({
   return (
     <SocialFeed
       posts={posts}
+      commentsByPost={commentsByPostRecord}
       groupName={groupName}
       groupPhoto={groupPhoto}
       groupUrl={groupUrl}

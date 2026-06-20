@@ -1,7 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { SocialFeedFilter, SocialPostDoc, SocialSource } from '@veo55/contracts';
+import type {
+  SocialComment,
+  SocialFeedFilter,
+  SocialPostDoc,
+  SocialSource,
+} from '@veo55/contracts';
 
 import { cn } from '@/lib/utils';
 
@@ -29,6 +34,7 @@ import { SocialPostCard } from './SocialPostCard';
  */
 export function SocialFeed({
   posts,
+  commentsByPost,
   groupName,
   groupPhoto,
   groupUrl,
@@ -36,6 +42,11 @@ export function SocialFeed({
   config,
 }: {
   readonly posts: readonly SocialPostDoc[];
+  /**
+   * Карта `postId → SocialComment[]` (flat-список с replies через `parentId`).
+   * Заполняется в `SocialFeedServer` через `listCommentsForPosts`.
+   */
+  readonly commentsByPost?: Record<string, readonly SocialComment[]>;
   readonly groupName: string;
   readonly groupPhoto?: string;
   readonly groupUrl: string;
@@ -147,14 +158,18 @@ export function SocialFeed({
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-5">
-            {visiblePosts.map((post) => (
-              <SocialPostCard
-                key={post.id}
-                post={post}
-                vkGroupUrl={groupUrl}
-                sourceLabel="Открыть в VK ↗"
-              />
-            ))}
+            {visiblePosts.map((post) => {
+              const postComments = commentsByPost?.[String(post.id)] ?? [];
+              return (
+                <SocialPostCard
+                  key={post.id}
+                  post={post}
+                  comments={postComments}
+                  vkGroupUrl={groupUrl}
+                  sourceLabel="Открыть в VK ↗"
+                />
+              );
+            })}
           </div>
         )}
 

@@ -176,6 +176,32 @@ export async function listLittersInRange(
 }
 
 /**
+ * Все комменты для набора постов, одним запросом. Сортировка по дате ASC
+ * (top-level комменты + replies в одной flat-выдаче). Дерево replies
+ * собирается на клиенте по `parentId`.
+ *
+ * Используется в SocialFeedServer для подгрузки comments при рендере /news.
+ */
+export async function listCommentsForPosts(
+  postIds: ReadonlyArray<string | number>,
+): Promise<readonly import('@veo55/contracts').SocialComment[]> {
+  if (postIds.length === 0) return [];
+  const params = new URLSearchParams({ depth: '0', limit: '5000', sort: 'date' });
+  postIds.forEach((id, i) => {
+    params.set(`where[post][in][${i}]`, String(id));
+  });
+  params.set('where[hidden][not_equals]', 'true');
+  const response = await fetch(`${CMS_URL}/api/comments?${params.toString()}`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) return [];
+  const data = (await response.json()) as {
+    docs: ReadonlyArray<import('@veo55/contracts').SocialComment & { post: number | string }>;
+  };
+  return data.docs;
+}
+
+/**
  * Список постов из коллекции `posts` (синхронизируется через `pnpm sync:vk-posts`).
  * Сортировка по дате DESC. Используется блоком `social-feed`.
  */
