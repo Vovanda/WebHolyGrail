@@ -102,6 +102,21 @@ export async function getDogBySlug(slug: string): Promise<DogDoc | null> {
 }
 
 /**
+ * Список наших собак (коллекция Dogs). Используется на странице каталога
+ * `/catalog`. depth=1 чтобы получить populated photos[].image.
+ *
+ * @param sex — фильтр по полу, опционально
+ */
+export async function listDogs(sex?: 'male' | 'female'): Promise<readonly DogDoc[]> {
+  const params = new URLSearchParams({ depth: '1', limit: '200', sort: '-dob' });
+  if (sex) params.set('where[sex][equals]', sex);
+  const response = await fetch(`${CMS_URL}/api/dogs?${params.toString()}`, { cache: 'no-store' });
+  if (!response.ok) return [];
+  const data = (await response.json()) as { docs: DogDoc[] };
+  return data.docs;
+}
+
+/**
  * Получить помёт по `dob+letter` — используется в generic-fallback маршрута
  * `/puppies/<dob>/<letter>` когда кастомная Pages-запись отсутствует.
  */

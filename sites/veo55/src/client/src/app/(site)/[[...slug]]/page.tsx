@@ -5,11 +5,13 @@ import {
   getLitterByDobLetter,
   getPageBySlug,
   getSiteSettings,
+  listDogs,
   listLittersInRange,
 } from '@/lib/api-client';
 import { FALLBACK_SITE_SETTINGS } from '@/layouts/presets/fallback-site-settings';
 import { renderBlockNode } from '@/layouts/site-layout';
 import { LittersList } from '@/blocks/veo55/litter/LittersList';
+import { DogsList } from '@/blocks/veo55/dogs/DogsList';
 
 /**
  * Catchall публичный маршрут — рендерит любую страницу из Payload Pages по slug.
@@ -115,7 +117,16 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
     if (litter) return { title: litter.title };
   }
   if (parsed?.kind === 'list') return { title: 'Помёты' };
+  if (isCatalogUrl(slug)) return { title: 'Наши собаки' };
   return {};
+}
+
+/**
+ * Маршрут каталога собак: одиночный сегмент `/catalog` или `/dogs`.
+ */
+function isCatalogUrl(segments: string[] | undefined): boolean {
+  const seg = segments ?? [];
+  return seg.length === 1 && (seg[0] === 'catalog' || seg[0] === 'dogs');
 }
 
 export default async function CatchallPage({ params }: { params: Promise<Params> }) {
@@ -173,6 +184,12 @@ export default async function CatchallPage({ params }: { params: Promise<Params>
   } else if (parsed?.kind === 'list') {
     const litters = await listLittersInRange(parsed.from, parsed.to).catch(() => []);
     return <LittersList litters={litters} />;
+  }
+
+  // 3) Каталог собак.
+  if (isCatalogUrl(slug)) {
+    const dogs = await listDogs().catch(() => []);
+    return <DogsList dogs={dogs} />;
   }
 
   notFound();
