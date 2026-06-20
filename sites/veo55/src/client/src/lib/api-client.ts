@@ -176,6 +176,32 @@ export async function listLittersInRange(
 }
 
 /**
+ * Список постов из коллекции `posts` (синхронизируется через `pnpm sync:vk-posts`).
+ * Сортировка по дате DESC. Используется блоком `social-feed`.
+ */
+export async function listPosts(opts: {
+  sources?: ReadonlyArray<'vk' | 'tg' | 'ig'>;
+  limit?: number;
+}): Promise<readonly import('@veo55/contracts').SocialPostDoc[]> {
+  const limit = opts.limit ?? 100;
+  const params = new URLSearchParams({ depth: '1', limit: String(limit), sort: '-date' });
+  const sources = opts.sources ?? ['vk', 'tg', 'ig'];
+  sources.forEach((s, i) => {
+    params.set(`where[and][${i}][source][equals]`, s);
+  });
+  // Если `or`-фильтр для нескольких source нужен — придётся переделать. Сейчас
+  // у нас всегда только один источник на блок (VK), and-фильтр совпадает.
+  const response = await fetch(`${CMS_URL}/api/posts?${params.toString()}`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) return [];
+  const data = (await response.json()) as {
+    docs: ReadonlyArray<import('@veo55/contracts').SocialPostDoc>;
+  };
+  return data.docs;
+}
+
+/**
  * Получить переиспользуемый блок по id с populated содержимым (depth=2 — нужны
  * вложенные relations внутри `content`-блоков).
  */
