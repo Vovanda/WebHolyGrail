@@ -13,6 +13,7 @@
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "seed": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/index.ts",
     "seed:media": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/seed-media.ts",
+    "seed:home-achievement": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/seed-home-achievement.ts",
     "migrate": "cross-env NODE_OPTIONS=--no-deprecation payload migrate",
     "migrate:create": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:create",
     "migrate:status": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:status",
