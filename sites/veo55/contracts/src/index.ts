@@ -53,3 +53,15 @@ export type { ReusableBlockDoc, ReusableRefBlockNode, PageRefBlockNode } from '.
 export type { CertifiedNoticeBlockNode, CertifiedNoticeCriterion } from './notices';
 
 export type { PedigreeBlockNode } from './pedigree';
+
+export type {
+  SocialSource,
+  SocialPostDoc,
+  SocialPostAuthor,
+  SocialPostMedia,
+  SocialPostMention,
+  SocialPostMetrics,
+  SocialComment,
+  SocialFeedBlockNode,
+  SocialFeedFilter,
+} from './social';
