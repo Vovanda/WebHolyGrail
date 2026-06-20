@@ -5,6 +5,9 @@ import { TimelineBlock } from './Timeline';
 import { ProseBlock } from './Prose';
 import { WaveDividerBlock } from './WaveDivider';
 import { LitterCardBlock } from './LitterCard';
+import { LitterHeaderBlock } from './LitterHeader';
+import { LitterPairCardBlock } from './LitterPairCard';
+import { LitterPuppiesBlock } from './LitterPuppies';
 import { AchievementBannerBlock } from './AchievementBanner';
 
 /**
@@ -23,5 +26,8 @@ export const PAGE_BLOCKS = [
   ProseBlock,
   WaveDividerBlock,
   LitterCardBlock,
+  LitterHeaderBlock,
+  LitterPairCardBlock,
+  LitterPuppiesBlock,
   AchievementBannerBlock,
 ];

@@ -39,28 +39,73 @@ export const Litters: CollectionConfig = {
       label: 'Заголовок помёта',
       type: 'text',
       required: true,
-      admin: {
-        description: 'Отображается в шапке секции помёта и в админ-списке.',
-      },
+      admin: { description: 'Отображается в шапке секции и в админ-списке.' },
     },
     {
-      name: 'slug',
-      label: 'URL (slug)',
-      type: 'text',
-      required: true,
-      unique: true,
-      index: true,
-      admin: {
-        description: 'Часть URL после /puppies/. Латиница, цифры, дефисы.',
-      },
+      type: 'row',
+      fields: [
+        {
+          name: 'dob',
+          label: 'Дата рождения',
+          type: 'date',
+          required: true,
+          admin: {
+            date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' },
+            width: '50%',
+          },
+        },
+        {
+          name: 'letter',
+          label: 'Литера (буква помёта)',
+          type: 'select',
+          required: true,
+          index: true,
+          options: [
+            { label: 'А', value: 'a' },
+            { label: 'Б', value: 'b' },
+            { label: 'В', value: 'v' },
+            { label: 'Г', value: 'g' },
+            { label: 'Д', value: 'd' },
+            { label: 'Е', value: 'e' },
+            { label: 'Ё', value: 'yo' },
+            { label: 'Ж', value: 'zh' },
+            { label: 'З', value: 'z' },
+            { label: 'И', value: 'i' },
+            { label: 'Й', value: 'y' },
+            { label: 'К', value: 'k' },
+            { label: 'Л', value: 'l' },
+            { label: 'М', value: 'm' },
+            { label: 'Н', value: 'n' },
+            { label: 'О', value: 'o' },
+            { label: 'П', value: 'p' },
+            { label: 'Р', value: 'r' },
+            { label: 'С', value: 's' },
+            { label: 'Т', value: 't' },
+            { label: 'У', value: 'u' },
+            { label: 'Ф', value: 'f' },
+            { label: 'Х', value: 'h' },
+            { label: 'Ц', value: 'ts' },
+            { label: 'Ч', value: 'ch' },
+            { label: 'Ш', value: 'sh' },
+            { label: 'Щ', value: 'sch' },
+            { label: 'Э', value: 'eh' },
+            { label: 'Ю', value: 'yu' },
+            { label: 'Я', value: 'ya' },
+          ],
+          admin: {
+            description: 'URL: `/puppies/{дата}/{буква}`.',
+            width: '50%',
+          },
+        },
+      ],
     },
     {
-      name: 'dob',
-      label: 'Дата рождения',
-      type: 'date',
-      required: true,
+      name: 'pageLink',
+      type: 'ui',
       admin: {
-        date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' },
+        components: {
+          Field: '/admin/components/LitterPageButton#default',
+        },
       },
     },
     {
@@ -284,4 +329,54 @@ export const Litters: CollectionConfig = {
     update: ({ req: { user } }) => Boolean(user),
     delete: ({ req: { user } }) => user?.role === 'admin',
   },
+  endpoints: [
+    {
+      path: '/:id/create-page',
+      method: 'post',
+      handler: async (req) => {
+        const { payload, routeParams } = req;
+        const id = routeParams?.id as string | number | undefined;
+        if (!id) {
+          return Response.json({ error: 'litter id required' }, { status: 400 });
+        }
+
+        const litter = await payload.findByID({ collection: 'litters', id, depth: 0 });
+        if (!litter) {
+          return Response.json({ error: 'litter not found' }, { status: 404 });
+        }
+
+        // URL детальной — `/puppies/<dob ISO>/<letter>`. Pages.slug кастомной
+        // = `puppies/<dob>/<letter>`. Без кастомной маршрут отдаёт generic
+        // прямо из Litter (см. catchall в client).
+        const dobIso = (litter.dob as string).slice(0, 10); // YYYY-MM-DD
+        const pageSlug = `puppies/${dobIso}/${litter.letter}`;
+
+        const existing = await payload.find({
+          collection: 'pages',
+          where: { slug: { equals: pageSlug } },
+          limit: 1,
+          depth: 0,
+        });
+        if (existing.docs[0]) {
+          return Response.json({ pageId: existing.docs[0].id, created: false });
+        }
+
+        const created = await payload.create({
+          collection: 'pages',
+          data: {
+            title: litter.title,
+            slug: pageSlug,
+            blocks: [
+              { blockType: 'litter-header', litter: litter.id },
+              { blockType: 'litter-pair-card', litter: litter.id },
+              { blockType: 'litter-puppies', litter: litter.id, showSold: false },
+            ],
+            _status: 'published',
+          } as never,
+        });
+
+        return Response.json({ pageId: created.id, created: true });
+      },
+    },
+  ],
 };
