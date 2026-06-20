@@ -65,3 +65,12 @@ export type {
   SocialFeedBlockNode,
   SocialFeedFilter,
 } from './social';
+
+export type {
+  RkfDogDoc,
+  RkfPhoto,
+  RkfInfoField,
+  RkfRelation,
+  RkfSearchItem,
+  RkfSearchPage,
+} from './rkf';
