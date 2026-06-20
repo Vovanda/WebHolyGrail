@@ -136,8 +136,6 @@ export async function LitterCardBlock({
               </div>
             )}
 
-            {hasSelectedBreeding(litter) && <SelectedBreedingBlock className="mt-10 md:mt-14" />}
-
             {visiblePuppies.length > 0 && (
               <div className={cn('mt-12 md:mt-16', puppyGridClass(visiblePuppies.length))}>
                 {visiblePuppies.map((p) => (
@@ -390,114 +388,6 @@ function ParentSlot({
           </div>
         </details>
       )}
-    </div>
-  );
-}
-
-/**
- * Условие рендера блока «Отборное разведение»: у ОБОИХ родителей в `titles[]`
- * есть запись с текстом, матчащим regex `/отборн|selected breeding/i`.
- *
- * Источник — R0: реальные titles в Payload Dogs, а не захардкоженный флаг.
- * Если у Ольги в админке регалии прописаны корректно — блок появится автоматом.
- */
-function hasSelectedBreeding(litter: LitterDoc): boolean {
-  const re = /отборн|selected breeding/i;
-  const hasIn = (dog: string | DogDoc) =>
-    typeof dog === 'object' && (dog.titles ?? []).some((t) => re.test(t.text ?? ''));
-  return hasIn(litter.mother) && hasIn(litter.father);
-}
-
-/**
- * SelectedBreedingBlock — USP-плашка «Отборное разведение · Selected Breeding» +
- * чек-чипсы 5 требований РКФ (Приложение №7).
- *
- * Контент — типовой бренд РКФ (одинаков для всех помётов со статусом Selected
- * Breeding), идентичен живому veo55.ru `.veo-rkf-badge` + `.veo-rkf-reqs`
- * inline в `#puppies_1`. Поэтому захардкожен здесь.
- *
- * @todo holygrail-rkf-content: мигрировать строки в Payload Global
- * `SelectedBreedingContent` чтобы Ольга могла править через админку (R0).
- * Поднимется когда появится второй помёт со статусом — сейчас один.
- *
- * Палитра:
- *  - badge: gradient `accent-soft` → светлее янтарь, бордер `accent`, shadow тёплый
- *  - reqs: `success-soft` фон + `success` бордер + `success` текст (РКФ-проверки)
- *
- * Цвета успеха (зелёный) — исключение из общего бренд-запрета на зелёный:
- * это status-индикатор «проверено / соответствует», как `--color-success`
- * в `tokens.css`. Точно повторяет проду.
- */
-function SelectedBreedingBlock({ className }: { readonly className?: string }) {
-  const reqs = [
-    'ДНК-профиль (паспорт)',
-    'Титул «Гранд Чемпион России»',
-    'Племенной смотр РР',
-    'Рабочий сертификат ОКД + ЗКС',
-    'Дисплазия HD-A · ED-0',
-  ];
-  return (
-    <div className={cn('mx-auto max-w-[880px]', className)}>
-      <div
-        className={cn(
-          'flex items-center gap-[18px] px-[22px] py-[18px]',
-          'rounded-[14px] border-2 border-accent',
-          'bg-gradient-to-br from-accent-soft to-[#F7E29F]',
-          'shadow-[0_6px_22px_rgba(168,128,42,0.18)]',
-        )}
-      >
-        <div
-          aria-hidden
-          className="shrink-0 text-[42px] leading-none drop-shadow-[0_2px_4px_rgba(168,128,42,0.3)]"
-        >
-          🏆
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="m-0 font-display font-bold text-[24px] uppercase text-ink tracking-[0.4px] leading-[1.1]">
-            Отборное разведение{' '}
-            <span className="font-medium italic text-[18px] text-muted normal-case tracking-[0.2px]">
-              · Selected Breeding
-            </span>
-          </p>
-          <p className="m-0 mt-1.5 text-[14.5px] leading-[1.5] text-ink">
-            Высший статус РКФ — оба родителя{' '}
-            <strong className="font-bold">Гранд Чемпионы России</strong>, прошли тесты на
-            наследственные заболевания, чистая дисплазия{' '}
-            <strong className="font-bold">HD-A / ED-0</strong>, пожизненный допуск в разведение.
-            <br />
-            Помёт подтверждён по Приложению №7 РКФ.
-          </p>
-        </div>
-      </div>
-      <ul
-        aria-label="Требования Приложения №7 РКФ — все соблюдены"
-        className="list-none p-0 mt-2 mb-0 flex flex-wrap gap-x-[14px] gap-y-3 justify-center"
-      >
-        {reqs.map((text) => (
-          <li
-            key={text}
-            className={cn(
-              'inline-flex items-center gap-2.5',
-              'pl-3.5 pr-5 py-[11px] rounded-full',
-              'bg-success-soft border border-success text-success',
-              'text-sm font-semibold tracking-[0.1px]',
-              'shadow-[0_1px_3px_rgba(28,138,59,0.06)]',
-            )}
-          >
-            <span
-              aria-hidden
-              className={cn(
-                'inline-flex items-center justify-center shrink-0',
-                'w-5 h-5 rounded-full bg-success text-bg',
-                'text-[12px] font-extrabold leading-none',
-              )}
-            >
-              ✓
-            </span>
-            {text}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import type { LitterDoc, PageDoc, SiteSettings } from '@veo55/contracts';
+import type { DogDoc, LitterDoc, PageDoc, SiteSettings } from '@veo55/contracts';
 
 /**
  * Минимальный клиент к Payload CMS REST API.
@@ -75,4 +75,28 @@ export async function getLitterById(id: string): Promise<LitterDoc | null> {
   }
 
   return (await response.json()) as LitterDoc;
+}
+
+/**
+ * Получить нашу curated собаку по slug (depth=1 — populated photos.image media).
+ *
+ * @returns DogDoc или null если не найден / не опубликован.
+ *
+ * @remarks
+ * **Canonical URL `/dog/<slug>`** — это поле работает (R13). Только наши Dogs;
+ * чужие (не зарегистрированные у нас) живут в /catalog (live-proxy РКФ
+ * через catalog.php) и сюда не попадают.
+ */
+export async function getDogBySlug(slug: string): Promise<DogDoc | null> {
+  const query = new URLSearchParams({
+    'where[slug][equals]': slug,
+    depth: '1',
+    limit: '1',
+  });
+  const response = await fetch(`${CMS_URL}/api/dogs?${query.toString()}`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) return null;
+  const data = (await response.json()) as { docs: DogDoc[] };
+  return data.docs[0] ?? null;
 }

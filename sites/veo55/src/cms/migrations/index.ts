@@ -8,6 +8,7 @@ import * as migration_20260619_171313_litters_collection from './20260619_171313
 import * as migration_20260619_171505_litter_card_block from './20260619_171505_litter_card_block';
 import * as migration_20260619_194643_add_s3_storage_prefix from './20260619_194643_add_s3_storage_prefix';
 import * as migration_20260619_195944_rename_paircard_image_to_images from './20260619_195944_rename_paircard_image_to_images';
+import * as migration_20260620_013915_add_achievement_banner from './20260620_013915_add_achievement_banner';
 
 export const migrations = [
   {
@@ -59,5 +60,10 @@ export const migrations = [
     up: migration_20260619_195944_rename_paircard_image_to_images.up,
     down: migration_20260619_195944_rename_paircard_image_to_images.down,
     name: '20260619_195944_rename_paircard_image_to_images',
+  },
+  {
+    up: migration_20260620_013915_add_achievement_banner.up,
+    down: migration_20260620_013915_add_achievement_banner.down,
+    name: '20260620_013915_add_achievement_banner',
   },
 ];
