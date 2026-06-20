@@ -1,4 +1,12 @@
-import type { DogDoc, LitterDoc, PageDoc, ReusableBlockDoc, SiteSettings } from '@veo55/contracts';
+import type {
+  DogDoc,
+  LitterDoc,
+  PageDoc,
+  ReusableBlockDoc,
+  RkfDogDoc,
+  RkfSearchPage,
+  SiteSettings,
+} from '@veo55/contracts';
 
 /**
  * Минимальный клиент к Payload CMS REST API.
@@ -250,4 +258,40 @@ export async function getPageById(id: string | number): Promise<PageDoc | null> 
   });
   if (!response.ok) return null;
   return (await response.json()) as PageDoc;
+}
+
+/**
+ * Получить карточку собаки из РКФ-каталога (`veorkf.ru`). Server-side fetch
+ * через Payload endpoint `/api/rkf/dog?id=N` — там же кеш 7д/1д.
+ *
+ * @returns карточка или `null` если РКФ не отдал собаку (404 / parse fail).
+ */
+export async function getRkfDog(id: number): Promise<RkfDogDoc | null> {
+  if (!Number.isFinite(id) || id < 1) return null;
+  // Кеширование живёт на стороне Payload-endpoint'а (RKF cache 7д/1д).
+  // Next-fetch ставит `no-store`, иначе при изменении парсера фронт держит
+  // устаревшую сериализацию (см. историю с position/rkfId).
+  const response = await fetch(`${CMS_URL}/api/rkf/dog?id=${id}`, { cache: 'no-store' });
+  if (!response.ok) return null;
+  const data = (await response.json()) as RkfDogDoc | { error: string };
+  if ('error' in data) return null;
+  return data;
+}
+
+/**
+ * Поиск собак на РКФ по части клички. Возвращает одну страницу (~40 items) с
+ * признаком `hasMore`. Server-side fetch через Payload endpoint
+ * `/api/rkf/search?q=X&page=N` — там же кеш 7д/1д на (name, page).
+ */
+export async function searchRkf(query: string, page = 1): Promise<RkfSearchPage> {
+  const q = query.trim();
+  if (q.length < 2) {
+    return { query: q, page, count: 0, hasMore: false, items: [] };
+  }
+  const params = new URLSearchParams({ q, page: String(page) });
+  const response = await fetch(`${CMS_URL}/api/rkf/search?${params.toString()}`, {
+    next: { revalidate: 3600 },
+  });
+  if (!response.ok) return { query: q, page, count: 0, hasMore: false, items: [] };
+  return (await response.json()) as RkfSearchPage;
 }
