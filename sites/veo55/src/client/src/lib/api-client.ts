@@ -1,4 +1,4 @@
-import type { DogDoc, LitterDoc, PageDoc, SiteSettings } from '@veo55/contracts';
+import type { DogDoc, LitterDoc, PageDoc, ReusableBlockDoc, SiteSettings } from '@veo55/contracts';
 
 /**
  * Минимальный клиент к Payload CMS REST API.
@@ -99,4 +99,76 @@ export async function getDogBySlug(slug: string): Promise<DogDoc | null> {
   if (!response.ok) return null;
   const data = (await response.json()) as { docs: DogDoc[] };
   return data.docs[0] ?? null;
+}
+
+/**
+ * Получить помёт по `dob+letter` — используется в generic-fallback маршрута
+ * `/puppies/<dob>/<letter>` когда кастомная Pages-запись отсутствует.
+ */
+export async function getLitterByDobLetter(dob: string, letter: string): Promise<LitterDoc | null> {
+  const query = new URLSearchParams({
+    'where[and][0][dob][greater_than_equal]': `${dob}T00:00:00.000Z`,
+    'where[and][1][dob][less_than]': `${dob}T23:59:59.999Z`,
+    'where[and][2][letter][equals]': letter,
+    depth: '2',
+    limit: '1',
+  }).toString();
+  const response = await fetch(`${CMS_URL}/api/litters?${query}`, { cache: 'no-store' });
+  if (!response.ok) return null;
+  const data = (await response.json()) as { docs: LitterDoc[] };
+  return data.docs[0] ?? null;
+}
+
+/**
+ * Список помётов с фильтром по диапазону `dob`. Используется для list-страниц
+ * `/puppies`, `/puppies/<year>`, `/puppies/<year-month>` и т.п.
+ *
+ * @param fromIso — начало диапазона включительно (`YYYY-MM-DDT00:00:00.000Z`)
+ * @param toIso — конец диапазона исключительно
+ */
+export async function listLittersInRange(
+  fromIso: string | null,
+  toIso: string | null,
+): Promise<readonly LitterDoc[]> {
+  const params = new URLSearchParams({ depth: '1', limit: '200', sort: '-dob' });
+  let idx = 0;
+  if (fromIso) {
+    params.set(`where[and][${idx}][dob][greater_than_equal]`, fromIso);
+    idx++;
+  }
+  if (toIso) {
+    params.set(`where[and][${idx}][dob][less_than]`, toIso);
+    idx++;
+  }
+  const response = await fetch(`${CMS_URL}/api/litters?${params.toString()}`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) return [];
+  const data = (await response.json()) as { docs: LitterDoc[] };
+  return data.docs;
+}
+
+/**
+ * Получить переиспользуемый блок по id с populated содержимым (depth=2 — нужны
+ * вложенные relations внутри `content`-блоков).
+ */
+export async function getReusableBlockById(id: string | number): Promise<ReusableBlockDoc | null> {
+  const response = await fetch(
+    `${CMS_URL}/api/reusable-blocks/${encodeURIComponent(String(id))}?depth=2`,
+    { cache: 'no-store' },
+  );
+  if (!response.ok) return null;
+  return (await response.json()) as ReusableBlockDoc;
+}
+
+/**
+ * Получить страницу по id для встраивания через `page-ref` (depth=2 для
+ * populated relations внутри её blocks).
+ */
+export async function getPageById(id: string | number): Promise<PageDoc | null> {
+  const response = await fetch(`${CMS_URL}/api/pages/${encodeURIComponent(String(id))}?depth=2`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) return null;
+  return (await response.json()) as PageDoc;
 }
