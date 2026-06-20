@@ -21,8 +21,28 @@ import { Comments } from './collections/Comments';
 import { SiteSettings } from './globals/SiteSettings';
 import { SyncVkPostsTask } from './jobs/sync-vk-posts.task';
 import { FetchPedigreeTask } from './jobs/fetch-pedigree.task';
+import { rkfEndpoints } from './endpoints/rkf';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Origin'ы для cors/csrf: CSV из env (`PAYLOAD_ALLOWED_ORIGINS`) + дефолтный
+ * локальный + предзаданные demo-tunnel origin'ы. Дедуп по строке.
+ */
+function parseOrigins(csv: string | undefined, fallback: string): string[] {
+  const fromEnv = (csv ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const defaults = [
+    fallback,
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:8080',
+    'https://veo.sawking.tech',
+  ];
+  return Array.from(new Set([...defaults, ...fromEnv]));
+}
 
 /**
  * Payload config for veo55 site.
@@ -57,6 +77,12 @@ export default buildConfig({
     Comments,
   ],
   globals: [SiteSettings],
+  endpoints: [
+    // Кастомные endpoints — `GET /api/rkf/dog?id=N` и `/api/rkf/search?q=X`.
+    // См. `endpoints/rkf.ts`. Используется client `/catalog` для рендера
+    // карточки/поиска собак с РКФ-каталога.
+    ...rkfEndpoints,
+  ],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET ?? '',
   typescript: {
@@ -78,8 +104,19 @@ export default buildConfig({
   },
   sharp,
   serverURL: process.env.PAYLOAD_PUBLIC_SERVER_URL ?? 'http://localhost:3001',
-  cors: [process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'],
-  csrf: [process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'],
+  // CORS / CSRF — список origin'ов, с которых разрешены не-GET запросы (publish,
+  // update, delete, login). При работе через demo-tunnel домен внешний, поэтому
+  // список расширен env-переменной `PAYLOAD_ALLOWED_ORIGINS` (CSV).
+  // Дефолт включает локалку (3000 site, 3001 admin), 8080 (local nginx demo) и
+  // публичный demo-домен veo.sawking.tech.
+  cors: parseOrigins(
+    process.env.PAYLOAD_ALLOWED_ORIGINS,
+    process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
+  ),
+  csrf: parseOrigins(
+    process.env.PAYLOAD_ALLOWED_ORIGINS,
+    process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
+  ),
   /**
    * Jobs Queue — Payload-native «облегчённый hangfire»: коллекция
    * `payload-jobs` в админке (status / retries / output / error) + ручной
