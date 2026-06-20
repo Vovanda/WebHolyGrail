@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import type { BlockNode, SiteSettings } from '@veo55/contracts';
 
+import { ContentFrame } from '@/blocks/decor/ContentFrame';
+
 interface TimelineEntry {
   readonly year: string;
   readonly icon?: string;
@@ -47,27 +49,34 @@ export function Timeline({
 
   return (
     <section className="bg-bg py-12 md:py-16">
-      <div className="mx-auto max-w-content px-6">
+      <ContentFrame side="right" decor="vines" className="px-6">
         <h2 className="text-center font-display text-3xl md:text-h2 font-semibold text-ink">
           Наш путь
         </h2>
         <div className="mx-auto mt-4 mb-10 h-[1.5px] w-16 bg-accent opacity-85 rounded-full" />
 
-        <ol className="hg-vine-r mx-auto max-w-[880px] px-10 border-l-2 border-border">
+        <ol className="px-10 border-l-4 border-border">
           {entries.map((entry, idx) => {
             const isHiddenInitially = idx >= visibleCount;
             const isVisible = !isHiddenInitially || expanded;
+            // Свёрнутые items УБИРАЮТСЯ из layout (`display: none`) — без
+            // «разжатия» max-height-ом. При expanded — рендерятся сразу со
+            // своим финальным размером и плавно проявляются opacity 0→1.
+            // Требование: «всё должно быть уже отрендерено, просто плавно
+            // раскрыться и недостающее плавно проявится».
+            if (!isVisible) return null;
             return (
               <li
                 key={entry.year}
-                className="relative overflow-hidden"
-                style={{
-                  maxHeight: isVisible ? '400px' : '0px',
-                  paddingBottom: isVisible ? '2.25rem' : '0',
-                  clipPath: isVisible ? 'inset(0 0 0 0)' : 'inset(0 0 100% 0)',
-                  transition:
-                    'max-height 700ms ease-out, padding 700ms ease-out, clip-path 700ms ease-out',
-                }}
+                className="relative pb-9"
+                style={
+                  isHiddenInitially
+                    ? {
+                        animation: 'hg-fade-in 500ms ease-out both',
+                        animationDelay: `${(idx - visibleCount) * 80}ms`,
+                      }
+                    : undefined
+                }
               >
                 <span
                   aria-hidden
@@ -95,10 +104,12 @@ export function Timeline({
           <ExpandToggle
             expanded={expanded}
             onToggle={() => setExpanded((v) => !v)}
-            sinceYear={entries[entries.length - 1]?.year}
+            {...(entries[entries.length - 1]?.year
+              ? { sinceYear: entries[entries.length - 1]!.year }
+              : {})}
           />
         )}
-      </div>
+      </ContentFrame>
     </section>
   );
 }

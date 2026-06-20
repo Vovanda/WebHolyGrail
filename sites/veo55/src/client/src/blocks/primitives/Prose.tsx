@@ -2,6 +2,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import type { BlockNode, SiteSettings } from '@veo55/contracts';
 
 import { cn } from '@/lib/utils';
+import { ContentFrame } from '@/blocks/decor/ContentFrame';
 
 /**
  * Prose / RichText — **3-й общий компонент** (см. R5++). Любой содержательный
@@ -17,7 +18,7 @@ import { cn } from '@/lib/utils';
  * Контент пока plain-text-абзацы (split по `\n\n`). Когда понадобится — заменим
  * на rich-text-renderer для Lexical-AST из Payload (Шаг 4.4+).
  */
-const proseRoot = cva('relative mx-auto max-w-[880px] px-6 md:px-10 text-left', {
+const proseRoot = cva('relative px-6 md:px-10 text-left', {
   variants: {
     variant: {
       'editorial-with-dropcap':
@@ -64,7 +65,7 @@ export function Prose({
 
   return (
     <section className="bg-bg pt-2 pb-10 md:pb-14">
-      <div className={cn(proseRoot({ variant: data.variant }), 'hg-vine')}>
+      <ContentFrame side="both" decor="vines" className={proseRoot({ variant: data.variant })}>
         {paragraphs.map((paragraph, idx) => (
           <p
             key={idx}
@@ -73,7 +74,7 @@ export function Prose({
             {paragraph}
           </p>
         ))}
-      </div>
+      </ContentFrame>
     </section>
   );
 }

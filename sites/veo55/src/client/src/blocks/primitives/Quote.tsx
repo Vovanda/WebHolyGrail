@@ -3,6 +3,7 @@ import type { BlockNode, SiteSettings } from '@veo55/contracts';
 
 import { cn } from '@/lib/utils';
 import { Carousel } from './Carousel';
+import { ContentFrame } from '@/blocks/decor/ContentFrame';
 
 /**
  * Quote / Testimonial — **первый общий компонент Holy Grail** (см. R5++).
@@ -139,7 +140,7 @@ export function Quote({
 
   return (
     <section className="bg-bg pt-10 md:pt-14 pb-8 md:pb-10">
-      <div className="mx-auto max-w-content px-6">
+      <ContentFrame side="none" className="px-6">
         <h2 className="text-center font-display text-3xl md:text-h2 font-semibold text-ink">
           О нас
         </h2>
@@ -153,7 +154,7 @@ export function Quote({
         ) : (
           <div className="mx-auto max-w-[720px]">{figureEl}</div>
         )}
-      </div>
+      </ContentFrame>
     </section>
   );
 }

@@ -3,6 +3,7 @@ import type { BlockNode, DogDoc, LitterDoc, MediaRef, Puppy, SiteSettings } from
 import { cn } from '@/lib/utils';
 import { lexicalToParagraphs } from '@/lib/lexical-text';
 import { getLitterById } from '@/lib/api-client';
+import { ContentFrame } from '@/blocks/decor/ContentFrame';
 
 /**
  * LitterCardBlock — карточка помёта на странице.
@@ -82,12 +83,12 @@ export async function LitterCardBlock({
      * Вертикальные отступы:
      *  - top больше bottom — секция «дышит» от предыдущего блока (hero/wave),
      *    к следующему блоку («О нас») подходит **плотнее**, иначе образуется
-     *    пустыня между секциями (фидбек Володи 2026-06-19).
+     *    пустыня между секциями.
      *  - bottom 36–48px укладывается в бренд-правило veo55 (32 mobile / 48 desktop
      *    между секциями), pair с pt квоты «О нас» даёт читабельный шов без воздуха.
      */
     <section className="bg-bg pt-12 md:pt-16 pb-9 md:pb-12">
-      <div className="mx-auto max-w-[1150px] px-6">
+      <ContentFrame side="none" className="px-6">
         <header className="text-center mb-10 md:mb-14">
           <h2 className="font-display text-3xl md:text-h2 font-semibold text-ink leading-tight">
             {litter.title}
@@ -145,13 +146,15 @@ export async function LitterCardBlock({
             )}
           </>
         )}
-      </div>
+      </ContentFrame>
     </section>
   );
 }
 
 /**
- * PairCardGallery — рендер одной или нескольких визиток пары.
+ * PairCardGallery — рендер одной или нескольких **визиток пары** (заводческий
+ * термин, см. `docs/glossary.md → Визитка пары`). Картинка родителей с
+ * регалиями — то что показывают покупателю первым перед фото щенков.
  *
  * - 1 визитка → центрированное крупное фото (как в `.veo-litter .vizitka` оригинала)
  * - 2 → две колонки sm:grid-cols-2 равными ширинами
@@ -160,7 +163,7 @@ export async function LitterCardBlock({
  * Подпись (`caption`) — общая для всей галереи, по центру под изображениями.
  * Радиус 14px и тёплая тень — параметры из legacy `.veo-litter .vizitka`.
  */
-function PairCardGallery({
+export function PairCardGallery({
   images,
   caption,
   className,
@@ -183,23 +186,25 @@ function PairCardGallery({
         : 'sm:grid-cols-2 lg:grid-cols-3';
 
   return (
-    <figure className={cn('mx-auto', single ? 'max-w-[680px]' : 'max-w-5xl', className)}>
-      <div className={single ? '' : cn('grid gap-5 md:gap-6', gridCols)}>
-        {items.map((it) => (
-          <img
-            key={it.id}
-            src={it.url}
-            alt={it.alt ?? 'Визитка пары'}
-            className="w-full h-auto rounded-[14px] shadow-[0_8px_24px_rgba(43,34,26,0.12)]"
-          />
-        ))}
-      </div>
-      {caption && (
-        <figcaption className="mx-auto max-w-2xl mt-5 md:mt-6 text-center font-display italic text-muted text-[15px] md:text-base leading-relaxed">
-          {caption}
-        </figcaption>
-      )}
-    </figure>
+    <ContentFrame side="both" decor="vines" className={className}>
+      <figure className="m-0">
+        <div className={single ? 'mx-auto max-w-[680px]' : cn('grid gap-8 md:gap-12', gridCols)}>
+          {items.map((it) => (
+            <img
+              key={it.id}
+              src={it.url}
+              alt={it.alt ?? 'Визитка пары'}
+              className="w-full h-auto rounded-[14px] shadow-[0_8px_24px_rgba(43,34,26,0.12)]"
+            />
+          ))}
+        </div>
+        {caption && (
+          <figcaption className="mx-auto max-w-2xl mt-5 md:mt-6 text-center font-display italic text-muted text-[15px] md:text-base leading-relaxed">
+            {caption}
+          </figcaption>
+        )}
+      </figure>
+    </ContentFrame>
   );
 }
 
@@ -246,7 +251,7 @@ function renderWordWrapped(name: string | null) {
  * оригиналом: на проде регалии открыты, у нас их много → схлопнуты по умолчанию).
  * Имя НЕ дублируется внутри disclosure.
  */
-function ParentsBar({
+export function ParentsBar({
   mother,
   father,
   showMotherTitles,
@@ -392,7 +397,7 @@ function ParentSlot({
   );
 }
 
-function PuppyCard({ puppy }: { readonly puppy: Puppy }) {
+export function PuppyCard({ puppy }: { readonly puppy: Puppy }) {
   const url = resolveMediaUrl(puppy.photo);
   const label = puppyLabel(puppy);
   const alt = resolveMediaAlt(puppy.photo) ?? label;
@@ -400,7 +405,7 @@ function PuppyCard({ puppy }: { readonly puppy: Puppy }) {
     /**
      * Карточка «дышит» (бренд-правило veo55: padding 24-32px, gap 24-32px).
      * Hover-лифт — лёгкое translateY -2 + усиленная тёплая тень, без агрессивного
-     * scale (Володя 2026-06-15 — «эффекты не отвлекают от контента»).
+     * scale — «эффекты не отвлекают от контента».
      * Радиус 14px, shadow `rgba(43,34,26,0.08)` — из legacy `.veo-pup`.
      */
     <article className="group bg-paper rounded-[14px] overflow-hidden shadow-[0_6px_18px_rgba(43,34,26,0.08)] hover:shadow-[0_10px_28px_rgba(43,34,26,0.14)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col">
@@ -461,7 +466,7 @@ function puppyColorAdj(color: Puppy['color'] | undefined, sex: Puppy['sex']): st
  * StateBadge — статус щенка лентой поверх фото.
  *
  * Бренд-правила (veo55 `brand_palette.md`, `anti_grayscale_reserved.md`):
- *  - Никакого grayscale на «забронированных» — это «траурно» (Володя 2026-06-17).
+ *  - Никакого grayscale на «забронированных» — это «траурно».
  *  - Свободно → яркий горчично-янтарный (`--accent`) с лифт-тенью — «солнце над травой».
  *  - Бронь → бледный янтарь (`--accent-soft` fon + `--accent-dark` text) — узнаваемый бренд,
  *    но не конкурирует со «Свободно» по громкости.
@@ -512,24 +517,28 @@ function StateBadge({
   );
 }
 
-function puppyGridClass(count: number): string {
-  // Gap 32px (gap-8) — бренд veo55 «карточки должны дышать», между ними тот же
-  // воздух что в padding'ах самих карточек (px-6 py-5).
-  // 1 → одиночная центрированная карточка.
+export function puppyGridClass(count: number): string {
+  // Сетка занимает ВСЮ ширину родительской контентной полосы — крайние
+  // карточки прилипают к левому/правому краю полосы (соосность с лозами
+  // и краями других секций). Воздух между карточками — gap-16 (64px),
+  // близок к боковым отступам секции на широких экранах.
+  //
+  // 1 → одиночная центрированная карточка (исключение: одна — узкая).
   if (count === 1) return 'mx-auto max-w-md';
   // 2 → 2 колонки на десктопе.
-  if (count === 2) return 'grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-3xl mx-auto';
-  // 3 → 3 в строку на десктопе (по запросу Володи: 3 → 1 ряд).
-  if (count === 3) return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8';
-  // 4 → 2x2 квадрат на десктопе (по запросу Володи: 4 → 2x2, не 4 в ряд).
-  if (count === 4) return 'grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-3xl mx-auto';
+  if (count === 2) return 'grid grid-cols-1 sm:grid-cols-2 gap-16';
+  // 3 → 3 в строку на десктопе.
+  if (count === 3) return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12';
+  // 4 → 2x2 квадрат на десктопе, не 4 в ряд.
+  if (count === 4) return 'grid grid-cols-1 sm:grid-cols-2 gap-16';
   // 5-6 → 3 колонки (2 ряда).
-  if (count <= 6) return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8';
-  // 7-10 → 4 колонки.
-  return 'grid grid-cols-2 lg:grid-cols-4 gap-8';
+  if (count <= 6) return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12';
+  // 7-10 → 4 колонки на десктопе. На мобиле/узком — 1 в колонку
+  // (порядок из CMS сохраняется в DOM-order; не делаем 2 узких).
+  return 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12';
 }
 
-function resolveMediaUrl(ref: MediaRef | undefined): string | undefined {
+export function resolveMediaUrl(ref: MediaRef | undefined): string | undefined {
   if (!ref) return undefined;
   if (typeof ref === 'string') return undefined; // нужен populated объект
   return ref.url;
@@ -540,7 +549,7 @@ function resolveMediaAlt(ref: MediaRef | undefined): string | undefined {
   return ref.alt;
 }
 
-function formatDob(iso: string): string {
+export function formatDob(iso: string): string {
   if (!iso) return '';
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;

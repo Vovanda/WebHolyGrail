@@ -2,6 +2,7 @@ import type { BlockNode, SiteSettings } from '@veo55/contracts';
 
 import { cn } from '@/lib/utils';
 import { lexicalToInlineNodes } from '@/lib/lexical-text';
+import { ContentFrame } from '@/blocks/decor/ContentFrame';
 
 /**
  * AchievementBanner — generic плашка достижения / сертификации / награды.
@@ -53,8 +54,8 @@ export function AchievementBanner({
 
   return (
     <section className="bg-bg pt-4 pb-4 md:pt-6 md:pb-6">
-      <div className="mx-auto max-w-[1150px] px-6">
-        <div className="mx-auto max-w-[880px]">
+      <ContentFrame side="none" className="px-6">
+        <div>
           <div
             className={cn(
               'flex items-center gap-[18px] px-[22px] py-[18px]',
@@ -126,7 +127,7 @@ export function AchievementBanner({
             </ul>
           )}
         </div>
-      </div>
+      </ContentFrame>
     </section>
   );
 }

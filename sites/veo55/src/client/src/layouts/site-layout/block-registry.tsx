@@ -3,15 +3,20 @@ import type { BlockNode, SiteSettings } from '@veo55/contracts';
 
 import { Header } from '@/blocks/content/Header';
 import { Footer } from '@/blocks/content/Footer';
-import { BannerSliderBlock } from '@/blocks/content/BannerSliderBlock';
+import { BannerSliderBlock } from '@/blocks/primitives/BannerSliderBlock';
 import { NavDrawer } from '@/blocks/content/NavDrawer';
-import { Hero } from '@/blocks/content/Hero';
-import { Quote } from '@/blocks/content/Quote';
-import { Timeline } from '@/blocks/content/Timeline';
-import { Prose } from '@/blocks/content/Prose';
-import { WaveDivider } from '@/blocks/content/WaveDivider';
-import { LitterCardBlock } from '@/blocks/content/LitterCardBlock';
-import { AchievementBanner } from '@/blocks/content/AchievementBanner';
+import { Hero } from '@/blocks/primitives/Hero';
+import { Quote } from '@/blocks/primitives/Quote';
+import { Timeline } from '@/blocks/primitives/Timeline';
+import { Prose } from '@/blocks/primitives/Prose';
+import { WaveDivider } from '@/blocks/primitives/WaveDivider';
+import { AchievementBanner } from '@/blocks/primitives/AchievementBanner';
+import { ReusableRef } from '@/blocks/primitives/ReusableRef';
+import { PageRef } from '@/blocks/primitives/PageRef';
+import { LitterCardBlock } from '@/blocks/veo55/litter/LitterCardBlock';
+import { LitterHeader } from '@/blocks/veo55/litter/LitterHeader';
+import { LitterPairCardBlock } from '@/blocks/veo55/litter/LitterPairCardBlock';
+import { LitterPuppies } from '@/blocks/veo55/litter/LitterPuppies';
 import { PageOutlet } from '@/blocks/system/PageOutlet';
 
 /**
@@ -35,14 +40,53 @@ const REGISTRY: Record<string, BlockRenderer> = {
   prose: (node, settings) => <Prose node={node} settings={settings} />,
   'wave-divider': (node, settings) => <WaveDivider node={node} settings={settings} />,
   'litter-card': (node, settings) => <LitterCardBlock node={node} settings={settings} />,
+  'litter-header': (node, settings) => <LitterHeader node={node} settings={settings} />,
+  'litter-pair-card': (node, settings) => <LitterPairCardBlock node={node} settings={settings} />,
+  'litter-puppies': (node, settings) => <LitterPuppies node={node} settings={settings} />,
   'achievement-banner': (node, settings) => <AchievementBanner node={node} settings={settings} />,
+  'reusable-ref': (node, settings) => <ReusableRef node={node} settings={settings} />,
+  'page-ref': (node, settings) => <PageRef node={node} settings={settings} />,
   'page-outlet': (_node, _settings, children) => <PageOutlet>{children}</PageOutlet>,
 };
+
+/**
+ * CSS-классы скрытия блока на брейкпоинтах согласно `data.visibility`.
+ *
+ * @remarks
+ * Дефолт всех `*` — `true` (видно везде), чтобы существующие записи без
+ * `visibility` не пропали. Возвращает пустую строку если все три true
+ * (нет смысла лепить классы).
+ *
+ * Breakpoints (Tailwind default):
+ *  - mobile:  < 768px       (`max-md:`)
+ *  - tablet:  768–1023px    (`md:max-lg:`)
+ *  - desktop: ≥ 1024px      (`lg:`)
+ */
+function visibilityClass(node: BlockNode): string {
+  const v = (
+    node.data as
+      | { visibility?: { desktop?: boolean; tablet?: boolean; mobile?: boolean } }
+      | undefined
+  )?.visibility;
+  if (!v) return '';
+  const desktop = v.desktop ?? true;
+  const tablet = v.tablet ?? true;
+  const mobile = v.mobile ?? true;
+  if (desktop && tablet && mobile) return '';
+  const classes: string[] = [];
+  if (!mobile) classes.push('max-md:hidden');
+  if (!tablet) classes.push('md:max-lg:hidden');
+  if (!desktop) classes.push('lg:hidden');
+  return classes.join(' ');
+}
 
 /**
  * Рендерит один BlockNode. Неизвестный тип логируется и игнорируется (graceful) —
  * чтобы новый блок в Payload-конфиге не положил весь сайт пока его React-имплементация
  * не доехала.
+ *
+ * Применяет visibility (если в `data.visibility` отключён один или несколько
+ * брейкпоинтов — оборачивает в `<div>` с media-query классами).
  */
 export function renderBlockNode(
   node: BlockNode,
@@ -60,5 +104,8 @@ export function renderBlockNode(
     }
     return null;
   }
-  return renderer(node, settings, children);
+  const rendered = renderer(node, settings, children);
+  const vClass = visibilityClass(node);
+  if (!vClass) return rendered;
+  return <div className={vClass}>{rendered}</div>;
 }
