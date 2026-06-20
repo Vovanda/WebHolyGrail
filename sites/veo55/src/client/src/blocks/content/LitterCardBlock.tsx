@@ -136,6 +136,8 @@ export async function LitterCardBlock({
               </div>
             )}
 
+            {hasSelectedBreeding(litter) && <SelectedBreedingBlock className="mt-10 md:mt-14" />}
+
             {visiblePuppies.length > 0 && (
               <div className={cn('mt-12 md:mt-16', puppyGridClass(visiblePuppies.length))}>
                 {visiblePuppies.map((p) => (
@@ -203,6 +205,49 @@ function PairCardGallery({
   );
 }
 
+/**
+ * Перенос имён собак только по пробелу: «БЕТЭЛЬГЕЙЗЕ ЛАЭРС МАРС-АРЭС» не должно
+ * разрываться по дефису на «МАРС-» + «АРЭС». Браузер по умолчанию ломает по
+ * дефису как валидную точку переноса. Решение — wrap каждого слова в
+ * `whitespace-nowrap inline-block`, тогда дефис внутри слова остаётся связным.
+ */
+function renderWordWrapped(name: string | null) {
+  if (!name) return '—';
+  // Пробел — отдельный текст-узел МЕЖДУ span'ами, не внутри. Trailing space
+  // внутри inline-block элемент схлопывается визуально (имя слипается).
+  // Вынесенный пробел даёт нормальный точку переноса между словами.
+  const words = name.split(/\s+/);
+  return words.flatMap((word, i) => {
+    const node = (
+      <span key={`w-${i}`} className="whitespace-nowrap inline-block">
+        {word}
+      </span>
+    );
+    return i === 0 ? [node] : [<span key={`s-${i}`}> </span>, node];
+  });
+}
+
+/**
+ * ParentsBar — пара «Отец × Мать» с canonical-ссылкой на каждого + collapsible
+ * регалии под каждым родителем.
+ *
+ * Layout 1:1 с прода veo55.ru (`.veo-parents-pair`, inline в #puppies_1):
+ *  - desktop: flex row, gap 32px, центр-выровнено, max-width 880px
+ *  - mobile <md: gap 20px, cross `×` скрыт (flex-wrap стэк)
+ *  - имя — sans uppercase 16px, подчёркивание янтарь thickness 1.5 (hover 2.5)
+ *  - role «Отец»/«Мать» — Cormorant italic 28px, цвет muted, letter-spacing .4px
+ *  - cross «×» — Cormorant 56px, цвет accent
+ *
+ * Имя рендерится как `<a href="/dog/<slug>" data-detail-dialog="<slug>">` —
+ * **canonical URL собаки** (R13). Без JS / middle-click / new-tab — обычная
+ * навигация на /dog/<slug>. С JS — глобальный listener перехватывает клик
+ * и открывает DetailDialog как overlay (см. D4). Атрибут `data-detail-dialog`
+ * — хук для overlay-listener'а.
+ *
+ * Под каждым именем — отдельный `<details>` с регалиями (наша надстройка над
+ * оригиналом: на проде регалии открыты, у нас их много → схлопнуты по умолчанию).
+ * Имя НЕ дублируется внутри disclosure.
+ */
 function ParentsBar({
   mother,
   father,
@@ -218,76 +263,92 @@ function ParentsBar({
   readonly showFatherTitles: boolean;
   readonly showFatherDescription: boolean;
 }) {
-  const motherName = typeof mother === 'object' ? mother.name : null;
-  const fatherName = typeof father === 'object' ? father.name : null;
-  /**
-   * Перенос имён собак только по пробелу: «БЕТЭЛЬГЕЙЗЕ ЛАЭРС МАРС-АРЭС» не должно
-   * разрываться по дефису на «МАРС-» + «АРЭС». Браузер по умолчанию ломает по
-   * дефису как валидную точку переноса. Решение — wrap каждого слова в
-   * `whitespace-nowrap inline-block`, тогда дефис внутри слова остаётся связным.
-   */
-  const renderWordWrapped = (name: string | null) =>
-    name
-      ? name.split(/\s+/).map((word, i, arr) => (
-          <span key={i} className="whitespace-nowrap inline-block">
-            {word}
-            {i < arr.length - 1 ? ' ' : ''}
-          </span>
-        ))
-      : '—';
-  const hasAnyDetails =
-    (showMotherTitles && typeof mother === 'object' && (mother.titles?.length ?? 0) > 0) ||
-    (showFatherTitles && typeof father === 'object' && (father.titles?.length ?? 0) > 0) ||
-    (showMotherDescription && typeof mother === 'object') ||
-    (showFatherDescription && typeof father === 'object');
-
-  /**
-   * Сворачиваемое раскрытие — нативный <details>/<summary>.
-   * Server-component-совместимо (без 'use client').
-   * Регалии родителей по умолчанию скрыты — как на оригинале veo55.ru.
-   */
   return (
-    <div className="mx-auto max-w-3xl">
-      {/* Шапка: «Отец × Мать» с именами, по центру. */}
-      <div className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center text-center mb-4">
-        <div>
-          <p className="font-sans uppercase tracking-[0.1em] text-[11px] text-muted">Отец</p>
-          <h3 className="font-display text-xl md:text-2xl font-semibold text-ink mt-1 leading-tight">
-            {renderWordWrapped(fatherName)}
-          </h3>
-        </div>
-        <div className="font-display text-2xl md:text-3xl text-muted/70 select-none">×</div>
-        <div>
-          <p className="font-sans uppercase tracking-[0.1em] text-[11px] text-muted">Мать</p>
-          <h3 className="font-display text-xl md:text-2xl font-semibold text-ink mt-1 leading-tight">
-            {renderWordWrapped(motherName)}
-          </h3>
-        </div>
-      </div>
+    <div className="mx-auto max-w-[880px] px-2.5 mb-8 md:mb-[30px] flex flex-wrap items-start justify-center gap-5 md:gap-8">
+      <ParentSlot
+        role="Отец"
+        dog={father}
+        showTitles={showFatherTitles}
+        showDescription={showFatherDescription}
+      />
+      <span
+        aria-hidden
+        className="hidden md:flex font-display font-medium text-[56px] leading-none text-accent select-none self-center px-1"
+      >
+        ×
+      </span>
+      <ParentSlot
+        role="Мать"
+        dog={mother}
+        showTitles={showMotherTitles}
+        showDescription={showMotherDescription}
+      />
+    </div>
+  );
+}
 
-      {hasAnyDetails && (
-        <details className="group mt-7 [&_summary]:list-none [&_summary::-webkit-details-marker]:hidden">
+function ParentSlot({
+  role,
+  dog,
+  showTitles,
+  showDescription,
+}: {
+  readonly role: 'Мать' | 'Отец';
+  readonly dog: string | DogDoc;
+  readonly showTitles: boolean;
+  readonly showDescription: boolean;
+}) {
+  const isObj = typeof dog === 'object';
+  const name = isObj ? dog.name : null;
+  const slug = isObj ? dog.slug : null;
+  const titles = isObj && showTitles ? (dog.titles ?? []) : [];
+  const descriptionParagraphs =
+    isObj && showDescription ? lexicalToParagraphs(dog.description) : [];
+  const hasDetails = titles.length > 0 || descriptionParagraphs.length > 0;
+
+  return (
+    <div className="flex flex-col items-center gap-1.5 flex-1 min-w-[260px] md:min-w-[280px]">
+      <span className="font-display italic text-[24px] md:text-[28px] leading-none text-muted tracking-[0.4px]">
+        {role}
+      </span>
+      {slug && name ? (
+        <a
+          href={`/dog/${slug}`}
+          data-detail-dialog={slug}
+          className={cn(
+            'font-sans font-bold uppercase text-base text-ink text-center leading-snug',
+            'underline decoration-accent decoration-[1.5px] underline-offset-[4px]',
+            'hover:decoration-[2.5px] transition-[text-decoration-thickness] duration-150',
+          )}
+        >
+          {renderWordWrapped(name)}
+        </a>
+      ) : (
+        <span className="font-sans font-bold uppercase text-base text-ink text-center leading-snug">
+          {renderWordWrapped(name)}
+        </span>
+      )}
+      {hasDetails && (
+        <details className="group w-full mt-3 [&_summary]:list-none [&_summary::-webkit-details-marker]:hidden">
           {/**
            * Disclosure-триггер по паттерну Timeline.ExpandToggle:
-           *  ─── Полные регалии родителей и подробности ⌄ ───
-           * Две тонкие hairline-линии по бокам визуально объединяют шапку
-           * родителей и развёрнутый блок — даёт «вырезку» вместо плоской
-           * школьной кнопки. Hover/open → шоколадно-янтарный текст бренда,
-           * chevron вращается на 180°.
+           *  ─── Регалии и подробности ⌄ ───
+           * Две тонкие hairline-линии по бокам соединяют имя и развёрнутый
+           * блок — даёт «вырезку» вместо плоской кнопки.
            */}
           <summary
             className={cn(
-              'group/sum flex items-center gap-5 cursor-pointer select-none',
+              'flex items-center gap-3 cursor-pointer select-none',
               'text-muted hover:text-accent group-open:text-ink transition-colors',
             )}
           >
             <span aria-hidden className="flex-1 h-px bg-border" />
-            <span className="inline-flex items-center gap-2 font-display italic text-base md:text-[17px] tracking-[0.2px] whitespace-nowrap">
-              Полные регалии родителей и подробности
+            <span className="inline-flex items-center gap-1.5 font-display italic text-[14px] tracking-[0.2px] whitespace-nowrap">
+              Регалии и подробности
               <svg
                 viewBox="0 0 20 20"
                 aria-hidden
-                className="h-4 w-4 transition-transform duration-300 ease-out group-open:rotate-180"
+                className="h-3.5 w-3.5 transition-transform duration-300 ease-out group-open:rotate-180"
               >
                 <path
                   d="M5 7l5 6 5-6"
@@ -301,19 +362,31 @@ function ParentsBar({
             </span>
             <span aria-hidden className="flex-1 h-px bg-border" />
           </summary>
-          <div className="grid gap-8 md:gap-12 md:grid-cols-2 mt-7 md:mt-9">
-            <ParentDetails
-              role="Отец"
-              dog={father}
-              showTitles={showFatherTitles}
-              showDescription={showFatherDescription}
-            />
-            <ParentDetails
-              role="Мать"
-              dog={mother}
-              showTitles={showMotherTitles}
-              showDescription={showMotherDescription}
-            />
+          <div className="mt-3 text-left">
+            {titles.length > 0 && (
+              <ul className="space-y-0.5 font-display italic text-muted text-sm">
+                {titles.map((t, i) => (
+                  <li key={i}>
+                    {t.text}
+                    {t.year ? ` · ${t.year}` : ''}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {descriptionParagraphs.length > 0 && (
+              <div
+                className={cn(
+                  titles.length > 0 ? 'mt-3' : '',
+                  'font-sans text-ink/80 text-sm leading-relaxed',
+                )}
+              >
+                {descriptionParagraphs.map((p, i) => (
+                  <p key={i} className={i > 0 ? 'mt-2' : undefined}>
+                    {p}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
         </details>
       )}
@@ -321,48 +394,110 @@ function ParentsBar({
   );
 }
 
-function ParentDetails({
-  role,
-  dog,
-  showTitles,
-  showDescription,
-}: {
-  readonly role: 'Мать' | 'Отец';
-  readonly dog: string | DogDoc;
-  readonly showTitles: boolean;
-  readonly showDescription: boolean;
-}) {
-  if (typeof dog === 'string') {
-    return (
-      <div className="text-center text-muted font-display italic text-sm">
-        {role} (не загружен): id={dog}
-      </div>
-    );
-  }
-  const descriptionParagraphs = showDescription ? lexicalToParagraphs(dog.description) : [];
+/**
+ * Условие рендера блока «Отборное разведение»: у ОБОИХ родителей в `titles[]`
+ * есть запись с текстом, матчащим regex `/отборн|selected breeding/i`.
+ *
+ * Источник — R0: реальные titles в Payload Dogs, а не захардкоженный флаг.
+ * Если у Ольги в админке регалии прописаны корректно — блок появится автоматом.
+ */
+function hasSelectedBreeding(litter: LitterDoc): boolean {
+  const re = /отборн|selected breeding/i;
+  const hasIn = (dog: string | DogDoc) =>
+    typeof dog === 'object' && (dog.titles ?? []).some((t) => re.test(t.text ?? ''));
+  return hasIn(litter.mother) && hasIn(litter.father);
+}
+
+/**
+ * SelectedBreedingBlock — USP-плашка «Отборное разведение · Selected Breeding» +
+ * чек-чипсы 5 требований РКФ (Приложение №7).
+ *
+ * Контент — типовой бренд РКФ (одинаков для всех помётов со статусом Selected
+ * Breeding), идентичен живому veo55.ru `.veo-rkf-badge` + `.veo-rkf-reqs`
+ * inline в `#puppies_1`. Поэтому захардкожен здесь.
+ *
+ * @todo holygrail-rkf-content: мигрировать строки в Payload Global
+ * `SelectedBreedingContent` чтобы Ольга могла править через админку (R0).
+ * Поднимется когда появится второй помёт со статусом — сейчас один.
+ *
+ * Палитра:
+ *  - badge: gradient `accent-soft` → светлее янтарь, бордер `accent`, shadow тёплый
+ *  - reqs: `success-soft` фон + `success` бордер + `success` текст (РКФ-проверки)
+ *
+ * Цвета успеха (зелёный) — исключение из общего бренд-запрета на зелёный:
+ * это status-индикатор «проверено / соответствует», как `--color-success`
+ * в `tokens.css`. Точно повторяет проду.
+ */
+function SelectedBreedingBlock({ className }: { readonly className?: string }) {
+  const reqs = [
+    'ДНК-профиль (паспорт)',
+    'Титул «Гранд Чемпион России»',
+    'Племенной смотр РР',
+    'Рабочий сертификат ОКД + ЗКС',
+    'Дисплазия HD-A · ED-0',
+  ];
   return (
-    <div className="text-left">
-      <p className="font-sans uppercase tracking-[0.08em] text-xs text-muted">{role}</p>
-      <h4 className="font-display text-lg md:text-xl font-semibold text-ink mt-1">{dog.name}</h4>
-      {showTitles && dog.titles && dog.titles.length > 0 && (
-        <ul className="mt-2 space-y-0.5 font-display italic text-muted text-sm">
-          {dog.titles.map((t, i) => (
-            <li key={i}>
-              {t.text}
-              {t.year ? ` · ${t.year}` : ''}
-            </li>
-          ))}
-        </ul>
-      )}
-      {descriptionParagraphs.length > 0 && (
-        <div className="mt-3 font-sans text-ink/80 text-sm leading-relaxed">
-          {descriptionParagraphs.map((p, i) => (
-            <p key={i} className={i > 0 ? 'mt-2' : undefined}>
-              {p}
-            </p>
-          ))}
+    <div className={cn('mx-auto max-w-[880px]', className)}>
+      <div
+        className={cn(
+          'flex items-center gap-[18px] px-[22px] py-[18px]',
+          'rounded-[14px] border-2 border-accent',
+          'bg-gradient-to-br from-accent-soft to-[#F7E29F]',
+          'shadow-[0_6px_22px_rgba(168,128,42,0.18)]',
+        )}
+      >
+        <div
+          aria-hidden
+          className="shrink-0 text-[42px] leading-none drop-shadow-[0_2px_4px_rgba(168,128,42,0.3)]"
+        >
+          🏆
         </div>
-      )}
+        <div className="flex-1 min-w-0">
+          <p className="m-0 font-display font-bold text-[24px] uppercase text-ink tracking-[0.4px] leading-[1.1]">
+            Отборное разведение{' '}
+            <span className="font-medium italic text-[18px] text-muted normal-case tracking-[0.2px]">
+              · Selected Breeding
+            </span>
+          </p>
+          <p className="m-0 mt-1.5 text-[14.5px] leading-[1.5] text-ink">
+            Высший статус РКФ — оба родителя{' '}
+            <strong className="font-bold">Гранд Чемпионы России</strong>, прошли тесты на
+            наследственные заболевания, чистая дисплазия{' '}
+            <strong className="font-bold">HD-A / ED-0</strong>, пожизненный допуск в разведение.
+            <br />
+            Помёт подтверждён по Приложению №7 РКФ.
+          </p>
+        </div>
+      </div>
+      <ul
+        aria-label="Требования Приложения №7 РКФ — все соблюдены"
+        className="list-none p-0 mt-2 mb-0 flex flex-wrap gap-x-[14px] gap-y-3 justify-center"
+      >
+        {reqs.map((text) => (
+          <li
+            key={text}
+            className={cn(
+              'inline-flex items-center gap-2.5',
+              'pl-3.5 pr-5 py-[11px] rounded-full',
+              'bg-success-soft border border-success text-success',
+              'text-sm font-semibold tracking-[0.1px]',
+              'shadow-[0_1px_3px_rgba(28,138,59,0.06)]',
+            )}
+          >
+            <span
+              aria-hidden
+              className={cn(
+                'inline-flex items-center justify-center shrink-0',
+                'w-5 h-5 rounded-full bg-success text-bg',
+                'text-[12px] font-extrabold leading-none',
+              )}
+            >
+              ✓
+            </span>
+            {text}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
