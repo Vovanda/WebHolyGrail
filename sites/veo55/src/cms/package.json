@@ -18,6 +18,7 @@
     "seed:home-certified-notice": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/seed-home-certified-notice.ts",
     "seed:puppies-page-certified-notice": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/seed-puppies-page-certified-notice.ts",
     "seed:news-page": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/seed-news-page.ts",
+    "seed:fetch-pedigree": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/seed-fetch-pedigree.ts",
     "seed:timeline-paws": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/seed-timeline-paws.ts",
     "seed:home-litter-decomposition": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/seed-home-litter-decomposition.ts",
     "seed:home-fix-litter": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/seed-home-fix-litter.ts",

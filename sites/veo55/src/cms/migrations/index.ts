@@ -14,6 +14,8 @@ import * as migration_20260620_045212_reusable_and_page_refs from './20260620_04
 import * as migration_20260620_045620_block_visibility from './20260620_045620_block_visibility';
 import * as migration_20260620_050000_litter_letter from './20260620_050000_litter_letter';
 import * as migration_20260620_122900_certified_notice from './20260620_122900_certified_notice';
+import * as migration_20260620_135000_pedigree from './20260620_135000_pedigree';
+import * as migration_20260620_140000_pedigree_v_table_rename from './20260620_140000_pedigree_v_table_rename';
 
 export const migrations = [
   {
@@ -95,5 +97,15 @@ export const migrations = [
     up: migration_20260620_122900_certified_notice.up,
     down: migration_20260620_122900_certified_notice.down,
     name: '20260620_122900_certified_notice',
+  },
+  {
+    up: migration_20260620_135000_pedigree.up,
+    down: migration_20260620_135000_pedigree.down,
+    name: '20260620_135000_pedigree',
+  },
+  {
+    up: migration_20260620_140000_pedigree_v_table_rename.up,
+    down: migration_20260620_140000_pedigree_v_table_rename.down,
+    name: '20260620_140000_pedigree_v_table_rename',
   },
 ];

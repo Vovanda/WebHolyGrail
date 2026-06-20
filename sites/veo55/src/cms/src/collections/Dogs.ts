@@ -143,6 +143,32 @@ export const Dogs: CollectionConfig = {
         description: 'PDF родословной или страница в базе РКФ. Опционально.',
       },
     },
+    {
+      name: 'rkfId',
+      label: 'РКФ-id',
+      type: 'number',
+      index: true,
+      admin: {
+        description:
+          'id записи в veorkf.ru/catalog/dog.php?id=N. Нужен для импорта родословной и для линковки с РКФ-карточкой.',
+      },
+    },
+    {
+      name: 'pedigree',
+      label: 'Родословная',
+      type: 'array',
+      labels: { singular: 'Предок', plural: 'Предки' },
+      admin: {
+        description:
+          'Заполняется автоматически сидером seed:fetch-pedigree из РКФ по rkfId. Позиции: 1=отец, 2=дед по отцу, 3-4=прадеды линии отца-отца, 5=бабка по отцу, 6-7=прадеды линии отца-матери, 8=мать, 9-14 симметрично по матери.',
+      },
+      fields: [
+        { name: 'position', type: 'number', required: true, min: 1, max: 14 },
+        { name: 'rkfId', type: 'number' },
+        { name: 'name', type: 'text', required: true },
+        { name: 'note', type: 'text' },
+      ],
+    },
   ],
   access: {
     read: ({ req: { user } }) => {
