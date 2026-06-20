@@ -11,7 +11,7 @@
 :root {
   /* ── Цвет ───────────────────────────────────────── */
   --color-page-bg: #fffafa; /* snow — фон body (под контент-карточкой), 1:1 из живого veo55 */
-  --color-bg: #ffffff; /* белая контент-карточка над body (1:1 из живого .sp-page-builder .page-content) */
+  --color-bg: #faf8f2; /* тёплая кремовая контент-карточка над body */
   --color-surface: #fbfaf6; /* paper-cream — плашка / внутренние карточки */
   --color-surface-hover: #f0e8d6; /* soft — hover-фон */
   --color-ink: #2b221a; /* тёплый шоколад — текст и заголовки */
@@ -60,15 +60,31 @@
   --line-height-body: 1.65;
 
   /* ── Контейнеры ─────────────────────────────────── */
-  --container-content: 880px; /* контентные страницы (faq, /catalog, /dog) */
-  --container-wide: 1300px; /* главная и широкие layouts (как .veo-home) */
+  /* Единая ширина «контентной полосы фрейминга» (через ContentFrame).
+   * На базовом viewport (≤1280) — 880px. Растёт после 1280px:
+   * 1600 → ~1040, 1920 → ~1100 cap. Дальше зафиксирована на 1100, чтобы
+   * на FullHD/2K оставались заметные симметричные поля по бокам.
+   * Верхний предел 1100 < `--container-wide` (1300) — между полосой и
+   * краем страничной подложки минимум 100px воздуха с каждой стороны. */
+  --container-content: clamp(880px, calc(880px + (100vw - 1280px) * 0.34), 1100px);
+  --container-wide: 1300px; /* подложка страницы — максимально широкий layout, см. SiteLayout panels */
 
   /* ── Декор ──────────────────────────────────────── */
   --decor-accent-line-w: 64px;
   --decor-accent-line-h: 1.5px;
   --decor-accent-line-opacity: 0.85;
   --decor-vine-w: 110px;
-  --decor-vine-opacity: 0.5;
+  --decor-vine-opacity: 0.18;
+
+  /* Generic Holy Grail-фрейм (`ContentFrame decor="lines"`): тонкие
+   * полупрозрачные вертикали слева/справа полосы. */
+  --decor-line-w: 1px;
+  --decor-line-color: rgba(
+    43,
+    34,
+    26,
+    0.12
+  ); /* warm ink @ 12% — нейтрально, не конкурирует с акцентом */
   --decor-divider-h: 96px;
 
   /* ── Соосность лоз с секциями (КРИТИЧЕСКОЕ) ─────── */

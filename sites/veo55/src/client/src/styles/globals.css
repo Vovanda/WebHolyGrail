@@ -103,7 +103,14 @@
     position: relative;
     /* Заход лозы внутрь секции. На широких peek=90 (центр на ~+35px внутри),
      * на узких 170 (центр на +115). */
-    --hg-vine-peek: clamp(90px, calc((1280px - 100vw) / 640 * 80 + 90px), 170px);
+    /* peek = насколько лоза заходит внутрь от края контейнера. Центр лозы
+     * лежит на `peek - half_width` (half_width = 55px, width = 110px).
+     * Фиксированный peek=115 — лоза всегда прилипает к краю рамки одинаково
+     * — лоза должна одинаково прилипать к краю рамки независимо от ширины
+     * экрана. Раньше peek рос на узких viewport, но это создаёт впечатление
+     * что лоза «сдвигается к центру»; теперь positionining константный:
+     * лоза = виртуальная граница, её положение от края рамки фиксировано. */
+    --hg-vine-peek: 115px;
     --hg-vine-w: 110px;
     /* Tile = 2 листика по высоте 110 = 220px. Offset L↔R = 110px (один листик). */
     --hg-vine-tile: 220px;
@@ -127,7 +134,8 @@
     width: var(--hg-vine-w);
     pointer-events: none;
     z-index: 0;
-    opacity: 0.32;
+    opacity: var(--decor-vine-opacity);
+    transition: opacity 300ms ease-out;
     background-image:
       url('https://cdn.veo55.ru/vines/vine-left.webp'),
       url('https://cdn.veo55.ru/vines/vine-right.webp');
@@ -151,7 +159,8 @@
     width: var(--hg-vine-w);
     pointer-events: none;
     z-index: 0;
-    opacity: 0.32;
+    opacity: var(--decor-vine-opacity);
+    transition: opacity 300ms ease-out;
     background-image:
       url('https://cdn.veo55.ru/vines/vine-right.webp'),
       url('https://cdn.veo55.ru/vines/vine-left.webp');
@@ -164,7 +173,45 @@
       var(--hg-vine-w) var(--hg-vine-tile);
   }
 
-  /* Линия-divider под H1/H2 — заменила ❦ fleurons (Володе не зашли в veo55).
+  /* Generic-фрейм границы (`ContentFrame decor="lines"`) — тонкие полупрозрачные
+   * вертикали слева/справа полосы. Holy Grail-уровень, не veo55-специфика —
+   * на любом сайте дают рамку из коробки. На veo55 заменяются на лозу через
+   * `decor="vines"`. */
+  .hg-line,
+  .hg-line-l,
+  .hg-line-r {
+    position: relative;
+  }
+  .hg-line > *,
+  .hg-line-l > *,
+  .hg-line-r > * {
+    position: relative;
+    z-index: 1;
+  }
+  .hg-line::before,
+  .hg-line-l::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: var(--decor-line-w);
+    background: var(--decor-line-color);
+    pointer-events: none;
+  }
+  .hg-line::after,
+  .hg-line-r::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    width: var(--decor-line-w);
+    background: var(--decor-line-color);
+    pointer-events: none;
+  }
+
+  /* Линия-divider под H1/H2 — заменяет ❦ fleurons (по дизайн-фидбеку veo55).
    * Использовать как: <h1 class="veo-heading">…</h1> или вручную добавить элемент. */
   .veo-heading-line::after {
     content: '';
@@ -175,6 +222,20 @@
     opacity: var(--decor-accent-line-opacity);
     margin: 16px auto 0;
     border-radius: 1px;
+  }
+
+  /* Появление элементов «снизу-вверх + opacity». Используется для Timeline-entries
+   * раскрываемых через «показать ещё»: без max-height разжатия — элементы
+   * появляются сразу полным размером и плавно проявляются. */
+  @keyframes hg-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   /* Drop-cap (буквица) для Prose variant editorial-with-dropcap.
