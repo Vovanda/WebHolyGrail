@@ -49,3 +49,5 @@ export type {
 } from './litters';
 
 export type { ReusableBlockDoc, ReusableRefBlockNode, PageRefBlockNode } from './reusable';
+
+export type { CertifiedNoticeBlockNode, CertifiedNoticeCriterion } from './notices';
