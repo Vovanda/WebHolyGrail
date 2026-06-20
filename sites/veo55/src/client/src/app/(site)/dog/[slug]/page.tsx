@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 
 import { getDogBySlug } from '@/lib/api-client';
 import { lexicalToParagraphs } from '@/lib/lexical-text';
+import { FALLBACK_SITE_SETTINGS } from '@/layouts/presets/fallback-site-settings';
+import { Pedigree } from '@/blocks/veo55/dogs/Pedigree';
 
 /**
  * `/dog/<slug>` — детальная страница НАШЕЙ собаки (Payload Dogs).
@@ -159,6 +161,23 @@ export default async function DogPage({ params }: { params: Promise<Params> }) {
           </div>
         </div>
       </div>
+
+      {/*
+       * Pedigree-блок — отображается если у Dogs есть pedigree[]. Тот же
+       * блок-компонент что регистрируется в block-registry под `pedigree` —
+       * здесь подключаем напрямую через fake BlockNode (страница пока
+       * монолит, перевёрстка в Pages-блоки — отдельный этап).
+       */}
+      {dog.pedigree && dog.pedigree.length >= 2 && (
+        <Pedigree
+          node={{
+            blockType: 'pedigree',
+            id: `inline-pedigree-${dog.id}`,
+            data: { dog: dog.id },
+          }}
+          settings={FALLBACK_SITE_SETTINGS}
+        />
+      )}
     </section>
   );
 }

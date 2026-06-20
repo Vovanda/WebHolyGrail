@@ -18,6 +18,7 @@ import { LitterCardBlock } from '@/blocks/veo55/litter/LitterCardBlock';
 import { LitterHeader } from '@/blocks/veo55/litter/LitterHeader';
 import { LitterPairCardBlock } from '@/blocks/veo55/litter/LitterPairCardBlock';
 import { LitterPuppies } from '@/blocks/veo55/litter/LitterPuppies';
+import { Pedigree } from '@/blocks/veo55/dogs/Pedigree';
 import { PageOutlet } from '@/blocks/system/PageOutlet';
 
 /**
@@ -44,6 +45,7 @@ const REGISTRY: Record<string, BlockRenderer> = {
   'litter-header': (node, settings) => <LitterHeader node={node} settings={settings} />,
   'litter-pair-card': (node, settings) => <LitterPairCardBlock node={node} settings={settings} />,
   'litter-puppies': (node, settings) => <LitterPuppies node={node} settings={settings} />,
+  pedigree: (node, settings) => <Pedigree node={node} settings={settings} />,
   'achievement-banner': (node, settings) => <AchievementBanner node={node} settings={settings} />,
   'certified-notice': (node, settings) => <CertifiedNotice node={node} settings={settings} />,
   'reusable-ref': (node, settings) => <ReusableRef node={node} settings={settings} />,

@@ -87,6 +87,18 @@ export async function getLitterById(id: string): Promise<LitterDoc | null> {
  * чужие (не зарегистрированные у нас) живут в /catalog (live-proxy РКФ
  * через catalog.php) и сюда не попадают.
  */
+/**
+ * Получить собаку по id Payload-документа. Используется в блоках, которые
+ * параметризованы relation'ом к Dogs (например, `pedigree`).
+ */
+export async function getDogById(id: string): Promise<DogDoc | null> {
+  const response = await fetch(`${CMS_URL}/api/dogs/${encodeURIComponent(id)}?depth=1`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) return null;
+  return (await response.json()) as DogDoc;
+}
+
 export async function getDogBySlug(slug: string): Promise<DogDoc | null> {
   const query = new URLSearchParams({
     'where[slug][equals]': slug,
