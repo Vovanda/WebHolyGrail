@@ -2,7 +2,7 @@ import type { BlockNode, LitterDoc, SiteSettings } from '@veo55/contracts';
 
 import { getLitterById } from '@/lib/api-client';
 
-import { PairCardGallery, resolveMediaUrl } from './LitterCardBlock';
+import { PairCardGallery, resolveMediaUrl } from './_shared';
 
 /**
  * LitterPairCardBlock — секция «Визитка пары» помёта.
@@ -40,11 +40,13 @@ export async function LitterPairCardBlock({
   const pairImages = (litter.pairCard?.images ?? []).filter((it) => resolveMediaUrl(it.image));
   if (pairImages.length === 0) return null;
 
-  // Координация с LitterPuppies: если у помёта **ровно 1** видимый щенок, этот
-  // блок прячется — LitterPuppies сам нарисует визитку + щенка в одну строку
-  // 50/50 (балансируют друг друга, см. LitterPuppies single-puppy branch).
+  // Координация с LitterPuppies: при нечётном числе видимых щенков визитка
+  // встаёт первой карточкой в puppy-grid (через `pairAsPuppy`) — этот отдельный
+  // блок прячется, чтобы не дублировать. Так грид остаётся чётным (n+1) и ряды
+  // балансируются. При чётном — визитка остаётся здесь, отдельной natural-aspect
+  // секцией сверху.
   const visiblePuppies = litter.puppies.filter((p) => p.state !== 'hidden');
-  if (visiblePuppies.length === 1) return null;
+  if (visiblePuppies.length % 2 === 1) return null;
 
   return (
     <section className="bg-bg pt-6 md:pt-8 pb-6 md:pb-8">

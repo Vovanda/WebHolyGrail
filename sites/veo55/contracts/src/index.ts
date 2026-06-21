@@ -41,7 +41,6 @@ export type {
   Puppy,
   PuppyState,
   PairCard,
-  LitterCardBlockNode,
   LitterHeaderBlockNode,
   LitterPairCardBlockNode,
   LitterPuppiesBlockNode,

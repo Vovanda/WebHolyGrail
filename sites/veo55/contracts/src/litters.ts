@@ -65,8 +65,8 @@ export type LitterStatus = 'active' | 'archived' | 'hidden';
  *
  * @remarks
  * **Опциональна целиком.** Бывают помёты без визитки — тогда блок её просто
- * не рендерит, верхняя часть {@link LitterCardBlockNode} занимается только
- * щенками. См. адаптивную раскладку в `client/blocks/content/LitterCardBlock`.
+ * не рендерит, верхняя часть `litter-header` блока показывает родителей и
+ * заголовок. Раскладка щенков — см. `client/blocks/veo55/litter/LitterPuppies`.
  */
 export interface PairCard {
   /**
@@ -90,7 +90,7 @@ export interface PairCard {
  *
  * Архивация целиком = один клик `status = 'archived'`. Кастомные блоки для
  * нестандартной секции («отборное поведение Чипсы») лежат **рядом** с
- * `LitterCard` на странице помёта в `Pages.blocks[]` — это обычные Prose/Quote,
+ * между литер-блоками на странице помёта в `Pages.blocks[]` — это обычные Prose/Quote,
  * не часть {@link LitterDoc}.
  */
 export interface LitterDoc {
@@ -127,43 +127,14 @@ export interface LitterDoc {
   readonly updatedAt: string;
 }
 
-/**
- * Блок страницы — карточка помёта. Ссылается на {@link LitterDoc} по id и
- * подтягивает всё (родители, визитка, щенки, флаги) на этапе server-render.
- *
- * @remarks
- * Один помёт → одна карточка → одна страница в `Pages.blocks[]`. На страничке
- * помёта рядом с `LitterCard` можно положить произвольные `Prose`/`Quote`
- * блоки — так делается «нестандартная» секция типа «отборное поведение Чипсы».
- * Сам блок остаётся простым (только ссылка на Litter), вся гибкость — за счёт
- * композиции на уровне страницы.
- *
- * **R5+:** сериализуем (`litterId` — строка), без `ReactNode`/callback'ов.
- */
-export interface LitterCardBlockNode {
-  readonly blockType: 'litter-card';
-  readonly id: string;
-  /** ID записи в коллекции `Litters`. */
-  readonly litterId: string;
-  /**
-   * Показать продaнных щенков (`state = 'sold'`) в общей сетке.
-   *
-   * @remarks
-   * Дефолт `false` — sold-щенки скрываются с витрины активного помёта (мама
-   * не хочет «галерею проданных» на главной). Включается, например, для
-   * страницы-архива помёта.
-   */
-  readonly showSold?: boolean;
-}
-
-/** Доп. поле блока — расширенная визитка пары, см. {@link ImageRef} для совместимости. */
+/** Доп. поле — расширенная визитка пары, см. {@link ImageRef} для совместимости. */
 export type LitterPairImage = ImageRef;
 
 /**
- * Декомпозиция `LitterCardBlockNode` на 3 атомарных блока — даёт возможность
- * располагать заголовок/визитку/щенков произвольно (между ними любые
- * Prose/Quote/AchievementBanner) и фреймить каждый независимо. Все три
- * ссылаются на одну и ту же запись `Litters` через `litterId`.
+ * Карточка помёта собирается из трёх атомарных блоков — `litter-header`,
+ * `litter-pair-card`, `litter-puppies`. Между ними можно класть произвольные
+ * Prose/Quote/AchievementBanner. Все три ссылаются на одну запись `Litters`
+ * через `litterId`. Раньше был монолитный `litter-card` — удалён как мёртвый.
  */
 export interface LitterHeaderBlockNode {
   readonly blockType: 'litter-header';
@@ -184,6 +155,6 @@ export interface LitterPuppiesBlockNode {
   readonly blockType: 'litter-puppies';
   readonly id: string;
   readonly litterId: string;
-  /** См. {@link LitterCardBlockNode.showSold}. */
+  /** Показать продaнных щенков (`state = 'sold'`). Дефолт `false` — sold-щенки скрываются с витрины. */
   readonly showSold?: boolean;
 }

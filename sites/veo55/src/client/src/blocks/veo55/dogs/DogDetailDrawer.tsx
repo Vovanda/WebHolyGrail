@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import type { DogDoc } from '@veo55/contracts';
 import { cn } from '@/lib/utils';
-import { resolveMediaUrl, resolveMediaAlt } from '@/blocks/veo55/litter/LitterCardBlock';
+import { resolveMediaUrl, resolveMediaAlt } from '@/blocks/veo55/litter/_shared';
 
 import { DetailDrawer, openDetail } from '@/blocks/primitives/DetailDrawer';
 

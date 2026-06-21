@@ -4,7 +4,6 @@ import { QuoteBlock } from './Quote';
 import { TimelineBlock } from './Timeline';
 import { ProseBlock } from './Prose';
 import { WaveDividerBlock } from './WaveDivider';
-import { LitterCardBlock } from './LitterCard';
 import { LitterHeaderBlock } from './LitterHeader';
 import { LitterPairCardBlock } from './LitterPairCard';
 import { LitterPuppiesBlock } from './LitterPuppies';
@@ -37,7 +36,6 @@ export const REUSABLE_INNER_BLOCKS = [
   TimelineBlock,
   ProseBlock,
   WaveDividerBlock,
-  LitterCardBlock,
   LitterHeaderBlock,
   LitterPairCardBlock,
   LitterPuppiesBlock,

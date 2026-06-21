@@ -170,6 +170,40 @@ ssh root@sawking.tech 'docker exec sawkingtech-nginx-1 nginx -s reload'
 
 **Не daemonized.** Сейчас `ssh -R` и socat вручную, при ребуте VPS / разрыве сети — отваливаются. TODO — systemd-юнит на VPS (`socat-veo.service`) + autossh клиент на хосте (либо tmux + autossh в background).
 
+### Полный рестарт стека (kill → clear cache → dev → tunnel)
+
+Когда нужно: Server Component cache держит старую версию (правка применена в коде, но `/_next/` рендерит прошлый билд), либо после обновления зависимостей.
+
+```bash
+# 1) Убить все node-процессы только WebHolyGrail (не трогаем другие проекты)
+pwsh -c "Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Where-Object { \$_.CommandLine -like '*WebHolyGrail*' } | ForEach-Object { Stop-Process -Id \$_.ProcessId -Force }"
+
+# 2) Очистить Next-кеш (server components / build artifacts)
+rm -rf sites/veo55/src/client/.next sites/veo55/src/cms/.next
+
+# 3) Запустить dev в background (CMS:3001 + Client:3000)
+nohup bash dev.sh > .tmp/dev.log 2>&1 &
+
+# 4) Дождаться готовности обоих
+until curl -fs http://localhost:3001/api/pages?limit=1 >/dev/null && curl -fs http://localhost:3000/ >/dev/null; do sleep 3; done && echo READY
+
+# 5) Поднять demo-tunnel (если ещё не поднят)
+docker ps --filter name=veo55-local-nginx --format '{{.Names}}' | grep -q veo55 || \
+  MSYS_NO_PATHCONV=1 docker run -d --name veo55-local-nginx \
+    -v /c/Users/SawKing/Documents/ClaudeProjects/WebHolyGrail/.tmp/local-nginx.conf:/etc/nginx/nginx.conf:ro \
+    -p 8080:80 nginx:alpine
+
+ssh -fN -R 127.0.0.1:8080:localhost:8080 \
+    -o BatchMode=yes -o ServerAliveInterval=30 -o ExitOnForwardFailure=yes \
+    debian@sawking.tech
+
+ssh debian@sawking.tech "ss -tlnp 2>/dev/null | grep -E ':8080|:8090'"
+# Если socat на :8090 не слушает — поднять заново:
+# ssh debian@sawking.tech "sudo nohup socat tcp-listen:8090,fork,reuseaddr tcp:127.0.0.1:8080 >/dev/null 2>&1 &"
+```
+
+Проверка: `curl -I https://veo.sawking.tech/` → 200 + правильный title.
+
 **Стоимость.** Бесплатно (Володин VPS уже оплачен, certbot Let's Encrypt бесплатный). Под demo-просмотр прототипа лимита нет.
 
 ## Что НЕ установлено (и почему — фиксируем чтобы не повторять обсуждение)

@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { getLitterById } from '@/lib/api-client';
 import { ContentFrame } from '@/blocks/decor/ContentFrame';
 
-import { PairCardGallery, PuppyCard, puppyGridClass, resolveMediaUrl } from './LitterCardBlock';
+import { PuppyCard, pairAsPuppy, puppyGridClass, resolveMediaUrl } from './_shared';
 
 /**
  * LitterPuppies — секция «Сетка карточек щенков».
@@ -48,40 +48,25 @@ export async function LitterPuppies({
   });
   if (visiblePuppies.length === 0) return null;
 
-  // Координация с LitterPairCardBlock: при **ровно 1** щенке этот блок тащит
-  // в себя визитку и рендерит её рядом со щенком (50/50 на ПК). Pair-card
-  // в этом же помёте сам прячется (см. LitterPairCardBlock single-puppy
-  // branch). Универсальная декомпозиция без отдельного «pair-single» блока.
-  if (visiblePuppies.length === 1) {
-    const pairImages = (litter.pairCard?.images ?? []).filter((it) => resolveMediaUrl(it.image));
-    if (pairImages.length > 0) {
-      return (
-        <section className="bg-bg pt-6 md:pt-8 pb-9 md:pb-12">
-          <ContentFrame side="none" className="px-6">
-            <div
-              className={cn(
-                'grid gap-8 md:gap-10 items-stretch justify-items-center',
-                'lg:grid-cols-2',
-              )}
-            >
-              <div className="w-full max-w-md">
-                <PairCardGallery images={pairImages} caption={litter.pairCard?.caption} />
-              </div>
-              <div className="w-full max-w-md">
-                <PuppyCard puppy={visiblePuppies[0]!} litterId={litter.id} />
-              </div>
-            </div>
-          </ContentFrame>
-        </section>
-      );
-    }
-    // Pair нет — рендерим только щенка в центре.
-  }
+  // Координация с LitterPairCardBlock: при нечётном числе щенков визитка
+  // встаёт первой карточкой в грид (через `pairAsPuppy`) — тогда total=n+1
+  // чётное и ряды балансируются. Pair-card блок в этом же помёте прячется
+  // (см. LitterPairCardBlock — условие `% 2 === 1`).
+  const pairImages = (litter.pairCard?.images ?? []).filter((it) => resolveMediaUrl(it.image));
+  const pairInGrid = pairImages.length > 0 && visiblePuppies.length % 2 === 1;
+  const gridCount = pairInGrid ? visiblePuppies.length + 1 : visiblePuppies.length;
 
   return (
     <section className="bg-bg pt-6 md:pt-8 pb-9 md:pb-12">
       <ContentFrame side="none" className="px-6">
-        <div className={cn(puppyGridClass(visiblePuppies.length))}>
+        <div className={cn(puppyGridClass(gridCount))}>
+          {pairInGrid && (
+            <PuppyCard
+              puppy={pairAsPuppy(pairImages, litter.pairCard?.caption)}
+              litterId={litter.id}
+              hideStateBadge
+            />
+          )}
           {visiblePuppies.map((p) => (
             <PuppyCard key={p.id} puppy={p} litterId={litter.id} />
           ))}

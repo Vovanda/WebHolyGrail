@@ -14,7 +14,6 @@ import { AchievementBanner } from '@/blocks/primitives/AchievementBanner';
 import { CertifiedNotice } from '@/blocks/primitives/CertifiedNotice';
 import { ReusableRef } from '@/blocks/primitives/ReusableRef';
 import { PageRef } from '@/blocks/primitives/PageRef';
-import { LitterCardBlock } from '@/blocks/veo55/litter/LitterCardBlock';
 import { LitterHeader } from '@/blocks/veo55/litter/LitterHeader';
 import { LitterPairCardBlock } from '@/blocks/veo55/litter/LitterPairCardBlock';
 import { LitterPuppies } from '@/blocks/veo55/litter/LitterPuppies';
@@ -43,7 +42,6 @@ const REGISTRY: Record<string, BlockRenderer> = {
   timeline: (node, settings) => <Timeline node={node} settings={settings} />,
   prose: (node, settings) => <Prose node={node} settings={settings} />,
   'wave-divider': (node, settings) => <WaveDivider node={node} settings={settings} />,
-  'litter-card': (node, settings) => <LitterCardBlock node={node} settings={settings} />,
   'litter-header': (node, settings) => <LitterHeader node={node} settings={settings} />,
   'litter-pair-card': (node, settings) => <LitterPairCardBlock node={node} settings={settings} />,
   'litter-puppies': (node, settings) => <LitterPuppies node={node} settings={settings} />,

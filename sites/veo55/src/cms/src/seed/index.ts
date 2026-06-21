@@ -373,13 +373,10 @@ async function seedChipsaLitter(payload: any) {
     title: 'Помёт литера Н, 2026 (Чипса)',
     slug: pageSlug,
     blocks: [
-      {
-        blockType: 'litter-card' as const,
-        litter: litterId,
-        showSold: false,
-      },
-      // «Произвольная вставка» (R: «секция для произвольного блока в рамке»):
-      // делается соседним Prose-блоком, не полем внутри LitterCard.
+      { blockType: 'litter-header' as const, litter: litterId },
+      { blockType: 'litter-pair-card' as const, litter: litterId },
+      { blockType: 'litter-puppies' as const, litter: litterId, showSold: false },
+      // Произвольная вставка между блоками помёта — обычный Prose.
       {
         blockType: 'prose' as const,
         body: 'Помёт «Чипса» — особенный: РКФ присвоила ему статус «Отборное разведение / Selected Breeding», что доступно единицам помётов ВЕО в России. Это значит, что родители прошли максимально жёсткие проверки здоровья, рабочих качеств и характера, а сами щенки растут под контролем эксперта-кинолога с первого дня жизни.',

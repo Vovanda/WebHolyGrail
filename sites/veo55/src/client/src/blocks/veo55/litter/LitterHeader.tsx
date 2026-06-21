@@ -3,7 +3,7 @@ import type { BlockNode, LitterDoc, SiteSettings } from '@veo55/contracts';
 import { getLitterById } from '@/lib/api-client';
 import { ContentFrame } from '@/blocks/decor/ContentFrame';
 
-import { ParentsBar, formatDob } from './LitterCardBlock';
+import { ParentsBar, formatDob } from './_shared';
 import { CopyLinkButton } from './CopyLinkButton';
 import { LitterAvailabilityCta } from './LitterAvailabilityCta';
 
@@ -45,7 +45,7 @@ export async function LitterHeader({
   if (!litter || litter.status === 'hidden') return null;
 
   const dobLabel = formatDob(litter.dob);
-  // На странице помёта те же hidden/sold-фильтры что в LitterCardBlock —
+  // На странице помёта те же hidden/sold-фильтры что в LitterPuppies —
   // CTA-бейдж показывает только то, что видит публика.
   const visiblePuppies = litter.puppies.filter((p) => p.state !== 'hidden' && p.state !== 'sold');
 
