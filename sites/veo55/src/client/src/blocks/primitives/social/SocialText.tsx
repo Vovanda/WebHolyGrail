@@ -20,13 +20,67 @@ import type { SocialPostMention } from '@veo55/contracts';
 export function SocialText({
   text,
   mentions,
+  dogMentions,
 }: {
   readonly text: string;
   readonly mentions?: readonly SocialPostMention[];
+  /**
+   * Список наших собак — для auto-highlight кличек. Любое вхождение `name`
+   * (case-insensitive) в тексте заменяется на dog-mention pill, клик по нему
+   * откроет модалку `DogDetailDrawerRoot` через `data-detail-dialog={slug}`.
+   */
+  readonly dogMentions?: ReadonlyArray<{ readonly slug: string; readonly name: string }>;
 }) {
   if (!text) return null;
-  const nodes = renderText(text, mentions ?? []);
+  const allMentions = [...(mentions ?? []), ...detectDogMentions(text, dogMentions ?? [])];
+  const nodes = renderText(text, allMentions);
   return <span className="whitespace-pre-wrap break-words">{nodes}</span>;
+}
+
+/**
+ * Авто-детекция упоминаний наших собак в тексте: ищем `name` (case-insensitive,
+ * целое слово) → возвращаем `SocialPostMention[type='dog']`. Передаётся в
+ * `renderText` наравне с server-side mentions; сортировка/защита от пересечений
+ * обрабатывается в `renderText` (`if (m.start < pos) continue`).
+ *
+ * Длинные имена ищутся первыми — чтобы «МАРС-АРЭС» матчился раньше «МАРС».
+ */
+function detectDogMentions(
+  text: string,
+  dogs: ReadonlyArray<{ slug: string; name: string }>,
+): SocialPostMention[] {
+  if (dogs.length === 0 || !text) return [];
+  const sorted = [...dogs].sort((a, b) => b.name.length - a.name.length);
+  const found: SocialPostMention[] = [];
+  const taken: Array<[number, number]> = [];
+  for (const dog of sorted) {
+    if (!dog.name.trim()) continue;
+    const re = new RegExp(
+      `(^|[^\\p{L}\\p{N}_])(${escapeRegex(dog.name)})(?=[^\\p{L}\\p{N}_]|$)`,
+      'giu',
+    );
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      const start = m.index + (m[1]?.length ?? 0);
+      const end = start + (m[2]?.length ?? 0);
+      // Пропускаем если перекрывает уже найденный (более длинный) match.
+      if (taken.some(([s, e]) => start < e && end > s)) continue;
+      taken.push([start, end]);
+      found.push({
+        type: 'dog',
+        start,
+        end,
+        display: text.slice(start, end),
+        url: `/dog/${dog.slug}`,
+        data: { slug: dog.slug },
+      } as unknown as SocialPostMention);
+    }
+  }
+  return found;
+}
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
@@ -58,11 +112,17 @@ function MentionLink({ mention }: { readonly mention: SocialPostMention }) {
   // dog-mention имеет особый стиль — целлофановая «капсула» с зеленоватым фоном.
   // См. legacy news.html `.veo-post__text a.veo-dog-mention`.
   if (mention.type === 'dog') {
+    // Если auto-detect передал `slug` в `data.slug` — это наша собака,
+    // подключаем DogDetailDrawer через `data-detail-dialog`. У server-side
+    // dog-mentions (РКФ) только `dogId` — там просто ссылка наружу.
+    const data = mention.data as { dogId?: number; slug?: string } | undefined;
+    const ourSlug = data?.slug;
     return (
       <a
         href={mention.url}
-        data-dog-id={(mention.data as { dogId?: number } | undefined)?.dogId ?? ''}
-        className="inline-flex items-center gap-1 px-2 py-px rounded-full font-semibold text-[13.5px] text-ink bg-[rgba(28,138,59,0.04)] border border-[rgba(28,138,59,0.16)] no-underline transition-colors hover:bg-[rgba(28,138,59,0.08)] hover:border-[rgba(28,138,59,0.28)]"
+        {...(ourSlug ? { 'data-detail-dialog': ourSlug } : {})}
+        {...(data?.dogId ? { 'data-dog-id': String(data.dogId) } : {})}
+        className="inline-flex items-center gap-1 px-2 py-px rounded-full font-semibold text-[13.5px] text-ink bg-[rgba(28,138,59,0.04)] border border-[rgba(28,138,59,0.16)] no-underline transition-colors hover:bg-[rgba(28,138,59,0.10)] hover:border-[rgba(28,138,59,0.35)] hover:text-[#1C8A3B] cursor-pointer"
       >
         🐾 {mention.display}
       </a>

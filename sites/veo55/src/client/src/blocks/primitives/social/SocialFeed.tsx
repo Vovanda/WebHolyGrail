@@ -35,6 +35,7 @@ import { SocialPostCard } from './SocialPostCard';
 export function SocialFeed({
   posts,
   commentsByPost,
+  dogMentions,
   groupName,
   groupPhoto,
   groupUrl,
@@ -47,6 +48,8 @@ export function SocialFeed({
    * Заполняется в `SocialFeedServer` через `listCommentsForPosts`.
    */
   readonly commentsByPost?: Record<string, readonly SocialComment[]>;
+  /** Список наших собак для auto-highlight в тексте постов. */
+  readonly dogMentions?: ReadonlyArray<{ readonly slug: string; readonly name: string }>;
   readonly groupName: string;
   readonly groupPhoto?: string;
   readonly groupUrl: string;
@@ -165,6 +168,7 @@ export function SocialFeed({
                   key={post.id}
                   post={post}
                   comments={postComments}
+                  dogMentions={dogMentions}
                   vkGroupUrl={groupUrl}
                   sourceLabel="Открыть в VK ↗"
                 />

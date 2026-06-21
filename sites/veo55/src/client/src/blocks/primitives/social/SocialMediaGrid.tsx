@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { SocialPostMedia } from '@veo55/contracts';
+import Lightbox, { type Slide } from 'yet-another-react-lightbox';
+import Zoom from 'yet-another-react-lightbox/plugins/zoom';
+import Counter from 'yet-another-react-lightbox/plugins/counter';
+import 'yet-another-react-lightbox/styles.css';
+import 'yet-another-react-lightbox/plugins/counter.css';
 
 import { cn } from '@/lib/utils';
-
-import { SocialMediaLightbox } from './SocialMediaLightbox';
 
 /**
  * SocialMediaGrid — единая сетка фото+видео VK-стиля.
@@ -13,7 +16,7 @@ import { SocialMediaLightbox } from './SocialMediaLightbox';
  * @remarks
  * Layout 1:1 с legacy `news.html → .veo-post__media.n1..n6`:
  *
- *  - n=1: full-width, без crop, max-height 560px, фон чёрный (`object-contain`)
+ *  - n=1: full-width, без crop, max-height 560px, cream-фон (`object-contain`)
  *  - n=2: 2 равных колонки (`grid-cols-2`)
  *  - n=3: `2fr 1fr` × 2 ряда, p0 занимает обе строки слева (big + 2 справа)
  *  - n=4: 2x2
@@ -28,8 +31,87 @@ import { SocialMediaLightbox } from './SocialMediaLightbox';
  * Без `'use client'` нельзя повесить onClick, а ссылки на embed-страницы VK
  * мы хотим перехватить чтобы открыть свой lightbox с каруселью.
  */
-export function SocialMediaGrid({ media }: { readonly media: readonly SocialPostMedia[] }) {
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+export function SocialMediaGrid({
+  media,
+  groupId,
+}: {
+  readonly media: readonly SocialPostMedia[];
+  readonly groupId?: string;
+}) {
+  const [index, setIndex] = useState<number | null>(null);
+  const isOpen = index !== null;
+  // hash-shareable URL для фото-видео группы. Если postId не передан —
+  // фоллбэк на детерминированный из media[0].url (грязно, но lightbox работает).
+  const gid = groupId ?? `media-${media[0]?.url?.slice(-12) ?? 'x'}`;
+
+  // Lightbox slides: фото → стандартные {src}; видео → custom slide с iframe.
+  const slides = useMemo<Slide[]>(
+    () =>
+      media.map((m): Slide => {
+        if (m.type === 'video') {
+          return {
+            type: 'iframe-embed',
+            src: m.embedUrl ?? m.url,
+            title: m.title,
+          } as unknown as Slide;
+        }
+        return {
+          src: m.url,
+          width: m.width,
+          height: m.height,
+        } as Slide;
+      }),
+    [media],
+  );
+
+  const open = useCallback(
+    (i: number) => {
+      const clamped = Math.max(0, Math.min(media.length - 1, i));
+      setIndex(clamped);
+      try {
+        window.history.pushState(
+          { lb: gid, i: clamped },
+          '',
+          `#lb=${encodeURIComponent(gid)}/${clamped}`,
+        );
+      } catch {
+        /* SSR */
+      }
+    },
+    [media.length, gid],
+  );
+
+  const close = useCallback(() => {
+    setIndex(null);
+    try {
+      if (window.location.hash.startsWith('#lb=')) window.history.back();
+    } catch {
+      /* */
+    }
+  }, []);
+
+  useEffect(() => {
+    function onPop() {
+      const m = window.location.hash.match(/^#lb=([^/]+)\/(\d+)$/);
+      if (!m || decodeURIComponent(m[1] ?? '') !== gid) setIndex(null);
+      else {
+        const i = Number(m[2]);
+        if (Number.isFinite(i)) setIndex(i);
+      }
+    }
+    onPop();
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [gid]);
+
+  function onIndexChange(i: number) {
+    setIndex(i);
+    try {
+      window.history.replaceState({ lb: gid, i }, '', `#lb=${encodeURIComponent(gid)}/${i}`);
+    } catch {
+      /* */
+    }
+  }
 
   if (media.length === 0) return null;
 
@@ -41,8 +123,10 @@ export function SocialMediaGrid({ media }: { readonly media: readonly SocialPost
     <>
       <div
         className={cn(
+          // Нейтральный cream-фон вместо чёрного (для n=1 раньше был чёрный —
+          // создавал «траурные» полосы у вертикальных/широких фото). Вписывается
+          // в палитру бренда.
           'grid gap-[2px] bg-[#F3EFE7]',
-          slotCount === 1 && 'bg-black',
           gridClass(slotCount),
         )}
       >
@@ -56,19 +140,46 @@ export function SocialMediaGrid({ media }: { readonly media: readonly SocialPost
               single={slotCount === 1}
               isFirstBig={isFirstBig}
               overlayPlus={isLast ? extra : 0}
-              onClick={() => setLightboxIndex(i)}
+              onClick={() => open(i)}
             />
           );
         })}
       </div>
 
-      {lightboxIndex !== null && (
-        <SocialMediaLightbox
-          items={media}
-          startIndex={lightboxIndex}
-          onClose={() => setLightboxIndex(null)}
-        />
-      )}
+      <Lightbox
+        open={isOpen}
+        close={close}
+        slides={slides}
+        index={index ?? 0}
+        on={{ view: ({ index: i }) => onIndexChange(i) }}
+        plugins={[Zoom, Counter]}
+        counter={{ container: { style: { top: 'unset', bottom: 16, left: 16 } } }}
+        zoom={{ maxZoomPixelRatio: 3, doubleTapDelay: 250 }}
+        controller={{ closeOnPullDown: true, closeOnBackdropClick: true }}
+        styles={{
+          container: { backgroundColor: 'rgba(28, 22, 16, 0.92)' },
+          toolbar: { top: 0, right: 0, padding: '0.5rem 1rem' },
+        }}
+        render={{
+          slide: ({ slide }) => {
+            if ((slide as unknown as { type?: string }).type === 'iframe-embed') {
+              const s = slide as unknown as { src: string; title?: string };
+              return (
+                <div className="w-full h-full flex items-center justify-center p-4">
+                  <iframe
+                    src={s.src}
+                    title={s.title ?? 'Видео'}
+                    allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                    allowFullScreen
+                    className="w-full max-w-[1280px] aspect-video bg-black"
+                  />
+                </div>
+              );
+            }
+            return undefined;
+          },
+        }}
+      />
     </>
   );
 }

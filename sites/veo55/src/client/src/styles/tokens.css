@@ -25,8 +25,11 @@
   --color-success: #1c8a3b;
   --color-success-soft: #e8f6ec;
 
-  --color-vk: #0077ff;
-  --color-vk-hover: #0062cc;
+  /* VK — мягкий slate-blue вместо яркого `#0077FF` (legacy агрессивный).
+     Сохраняет «синий» сигнал «соцсеть» но дружит с кремовой палитрой бренда. */
+  --color-vk: #3d6991;
+  --color-vk-hover: #2d547a;
+  --color-vk-soft: #e7eff7;
 
   --color-danger: #b54848;
 
@@ -144,8 +147,9 @@
   --color-success: #5ab86d;
   --color-success-soft: #1f3a26;
 
-  --color-vk: #4a9eff;
-  --color-vk-hover: #2d7fd6;
+  --color-vk: #6d92b8;
+  --color-vk-hover: #547596;
+  --color-vk-soft: #2a3a4b;
 
   --color-danger: #d96a6a;
 

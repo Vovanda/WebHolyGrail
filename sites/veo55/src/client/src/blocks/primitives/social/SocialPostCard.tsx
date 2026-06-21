@@ -34,12 +34,15 @@ import { formatRelativeDate, formatCompactNumber } from './format';
 export function SocialPostCard({
   post,
   comments,
+  dogMentions,
   vkGroupUrl,
   sourceLabel,
 }: {
   readonly post: SocialPostDoc;
   /** Server-side подгруженные комменты (если нужно SSR; пустой массив — без). */
   readonly comments?: readonly SocialComment[];
+  /** Список наших собак — auto-highlight в тексте поста. */
+  readonly dogMentions?: ReadonlyArray<{ readonly slug: string; readonly name: string }>;
   readonly vkGroupUrl: string;
   /** «Открыть в VK ↗» / «Открыть в TG ↗» — лейбл от источника. */
   readonly sourceLabel: string;
@@ -92,7 +95,7 @@ export function SocialPostCard({
       {/* Text */}
       {post.text && (
         <div className="px-4 md:px-5 py-3 md:py-3.5 text-ink text-[14.5px] md:text-[15.5px] leading-[1.65]">
-          <SocialText text={post.text} mentions={post.mentions} />
+          <SocialText text={post.text} mentions={post.mentions} dogMentions={dogMentions} />
         </div>
       )}
 

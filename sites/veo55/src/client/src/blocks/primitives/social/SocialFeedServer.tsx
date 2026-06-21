@@ -2,6 +2,8 @@ import type { BlockNode, SiteSettings, SocialComment, SocialSource } from '@veo5
 
 import { listCommentsForPosts, listPosts } from '@/lib/api-client';
 
+import { listDogs } from '@/lib/api-client';
+
 import { SocialFeed } from './SocialFeed';
 
 /**
@@ -84,10 +86,18 @@ export async function SocialFeedServer({
   const groupMeUrl = process.env.VK_GROUP_ME_URL ?? 'https://vk.me/veoomsk';
   const groupPhoto = process.env.VK_GROUP_PHOTO ?? undefined;
 
+  // Список наших собак — для auto-highlight в тексте поста.
+  // Передаём только {slug, name} — клиенту больше не нужно.
+  const dogs = await listDogs().catch(() => []);
+  const dogMentions = dogs
+    .filter((d) => d.slug && d.name)
+    .map((d) => ({ slug: d.slug!, name: d.name }));
+
   return (
     <SocialFeed
       posts={posts}
       commentsByPost={commentsByPostRecord}
+      dogMentions={dogMentions}
       groupName={groupName}
       groupPhoto={groupPhoto}
       groupUrl={groupUrl}
