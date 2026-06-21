@@ -23,7 +23,6 @@ services:
       NODE_ENV: production
     volumes:
       - veo55_db:/data
-      - veo55_media:/app/sites/veo55/src/cms/media
     ports:
       - '3001:3001'
     healthcheck:
@@ -63,8 +62,6 @@ services:
 volumes:
   veo55_db:
     name: veo55_db
-  veo55_media:
-    name: veo55_media
 
 networks:
   veo55-net:

@@ -25,10 +25,10 @@ pnpm compose:logs
 
 ## Что внутри
 
-| Сервис                  | Порт | Image из                            | Volume                                        |
-| ----------------------- | ---- | ----------------------------------- | --------------------------------------------- |
-| `cms` (veo55-cms)       | 3001 | `sites/veo55/src/cms/Dockerfile`    | `veo55_db` (SQLite) + `veo55_media` (uploads) |
-| `client` (veo55-client) | 3000 | `sites/veo55/src/client/Dockerfile` | —                                             |
+| Сервис                  | Порт | Image из                            | Volume                                                               |
+| ----------------------- | ---- | ----------------------------------- | -------------------------------------------------------------------- |
+| `cms` (veo55-cms)       | 3001 | `sites/veo55/src/cms/Dockerfile`    | `veo55_db` (SQLite). Media → S3 (cdn.veo55.ru), локальной копии нет. |
+| `client` (veo55-client) | 3000 | `sites/veo55/src/client/Dockerfile` | —                                                                    |
 
 Сеть `veo55-net` (bridge). Client ходит в cms через DNS-имя `cms:3001` (Docker DNS), не через `localhost`.
 
@@ -40,7 +40,7 @@ pnpm compose:logs
 ## Volumes
 
 - `veo55_db` — `/data` внутри cms-контейнера, там лежит `veo55.db`.
-- `veo55_media` — `/app/sites/veo55/src/cms/media`, загруженные через админку файлы.
+- **Media НЕ монтируется.** `s3Storage` плагин в `payload.config.ts` выставляет `disableLocalStorage:true` — загруженные через админку файлы идут напрямую в S3 (bucket `veo55`, prefix `media/`), отдаются через `cdn.veo55.ru`. Места на сервере копии не занимают.
 
 **Бэкап:** `docker run --rm -v veo55_db:/data -v $(pwd):/backup alpine tar czf /backup/veo55-db-$(date +%F).tar.gz -C /data .`
 
@@ -48,7 +48,7 @@ pnpm compose:logs
 
 ```bash
 pnpm compose:down
-docker volume rm veo55_db veo55_media
+docker volume rm veo55_db
 pnpm compose:up
 ```
 

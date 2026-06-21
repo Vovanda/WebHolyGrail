@@ -41,8 +41,8 @@ services:
     volumes:
       # SQLite (если переедем на Postgres — заменить на сервис postgres + dsn)
       - veo55_db:/data
-      # Media уходит в S3 при upload, но fallback-папка для legacy assets
-      - veo55_media:/app/sites/veo55/src/cms/media
+      # Media НЕ монтируется: s3Storage плагин выставляет disableLocalStorage:true,
+      # все аплоады идут напрямую в S3 (cdn.veo55.ru), локальной копии нет.
     expose:
       - '3001' # внутри сети, наружу только через nginx
     healthcheck:
@@ -120,8 +120,6 @@ services:
 volumes:
   veo55_db:
     name: veo55_db
-  veo55_media:
-    name: veo55_media
   veo55_certbot_www:
     name: veo55_certbot_www
   veo55_certbot_certs:
