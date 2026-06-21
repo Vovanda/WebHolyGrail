@@ -4,8 +4,12 @@ import type { CollectionConfig } from 'payload';
  * Media — загруженные файлы (картинки и документы).
  *
  * @remarks
- * Инвариант (см. memo `HolyGrail/38`). На старте — локальный диск через volume.
- * Когда подключим S3 — добавится `s3Adapter` через `@payloadcms/storage-s3`.
+ * Хранилище — S3 (VK Object Storage `veo55` bucket), подключается через плагин
+ * `@payloadcms/storage-s3` в `payload.config.ts`. По доке плагина — он
+ * автоматически выставляет `disableLocalStorage: true` для подключённой
+ * коллекции, поэтому `staticDir` тут НЕ указан (если оставить — Payload
+ * пишет локальную копию параллельно S3, и потом отдаёт её через `/api/media/...`
+ * перекрывая CDN-URL).
  *
  * Производные размеры (`imageSizes`) рендерятся sharp при загрузке. Имена
  * вариантов совпадают с ключами `MediaDoc.sizes` в `@veo55/contracts`.
@@ -19,7 +23,6 @@ export const Media: CollectionConfig = {
     group: 'Контент',
   },
   upload: {
-    staticDir: 'media',
     mimeTypes: ['image/*', 'application/pdf'],
     imageSizes: [
       { name: 'thumbnail', width: 400, height: undefined, position: 'centre' },
@@ -53,5 +56,46 @@ export const Media: CollectionConfig = {
     create: ({ req: { user } }) => Boolean(user),
     update: ({ req: { user } }) => Boolean(user),
     delete: ({ req: { user } }) => user?.role === 'admin',
+  },
+  hooks: {
+    /**
+     * Cache-busting через `?v=<updatedAt>` к публичному URL.
+     *
+     * Проблема: VK CDN (`cdn.veo55.ru`) держит файлы с долгим TTL по Etag.
+     * Если файл на S3 заменён под тем же ключом (Володя загрузил новую версию
+     * напрямую в bucket или через админку при том же filename) — CDN edge
+     * продолжает отдавать старую копию из своего кеша.
+     *
+     * Хук добавляет `?v=<timestamp>` к `url` и каждому `sizes.*.url`. Любое
+     * обновление записи Media в Payload меняет `updatedAt` → меняется
+     * query-string → CDN edge тянет свежий файл с S3 (query — часть cache-key).
+     *
+     * Side-effect для контрибьюторов: если файл правится прямо на S3 без
+     * сохранения Media через админку — busting не сработает (`updatedAt` не
+     * изменился). В этом случае: открыть запись Media в /admin → нажать
+     * «Сохранить» (touch updatedAt) → CDN подхватит новую версию.
+     */
+    afterRead: [
+      ({ doc }) => {
+        if (!doc?.url) return doc;
+        const v = doc.updatedAt ? new Date(doc.updatedAt as string | Date).getTime() : Date.now();
+        const bust = (url: unknown): unknown => {
+          if (typeof url !== 'string' || !url) return url;
+          return url + (url.includes('?') ? '&' : '?') + `v=${v}`;
+        };
+        const sizes = doc.sizes as Record<string, { url?: unknown }> | undefined;
+        return {
+          ...doc,
+          url: bust(doc.url),
+          ...(sizes
+            ? {
+                sizes: Object.fromEntries(
+                  Object.entries(sizes).map(([k, s]) => [k, { ...s, url: bust(s?.url) }]),
+                ),
+              }
+            : {}),
+        };
+      },
+    ],
   },
 };
