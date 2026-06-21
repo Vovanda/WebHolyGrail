@@ -1,6 +1,7 @@
 import type { BlockNode, CertifiedNoticeBlockNode, SiteSettings } from '@veo55/contracts';
 
 import { cn } from '@/lib/utils';
+import { ContentFrame } from '@/blocks/decor/ContentFrame';
 
 /**
  * CertifiedNotice — generic-блок сертификата с чек-листом критериев.
@@ -32,10 +33,16 @@ export function CertifiedNotice({
 
   return (
     <section className="bg-bg pt-8 md:pt-12 pb-8 md:pb-12">
-      <div className="mx-auto max-w-[720px] px-6">
+      {/* ContentFrame — лозы по бокам (в перспективе можно оставить только
+          справа, см. todo). Сам блок имеет border-l (accent-bar 1.5px), это
+          «свой акцент» — но фрейминг здесь по запросу для баланса композиции
+          (см. `feedback_symmetry_principle.md`). `side="left"` пока, чтобы
+          не дублировать border-l с правой лозой. */}
+      <ContentFrame side="left" decor="vines" className="px-6">
         <article
           className={cn(
             'relative bg-paper rounded-[12px] overflow-hidden',
+            'mx-auto max-w-[720px]',
             'pl-7 md:pl-10 pr-6 md:pr-10 py-8 md:py-10',
             'shadow-[0_6px_20px_rgba(43,34,26,0.08)]',
             'before:absolute before:inset-y-0 before:left-0 before:w-1.5 before:bg-accent before:rounded-r-[2px]',
@@ -88,7 +95,7 @@ export function CertifiedNotice({
             </div>
           )}
         </article>
-      </div>
+      </ContentFrame>
     </section>
   );
 }

@@ -35,21 +35,20 @@ export async function ReusableRef({
         ? (ref.id ?? null)
         : null;
 
+  // Публика не должна видеть техсообщения. Тихо скрываемся, dev-warn в консоль.
   if (refId == null) {
-    return process.env.NODE_ENV === 'development' ? (
-      <section className="bg-bg py-8 text-center text-muted font-display italic">
-        [ReusableRef] шаблон не выбран
-      </section>
-    ) : null;
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[ReusableRef] шаблон не выбран');
+    }
+    return null;
   }
 
   const doc = await getReusableBlockById(refId);
   if (!doc) {
-    return process.env.NODE_ENV === 'development' ? (
-      <section className="bg-bg py-8 text-center text-muted font-display italic">
-        [ReusableRef] шаблон id={String(refId)} не найден
-      </section>
-    ) : null;
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[ReusableRef] шаблон id=${refId} не найден`);
+    }
+    return null;
   }
 
   return (

@@ -18,7 +18,6 @@
     font-family: var(--font-sans);
     font-size: var(--text-body);
     line-height: var(--line-height-body);
-    padding-top: 12px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

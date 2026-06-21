@@ -59,11 +59,23 @@ export function NavDrawer({
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         className={[
-          'fixed top-2 z-50',
-          isLeft ? 'left-4' : 'right-4',
-          'grid place-items-center h-11 w-11 md:h-12 md:w-12 rounded-xl',
+          // top-3 (12px) — центр хедера (py-3 + h-11 ≈ 68px). body без
+          // padding-top → header.top=0. Размер/rounded совпадают с лого.
+          //
+          // Горизонталь: позиционируем относительно контентной полосы
+          // `max-w-wide=1300px`, не viewport. На узких экранах ≤1300px = 24px
+          // (как лого с pl-6); на широких — 24px от **края контентного блока**,
+          // зеркально логотипу. Идиома `max(24px, calc((100vw-1300px)/2+24px))`.
+          'fixed top-3 z-50',
+          isLeft
+            ? 'left-[max(24px,calc((100vw-1300px)/2+24px))]'
+            : 'right-[max(24px,calc((100vw-1300px)/2+24px))]',
+          'grid place-items-center h-11 w-11 md:h-12 md:w-12 rounded-lg',
           'bg-surface text-ink shadow-sm border border-border',
-          'hover:bg-accent hover:text-bg hover:border-accent transition-colors',
+          // hover-фон #d1c69f — тёплый бежевый, мягче accent-янтарного,
+          // лучше читается с тёмной иконкой. Применяется ко всем icon-кнопкам
+          // (бургер, X лайтбокса, X drawer-модалки).
+          'hover:bg-[#d1c69f] hover:border-[#d1c69f] transition-colors',
         ].join(' ')}
       >
         {open ? <IconX /> : <IconBurger />}
@@ -91,8 +103,9 @@ export function NavDrawer({
         ].join(' ')}
         style={{ width, background: 'var(--color-page-bg)' }}
       >
-        {/* Header drawer — лого по центру, квадрат, крупное */}
-        <div className="flex items-center justify-center py-6 border-b border-border">
+        {/* Header drawer — той же высоты что Header сайта (py-3 + h-11/12).
+            Лого по центру и кликабельно → главная. */}
+        <div className="flex items-center justify-center py-3 border-b border-border">
           <Link
             href="/"
             onClick={() => setOpen(false)}
@@ -107,7 +120,7 @@ export function NavDrawer({
                   : '/branding/logo.png'
               }
               alt={settings.siteName ?? 'Питомник'}
-              className="h-16 w-16 rounded-xl object-cover shadow-sm border border-border"
+              className="h-11 w-11 md:h-12 md:w-12 rounded-lg object-cover shadow-sm border border-border"
             />
           </Link>
         </div>

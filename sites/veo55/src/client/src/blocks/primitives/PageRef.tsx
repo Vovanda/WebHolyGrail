@@ -33,12 +33,13 @@ export async function PageRef({
   readonly settings: SiteSettings;
 }) {
   const depth = node.data?._depth ?? 0;
+  // Публика не должна видеть техсообщения. Цикл / отсутствующая страница =
+  // тихо ничего не рендерим. Для отладки — console.warn в dev.
   if (depth >= MAX_DEPTH) {
-    return process.env.NODE_ENV === 'development' ? (
-      <section className="bg-bg py-8 text-center text-muted font-display italic">
-        [PageRef] достигнут лимит вложенности ({MAX_DEPTH}) — возможен цикл
-      </section>
-    ) : null;
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[PageRef] достигнут лимит вложенности ${MAX_DEPTH} — возможен цикл`);
+    }
+    return null;
   }
 
   const ref = node.data?.ref;
@@ -50,20 +51,18 @@ export async function PageRef({
         : null;
 
   if (refId == null) {
-    return process.env.NODE_ENV === 'development' ? (
-      <section className="bg-bg py-8 text-center text-muted font-display italic">
-        [PageRef] страница не выбрана
-      </section>
-    ) : null;
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[PageRef] страница не выбрана');
+    }
+    return null;
   }
 
   const page = await getPageById(refId);
   if (!page) {
-    return process.env.NODE_ENV === 'development' ? (
-      <section className="bg-bg py-8 text-center text-muted font-display italic">
-        [PageRef] страница id={String(refId)} не найдена
-      </section>
-    ) : null;
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[PageRef] страница id=${refId} не найдена`);
+    }
+    return null;
   }
 
   return (

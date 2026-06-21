@@ -38,21 +38,20 @@ export async function Pedigree({
   const dog: DogDoc | null = dogId ? await getDogById(dogId) : null;
 
   if (!dog) {
-    return process.env.NODE_ENV === 'development' ? (
-      <section className="bg-bg py-8 text-center text-muted font-display italic">
-        [Pedigree] собака не задана или не найдена
-      </section>
-    ) : null;
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[Pedigree] собака не задана или не найдена');
+    }
+    return null;
   }
 
   const ped = dog.pedigree ?? [];
   if (ped.length < 2) {
-    return process.env.NODE_ENV === 'development' ? (
-      <section className="bg-bg py-8 text-center text-muted font-display italic">
-        [Pedigree] у собаки «{dog.name}» родословная не загружена. Запустить{' '}
-        <code className="font-mono">pnpm seed:fetch-pedigree</code>.
-      </section>
-    ) : null;
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(
+        `[Pedigree] у собаки «${dog.name}» родословная не загружена (pnpm seed:fetch-pedigree)`,
+      );
+    }
+    return null;
   }
 
   const title = node.data?.title?.trim() || 'Родословная';

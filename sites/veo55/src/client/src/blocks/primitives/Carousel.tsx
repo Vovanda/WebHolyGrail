@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import { cn } from '@/lib/utils';
+import { PhotoLightbox } from './PhotoLightbox';
+
 /**
  * Carousel — универсальный track-based слайдер с translateX-анимацией.
  *
@@ -32,9 +35,29 @@ export interface CarouselProps {
   readonly heightFromFirstSlide?: boolean;
   readonly background?: string;
   readonly rounded?: string;
+  /**
+   * Если указан — клик/тап по слайду открывает PhotoLightbox с этой группой.
+   * Должно быть уникальным per-карусель (например `dog-65923`, `litter-n-pair`).
+   */
+  readonly lightboxGroupId?: string;
 }
 
-export function Carousel({
+export function Carousel(props: CarouselProps) {
+  if (props.lightboxGroupId) {
+    const { lightboxGroupId, ...rest } = props;
+    return (
+      <PhotoLightbox
+        slides={props.slides.map((s) => ({ src: s.url, alt: s.alt }))}
+        groupId={lightboxGroupId}
+      >
+        {(open) => <CarouselInner {...rest} onSlideClick={open} />}
+      </PhotoLightbox>
+    );
+  }
+  return <CarouselInner {...props} />;
+}
+
+function CarouselInner({
   slides,
   interval,
   arrows = false,
@@ -45,7 +68,8 @@ export function Carousel({
   heightFromFirstSlide = false,
   background = 'transparent',
   rounded,
-}: CarouselProps) {
+  onSlideClick,
+}: CarouselProps & { onSlideClick?: (index: number) => void }) {
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
   const dragRef = useRef<{ startX: number; lastDelta: number } | null>(null);
@@ -130,7 +154,8 @@ export function Carousel({
             src={s.url}
             alt={s.alt}
             draggable={false}
-            className="block w-full select-none"
+            onClick={onSlideClick && i === active ? () => onSlideClick(i) : undefined}
+            className={cn('block w-full select-none', onSlideClick && 'cursor-zoom-in')}
             style={{
               flex: '0 0 100%',
               maxWidth: '100%',

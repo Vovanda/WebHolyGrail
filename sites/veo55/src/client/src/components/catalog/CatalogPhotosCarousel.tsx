@@ -32,6 +32,7 @@ export function CatalogPhotosCarousel({ photos, alt }: CatalogPhotosCarouselProp
         height="clamp(300px, 60vw, 520px)"
         background="#F3EFE7"
         rounded="10px"
+        lightboxGroupId={`rkf-${alt}`}
       />
     </div>
   );

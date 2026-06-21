@@ -23,6 +23,10 @@ export function Header({
       className="sticky top-0 z-30 text-ink border-b border-border/60"
       style={{ background: 'var(--color-page-bg)' }}
     >
+      {/* pl-6 pr-20 — асимметрия только во flex-контейнере (внутренний контент
+          не должен наезжать на абсолютный бургер). Визуальная симметрия лого ↔
+          бургер обеспечивается через left-6/right-6 на самой кнопке и pl-6 у
+          лого, оба = 24px от своего края. */}
       <div className="mx-auto flex max-w-wide items-center gap-6 pl-6 pr-20 md:pr-24 py-3">
         {/* Logo — слева, квадрат, заметный */}
         <Link
@@ -38,7 +42,7 @@ export function Header({
                 : '/branding/logo.png'
             }
             alt={settings.siteName ?? 'Питомник'}
-            className="h-11 w-11 md:h-12 md:w-12 rounded-xl object-cover shadow-sm border border-border"
+            className="h-11 w-11 md:h-12 md:w-12 rounded-lg object-cover shadow-sm border border-border"
           />
         </Link>
 

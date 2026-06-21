@@ -188,6 +188,7 @@ function PhotoFrame({
       height="460px"
       background="#F3EFE7"
       rounded="14px"
+      lightboxGroupId={`quote-${alt || 'photo'}`.replace(/\s+/g, '-')}
     />
   );
 }
