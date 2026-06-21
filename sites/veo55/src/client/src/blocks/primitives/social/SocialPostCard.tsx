@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils';
 
 import { SocialText } from './SocialText';
 import { SocialMediaGrid } from './SocialMediaGrid';
-import { SocialLikePopup } from './SocialLikePopup';
 import { SocialComments } from './SocialComments';
 import { CommentsToggleButton } from './CommentsToggleButton';
 import { formatRelativeDate, formatCompactNumber } from './format';
@@ -104,14 +103,14 @@ export function SocialPostCard({
 
       {/* Meta: лайки/комменты/репосты/views */}
       <div className="flex items-center gap-4 md:gap-5 px-4 md:px-5 py-2.5 md:py-3 border-t border-[#f4ead7] text-[13.5px] text-muted">
-        <SocialLikePopup
-          variant="like"
-          vkGroupUrl={vkGroupUrl}
+        <button
+          type="button"
+          data-like-popup="like"
           className="inline-flex items-center gap-1.5 transition-transform hover:scale-110 cursor-pointer bg-transparent border-0 p-0 text-inherit font-inherit"
         >
           <span className="text-base">❤️</span>
           <strong className="text-ink font-semibold">{formatCompactNumber(metrics.likes)}</strong>
-        </SocialLikePopup>
+        </button>
         {metrics.comments > 0 ? (
           <CommentsToggleButton postId={String(post.id)} count={metrics.comments} />
         ) : (
@@ -121,16 +120,16 @@ export function SocialPostCard({
           </span>
         )}
         {metrics.reposts > 0 && (
-          <SocialLikePopup
-            variant="repost"
-            vkGroupUrl={vkGroupUrl}
+          <button
+            type="button"
+            data-like-popup="repost"
             className="inline-flex items-center gap-1.5 transition-transform hover:scale-110 cursor-pointer bg-transparent border-0 p-0 text-inherit font-inherit"
           >
             <span className="text-base">🐾</span>
             <strong className="text-ink font-semibold">
               {formatCompactNumber(metrics.reposts)}
             </strong>
-          </SocialLikePopup>
+          </button>
         )}
         {metrics.views > 0 && (
           <span className="ml-auto inline-flex items-center gap-1.5">

@@ -156,10 +156,14 @@ function CommentRow({ c, isReply }: { readonly c: SocialComment; readonly isRepl
           <span className="font-semibold text-ink text-[13px]">{c.author.name}</span>
           <span className="font-display italic text-[13px]">{date}</span>
           {c.likes > 0 && (
-            <span className="ml-auto inline-flex items-center gap-1 text-xs">
+            <button
+              type="button"
+              data-like-popup="like"
+              className="ml-auto inline-flex items-center gap-1 text-xs bg-transparent border-0 p-0 cursor-pointer transition-transform hover:scale-110"
+            >
               <span>❤️</span>
               <span>{formatCompactNumber(c.likes)}</span>
-            </span>
+            </button>
           )}
         </div>
         {c.text && (

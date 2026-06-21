@@ -9,6 +9,7 @@ import { SiteLayout } from '@/layouts/site-layout';
 import { FALLBACK_SITE_SETTINGS } from '@/layouts/presets/fallback-site-settings';
 import { PawTrail } from '@/components/PawTrail';
 import { DogDetailDrawerRoot } from '@/blocks/veo55/dogs/DogDetailDrawer';
+import { SocialLikePopupRoot } from '@/blocks/primitives/social/SocialLikePopup';
 import '@/styles/globals.css';
 
 /**
@@ -89,6 +90,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         {/* Глобальная модалка-карточка собаки. Перехватывает клики на
             `[data-detail-dialog]` и открывается через hash `#d=dog:<slug>`. */}
         <DogDetailDrawerRoot />
+        {/* Глобальный popup ❤️/🐾 в постах и комментах. Перехватывает клики
+            на `[data-like-popup="like|repost"]` — пост/коммент маркирует
+            кнопку этим атрибутом, root показывает tooltip с CTA в VK. */}
+        <SocialLikePopupRoot vkGroupUrl={process.env.VK_GROUP_URL ?? 'https://vk.com/veoomsk'} />
         {process.env.NEXT_PUBLIC_YM_ID && <YandexMetrika id={process.env.NEXT_PUBLIC_YM_ID} />}
       </body>
     </html>
