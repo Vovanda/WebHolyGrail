@@ -5,6 +5,7 @@ import { ContentFrame } from '@/blocks/decor/ContentFrame';
 
 import { ParentsBar, formatDob } from './LitterCardBlock';
 import { CopyLinkButton } from './CopyLinkButton';
+import { LitterAvailabilityCta } from './LitterAvailabilityCta';
 
 /**
  * LitterHeader — заголовок помёта (название + дата рождения) + блок родителей.
@@ -44,10 +45,14 @@ export async function LitterHeader({
   if (!litter || litter.status === 'hidden') return null;
 
   const dobLabel = formatDob(litter.dob);
+  // На странице помёта те же hidden/sold-фильтры что в LitterCardBlock —
+  // CTA-бейдж показывает только то, что видит публика.
+  const visiblePuppies = litter.puppies.filter((p) => p.state !== 'hidden' && p.state !== 'sold');
 
   return (
     <section className="bg-bg pt-12 md:pt-16 pb-4 md:pb-6">
       <ContentFrame side="none" className="px-6">
+        <LitterAvailabilityCta status={litter.status} visiblePuppies={visiblePuppies} />
         <header className="text-center mb-8 md:mb-10">
           <h2 className="font-display text-3xl md:text-h2 font-semibold text-ink leading-tight">
             {litter.title}
