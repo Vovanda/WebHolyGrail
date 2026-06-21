@@ -33,6 +33,9 @@ export function SocialComments({
 
   // Top-level комменты (parentId='0') — это видимые карточки. Replies
   // прикрепляются рекурсивно при рендере (см. CommentRow).
+  // ВАЖНО: `parentId` коммента-ответа = `sourceId` РОДИТЕЛЯ (VK API хранит
+  // ссылки между комментами через source-id, не через наш Payload-id).
+  // Группируем по `sourceId`, не `id`.
   const topLevel = comments.filter((c) => !c.parentId || c.parentId === '0');
   const repliesByParent = new Map<string, SocialComment[]>();
   for (const c of comments) {
@@ -42,10 +45,14 @@ export function SocialComments({
       repliesByParent.set(c.parentId, arr);
     }
   }
-  // Прикрепляем replies к каждому top-level через клонирование
   const enriched: SocialComment[] = topLevel.map((c) => ({
     ...c,
-    replies: c.replies && c.replies.length > 0 ? c.replies : (repliesByParent.get(c.id) ?? []),
+    replies:
+      c.replies && c.replies.length > 0
+        ? c.replies
+        : c.sourceId
+          ? (repliesByParent.get(c.sourceId) ?? [])
+          : [],
   }));
 
   const open = postLikes >= 85;

@@ -105,10 +105,22 @@ export interface SocialPostDoc {
  */
 export interface SocialComment {
   readonly id: string;
+  /**
+   * id коммента на источнике (для VK — comment_id из API). Группировка
+   * `replies` по этому полю: `parentId` коммента-ответа равен `sourceId`
+   * родительского коммента (VK `wall.getComments thread.items[].parents_stack`
+   * хранит именно source-id, не наш Payload-id).
+   */
+  readonly sourceId?: string;
   readonly postId: string;
   readonly source: SocialSource;
   /** id владельца стены поста (для VK — отрицательное для сообщества). */
   readonly sourceOwnerId?: string;
+  /**
+   * `'0'` для top-level коммента, иначе **`sourceId`** родительского коммента
+   * (НЕ наш Payload-id). При группировке `replies` нужно сопоставлять
+   * `child.parentId === parent.sourceId`.
+   */
   readonly parentId: string;
   readonly date: number;
   readonly dateIso: string;
