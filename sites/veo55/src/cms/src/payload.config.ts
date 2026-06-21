@@ -18,6 +18,7 @@ import { Litters } from './collections/Litters';
 import { ReusableBlocks } from './collections/ReusableBlocks';
 import { Posts } from './collections/Posts';
 import { Comments } from './collections/Comments';
+import { FaqGroups } from './collections/FaqGroups';
 import { SiteSettings } from './globals/SiteSettings';
 import { SyncVkPostsTask } from './jobs/sync-vk-posts.task';
 import { FetchPedigreeTask } from './jobs/fetch-pedigree.task';
@@ -75,6 +76,7 @@ export default buildConfig({
     ReusableBlocks,
     Posts,
     Comments,
+    FaqGroups,
   ],
   globals: [SiteSettings],
   endpoints: [

@@ -12,6 +12,7 @@ import { AchievementBannerBlock } from './AchievementBanner';
 import { CertifiedNoticeBlock } from './CertifiedNotice';
 import { PedigreeBlock } from './Pedigree';
 import { SocialFeedBlock } from './SocialFeed';
+import { FaqAccordionBlock } from './FaqAccordion';
 import { ReusableRefBlock } from './ReusableRef';
 import { PageRefBlock } from './PageRef';
 import { withVisibility } from './_visibility';
@@ -44,6 +45,7 @@ export const REUSABLE_INNER_BLOCKS = [
   CertifiedNoticeBlock,
   PedigreeBlock,
   SocialFeedBlock,
+  FaqAccordionBlock,
 ].map(withVisibility);
 
 export const PAGE_BLOCKS = [

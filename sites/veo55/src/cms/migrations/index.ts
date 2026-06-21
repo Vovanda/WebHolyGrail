@@ -22,6 +22,8 @@ import * as migration_20260620_171000_posts_locked_rels from './20260620_171000_
 import * as migration_20260620_172000_social_feed_sources_autoinc from './20260620_172000_social_feed_sources_autoinc';
 import * as migration_20260620_180000_comments_collection from './20260620_180000_comments_collection';
 import * as migration_20260620_185000_payload_jobs from './20260620_185000_payload_jobs';
+import * as migration_20260620_210000_faq_groups from './20260620_210000_faq_groups';
+import * as migration_20260620_211000_pages_rels from './20260620_211000_pages_rels';
 
 export const migrations = [
   {
@@ -143,5 +145,15 @@ export const migrations = [
     up: migration_20260620_185000_payload_jobs.up,
     down: migration_20260620_185000_payload_jobs.down,
     name: '20260620_185000_payload_jobs',
+  },
+  {
+    up: migration_20260620_210000_faq_groups.up,
+    down: migration_20260620_210000_faq_groups.down,
+    name: '20260620_210000_faq_groups',
+  },
+  {
+    up: migration_20260620_211000_pages_rels.up,
+    down: migration_20260620_211000_pages_rels.down,
+    name: '20260620_211000_pages_rels',
   },
 ];

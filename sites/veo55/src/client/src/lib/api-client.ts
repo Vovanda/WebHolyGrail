@@ -1,5 +1,6 @@
 import type {
   DogDoc,
+  FaqGroupDoc,
   LitterDoc,
   PageDoc,
   ReusableBlockDoc,
@@ -298,6 +299,28 @@ export async function getRkfDog(id: number): Promise<RkfDogDoc | null> {
   const data = (await response.json()) as RkfDogDoc | { error: string };
   if ('error' in data) return null;
   return data;
+}
+
+/**
+ * Список FAQ-групп — все опубликованные, отсортированные по `order`.
+ *
+ * @remarks
+ * Возвращает плоский массив групп с встроенным `items[]`. Если коллекция
+ * пуста — `[]`.
+ */
+export async function listFaqGroups(): Promise<readonly FaqGroupDoc[]> {
+  const params = new URLSearchParams({
+    'where[_status][equals]': 'published',
+    sort: 'order',
+    limit: '50',
+    depth: '0',
+  });
+  const response = await fetch(`${CMS_URL}/api/faq-groups?${params.toString()}`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) return [];
+  const data = (await response.json()) as { docs?: ReadonlyArray<FaqGroupDoc> };
+  return data.docs ?? [];
 }
 
 /**

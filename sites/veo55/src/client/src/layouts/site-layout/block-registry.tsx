@@ -20,6 +20,7 @@ import { LitterPairCardBlock } from '@/blocks/veo55/litter/LitterPairCardBlock';
 import { LitterPuppies } from '@/blocks/veo55/litter/LitterPuppies';
 import { Pedigree } from '@/blocks/veo55/dogs/Pedigree';
 import { SocialFeedServer } from '@/blocks/primitives/social/SocialFeedServer';
+import { FaqAccordion } from '@/blocks/primitives/FaqAccordion';
 import { PageOutlet } from '@/blocks/system/PageOutlet';
 
 /**
@@ -50,6 +51,7 @@ const REGISTRY: Record<string, BlockRenderer> = {
   'achievement-banner': (node, settings) => <AchievementBanner node={node} settings={settings} />,
   'certified-notice': (node, settings) => <CertifiedNotice node={node} settings={settings} />,
   'social-feed': (node, settings) => <SocialFeedServer node={node} settings={settings} />,
+  'faq-accordion': (node, settings) => <FaqAccordion node={node} settings={settings} />,
   'reusable-ref': (node, settings) => <ReusableRef node={node} settings={settings} />,
   'page-ref': (node, settings) => <PageRef node={node} settings={settings} />,
   'page-outlet': (_node, _settings, children) => <PageOutlet>{children}</PageOutlet>,

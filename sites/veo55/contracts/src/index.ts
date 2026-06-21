@@ -55,6 +55,14 @@ export type { CertifiedNoticeBlockNode, CertifiedNoticeCriterion } from './notic
 export type { PedigreeBlockNode } from './pedigree';
 
 export type {
+  FaqGroupDoc,
+  FaqItemDoc,
+  FaqAccordionBlockNode,
+  FaqAccordionBlockData,
+  FaqAccordionCta,
+} from './faq';
+
+export type {
   SocialSource,
   SocialPostDoc,
   SocialPostAuthor,
