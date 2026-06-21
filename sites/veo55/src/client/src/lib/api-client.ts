@@ -74,15 +74,21 @@ export async function getSiteSettings(): Promise<SiteSettings | null> {
  * (см. `Litters.access.read`).
  */
 export async function getLitterById(id: string): Promise<LitterDoc | null> {
-  const response = await fetch(`${CMS_URL}/api/litters/${encodeURIComponent(id)}?depth=2`, {
+  // findByID `/api/litters/<id>` падает 500 для Litters на всех depth (даже 0)
+  // в текущей версии Payload — баг в обработке schema/lockedDocuments. Find
+  // через `where[id][equals]` работает стабильно. См. тот же обходной путь
+  // в `getPageById`.
+  const params = new URLSearchParams({
+    'where[id][equals]': id,
+    depth: '2',
+    limit: '1',
+  });
+  const response = await fetch(`${CMS_URL}/api/litters?${params.toString()}`, {
     cache: 'no-store',
   });
-
-  if (!response.ok) {
-    return null;
-  }
-
-  return (await response.json()) as LitterDoc;
+  if (!response.ok) return null;
+  const data = (await response.json()) as { docs?: LitterDoc[] };
+  return data.docs?.[0] ?? null;
 }
 
 /**
@@ -249,15 +255,31 @@ export async function getReusableBlockById(id: string | number): Promise<Reusabl
 }
 
 /**
- * Получить страницу по id для встраивания через `page-ref` (depth=2 для
- * populated relations внутри её blocks).
+ * Получить страницу по id для встраивания через `page-ref`.
+ *
+ * @remarks
+ * REST `/api/pages/<id>?depth=2` иногда падает 500 в `findByID` при
+ * populated relations внутри блоков (Payload что-то ломает на циклах /
+ * глубоких relations). Используем `find` через `where[id][equals]=` —
+ * работает стабильно даже с depth=2 для page-ref-вложений.
  */
 export async function getPageById(id: string | number): Promise<PageDoc | null> {
-  const response = await fetch(`${CMS_URL}/api/pages/${encodeURIComponent(String(id))}?depth=2`, {
+  // depth=0: только id-relations, без populated. Сами litter-* / pedigree /
+  // social-feed-блоки внутри страницы сами тянут свои данные (через
+  // getLitterById, getDogById и т.д.) — там depth работает корректно.
+  // С depth>=1 здесь Payload падает 500 в нашей схеме (вероятно из-за глубоких
+  // populated relations внутри блоков).
+  const params = new URLSearchParams({
+    'where[id][equals]': String(id),
+    depth: '0',
+    limit: '1',
+  });
+  const response = await fetch(`${CMS_URL}/api/pages?${params.toString()}`, {
     cache: 'no-store',
   });
   if (!response.ok) return null;
-  return (await response.json()) as PageDoc;
+  const data = (await response.json()) as { docs?: PageDoc[] };
+  return data.docs?.[0] ?? null;
 }
 
 /**
