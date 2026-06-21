@@ -46,6 +46,12 @@ export interface DogDoc {
   readonly slug: string;
   /** Кличка для админки и заголовка карточки. */
   readonly name: string;
+  /**
+   * Прозвища и сокращения для auto-highlight в VK-постах.
+   * Например: «Марта» для «ОМСКАЯ ДРУЖИНА МАРТА». Регистр игнорируется.
+   * Не показываются как отдельные клички — только триггеры подсветки.
+   */
+  readonly aliases?: ReadonlyArray<{ readonly id: string; readonly alias: string }>;
   /** Пол. */
   readonly sex: DogSex;
   /** Дата рождения ISO `YYYY-MM-DD` (не timestamp — час рождения не нужен). */

@@ -25,6 +25,7 @@ import * as migration_20260620_185000_payload_jobs from './20260620_185000_paylo
 import * as migration_20260620_210000_faq_groups from './20260620_210000_faq_groups';
 import * as migration_20260620_211000_pages_rels from './20260620_211000_pages_rels';
 import * as migration_20260621_030000_litters_dob_approx from './20260621_030000_litters_dob_approx';
+import * as migration_20260621_155000_dogs_aliases from './20260621_155000_dogs_aliases';
 
 export const migrations = [
   {
@@ -161,5 +162,10 @@ export const migrations = [
     up: migration_20260621_030000_litters_dob_approx.up,
     down: migration_20260621_030000_litters_dob_approx.down,
     name: '20260621_030000_litters_dob_approx',
+  },
+  {
+    up: migration_20260621_155000_dogs_aliases.up,
+    down: migration_20260621_155000_dogs_aliases.down,
+    name: '20260621_155000_dogs_aliases',
   },
 ];

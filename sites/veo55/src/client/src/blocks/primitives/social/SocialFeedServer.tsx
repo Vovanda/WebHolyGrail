@@ -87,11 +87,16 @@ export async function SocialFeedServer({
   const groupPhoto = process.env.VK_GROUP_PHOTO ?? undefined;
 
   // Список наших собак — для auto-highlight в тексте поста.
-  // Передаём только {slug, name} — клиенту больше не нужно.
+  // Для каждой собаки передаём массив `names` = [name, ...aliases] — любой
+  // элемент в тексте превращается в pill ведущую на `/dog/<slug>`. Aliases
+  // покрывают прозвища и сокращения («Марта» → «ОМСКАЯ ДРУЖИНА МАРТА»).
   const dogs = await listDogs().catch(() => []);
   const dogMentions = dogs
     .filter((d) => d.slug && d.name)
-    .map((d) => ({ slug: d.slug!, name: d.name }));
+    .map((d) => ({
+      slug: d.slug!,
+      names: [d.name, ...(d.aliases ?? []).map((a) => a.alias).filter(Boolean)],
+    }));
 
   return (
     <SocialFeed

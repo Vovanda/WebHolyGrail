@@ -42,7 +42,10 @@ export function SocialPostCard({
   /** Server-side подгруженные комменты (если нужно SSR; пустой массив — без). */
   readonly comments?: readonly SocialComment[];
   /** Список наших собак — auto-highlight в тексте поста. */
-  readonly dogMentions?: ReadonlyArray<{ readonly slug: string; readonly name: string }>;
+  readonly dogMentions?: ReadonlyArray<{
+    readonly slug: string;
+    readonly names: ReadonlyArray<string>;
+  }>;
   readonly vkGroupUrl: string;
   /** «Открыть в VK ↗» / «Открыть в TG ↗» — лейбл от источника. */
   readonly sourceLabel: string;

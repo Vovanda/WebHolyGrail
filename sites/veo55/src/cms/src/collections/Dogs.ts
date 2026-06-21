@@ -37,6 +37,24 @@ export const Dogs: CollectionConfig = {
       required: true,
     },
     {
+      name: 'aliases',
+      label: 'Прозвища и сокращения',
+      type: 'array',
+      labels: { singular: 'Прозвище', plural: 'Прозвища' },
+      admin: {
+        description:
+          'По которым тоже подсвечиваем в VK-постах. Например: «Марта» для «ОМСКАЯ ДРУЖИНА МАРТА». Регистр игнорируется.',
+      },
+      fields: [
+        {
+          name: 'alias',
+          label: 'Прозвище',
+          type: 'text',
+          required: true,
+        },
+      ],
+    },
+    {
       name: 'slug',
       label: 'URL (slug)',
       type: 'text',

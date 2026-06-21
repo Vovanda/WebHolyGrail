@@ -49,7 +49,10 @@ export function SocialFeed({
    */
   readonly commentsByPost?: Record<string, readonly SocialComment[]>;
   /** Список наших собак для auto-highlight в тексте постов. */
-  readonly dogMentions?: ReadonlyArray<{ readonly slug: string; readonly name: string }>;
+  readonly dogMentions?: ReadonlyArray<{
+    readonly slug: string;
+    readonly names: ReadonlyArray<string>;
+  }>;
   readonly groupName: string;
   readonly groupPhoto?: string;
   readonly groupUrl: string;

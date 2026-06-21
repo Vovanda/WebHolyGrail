@@ -29,7 +29,10 @@ export function SocialText({
    * (case-insensitive) в тексте заменяется на dog-mention pill, клик по нему
    * откроет модалку `DogDetailDrawerRoot` через `data-detail-dialog={slug}`.
    */
-  readonly dogMentions?: ReadonlyArray<{ readonly slug: string; readonly name: string }>;
+  readonly dogMentions?: ReadonlyArray<{
+    readonly slug: string;
+    readonly names: ReadonlyArray<string>;
+  }>;
 }) {
   if (!text) return null;
   const allMentions = [...(mentions ?? []), ...detectDogMentions(text, dogMentions ?? [])];
@@ -38,32 +41,41 @@ export function SocialText({
 }
 
 /**
- * Авто-детекция упоминаний наших собак в тексте: ищем `name` (case-insensitive,
- * целое слово) → возвращаем `SocialPostMention[type='dog']`. Передаётся в
- * `renderText` наравне с server-side mentions; сортировка/защита от пересечений
- * обрабатывается в `renderText` (`if (m.start < pos) continue`).
+ * Авто-детекция упоминаний наших собак в тексте.
  *
- * Длинные имена ищутся первыми — чтобы «МАРС-АРЭС» матчился раньше «МАРС».
+ * Каждая собака приходит как `{ slug, names: [полная-кличка, ...прозвища] }`.
+ * Любое имя из `names` (case-insensitive, целое слово) → `SocialPostMention[type='dog']`
+ * ведущая на `/dog/<slug>`. Aliases покрывают прозвища типа «Марта» для
+ * «ОМСКАЯ ДРУЖИНА МАРТА» — иначе короткий вариант в посте не подсвечивается.
+ *
+ * Длинные имена ищутся первыми (чтобы «МАРС-АРЭС» матчился раньше «МАРС»).
+ * `taken` защищает от двойного покрытия одной позиции разными именами.
  */
 function detectDogMentions(
   text: string,
-  dogs: ReadonlyArray<{ slug: string; name: string }>,
+  dogs: ReadonlyArray<{ slug: string; names: ReadonlyArray<string> }>,
 ): SocialPostMention[] {
   if (dogs.length === 0 || !text) return [];
-  const sorted = [...dogs].sort((a, b) => b.name.length - a.name.length);
+  // Разворачиваем все aliases в плоский список, чтобы единая сортировка
+  // «длинные первыми» работала через все имена всех собак.
+  const flat = dogs.flatMap((d) =>
+    d.names
+      .map((n) => (n ?? '').trim())
+      .filter(Boolean)
+      .map((name) => ({ slug: d.slug, name })),
+  );
+  flat.sort((a, b) => b.name.length - a.name.length);
   const found: SocialPostMention[] = [];
   const taken: Array<[number, number]> = [];
-  for (const dog of sorted) {
-    if (!dog.name.trim()) continue;
+  for (const entry of flat) {
     const re = new RegExp(
-      `(^|[^\\p{L}\\p{N}_])(${escapeRegex(dog.name)})(?=[^\\p{L}\\p{N}_]|$)`,
+      `(^|[^\\p{L}\\p{N}_])(${escapeRegex(entry.name)})(?=[^\\p{L}\\p{N}_]|$)`,
       'giu',
     );
     let m: RegExpExecArray | null;
     while ((m = re.exec(text)) !== null) {
       const start = m.index + (m[1]?.length ?? 0);
       const end = start + (m[2]?.length ?? 0);
-      // Пропускаем если перекрывает уже найденный (более длинный) match.
       if (taken.some(([s, e]) => start < e && end > s)) continue;
       taken.push([start, end]);
       found.push({
@@ -71,8 +83,8 @@ function detectDogMentions(
         start,
         end,
         display: text.slice(start, end),
-        url: `/dog/${dog.slug}`,
-        data: { slug: dog.slug },
+        url: `/dog/${entry.slug}`,
+        data: { slug: entry.slug },
       } as unknown as SocialPostMention);
     }
   }
