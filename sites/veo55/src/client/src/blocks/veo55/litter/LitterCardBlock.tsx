@@ -76,6 +76,18 @@ export async function LitterCardBlock({
   const dobLabel = formatDob(litter.dob);
   const pairAndSinglePuppy = hasPair && visiblePuppies.length === 1;
 
+  const availablePuppies = visiblePuppies.filter((p) => p.state === 'available');
+  // Бейдж: «Свободна одна — <цвет> <пол>» (legacy 1:1) если ровно один свободен;
+  // «Свободно: N» если больше; не показываем если 0.
+  const availabilityLabel =
+    availablePuppies.length === 1
+      ? `Свободна одна — ${puppyLabel(availablePuppies[0]!).toLowerCase()}`
+      : availablePuppies.length > 1
+        ? `Свободно: ${availablePuppies.length}`
+        : null;
+  // Дубль env-fallback с SocialFeedServer.tsx — на третьем случае вынесем в helper (R9).
+  const vkMeUrl = process.env.VK_GROUP_ME_URL ?? 'https://vk.me/veoomsk';
+
   return (
     /**
      * Вертикальные отступы:
@@ -87,6 +99,34 @@ export async function LitterCardBlock({
      */
     <section className="bg-bg pt-12 md:pt-16 pb-9 md:pb-12">
       <ContentFrame side="none" className="px-6">
+        {/* CTA-лента 1:1 с legacy `.veo-litter-cta`: бейдж «Свободна одна — …»
+            (если есть свободные) + янтарная pill «Написать нам в VK» (стиль
+            `.veo-btn`). Не показываем для archived-помётов — там покупать нечего. */}
+        {litter.status !== 'archived' && (
+          <div className="mb-8 md:mb-10 flex flex-wrap items-center justify-center gap-3">
+            {availabilityLabel && (
+              <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent-soft text-accent-dark ring-1 ring-accent/30 font-sans font-semibold text-sm">
+                <span aria-hidden>🐾</span>
+                {availabilityLabel}
+              </span>
+            )}
+            <a
+              href={vkMeUrl}
+              target="_blank"
+              rel="noopener"
+              className={cn(
+                'inline-flex items-center gap-2 min-h-[46px] px-[26px] py-3 rounded-full no-underline',
+                'bg-accent text-white font-semibold text-[15px]',
+                'shadow-[0_4px_12px_rgba(43,34,26,0.10)]',
+                'transition-[transform,background-color,box-shadow] duration-150',
+                'hover:bg-accent-hover hover:-translate-y-[1px] hover:shadow-[0_6px_18px_rgba(43,34,26,0.14)]',
+              )}
+            >
+              <span aria-hidden>✉</span>
+              Написать нам в VK
+            </a>
+          </div>
+        )}
         <header className="text-center mb-10 md:mb-14">
           <h2 className="font-display text-3xl md:text-h2 font-semibold text-ink leading-tight">
             {litter.title}
