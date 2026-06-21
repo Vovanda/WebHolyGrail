@@ -46,6 +46,19 @@ export const Media: CollectionConfig = {
       },
     },
     {
+      // Имя `prefix` — конвенция `@payloadcms/storage-s3` (он читает поле
+      // именно с таким slug-ом, доп-настройки не нужны). Label — «Папка».
+      name: 'prefix',
+      label: 'Папка в bucket (опц.)',
+      type: 'text',
+      defaultValue: 'media',
+      admin: {
+        description:
+          'Подпапка внутри S3 bucket — например `litters/2026-04-14-n` для фото помёта Н. Дефолт `media` (без подпапки). С `useCompositePrefixes` итоговый key = `<этот prefix>/<filename>`.',
+        position: 'sidebar',
+      },
+    },
+    {
       name: 'caption',
       label: 'Подпись (опционально)',
       type: 'text',

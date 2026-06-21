@@ -315,10 +315,23 @@ export const Litters: CollectionConfig = {
           ],
         },
         {
-          name: 'photo',
-          label: 'Фото щенка',
-          type: 'upload',
-          relationTo: 'media',
+          name: 'photos',
+          label: 'Фотографии щенка',
+          type: 'array',
+          labels: { singular: 'Фото', plural: 'Фото' },
+          admin: {
+            description:
+              'Первое фото — главное в превью. Остальные показываются каруселью на карточке (legacy веб даёт обычно 3 фото на щенка).',
+          },
+          fields: [
+            {
+              name: 'image',
+              label: 'Файл',
+              type: 'upload',
+              relationTo: 'media',
+              required: true,
+            },
+          ],
         },
         {
           name: 'notes',

@@ -241,25 +241,46 @@ export function PuppyCard({
   readonly puppy: Puppy;
   readonly litterId?: string | number;
 }) {
-  const url = resolveMediaUrl(puppy.photo);
   const label = puppyLabel(puppy);
-  const alt = resolveMediaAlt(puppy.photo) ?? label;
+  // Сворачиваем photos array → плоский список { url, alt }, отфильтровывая
+  // битые (без url). Если photos пустой — `items` пустой, рендерим плейсхолдер.
+  const items = (puppy.photos ?? [])
+    .map((p) => ({
+      url: resolveMediaUrl(p.image),
+      alt: resolveMediaAlt(p.image) ?? label,
+    }))
+    .filter((it): it is { url: string; alt: string } => Boolean(it.url));
   const groupId = litterId ? `puppy-${litterId}-${puppy.id}` : `puppy-${puppy.id}`;
+  const single = items.length <= 1;
   return (
     <article className="group bg-paper rounded-[14px] overflow-hidden shadow-[0_6px_18px_rgba(43,34,26,0.08)] hover:shadow-[0_10px_28px_rgba(43,34,26,0.14)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col w-full h-full">
       <div className="relative aspect-[4/5] bg-surface-hover overflow-hidden">
-        {url ? (
+        {items.length === 0 ? (
+          <div className="absolute inset-0 flex items-center justify-center text-muted font-display italic text-sm">
+            Фото скоро
+          </div>
+        ) : single ? (
           <LightboxImageGroup
-            photos={[{ url, alt }]}
+            photos={items}
             groupId={groupId}
             containerClassName="absolute inset-0"
             itemClassName="absolute inset-0 w-full h-full"
             imgClassName="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-muted font-display italic text-sm">
-            Фото скоро
-          </div>
+          <>
+            <div className="absolute inset-0">
+              <Carousel
+                slides={items}
+                arrows
+                swipe
+                objectFit="cover"
+                height="100%"
+                lightboxGroupId={groupId}
+              />
+            </div>
+            <PhotoCountBadge count={items.length} />
+          </>
         )}
         <StateBadge state={puppy.state} sex={puppy.sex} />
       </div>

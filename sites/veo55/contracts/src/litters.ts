@@ -35,8 +35,12 @@ export interface Puppy {
   readonly sex: DogSex;
   /** Окрас (наследуется по умолчанию из помёта, может быть переопределён). */
   readonly color?: DogColor;
-  /** Главное фото для карточки. */
-  readonly photo?: MediaRef;
+  /**
+   * Фотографии щенка. Первое фото — главное в превью (используется в `<Card>`
+   * как hero); если фоток >1 — карусель + 📷 N badge в углу карточки.
+   * Заменило старое single-photo поле (миграция `20260621_165000`).
+   */
+  readonly photos?: ReadonlyArray<{ readonly id: string; readonly image: MediaRef }>;
   /** Состояние — управляет видимостью и меткой. */
   readonly state: PuppyState;
   /**

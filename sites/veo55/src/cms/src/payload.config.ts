@@ -169,7 +169,10 @@ export default buildConfig({
     s3Storage({
       collections: {
         media: {
-          prefix: 'media',
+          // `prefix` тут НЕ задаём — пусть полностью контролирует поле
+          // `Media.prefix` из админки (default 'media'). Иначе collection-level
+          // префикс склеивается через `useCompositePrefixes` и получается
+          // `media/media/<filename>` для дефолтных аплоадов.
           generateFileURL: ({ filename, prefix }) =>
             `https://cdn.veo55.ru/${prefix ? prefix + '/' : ''}${filename}`,
         },
