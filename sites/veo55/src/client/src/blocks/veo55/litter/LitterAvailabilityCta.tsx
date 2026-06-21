@@ -48,10 +48,10 @@ export function LitterAvailabilityCta({
         rel="noopener"
         className={cn(
           'inline-flex items-center gap-2 min-h-[46px] px-[26px] py-3 rounded-full no-underline',
-          'bg-accent text-white font-semibold text-[15px]',
+          'bg-[var(--color-vk)] text-white font-semibold text-[15px]',
           'shadow-[0_4px_12px_rgba(43,34,26,0.10)]',
           'transition-[transform,background-color,box-shadow] duration-150',
-          'hover:bg-accent-hover hover:-translate-y-[1px] hover:shadow-[0_6px_18px_rgba(43,34,26,0.14)]',
+          'hover:bg-[var(--color-vk-hover)] hover:-translate-y-[1px] hover:shadow-[0_6px_18px_rgba(43,34,26,0.14)]',
         )}
       >
         <span aria-hidden>✉</span>

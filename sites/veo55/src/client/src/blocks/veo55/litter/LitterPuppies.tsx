@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { getLitterById } from '@/lib/api-client';
 import { ContentFrame } from '@/blocks/decor/ContentFrame';
 
-import { PuppyCard, pairAsPuppy, puppyGridClass, resolveMediaUrl } from './_shared';
+import { PuppyCard, VisitkaCard, puppyGridClass, resolveMediaUrl } from './_shared';
 
 /**
  * LitterPuppies — секция «Сетка карточек щенков».
@@ -61,10 +61,10 @@ export async function LitterPuppies({
       <ContentFrame side="none" className="px-6">
         <div className={cn(puppyGridClass(gridCount))}>
           {pairInGrid && (
-            <PuppyCard
-              puppy={pairAsPuppy(pairImages, litter.pairCard?.caption)}
+            <VisitkaCard
+              images={pairImages}
+              caption={litter.pairCard?.caption}
               litterId={litter.id}
-              hideStateBadge
             />
           )}
           {visiblePuppies.map((p) => (

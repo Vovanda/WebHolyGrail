@@ -52,7 +52,6 @@ export async function LitterHeader({
   return (
     <section className="bg-bg pt-12 md:pt-16 pb-4 md:pb-6">
       <ContentFrame side="none" className="px-6">
-        <LitterAvailabilityCta status={litter.status} visiblePuppies={visiblePuppies} />
         <header className="text-center mb-8 md:mb-10">
           <h2 className="font-display text-3xl md:text-h2 font-semibold text-ink leading-tight">
             {litter.title}
@@ -73,6 +72,7 @@ export async function LitterHeader({
           showFatherTitles={litter.showFatherTitles}
           showFatherDescription={litter.showFatherDescription}
         />
+        <LitterAvailabilityCta status={litter.status} visiblePuppies={visiblePuppies} />
       </ContentFrame>
     </section>
   );
