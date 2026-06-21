@@ -107,10 +107,14 @@ export async function LitterCardBlock({
           // (1fr 1fr), чтобы карточки балансировали друг друга. На мобиле —
           // вертикально с центровкой, max-w-md.
           <div className="grid gap-8 md:gap-10 lg:grid-cols-2 items-stretch justify-items-center">
-            <div className="w-full max-w-md">
-              <PairCardGallery images={pairImages} caption={litter.pairCard?.caption} />
+            <div className="w-full max-w-md flex">
+              <PairCardGallery
+                images={pairImages}
+                caption={litter.pairCard?.caption}
+                aspectMode="cover"
+              />
             </div>
-            <div className="w-full max-w-md">
+            <div className="w-full max-w-md flex">
               <PuppyCard puppy={visiblePuppies[0]!} litterId={litter.id} />
             </div>
           </div>
@@ -173,10 +177,17 @@ export function PairCardGallery({
   images,
   caption,
   className,
+  aspectMode = 'natural',
 }: {
   readonly images: ReadonlyArray<{ readonly id: string; readonly image: MediaRef }>;
   readonly caption?: string | undefined;
   readonly className?: string | undefined;
+  /**
+   * `natural` — единственное фото рендерится в свою настоящую aspect-ratio (без crop).
+   * `cover` — даже single-image идёт в aspect-[4/5] cover. Нужно когда визитка
+   * стоит рядом с PuppyCard в layout 1+1 — иначе одна карточка выше другой.
+   */
+  readonly aspectMode?: 'natural' | 'cover';
 }) {
   const items = images
     .map((it) => ({ id: it.id, url: resolveMediaUrl(it.image), alt: resolveMediaAlt(it.image) }))
@@ -184,6 +195,7 @@ export function PairCardGallery({
   if (items.length === 0) return null;
 
   const single = items.length === 1;
+  const singleNatural = single && aspectMode === 'natural';
   const gridCols =
     items.length === 2
       ? 'sm:grid-cols-2'
@@ -204,15 +216,15 @@ export function PairCardGallery({
     <ContentFrame side="both" decor="vines" className={className}>
       <article
         className={cn(
-          'group bg-paper rounded-[14px] overflow-hidden flex flex-col',
+          'group bg-paper rounded-[14px] overflow-hidden flex flex-col h-full',
           'shadow-[0_6px_18px_rgba(43,34,26,0.08)] hover:shadow-[0_10px_28px_rgba(43,34,26,0.14)]',
           'hover:-translate-y-0.5 transition-all duration-300 ease-out',
-          single && 'mx-auto max-w-[520px]',
+          singleNatural && 'mx-auto max-w-[520px]',
         )}
       >
-        {/* 1 фото — natural aspect (нет crop'а). N — фиксированный aspect 4:5
-            под карусель, иначе слайды разной высоты «прыгали бы». */}
-        {single ? (
+        {/* singleNatural — natural aspect (нет crop'а). Иначе — фиксированный
+            aspect 4:5 (карусель / cover-single для layout 1+1). */}
+        {singleNatural ? (
           <div className="relative bg-surface-hover">
             <LightboxImageGroup
               photos={items.map((it) => ({ url: it.url, alt: it.alt ?? 'Визитка пары' }))}
@@ -225,16 +237,26 @@ export function PairCardGallery({
         ) : (
           <div className="relative aspect-[4/5] bg-surface-hover overflow-hidden">
             <div className="absolute inset-0">
-              <Carousel
-                slides={items.map((it) => ({ url: it.url, alt: it.alt ?? 'Визитка пары' }))}
-                arrows
-                swipe
-                objectFit="cover"
-                height="100%"
-                lightboxGroupId={`pair-${items[0]?.id ?? 'unknown'}`}
-              />
+              {single ? (
+                <LightboxImageGroup
+                  photos={[{ url: items[0]!.url, alt: items[0]!.alt ?? 'Визитка пары' }]}
+                  groupId={`pair-${items[0]?.id ?? 'unknown'}`}
+                  containerClassName="absolute inset-0"
+                  itemClassName="absolute inset-0 w-full h-full"
+                  imgClassName="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <Carousel
+                  slides={items.map((it) => ({ url: it.url, alt: it.alt ?? 'Визитка пары' }))}
+                  arrows
+                  swipe
+                  objectFit="cover"
+                  height="100%"
+                  lightboxGroupId={`pair-${items[0]?.id ?? 'unknown'}`}
+                />
+              )}
             </div>
-            <PhotoCountBadge count={items.length} />
+            {items.length > 1 && <PhotoCountBadge count={items.length} />}
           </div>
         )}
         {caption && (
@@ -453,7 +475,7 @@ export function PuppyCard({
   // полноценной группы «весь помёт» нужно поднять на родителя — TODO.
   const groupId = litterId ? `puppy-${litterId}-${puppy.id}` : `puppy-${puppy.id}`;
   return (
-    <article className="group bg-paper rounded-[14px] overflow-hidden shadow-[0_6px_18px_rgba(43,34,26,0.08)] hover:shadow-[0_10px_28px_rgba(43,34,26,0.14)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col">
+    <article className="group bg-paper rounded-[14px] overflow-hidden shadow-[0_6px_18px_rgba(43,34,26,0.08)] hover:shadow-[0_10px_28px_rgba(43,34,26,0.14)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col w-full h-full">
       <div className="relative aspect-[4/5] bg-surface-hover overflow-hidden">
         {url ? (
           <LightboxImageGroup
