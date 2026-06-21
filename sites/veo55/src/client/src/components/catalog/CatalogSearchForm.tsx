@@ -158,7 +158,7 @@ export function CatalogSearchForm({ initialQuery = '' }: CatalogSearchFormProps)
           className={cn(
             'absolute top-[calc(100%+6px)] left-0 right-0 bg-paper',
             'border border-[#E5DCC9] rounded-[14px] shadow-[0_8px_24px_rgba(43,34,26,0.12)]',
-            'overflow-hidden z-10 max-h-[380px] overflow-y-auto',
+            'overflow-hidden z-50 max-h-[380px] overflow-y-auto',
           )}
         >
           {loading && items.length === 0 && (

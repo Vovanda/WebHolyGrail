@@ -20,6 +20,7 @@ const config: Config = {
         bg: 'var(--color-bg)',
         surface: 'var(--color-surface)',
         'surface-hover': 'var(--color-surface-hover)',
+        paper: 'var(--color-paper)',
         ink: 'var(--color-ink)',
         muted: 'var(--color-muted)',
         border: 'var(--color-border)',

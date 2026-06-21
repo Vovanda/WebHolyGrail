@@ -14,6 +14,7 @@
   --color-bg: #faf8f2; /* тёплая кремовая контент-карточка над body */
   --color-surface: #fbfaf6; /* paper-cream — плашка / внутренние карточки */
   --color-surface-hover: #f0e8d6; /* soft — hover-фон */
+  --color-paper: #ffffff; /* белый «лист» — карточки/попапы (контраст к кремовому bg) */
   --color-ink: #2b221a; /* тёплый шоколад — текст и заголовки */
   --color-muted: #7a6f5f; /* warm taupe — мета */
   --color-border: #e5dcc9; /* бежевый stone — бордер */
@@ -138,6 +139,7 @@
   --color-bg: #1a1612; /* тёмный шоколад (инвертированный cream) */
   --color-surface: #221c17; /* приподнятая плашка */
   --color-surface-hover: #2d251d;
+  --color-paper: #2a2218; /* приподнятый «лист» — карточки/попапы в dark */
   --color-ink: #f5ebd9; /* светлый кремовый текст */
   --color-muted: #a89d8b; /* приглушённый тёплый */
   --color-border: #3a322a;
