@@ -15,7 +15,12 @@
     min-height: 100vh;
     background: transparent;
     color: var(--color-ink);
-    font-family: var(--font-sans);
+    /* `--font-emoji` (Noto Color Emoji) идёт fallback'ом — браузер пробует
+       основные шрифты для текстовых глифов, а для emoji-codepoint (где у
+       Inter/Manrope нет глифа) автоматически берёт Noto. Это даёт одинаковые
+       цветные emoji на всех платформах (Windows Segoe/Apple Color/etc раньше
+       рендерились по-разному). 1:1 с legacy `veo-ui.css → --font-emoji` chain. */
+    font-family: var(--font-sans), var(--font-emoji);
     font-size: var(--text-body);
     line-height: var(--line-height-body);
     -webkit-font-smoothing: antialiased;
@@ -60,7 +65,8 @@
   h2,
   h3,
   h4 {
-    font-family: var(--font-display);
+    /* Тот же emoji fallback что и в body — заголовки часто содержат `🐾` / `🏆`. */
+    font-family: var(--font-display), var(--font-emoji);
     color: var(--color-ink);
     font-weight: 600;
     letter-spacing: -0.5px;
