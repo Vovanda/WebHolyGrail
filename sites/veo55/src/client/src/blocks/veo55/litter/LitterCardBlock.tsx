@@ -76,13 +76,7 @@ export async function LitterCardBlock({
   const hasPair = pairImages.length > 0;
   const descriptionParagraphs = lexicalToParagraphs(litter.description);
   const dobLabel = formatDob(litter.dob);
-  // Чётное число щенков → визитка отдельным natural-aspect блоком сверху.
-  // Нечётное → визитка встаёт ПЕРВОЙ в сетку щенков, тогда total=n+1 чётное и
-  // ряды балансируются. Cropается под `aspect-[4/5]` как карточки (одинаковая
-  // структура, одинаковая высота, без «огромной секции» под фото).
-  const pairInGrid = hasPair && visiblePuppies.length % 2 === 1;
-  const pairAbove = hasPair && !pairInGrid;
-  const gridCount = pairInGrid ? visiblePuppies.length + 1 : visiblePuppies.length;
+  const pairAndSinglePuppy = hasPair && visiblePuppies.length === 1;
 
   return (
     /**
@@ -108,46 +102,59 @@ export async function LitterCardBlock({
           <div className="mx-auto mt-5 h-[1.5px] w-16 bg-accent opacity-85 rounded-full" />
         </header>
 
-        <ParentsBar
-          mother={litter.mother}
-          father={litter.father}
-          showMotherTitles={litter.showMotherTitles}
-          showMotherDescription={litter.showMotherDescription}
-          showFatherTitles={litter.showFatherTitles}
-          showFatherDescription={litter.showFatherDescription}
-        />
-
-        {pairAbove && (
-          <PairCardGallery
-            images={pairImages}
-            caption={litter.pairCard?.caption}
-            className="mt-10 md:mt-14"
-          />
-        )}
-
-        {descriptionParagraphs.length > 0 && (
-          <div className="mx-auto max-w-[880px] mt-10 md:mt-14 font-display italic text-ink text-lg md:text-[20px] leading-[1.55] text-left">
-            {descriptionParagraphs.map((p, i) => (
-              <p key={i} className={i > 0 ? 'mt-4' : undefined}>
-                {p}
-              </p>
-            ))}
+        {pairAndSinglePuppy ? (
+          // ПК: визитка + один щенок в одну строку, **одинаковая ширина**
+          // (1fr 1fr), чтобы карточки балансировали друг друга. На мобиле —
+          // вертикально с центровкой, max-w-md.
+          <div className="grid gap-8 md:gap-10 lg:grid-cols-2 items-stretch justify-items-center">
+            <div className="w-full max-w-md flex">
+              <PairCardGallery
+                images={pairImages}
+                caption={litter.pairCard?.caption}
+                aspectMode="cover"
+              />
+            </div>
+            <div className="w-full max-w-md flex">
+              <PuppyCard puppy={visiblePuppies[0]!} litterId={litter.id} />
+            </div>
           </div>
-        )}
+        ) : (
+          <>
+            <ParentsBar
+              mother={litter.mother}
+              father={litter.father}
+              showMotherTitles={litter.showMotherTitles}
+              showMotherDescription={litter.showMotherDescription}
+              showFatherTitles={litter.showFatherTitles}
+              showFatherDescription={litter.showFatherDescription}
+            />
 
-        {gridCount > 0 && (
-          <div className={cn('mt-12 md:mt-16', puppyGridClass(gridCount))}>
-            {pairInGrid && (
-              <PuppyCard
-                puppy={pairAsPuppy(pairImages, litter.pairCard?.caption)}
-                litterId={litter.id}
-                hideStateBadge
+            {hasPair && (
+              <PairCardGallery
+                images={pairImages}
+                caption={litter.pairCard?.caption}
+                className="mt-10 md:mt-14"
               />
             )}
-            {visiblePuppies.map((p) => (
-              <PuppyCard key={p.id} puppy={p} litterId={litter.id} />
-            ))}
-          </div>
+
+            {descriptionParagraphs.length > 0 && (
+              <div className="mx-auto max-w-[880px] mt-10 md:mt-14 font-display italic text-ink text-lg md:text-[20px] leading-[1.55] text-left">
+                {descriptionParagraphs.map((p, i) => (
+                  <p key={i} className={i > 0 ? 'mt-4' : undefined}>
+                    {p}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {visiblePuppies.length > 0 && (
+              <div className={cn('mt-12 md:mt-16', puppyGridClass(visiblePuppies.length))}>
+                {visiblePuppies.map((p) => (
+                  <PuppyCard key={p.id} puppy={p} litterId={litter.id} />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </ContentFrame>
     </section>
@@ -170,10 +177,17 @@ export function PairCardGallery({
   images,
   caption,
   className,
+  aspectMode = 'natural',
 }: {
   readonly images: ReadonlyArray<{ readonly id: string; readonly image: MediaRef }>;
   readonly caption?: string | undefined;
   readonly className?: string | undefined;
+  /**
+   * `natural` — единственное фото рендерится в свою настоящую aspect-ratio (без crop).
+   * `cover` — даже single-image идёт в aspect-[4/5] cover. Нужно когда визитка
+   * стоит рядом с PuppyCard в layout 1+1 — иначе одна карточка выше другой.
+   */
+  readonly aspectMode?: 'natural' | 'cover';
 }) {
   const items = images
     .map((it) => ({ id: it.id, url: resolveMediaUrl(it.image), alt: resolveMediaAlt(it.image) }))
@@ -181,6 +195,7 @@ export function PairCardGallery({
   if (items.length === 0) return null;
 
   const single = items.length === 1;
+  const singleNatural = single && aspectMode === 'natural';
   const gridCols =
     items.length === 2
       ? 'sm:grid-cols-2'
@@ -201,13 +216,15 @@ export function PairCardGallery({
     <ContentFrame side="both" decor="vines" className={className}>
       <article
         className={cn(
-          'group bg-paper rounded-[14px] overflow-hidden flex flex-col',
+          'group bg-paper rounded-[14px] overflow-hidden flex flex-col h-full',
           'shadow-[0_6px_18px_rgba(43,34,26,0.08)] hover:shadow-[0_10px_28px_rgba(43,34,26,0.14)]',
           'hover:-translate-y-0.5 transition-all duration-300 ease-out',
-          single && 'mx-auto max-w-[520px]',
+          singleNatural && 'mx-auto max-w-[520px]',
         )}
       >
-        {single ? (
+        {/* singleNatural — natural aspect (нет crop'а). Иначе — фиксированный
+            aspect 4:5 (карусель / cover-single для layout 1+1). */}
+        {singleNatural ? (
           <div className="relative bg-surface-hover">
             <LightboxImageGroup
               photos={items.map((it) => ({ url: it.url, alt: it.alt ?? 'Визитка пары' }))}
@@ -220,16 +237,26 @@ export function PairCardGallery({
         ) : (
           <div className="relative aspect-[4/5] bg-surface-hover overflow-hidden">
             <div className="absolute inset-0">
-              <Carousel
-                slides={items.map((it) => ({ url: it.url, alt: it.alt ?? 'Визитка пары' }))}
-                arrows
-                swipe
-                objectFit="cover"
-                height="100%"
-                lightboxGroupId={`pair-${items[0]?.id ?? 'unknown'}`}
-              />
+              {single ? (
+                <LightboxImageGroup
+                  photos={[{ url: items[0]!.url, alt: items[0]!.alt ?? 'Визитка пары' }]}
+                  groupId={`pair-${items[0]?.id ?? 'unknown'}`}
+                  containerClassName="absolute inset-0"
+                  itemClassName="absolute inset-0 w-full h-full"
+                  imgClassName="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <Carousel
+                  slides={items.map((it) => ({ url: it.url, alt: it.alt ?? 'Визитка пары' }))}
+                  arrows
+                  swipe
+                  objectFit="cover"
+                  height="100%"
+                  lightboxGroupId={`pair-${items[0]?.id ?? 'unknown'}`}
+                />
+              )}
             </div>
-            <PhotoCountBadge count={items.length} />
+            {items.length > 1 && <PhotoCountBadge count={items.length} />}
           </div>
         )}
         {caption && (
@@ -243,26 +270,6 @@ export function PairCardGallery({
       </article>
     </ContentFrame>
   );
-}
-
-/**
- * pairAsPuppy — pseudo-Puppy из визитки пары, чтобы переиспользовать
- * {@link PuppyCard} в гриде когда щенков нечётное число (визитка встаёт первой
- * карточкой, total=n+1 становится чётным). Берём первое фото визитки, остальные
- * пока теряем — multi-фото визитки в гриде это потом (нужен `photos[]` в Puppy).
- */
-function pairAsPuppy(
-  images: ReadonlyArray<{ readonly id: string; readonly image: MediaRef }>,
-  caption?: string,
-): Puppy {
-  return {
-    id: `pair-${images[0]?.id ?? 'unknown'}`,
-    name: 'Визитка пары',
-    sex: 'male',
-    photo: images[0]?.image,
-    state: 'available',
-    notes: caption,
-  };
 }
 
 /**
@@ -457,12 +464,9 @@ function ParentSlot({
 export function PuppyCard({
   puppy,
   litterId,
-  hideStateBadge,
 }: {
   readonly puppy: Puppy;
   readonly litterId?: string | number;
-  /** true для pseudo-Puppy «визитка пары» — у неё нет статуса свободно/бронь. */
-  readonly hideStateBadge?: boolean;
 }) {
   const url = resolveMediaUrl(puppy.photo);
   const label = puppyLabel(puppy);
@@ -486,7 +490,7 @@ export function PuppyCard({
             Фото скоро
           </div>
         )}
-        {!hideStateBadge && <StateBadge state={puppy.state} sex={puppy.sex} />}
+        <StateBadge state={puppy.state} sex={puppy.sex} />
       </div>
       <div className="px-6 py-5 flex-1 flex flex-col">
         <h4 className="font-display text-xl font-semibold text-ink leading-tight">{label}</h4>
