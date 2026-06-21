@@ -8,6 +8,7 @@ import { YandexMetrika } from '@/lib/analytics';
 import { SiteLayout } from '@/layouts/site-layout';
 import { FALLBACK_SITE_SETTINGS } from '@/layouts/presets/fallback-site-settings';
 import { PawTrail } from '@/components/PawTrail';
+import { DogDetailDrawerRoot } from '@/blocks/veo55/dogs/DogDetailDrawer';
 import '@/styles/globals.css';
 
 /**
@@ -85,6 +86,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <SiteLayout config={layoutConfig} settings={settings}>
           {children}
         </SiteLayout>
+        {/* Глобальная модалка-карточка собаки. Перехватывает клики на
+            `[data-detail-dialog]` и открывается через hash `#d=dog:<slug>`. */}
+        <DogDetailDrawerRoot />
         {process.env.NEXT_PUBLIC_YM_ID && <YandexMetrika id={process.env.NEXT_PUBLIC_YM_ID} />}
       </body>
     </html>
