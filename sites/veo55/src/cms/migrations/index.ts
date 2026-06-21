@@ -26,6 +26,7 @@ import * as migration_20260620_210000_faq_groups from './20260620_210000_faq_gro
 import * as migration_20260620_211000_pages_rels from './20260620_211000_pages_rels';
 import * as migration_20260621_030000_litters_dob_approx from './20260621_030000_litters_dob_approx';
 import * as migration_20260621_155000_dogs_aliases from './20260621_155000_dogs_aliases';
+import * as migration_20260621_160000_payload_jobs_stats_rename from './20260621_160000_payload_jobs_stats_rename';
 
 export const migrations = [
   {
@@ -167,5 +168,10 @@ export const migrations = [
     up: migration_20260621_155000_dogs_aliases.up,
     down: migration_20260621_155000_dogs_aliases.down,
     name: '20260621_155000_dogs_aliases',
+  },
+  {
+    up: migration_20260621_160000_payload_jobs_stats_rename.up,
+    down: migration_20260621_160000_payload_jobs_stats_rename.down,
+    name: '20260621_160000_payload_jobs_stats_rename',
   },
 ];
