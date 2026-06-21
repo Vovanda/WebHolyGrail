@@ -27,22 +27,24 @@ export async function LitterPairCardBlock({
   const litterId: string | null =
     typeof litterRef === 'string'
       ? litterRef
-      : litterRef && typeof litterRef === 'object'
-        ? String((litterRef as { id?: string | number }).id ?? '')
-        : null;
+      : typeof litterRef === 'number'
+        ? String(litterRef)
+        : litterRef && typeof litterRef === 'object'
+          ? String((litterRef as { id?: string | number }).id ?? '')
+          : null;
   const litter: LitterDoc | null = litterId ? await getLitterById(litterId) : null;
 
-  if (!litter) {
-    return process.env.NODE_ENV === 'development' ? (
-      <section className="bg-bg py-8 text-center text-muted font-display italic">
-        [LitterPairCard] помёт не задан или не найден
-      </section>
-    ) : null;
-  }
-  if (litter.status === 'hidden') return null;
+  // см. LitterHeader — публика не должна видеть техсообщения.
+  if (!litter || litter.status === 'hidden') return null;
 
   const pairImages = (litter.pairCard?.images ?? []).filter((it) => resolveMediaUrl(it.image));
   if (pairImages.length === 0) return null;
+
+  // Координация с LitterPuppies: если у помёта **ровно 1** видимый щенок, этот
+  // блок прячется — LitterPuppies сам нарисует визитку + щенка в одну строку
+  // 50/50 (балансируют друг друга, см. LitterPuppies single-puppy branch).
+  const visiblePuppies = litter.puppies.filter((p) => p.state !== 'hidden');
+  if (visiblePuppies.length === 1) return null;
 
   return (
     <section className="bg-bg pt-6 md:pt-8 pb-6 md:pb-8">

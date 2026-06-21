@@ -31,19 +31,17 @@ export async function LitterHeader({
   const litterId: string | null =
     typeof litterRef === 'string'
       ? litterRef
-      : litterRef && typeof litterRef === 'object'
-        ? String((litterRef as { id?: string | number }).id ?? '')
-        : null;
+      : typeof litterRef === 'number'
+        ? String(litterRef)
+        : litterRef && typeof litterRef === 'object'
+          ? String((litterRef as { id?: string | number }).id ?? '')
+          : null;
   const litter: LitterDoc | null = litterId ? await getLitterById(litterId) : null;
 
-  if (!litter) {
-    return process.env.NODE_ENV === 'development' ? (
-      <section className="bg-bg py-8 text-center text-muted font-display italic">
-        [LitterHeader] помёт не задан или не найден
-      </section>
-    ) : null;
-  }
-  if (litter.status === 'hidden') return null;
+  // helper не задан / скрыт / не доступен анониму (status=hidden) → блок
+  // тихо пропускается. Раньше показывали dev-notice, но эту страницу видит
+  // публика, не разработчик — техсообщения недопустимы.
+  if (!litter || litter.status === 'hidden') return null;
 
   const dobLabel = formatDob(litter.dob);
 

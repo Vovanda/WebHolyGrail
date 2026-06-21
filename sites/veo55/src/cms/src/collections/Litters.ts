@@ -48,17 +48,20 @@ export const Litters: CollectionConfig = {
           name: 'dob',
           label: 'Дата рождения',
           type: 'date',
-          required: true,
+          // Не required: для анонсов (вязка ещё не было / только планируется)
+          // даты ещё нет. Текстовое описание — в `dobApprox`.
           admin: {
             date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' },
             width: '50%',
+            description:
+              'Пусто = анонс / планируется. Тогда в `dobApprox` напиши примерно («весна 2026», «после вязки осенью»).',
           },
         },
         {
           name: 'letter',
           label: 'Литера (буква помёта)',
           type: 'select',
-          required: true,
+          // Не required: пока не родились — литера ещё неизвестна.
           index: true,
           options: [
             { label: 'А', value: 'a' },
@@ -93,11 +96,21 @@ export const Litters: CollectionConfig = {
             { label: 'Я', value: 'ya' },
           ],
           admin: {
-            description: 'URL: `/puppies/{дата}/{буква}`.',
+            description:
+              'URL: `/puppies/{дата}/{буква}` когда есть. Анонс без даты/буквы — URL не генерируется, помёт виден только на главной/архиве.',
             width: '50%',
           },
         },
       ],
+    },
+    {
+      name: 'dobApprox',
+      label: 'Примерная дата (текстом)',
+      type: 'text',
+      admin: {
+        description:
+          'Заполняется только когда `dob` пуст. Например: «весна 2026», «после вязки осенью», «дата уточняется».',
+      },
     },
     {
       name: 'pageLink',

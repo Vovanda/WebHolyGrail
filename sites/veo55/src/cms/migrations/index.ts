@@ -24,6 +24,7 @@ import * as migration_20260620_180000_comments_collection from './20260620_18000
 import * as migration_20260620_185000_payload_jobs from './20260620_185000_payload_jobs';
 import * as migration_20260620_210000_faq_groups from './20260620_210000_faq_groups';
 import * as migration_20260620_211000_pages_rels from './20260620_211000_pages_rels';
+import * as migration_20260621_030000_litters_dob_approx from './20260621_030000_litters_dob_approx';
 
 export const migrations = [
   {
@@ -155,5 +156,10 @@ export const migrations = [
     up: migration_20260620_211000_pages_rels.up,
     down: migration_20260620_211000_pages_rels.down,
     name: '20260620_211000_pages_rels',
+  },
+  {
+    up: migration_20260621_030000_litters_dob_approx.up,
+    down: migration_20260621_030000_litters_dob_approx.down,
+    name: '20260621_030000_litters_dob_approx',
   },
 ];

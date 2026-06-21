@@ -4,6 +4,9 @@ import { cn } from '@/lib/utils';
 import { lexicalToParagraphs } from '@/lib/lexical-text';
 import { getLitterById } from '@/lib/api-client';
 import { ContentFrame } from '@/blocks/decor/ContentFrame';
+import { Carousel } from '@/blocks/primitives/Carousel';
+import { LightboxImageGroup } from '@/blocks/primitives/LightboxImageGroup';
+import { PhotoCountBadge } from '@/blocks/primitives/PhotoCountBadge';
 
 /**
  * LitterCardBlock — карточка помёта на странице.
@@ -50,21 +53,16 @@ export async function LitterCardBlock({
   const litterId: string | null =
     typeof litterRef === 'string'
       ? litterRef
-      : litterRef && typeof litterRef === 'object'
-        ? String((litterRef as { id?: string | number }).id ?? '')
-        : null;
+      : typeof litterRef === 'number'
+        ? String(litterRef)
+        : litterRef && typeof litterRef === 'object'
+          ? String((litterRef as { id?: string | number }).id ?? '')
+          : null;
 
   const litter: LitterDoc | null = litterId ? await getLitterById(litterId) : null;
 
-  if (!litter) {
-    return process.env.NODE_ENV === 'development' ? (
-      <section className="bg-bg py-8 text-center text-muted font-display italic">
-        [LitterCardBlock] помёт не задан или не найден
-      </section>
-    ) : null;
-  }
-
-  if (litter.status === 'hidden') return null;
+  // см. LitterHeader — публика не должна видеть техсообщения.
+  if (!litter || litter.status === 'hidden') return null;
 
   const visiblePuppies = litter.puppies.filter((p) => {
     if (p.state === 'hidden') return false;
@@ -102,10 +100,15 @@ export async function LitterCardBlock({
         </header>
 
         {pairAndSinglePuppy ? (
-          <div className="grid gap-10 lg:grid-cols-[3fr_2fr] items-start">
-            <PairCardGallery images={pairImages} caption={litter.pairCard?.caption} />
-            <div className="mx-auto w-full max-w-md">
-              <PuppyCard puppy={visiblePuppies[0]!} />
+          // ПК: визитка + один щенок в одну строку, **одинаковая ширина**
+          // (1fr 1fr), чтобы карточки балансировали друг друга. На мобиле —
+          // вертикально с центровкой, max-w-md.
+          <div className="grid gap-8 md:gap-10 lg:grid-cols-2 items-stretch justify-items-center">
+            <div className="w-full max-w-md">
+              <PairCardGallery images={pairImages} caption={litter.pairCard?.caption} />
+            </div>
+            <div className="w-full max-w-md">
+              <PuppyCard puppy={visiblePuppies[0]!} litterId={litter.id} />
             </div>
           </div>
         ) : (
@@ -140,7 +143,7 @@ export async function LitterCardBlock({
             {visiblePuppies.length > 0 && (
               <div className={cn('mt-12 md:mt-16', puppyGridClass(visiblePuppies.length))}>
                 {visiblePuppies.map((p) => (
-                  <PuppyCard key={p.id} puppy={p} />
+                  <PuppyCard key={p.id} puppy={p} litterId={litter.id} />
                 ))}
               </div>
             )}
@@ -185,25 +188,61 @@ export function PairCardGallery({
         ? 'sm:grid-cols-2 lg:grid-cols-3'
         : 'sm:grid-cols-2 lg:grid-cols-3';
 
+  // Визитка по факту — карточка с набором фоток + подпись. Логика как у
+  // PuppyCard: первое фото — превью в aspect [4/5], каруселью можно листать
+  // остальные (БЕЗ авто-проматывания), в правом верхнем углу — `📷 N` если
+  // фоток больше одной. Клик по фото — lightbox на всю площадь.
+  //
+  // ContentFrame оставляем на свою полную ширину (max-w-content) — это
+  // даёт **лозам место** по бокам (см. `feedback_symmetry_principle.md` /
+  // `docs/ui-patterns/content-framing.md`). Сама карточка центрируется
+  // `mx-auto max-w-[520px]` — компактная, оставляет «уют» по бокам.
   return (
     <ContentFrame side="both" decor="vines" className={className}>
-      <figure className="m-0">
-        <div className={single ? 'mx-auto max-w-[680px]' : cn('grid gap-8 md:gap-12', gridCols)}>
-          {items.map((it) => (
-            <img
-              key={it.id}
-              src={it.url}
-              alt={it.alt ?? 'Визитка пары'}
-              className="w-full h-auto rounded-[14px] shadow-[0_8px_24px_rgba(43,34,26,0.12)]"
-            />
-          ))}
-        </div>
-        {caption && (
-          <figcaption className="mx-auto max-w-2xl mt-5 md:mt-6 text-center font-display italic text-muted text-[15px] md:text-base leading-relaxed">
-            {caption}
-          </figcaption>
+      <article
+        className={cn(
+          'group bg-paper rounded-[14px] overflow-hidden flex flex-col',
+          'shadow-[0_6px_18px_rgba(43,34,26,0.08)] hover:shadow-[0_10px_28px_rgba(43,34,26,0.14)]',
+          'hover:-translate-y-0.5 transition-all duration-300 ease-out',
+          single && 'mx-auto max-w-[520px]',
         )}
-      </figure>
+      >
+        {/* 1 фото — natural aspect (нет crop'а). N — фиксированный aspect 4:5
+            под карусель, иначе слайды разной высоты «прыгали бы». */}
+        {single ? (
+          <div className="relative bg-surface-hover">
+            <LightboxImageGroup
+              photos={items.map((it) => ({ url: it.url, alt: it.alt ?? 'Визитка пары' }))}
+              groupId={`pair-${items[0]?.id ?? 'unknown'}`}
+              containerClassName="block"
+              itemClassName="block w-full"
+              imgClassName="block w-full h-auto"
+            />
+          </div>
+        ) : (
+          <div className="relative aspect-[4/5] bg-surface-hover overflow-hidden">
+            <div className="absolute inset-0">
+              <Carousel
+                slides={items.map((it) => ({ url: it.url, alt: it.alt ?? 'Визитка пары' }))}
+                arrows
+                swipe
+                objectFit="cover"
+                height="100%"
+                lightboxGroupId={`pair-${items[0]?.id ?? 'unknown'}`}
+              />
+            </div>
+            <PhotoCountBadge count={items.length} />
+          </div>
+        )}
+        {caption && (
+          <div className="px-6 py-5 flex-1 flex flex-col">
+            <h4 className="font-display text-xl font-semibold text-ink leading-tight">
+              Визитка пары
+            </h4>
+            <p className="mt-2 font-display italic text-muted text-sm leading-relaxed">{caption}</p>
+          </div>
+        )}
+      </article>
     </ContentFrame>
   );
 }
@@ -397,24 +436,29 @@ function ParentSlot({
   );
 }
 
-export function PuppyCard({ puppy }: { readonly puppy: Puppy }) {
+export function PuppyCard({
+  puppy,
+  litterId,
+}: {
+  readonly puppy: Puppy;
+  readonly litterId?: string | number;
+}) {
   const url = resolveMediaUrl(puppy.photo);
   const label = puppyLabel(puppy);
   const alt = resolveMediaAlt(puppy.photo) ?? label;
+  // Каждый щенок — самостоятельная мини-группа в lightbox (1 слайд). Для
+  // полноценной группы «весь помёт» нужно поднять на родителя — TODO.
+  const groupId = litterId ? `puppy-${litterId}-${puppy.id}` : `puppy-${puppy.id}`;
   return (
-    /**
-     * Карточка «дышит» (бренд-правило veo55: padding 24-32px, gap 24-32px).
-     * Hover-лифт — лёгкое translateY -2 + усиленная тёплая тень, без агрессивного
-     * scale — «эффекты не отвлекают от контента».
-     * Радиус 14px, shadow `rgba(43,34,26,0.08)` — из legacy `.veo-pup`.
-     */
     <article className="group bg-paper rounded-[14px] overflow-hidden shadow-[0_6px_18px_rgba(43,34,26,0.08)] hover:shadow-[0_10px_28px_rgba(43,34,26,0.14)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col">
       <div className="relative aspect-[4/5] bg-surface-hover overflow-hidden">
         {url ? (
-          <img
-            src={url}
-            alt={alt}
-            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+          <LightboxImageGroup
+            photos={[{ url, alt }]}
+            groupId={groupId}
+            containerClassName="absolute inset-0"
+            itemClassName="absolute inset-0 w-full h-full"
+            imgClassName="absolute inset-0 w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-muted font-display italic text-sm">
@@ -544,7 +588,7 @@ export function resolveMediaUrl(ref: MediaRef | undefined): string | undefined {
   return ref.url;
 }
 
-function resolveMediaAlt(ref: MediaRef | undefined): string | undefined {
+export function resolveMediaAlt(ref: MediaRef | undefined): string | undefined {
   if (!ref || typeof ref === 'string') return undefined;
   return ref.alt;
 }
