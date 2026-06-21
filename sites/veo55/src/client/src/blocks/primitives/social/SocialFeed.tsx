@@ -193,7 +193,7 @@ export function SocialFeed({
                 'font-semibold text-[15px] no-underline',
                 'shadow-[0_4px_12px_rgba(43,34,26,0.10)]',
                 'transition-[transform,background-color,box-shadow] duration-150',
-                'hover:-translate-y-[1px] hover:shadow-[0_6px_16px_rgba(0,119,255,0.2)]',
+                'hover:-translate-y-[1px] hover:shadow-[0_6px_18px_rgba(43,34,26,0.14)]',
               )}
             >
               Все новости в нашем сообществе VK ↗
