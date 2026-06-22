@@ -46,6 +46,8 @@ export function ourDogToProfile(dog: DogDoc): DogProfileData {
     const colorLabel = COLOR_LABEL[dog.color];
     if (colorLabel) info.push({ label: 'Окрас', value: colorLabel });
   }
+  if (dog.kennel) info.push({ label: 'Питомник', value: dog.kennel });
+  if (dog.breeder) info.push({ label: 'Заводчик', value: dog.breeder });
 
   const pedigree = dog.pedigree ?? [];
   const father = pedigree.find((a) => a.position === 1);

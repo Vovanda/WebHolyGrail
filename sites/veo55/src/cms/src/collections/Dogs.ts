@@ -172,6 +172,23 @@ export const Dogs: CollectionConfig = {
       },
     },
     {
+      name: 'kennel',
+      label: 'Питомник',
+      type: 'text',
+      admin: {
+        description:
+          'Заполняется только если собака не из «Омской Дружины» (например, привозной кобель-производитель).',
+      },
+    },
+    {
+      name: 'breeder',
+      label: 'Заводчик',
+      type: 'text',
+      admin: {
+        description: 'ФИО заводчика. Заполняется когда отличается от Ольги Зайцевой.',
+      },
+    },
+    {
       name: 'pedigree',
       label: 'Родословная',
       type: 'array',

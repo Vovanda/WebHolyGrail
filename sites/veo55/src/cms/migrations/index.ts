@@ -29,6 +29,7 @@ import * as migration_20260621_155000_dogs_aliases from './20260621_155000_dogs_
 import * as migration_20260621_160000_payload_jobs_stats_rename from './20260621_160000_payload_jobs_stats_rename';
 import * as migration_20260621_165000_puppy_photos_array from './20260621_165000_puppy_photos_array';
 import * as migration_20260621_170000_media_prefix from './20260621_170000_media_prefix';
+import * as migration_20260622_230000_dogs_kennel_breeder from './20260622_230000_dogs_kennel_breeder';
 
 export const migrations = [
   {
@@ -185,5 +186,10 @@ export const migrations = [
     up: migration_20260621_170000_media_prefix.up,
     down: migration_20260621_170000_media_prefix.down,
     name: '20260621_170000_media_prefix',
+  },
+  {
+    up: migration_20260622_230000_dogs_kennel_breeder.up,
+    down: migration_20260622_230000_dogs_kennel_breeder.down,
+    name: '20260622_230000_dogs_kennel_breeder',
   },
 ];
