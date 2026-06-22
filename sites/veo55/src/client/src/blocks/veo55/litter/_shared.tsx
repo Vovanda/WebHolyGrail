@@ -401,20 +401,27 @@ function StateBadge({
         : female
           ? 'Продана'
           : 'Продан';
-  const tone =
+  const colorVar =
     state === 'available'
-      ? 'bg-accent text-ink shadow-[0_4px_14px_rgba(212,164,55,0.55)]'
+      ? 'var(--color-puppy-available)'
       : state === 'reserved'
-        ? 'bg-accent-soft text-accent-dark ring-1 ring-accent/30'
-        : 'bg-ink/85 text-bg ring-1 ring-ink/20';
+        ? 'var(--color-puppy-reserved)'
+        : 'rgba(43, 34, 26, 0.7)';
   return (
     <span
       className={cn(
-        'absolute bottom-3 left-3 z-10 px-3 py-1.5 rounded-full',
-        'font-sans uppercase tracking-[0.14em] text-[11px] font-bold',
-        'backdrop-blur-[1px]',
-        tone,
+        'absolute inset-x-0 bottom-0 z-[2] flex items-center justify-center',
+        'h-16 px-3 pt-3.5 pb-2',
+        'font-display italic font-bold uppercase',
+        'text-[24px] tracking-[6px]',
+        'max-md:text-[17px] max-md:tracking-[4px] max-md:h-[52px] max-md:pt-2.5 max-md:pb-1.5',
       )}
+      style={{
+        color: colorVar,
+        ...(state === 'available'
+          ? { animation: 'veo-pup-status-pulse 2.4s ease-in-out infinite' }
+          : {}),
+      }}
     >
       {label}
     </span>

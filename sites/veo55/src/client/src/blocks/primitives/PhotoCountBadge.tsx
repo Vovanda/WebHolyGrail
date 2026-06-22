@@ -1,12 +1,13 @@
 import { cn } from '@/lib/utils';
 
 /**
- * PhotoCountBadge — бейдж «📷 N» в углу карточки. Показывается когда у
- * группы > 1 фото, как индикатор «нажми чтоб открыть всё».
+ * PhotoCountBadge — бейдж «📸 N фото» в правом верхнем углу карточки. Стиль
+ * 1:1 с legacy `.veo-pup-card__badge`: black pill, font-sans, не uppercase.
  *
- * @remarks
- * Server-component (нет state). Позиционируется через `absolute` — родитель
- * должен быть `relative`.
+ * Показывается когда у группы > 1 фото, как индикатор «нажми чтоб открыть всё».
+ * Родитель должен быть `relative` (позиционируется через `absolute`).
+ *
+ * Server-component (нет state).
  */
 export function PhotoCountBadge({
   count,
@@ -22,27 +23,17 @@ export function PhotoCountBadge({
       className={cn(
         'absolute top-2.5 right-2.5 z-10 inline-flex items-center gap-1',
         'px-2.5 py-1 rounded-full',
-        'bg-ink/75 text-paper text-[12px] font-semibold leading-none',
-        'shadow-[0_2px_8px_rgba(0,0,0,0.25)] backdrop-blur-sm',
+        'bg-black/65 text-white text-[11px] font-bold font-sans',
+        'tracking-[0.3px] leading-none',
+        'max-md:text-[10px] max-md:px-[7px] max-md:py-[3px] max-md:top-1.5 max-md:right-1.5',
         'pointer-events-none',
         className,
       )}
     >
-      <svg
-        width="13"
-        height="13"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect x="3" y="3" width="14" height="14" rx="2" />
-        <path d="M7 7l3 3 4-4" />
-        <rect x="7" y="7" width="14" height="14" rx="2" opacity="0.55" />
-      </svg>
-      {count}
+      <span aria-hidden style={{ fontFamily: 'var(--font-emoji), inherit' }}>
+        📸
+      </span>
+      {count} фото
     </span>
   );
 }

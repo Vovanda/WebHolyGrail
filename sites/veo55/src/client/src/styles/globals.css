@@ -243,6 +243,24 @@
     }
   }
 
+  /* Пульсация статуса «Свободна» у PuppyCard — 1:1 с legacy `.veo-pup-card--available .veo-pup-card__status`. */
+  @keyframes veo-pup-status-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      text-shadow: 0 0 0 transparent;
+    }
+    50% {
+      opacity: 0.85;
+      text-shadow: 0 0 18px rgba(240, 200, 74, 0.45);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .puppy-status-pulse {
+      animation: none !important;
+    }
+  }
+
   /* Drop-cap (буквица) для Prose variant editorial-with-dropcap.
    * Стиль 1:1 из veo-ui.css `.veo-desc p:first-of-type::first-letter`. */
   .with-dropcap::first-letter {
