@@ -40,37 +40,50 @@ export function CatalogSearchForm({ initialQuery = '' }: CatalogSearchFormProps)
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const [loading, setLoading] = useState(false);
+  const [errored, setErrored] = useState(false);
   const debounceRef = useRef<number | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
+      abortRef.current?.abort();
     };
   }, []);
 
   function scheduleSearch(q: string) {
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    abortRef.current?.abort();
     if (q.trim().length < 2) {
       setItems([]);
       setOpen(false);
       setLoading(false);
+      setErrored(false);
       return;
     }
     debounceRef.current = window.setTimeout(async () => {
+      const ctrl = new AbortController();
+      abortRef.current = ctrl;
+      const timeout = window.setTimeout(() => ctrl.abort(), 8000);
       setLoading(true);
+      setErrored(false);
       try {
         const res = await fetch(`/api/rkf/search?q=${encodeURIComponent(q.trim())}&page=1`, {
           headers: { Accept: 'application/json' },
+          signal: ctrl.signal,
         });
         if (!res.ok) throw new Error('rkf search failed');
         const data = (await res.json()) as { items?: Suggestion[] };
         setItems((data.items ?? []).slice(0, 8));
         setActive(-1);
         setOpen(true);
-      } catch {
+      } catch (err) {
+        if ((err as { name?: string })?.name === 'AbortError') return;
         setItems([]);
+        setErrored(true);
         setOpen(true);
       } finally {
+        window.clearTimeout(timeout);
         setLoading(false);
       }
     }, 350);
@@ -166,7 +179,12 @@ export function CatalogSearchForm({ initialQuery = '' }: CatalogSearchFormProps)
               Ищу…
             </div>
           )}
-          {!loading && items.length === 0 && value.trim().length >= 2 && (
+          {!loading && errored && items.length === 0 && (
+            <div className="px-4 py-3.5 text-[15px] font-display italic text-muted text-center">
+              Поиск временно недоступен, попробуйте ещё раз
+            </div>
+          )}
+          {!loading && !errored && items.length === 0 && value.trim().length >= 2 && (
             <div className="px-4 py-3.5 text-[15px] font-display italic text-muted text-center">
               По запросу «{value.trim()}» ничего не найдено
             </div>
