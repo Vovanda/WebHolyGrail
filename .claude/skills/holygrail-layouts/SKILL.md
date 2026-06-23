@@ -1,6 +1,6 @@
 ---
 name: holygrail-layouts
-description: Композиция сайта через Panel/Slot в SiteLayout. Две независимых оси ширины (layout-panels vs content-blocks), 6 слотов (top/bottom/left/right/center/overlay), drawer-канон. Триггерить когда правишь SiteLayout / PanelConfig / layout-presets, добавляешь Header/Footer/NavDrawer/sidebar, выбираешь где живёт ширина блока.
+description: Композиция сайта через Panel/Slot в SiteLayout. Две независимых оси ширины (layout-panels vs content-blocks), 6 слотов (top/bottom/left/right/center/overlay), drawer-канон навигации + detail-модалок (hash-routing + /internal/* proxy). Триггерить когда правишь SiteLayout / PanelConfig / layout-presets, добавляешь Header/Footer/NavDrawer/sidebar, делаешь модалку-карточку сущности (собака / помёт / FAQ), выбираешь где живёт ширина блока.
 ---
 
 # Skill: holygrail-layouts
@@ -73,6 +73,84 @@ Drawer-блок = `'use client'` со своим стейтом. SiteLayout их
 ## Дефолт burger справа
 
 Правши, большой палец на мобиле — burger и nav-drawer **справа** по умолчанию. Слева — только при явной причине.
+
+## Detail-модалки (drawer для одной сущности)
+
+Это **отдельный паттерн от навигационных drawer'ов выше**. Drawer'ы выше — постоянные панели layout'а (NavDrawer, sidebar). Detail-модалка — overlay для **одной сущности** (карточка собаки, помёта, FAQ-ответа), который открывается по клику на ссылку и закрывается по Esc / backdrop / history.back.
+
+### Канон (`DetailDrawer` + `openDetail`)
+
+Уже есть в `client/src/blocks/primitives/DetailDrawer.tsx`. Не пишем свой — переиспользуем.
+
+**URL-shareable.** Состояние модалки в hash: `#d=<kind>:<id>`. Открытие — `openDetail('dog:mars-ares')` → `history.pushState`. Закрытие — `history.back`. SSR-friendly: hash не доходит до сервера, модалки нет до hydrate.
+
+**Корневой компонент** монтируется один раз в `app/layout.tsx`:
+
+```tsx
+import { DogDetailDrawerRoot } from '@/blocks/veo55/dogs/DogDetailDrawer';
+// ...
+<DogDetailDrawerRoot />;
+```
+
+Это `'use client'`. Слушает `hashchange` → определяет slug → fetch'ит данные → рендерит `<DetailDrawer slug="dog:<slug>">`.
+
+**Глобальный click-перехватчик** — атрибут `data-detail-dialog="<id>"` на любом `<a href="/<canonical-url>">`:
+
+```tsx
+<a href="/dog/mars-ares" data-detail-dialog="mars-ares">
+  🐾 Бетэльгейзе Лаэрс Марс-Арэс
+</a>
+```
+
+Перехватчик в Root делает `e.preventDefault() + openDetail('dog:mars-ares')`. Без JS (или Ctrl+клик) — нормальная навигация на `/dog/mars-ares` (full page). Это даёт SEO/шарингу полную страницу, а UX даёт модалку.
+
+### Загрузка данных в модалку — обязательно через `/internal/*` proxy (R15)
+
+**КРИТИЧНО.** Client-side fetch в DetailDrawer не может ходить напрямую к CMS (`http://localhost:3001`) — Chrome Private Network Access блокирует и показывает системный попап Windows «доступ к локальной сети». Это R15 в `holygrail-rules`.
+
+Правильный паттерн: **same-origin proxy**. Server-side route handler в Next:
+
+```
+sites/<site>/src/client/src/app/internal/<entity>/[id]/route.ts
+```
+
+```ts
+import { NextResponse } from 'next/server';
+import { getEntityById } from '@/lib/api-client';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const { id } = await ctx.params;
+  const data = await getEntityById(id).catch(() => null);
+  if (!data) return NextResponse.json({ error: 'not-found' }, { status: 404 });
+  return NextResponse.json(data);
+}
+```
+
+В DetailDrawer-компоненте:
+
+```ts
+fetch(`/internal/<entity>/${encodeURIComponent(id)}`, { cache: 'no-store' })
+  .then((r) => (r.ok ? r.json() : null))
+  .then(setData);
+```
+
+**Namespace `/internal/*` обязателен.** local-nginx (`.tmp/local-nginx.conf`) маршрутит `/api/*` в Payload CMS. Если положить proxy в `/api/`, на demo-tunnel он отвалится 404 от Payload. `/internal/` всегда идёт в Next.
+
+### Стиль / визуал
+
+- Overlay `fixed inset-0 bg-ink/40` + drawer `fixed right-0 top-0 bottom-0` (или left-0 на левом краю, согласно UX-выбору)
+- Sliding-анимация `translate-x-0 | translate-x-full`
+- Escape закрывает (keydown listener)
+- Body scroll-lock при open=true (`document.body.style.overflow = 'hidden'`)
+- Кнопка «Подробнее →» внутри модалки — full-page ссылка для шаринга
+
+### Прецеденты
+
+- `DogDetailDrawer.tsx` + `/internal/dog/[slug]/route.ts` — карточка собаки на /news клик по чипу-кличке
+- `DetailDrawer.tsx` — generic-каркас (overlay + slide + hash routing)
+- `SocialLikePopupRoot.tsx` — родственный паттерн для попапа с лайкнувшими (другой entity, другой proxy если потребуется)
 
 ## Текущий layout конкретного сайта
 

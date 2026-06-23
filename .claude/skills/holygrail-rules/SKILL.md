@@ -1,6 +1,6 @@
 ---
 name: holygrail-rules
-description: Архитектурные правила Web Holy Grail (R0-R14) — изоляция фронт/бэк через contracts, блок = чистая функция, контент в БД не хардкод, ЧПУ, SSR-default, R5++ функциональное именование блоков под _template, темизация через токены. Триггерить когда пишешь новый блок / меняешь contracts / создаёшь страницу / добавляешь Payload-коллекцию / решаешь куда положить логику.
+description: Архитектурные правила Web Holy Grail (R0-R15) — изоляция фронт/бэк через contracts, блок = чистая функция, контент в БД не хардкод, ЧПУ, SSR-default, R5++ функциональное именование блоков под _template, темизация через токены, client-fetch только same-origin через /internal/* proxy. Триггерить когда пишешь новый блок / меняешь contracts / создаёшь страницу / добавляешь Payload-коллекцию / решаешь куда положить логику / делаешь client-side fetch.
 ---
 
 # Skill: holygrail-rules
@@ -190,3 +190,48 @@ Default — Server Component с `async function Page()` + `await getX()`.
 - `useState` для toggle — HTML `<details>` / CSS-only `:has()`
 
 Граница: если блок может быть server — он **обязан** быть им.
+
+## R15. Client-fetch — только same-origin через `/internal/*` proxy
+
+Client-компонент (`'use client'`) не должен делать `fetch(${NEXT_PUBLIC_CMS_URL}/...)` напрямую. Никогда.
+
+**Почему.** Сайт живёт на `https://<site>.sawking.tech` (demo-tunnel) или прод-домене (https), CMS на `http://localhost:3001` (dev) или `http://cms:3001` (контейнер). Прямой client-fetch с https-страницы на http://localhost (или другой origin):
+
+- Chrome / Edge включают **Private Network Access** — показывают системный попап Windows «сайт запрашивает доступ к локальной сети и другим приложениям». Это видно пользователю и пугает (Володя так и поймал баг с модалкой собаки).
+- Cross-origin без CORS → fetch падает с opaque error. Возможна race с blocked preflight.
+- На проде nginx маршрутит `/api/*` в Payload — рисуем proxy под другим префиксом, не в `/api/`.
+
+**Как делать.** Server-side прокси через Next App Router route handler:
+
+```
+sites/<site>/src/client/src/app/internal/<resource>/[id]/route.ts
+```
+
+```ts
+import { NextResponse } from 'next/server';
+import { getResourceById } from '@/lib/api-client';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(
+  _req: Request,
+  ctx: { params: Promise<{ id: string }> },
+): Promise<NextResponse> {
+  const { id } = await ctx.params;
+  const data = await getResourceById(id).catch(() => null);
+  if (!data) return NextResponse.json({ error: 'not-found' }, { status: 404 });
+  return NextResponse.json(data);
+}
+```
+
+В client-компоненте — relative URL:
+
+```ts
+fetch(`/internal/<resource>/${encodeURIComponent(id)}`, { cache: 'no-store' });
+```
+
+**Namespace `/internal/*` — почему отдельно от `/api/*`.** local-nginx (`.tmp/local-nginx.conf`) маршрутит `/api/*` в Payload CMS, `/internal/*` в Next-client. Если положить proxy в `/api/internal/...` — на тоннеле nginx уведёт запрос в Payload, который скажет «Route not found». Используем `/internal/` как чёткий неймспейс «client-side proxy в Next».
+
+**Что server-компоненту делать нормально.** SSR (`async function Page()`) ходит напрямую к `NEXT_PUBLIC_CMS_URL` — server-side fetch не касается браузера, PNA не срабатывает, CORS не нужен. R15 — только про код под `'use client'`.
+
+**Прецедент.** `DogDetailDrawer.tsx` + `/internal/dog/[slug]/route.ts` — модалка собаки.
