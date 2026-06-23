@@ -415,9 +415,16 @@ function StateBadge({
         'font-display italic font-bold uppercase',
         'text-[24px] tracking-[6px]',
         'max-md:text-[17px] max-md:tracking-[4px] max-md:h-[52px] max-md:pt-2.5 max-md:pb-1.5',
+        // Тёмный градиент снизу подкладывается под текст — обеспечивает контраст
+        // на светлых фотках. Высота градиента ~2× высоты badge'а: мягкий заход
+        // сверху, плотная полка внизу.
+        'bg-gradient-to-t from-black/65 via-black/40 to-transparent',
       )}
       style={{
         color: colorVar,
+        // Тонкий тёмный halo вокруг глифа — добивает читаемость на пёстрых фонах
+        // (трава с пятнами света), не мешая основной цветовой подсветке.
+        textShadow: '0 1px 2px rgba(0, 0, 0, 0.55), 0 0 12px rgba(0, 0, 0, 0.35)',
         ...(state === 'available'
           ? { animation: 'veo-pup-status-pulse 2.4s ease-in-out infinite' }
           : {}),
