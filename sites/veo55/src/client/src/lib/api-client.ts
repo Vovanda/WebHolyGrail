@@ -284,21 +284,34 @@ export async function getPageById(id: string | number): Promise<PageDoc | null> 
 }
 
 /**
+ * Discriminated union ответа `getRkfDog`. UI должен различать «реально нет»
+ * (404 РКФ) от «не смогли получить» (parser упал / upstream timeout) —
+ * сообщения разные.
+ */
+export type RkfDogResult =
+  | { readonly status: 'ok'; readonly dog: RkfDogDoc }
+  | { readonly status: 'not-found' }
+  | { readonly status: 'error' };
+
+/**
  * Получить карточку собаки из РКФ-каталога (`veorkf.ru`). Server-side fetch
  * через Payload endpoint `/api/rkf/dog?id=N` — там же кеш 7д/1д.
  *
- * @returns карточка или `null` если РКФ не отдал собаку (404 / parse fail).
+ * 404 → `not-found` (id корректный, но в РКФ такого нет).
+ * 502/500/network/parse error → `error` (transient, UI предлагает попробовать ещё раз).
  */
-export async function getRkfDog(id: number): Promise<RkfDogDoc | null> {
-  if (!Number.isFinite(id) || id < 1) return null;
-  // Кеширование живёт на стороне Payload-endpoint'а (RKF cache 7д/1д).
-  // Next-fetch ставит `no-store`, иначе при изменении парсера фронт держит
-  // устаревшую сериализацию (см. историю с position/rkfId).
-  const response = await fetch(`${CMS_URL}/api/rkf/dog?id=${id}`, { cache: 'no-store' });
-  if (!response.ok) return null;
-  const data = (await response.json()) as RkfDogDoc | { error: string };
-  if ('error' in data) return null;
-  return data;
+export async function getRkfDog(id: number): Promise<RkfDogResult> {
+  if (!Number.isFinite(id) || id < 1) return { status: 'not-found' };
+  try {
+    const response = await fetch(`${CMS_URL}/api/rkf/dog?id=${id}`, { cache: 'no-store' });
+    if (response.status === 404) return { status: 'not-found' };
+    if (!response.ok) return { status: 'error' };
+    const data = (await response.json()) as RkfDogDoc | { error: string };
+    if ('error' in data) return { status: 'error' };
+    return { status: 'ok', dog: data };
+  } catch {
+    return { status: 'error' };
+  }
 }
 
 /**

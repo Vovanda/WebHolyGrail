@@ -64,7 +64,7 @@ export function CatalogSearchForm({ initialQuery = '' }: CatalogSearchFormProps)
     debounceRef.current = window.setTimeout(async () => {
       const ctrl = new AbortController();
       abortRef.current = ctrl;
-      const timeout = window.setTimeout(() => ctrl.abort(), 8000);
+      const timeout = window.setTimeout(() => ctrl.abort(), 20000);
       setLoading(true);
       setErrored(false);
       try {

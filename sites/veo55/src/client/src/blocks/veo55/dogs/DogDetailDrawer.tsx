@@ -69,13 +69,17 @@ export function DogDetailDrawerRoot() {
     }
     let cancelled = false;
     setLoading(true);
-    const cmsUrl = process.env.NEXT_PUBLIC_CMS_URL ?? '';
-    const url = `${cmsUrl}/api/dogs?where[slug][equals]=${encodeURIComponent(slug)}&depth=1&limit=1`;
+    // Same-origin proxy — Chrome Private Network Access блокирует прямой fetch
+    // к http://localhost:3001 со страниц https://veo.sawking.tech (demo-tunnel),
+    // показывая системный попап «доступ к локальной сети». /internal/dog/<slug>
+    // на Next-сервере делает fetch к CMS server-side. Namespace /internal/*
+    // отдельный от /api/* — local-nginx маршрутит /api в Payload, не в Next.
+    const url = `/internal/dog/${encodeURIComponent(slug)}`;
     fetch(url, { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((data: { docs?: DogDoc[] }) => {
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: DogDoc | null) => {
         if (cancelled) return;
-        setDog(data.docs?.[0] ?? null);
+        setDog(data);
       })
       .catch(() => {
         if (cancelled) return;

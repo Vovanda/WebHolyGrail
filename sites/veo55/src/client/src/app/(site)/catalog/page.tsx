@@ -50,9 +50,9 @@ export async function generateMetadata({
   if (dogIdStr) {
     const id = Number(dogIdStr);
     if (Number.isFinite(id)) {
-      const dog = await getRkfDog(id);
-      if (dog) {
-        return { title: `${dog.name} — РКФ-каталог · Питомник «Омская Дружина»` };
+      const result = await getRkfDog(id);
+      if (result.status === 'ok') {
+        return { title: `${result.dog.name} — РКФ-каталог · Питомник «Омская Дружина»` };
       }
     }
   }
@@ -82,16 +82,22 @@ export default async function CatalogPage({
           <NotFound query={dogIdStr} />
         </CatalogShell>
       );
-    const dog = await getRkfDog(id);
-    if (!dog)
+    const result = await getRkfDog(id);
+    if (result.status === 'not-found')
       return (
         <CatalogShell>
           <NotFound query={`id=${id}`} />
         </CatalogShell>
       );
+    if (result.status === 'error')
+      return (
+        <CatalogShell>
+          <FetchError id={id} />
+        </CatalogShell>
+      );
     return (
       <CatalogShell hideSearch>
-        <CatalogDogCard dog={dog} />
+        <CatalogDogCard dog={result.dog} />
       </CatalogShell>
     );
   }
@@ -178,6 +184,18 @@ function NotFound({ query }: { readonly query: string }) {
       <strong className="block text-ink text-[17px] font-bold mb-1.5">Ничего не найдено</strong>
       По запросу «{query}» в РКФ-каталоге нет совпадений. Попробуйте написать кличку точнее или
       поищите по части имени.
+    </div>
+  );
+}
+
+function FetchError({ id }: { readonly id: number }) {
+  return (
+    <div className="text-center py-12 px-4 text-muted">
+      <strong className="block text-ink text-[17px] font-bold mb-1.5">
+        Не удалось загрузить карточку
+      </strong>
+      РКФ-сервер не ответил вовремя. Обновите страницу через минуту — карточка id={id} должна
+      подтянуться.
     </div>
   );
 }
