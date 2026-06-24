@@ -95,10 +95,37 @@ description: Меняешь Payload-блок/коллекцию/глобал —
    - **Переименование** → drizzle видит как DROP+ADD (потеря данных!). Заменить на `ALTER TABLE … RENAME COLUMN <old> TO <new>`.
    - **Смена типа** → DROP+ADD (потеря данных). Переписать на: ADD new col → UPDATE с cast'ом → DROP old → RENAME new.
    - **text → array** → CREATE table + DROP COLUMN. Вставить `INSERT … SELECT` для переноса данных **между** ними.
-5. **Backup перед apply**:
-   ```bash
-   cp data/veo55.db data/veo55.db.bak-$(date +%Y%m%d_%H%M%S)
-   ```
+
+### ⚠️ Snake-case gotcha: `ID` в имени поля
+
+Payload runtime snake-кейсит поля с `ID` суффиксом **по-особому**: вставляет `_` перед каждой капс-буквой.
+
+| Payload field         | Drizzle column | НЕ путать с                  |
+| --------------------- | -------------- | ---------------------------- |
+| `taskID`              | `task_i_d`     | ~~`task_id`~~                |
+| `userID`              | `user_i_d`     | ~~`user_id`~~                |
+| `parentID`            | `parent_i_d`   | ~~`parent_id`~~              |
+| `rkfID`               | `rkf_i_d`      | ~~`rkf_id`~~                 |
+| `dogId` (lowercase d) | `dog_id`       | OK — нет капсов после первой |
+
+**Где это критично:** если пишешь миграцию **руками** (без `migrate:create`) — легко сделать `task_id` вместо `task_i_d` → schema не совпадёт с runtime → **scheduler / runner / любое чтение упадёт** с `SQLITE_ERROR: no such column: task_i_d` на каждом цикле.
+
+**Verify column names после `migrate:create`** (или после ручной правки):
+
+```bash
+# Грепнуть Payload-сгенерированный types.ts на name твоего нового поля
+grep -E 'task_i_d|task_id' src/cms/payload-types.ts
+# Если в types.ts `task_i_d` — миграция должна тоже иметь `task_i_d`
+```
+
+История бага: руками-писаная миграция `20260620_185000_payload_jobs.ts` создала `task_id`, runtime ждал `task_i_d` — 5 дней scheduler падал каждую минуту, sync-vk-posts не работал. Fix через rename migration.
+
+**Правило:** если поле содержит `ID` или другие капсы — **обязательно** `migrate:create` через drizzle (он знает правильный snake-case через introspect Payload schema), не писать руками. 5. **Backup перед apply**:
+
+```bash
+cp data/veo55.db data/veo55.db.bak-$(date +%Y%m%d_%H%M%S)
+```
+
 6. **Применить**:
    ```bash
    DOTENV_CONFIG_PATH=.env.local pnpm migrate
@@ -226,6 +253,21 @@ sqlite3 data/veo55.db ".schema _pages_v_blocks_quote"
 - ❌ Не править схему через произвольные SQL-скрипты в обход миграций — drizzle-snapshot десинхронизируется
 - ❌ Не делать `migrate:fresh` если есть пользовательские правки
 - ❌ Не коммитить миграцию без `.json` снапшота — следующая `migrate:create` сломается
+
+## Auto-migrate в prod через deploy.sh
+
+В blue-green deploy миграции **применяются автоматически** (см. `deploy/prod/deploy.sh` шаг 3.5):
+
+1. Build → push → pull → up inactive
+2. Healthcheck inactive (контейнер up + отвечает на `/api/access` + `/api/health`)
+3. **`docker exec veo55-cms-<INACTIVE> pnpm migrate`** — payload skip'ает уже применённые
+4. nginx switch → старый цвет drains
+
+**Идемпотентность** — `payload migrate` смотрит `payload_migrations` table, не применяет повторно. Запуск на каждом deploy безопасен.
+
+**Failure** — `pnpm migrate` exit non-zero → deploy.sh откатывает: down inactive, active не трогает. Сайт продолжает работать на старой schema.
+
+**Не нужно** на VPS вручную дергать `docker exec ... pnpm migrate`. Достаточно push в main — CI build → deploy.sh применяет.
 
 ## Blue-green safety (prod)
 

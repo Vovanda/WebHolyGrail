@@ -119,17 +119,39 @@ export default buildConfig({
 Payload **не создаёт** таблицы автоматически если `db.push: false` (наш дефолт по `holygrail-rules`). Нужна **ручная** миграция:
 
 - `payload_jobs` (id, input, completed_at, total_tried, has_error, error, task_slug, queue, wait_until, processing, meta, updated_at, created_at)
-- `payload_jobs_log` (array: executed_at, completed_at, task_slug, task_id, input, output, state, error, parent_task_slug, parent_task_id)
+- `payload_jobs_log` (array: executed_at, completed_at, task_slug, **`task_i_d`**, input, output, state, error, parent_task_slug, **`parent_task_i_d`**)
 - `payload_job_stats` (single-row global для scheduling stats)
 - `payload_locked_documents_rels.payload_jobs_id` (polymorphic FK)
 
-Шаблон — `sites/veo55/src/cms/migrations/20260620_185000_payload_jobs.ts` (готовый, можно копировать).
+### ⚠️ Snake-case gotcha: `taskID` → `task_i_d`
 
-Применить:
+В Payload `payload_jobs_log` есть field `taskID` (строка с UUID конкретной task). Runtime snake-кейсит **с подчёркиванием перед каждой капс**: `taskID` → `task_i_d` (НЕ `task_id`). То же для `parentTaskID` → `parent_task_i_d`.
+
+**Если миграция руками — обязательно `task_i_d`** иначе scheduler упадёт на КАЖДОМ цикле (раз в минуту по `autoRun`):
+
+```
+SQLITE_ERROR: no such column: task_i_d
+```
+
+→ tasks не запускаются → sync-VK / fetch-pedigree / любая периодика **молча умирает**.
+
+История бага (наш): руками-писаная миграция `task_id` → 5 дней `sync-vk-posts` не работал, `/news` застрял. Fix — rename column.
+
+**Правило:** для `payload_jobs_log` table — **через `pnpm migrate:create`**, не руками. Drizzle-kit генерит правильно. Или хотя бы свериться с `payload-types.ts`:
+
+```bash
+grep -E 'task_i_d|task_id' src/cms/payload-types.ts
+```
+
+Шаблон — `src/cms/migrations/20260620_185000_payload_jobs.ts` + fix-rename `20260625_010000_payload_jobs_log_task_id_rename.ts` (final корректная schema). Можно копировать.
+
+### Применить
 
 ```bash
 pnpm migrate
 ```
+
+На проде через blue-green `deploy.sh` миграции применяются автоматически (см. `payload-migration` skill раздел «Auto-migrate в prod через deploy.sh»). На dev — руками после `migrate:create`.
 
 ## Cron-синтаксис
 
