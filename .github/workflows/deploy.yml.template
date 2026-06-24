@@ -83,6 +83,11 @@ jobs:
           mkdir -p ~/.ssh
           ssh-keyscan -H 83.217.200.27 >> ~/.ssh/known_hosts
 
+      - name: Sync /opt/sites/veo55 (git pull) — обновить deploy.sh, compose, миграции
+        run: |
+          ssh deploy@83.217.200.27 \
+            "cd /opt/sites/veo55 && git fetch --depth 50 origin main && git reset --hard origin/main"
+
       - name: Blue-green deploy
         run: |
           ssh deploy@83.217.200.27 \
