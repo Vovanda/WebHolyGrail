@@ -36,7 +36,9 @@ export function PairCardGallery({
           'group bg-paper rounded-[14px] overflow-hidden flex flex-col',
           'shadow-[0_6px_18px_rgba(43,34,26,0.08)] hover:shadow-[0_10px_28px_rgba(43,34,26,0.14)]',
           'hover:-translate-y-0.5 transition-all duration-300 ease-out',
-          single && 'mx-auto max-w-[520px]',
+          // Шире чем было (520px → 820px на ПК): между ContentFrame-лозами оставалось
+          // слишком много воздуха — визитка казалась мелкой.
+          'mx-auto max-w-[820px]',
         )}
       >
         {single ? (
@@ -50,13 +52,16 @@ export function PairCardGallery({
             />
           </div>
         ) : (
+          // Multi: aspect 4:5 контейнер. Горизонтальные фото не должны кропаться —
+          // показываем contain + blurred backdrop того же кадра для заполнения краёв.
           <div className="relative aspect-[4/5] bg-surface-hover overflow-hidden">
             <div className="absolute inset-0">
               <Carousel
                 slides={items.map((it) => ({ url: it.url, alt: it.alt ?? 'Визитка пары' }))}
                 arrows
                 swipe
-                objectFit="cover"
+                objectFit="contain"
+                backdropBlur
                 height="100%"
                 lightboxGroupId={`pair-${items[0]?.id ?? 'unknown'}`}
               />
@@ -296,69 +301,9 @@ export function PuppyCard({
   );
 }
 
-/**
- * VisitkaCard — визитка пары, оформленная как карточка-сосед к {@link PuppyCard}.
- * Используется когда визитка встаёт в puppy-grid (нечётное число щенков). Один
- * визуальный шаблон (aspect-[4/5] фото cover + caption-блок), но **собственный**
- * API под визитку: список фоток (карусель + 📷 N badge для multi), h4 «Визитка
- * пары», подпись из CMS.
- *
- * Намеренно НЕ переиспользуем PuppyCard через pseudo-Puppy — это размывало бы
- * контракт PuppyCard (искусственный sex / state, hideStateBadge prop ради
- * одного use-case). Дубликат article-shell ~25 строк — приемлемо (R9: общий
- * shell вынесем когда появится третий потребитель).
- */
-export function VisitkaCard({
-  images,
-  caption,
-  litterId,
-}: {
-  readonly images: ReadonlyArray<{ readonly id: string; readonly image: MediaRef }>;
-  readonly caption?: string | undefined;
-  readonly litterId?: string | number;
-}) {
-  const items = images
-    .map((it) => ({ id: it.id, url: resolveMediaUrl(it.image), alt: resolveMediaAlt(it.image) }))
-    .filter((it): it is { id: string; url: string; alt: string | undefined } => Boolean(it.url));
-  if (items.length === 0) return null;
-  const single = items.length === 1;
-  const groupId = litterId ? `pair-${litterId}` : `pair-${items[0]!.id}`;
-  return (
-    <article className="group bg-paper rounded-[14px] overflow-hidden shadow-[0_6px_18px_rgba(43,34,26,0.08)] hover:shadow-[0_10px_28px_rgba(43,34,26,0.14)] hover:-translate-y-0.5 transition-all duration-300 ease-out flex flex-col w-full h-full">
-      <div className="relative aspect-[4/5] bg-surface-hover overflow-hidden">
-        {single ? (
-          <LightboxImageGroup
-            photos={[{ url: items[0]!.url, alt: items[0]!.alt ?? 'Визитка пары' }]}
-            groupId={groupId}
-            containerClassName="absolute inset-0"
-            itemClassName="absolute inset-0 w-full h-full"
-            imgClassName="absolute inset-0 w-full h-full object-cover [object-position:center_25%] transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-          />
-        ) : (
-          <>
-            <div className="absolute inset-0">
-              <Carousel
-                slides={items.map((it) => ({ url: it.url, alt: it.alt ?? 'Визитка пары' }))}
-                arrows
-                swipe
-                objectFit="cover"
-                height="100%"
-                lightboxGroupId={groupId}
-              />
-            </div>
-            <PhotoCountBadge count={items.length} />
-          </>
-        )}
-      </div>
-      <div className="px-6 py-5 flex-1 flex flex-col">
-        <h4 className="font-display text-xl font-semibold text-ink leading-tight">Визитка пары</h4>
-        {caption && (
-          <p className="mt-2 font-display italic text-muted text-sm leading-relaxed">{caption}</p>
-        )}
-      </div>
-    </article>
-  );
-}
+// VisitkaCard удалён: визитка теперь всегда отдельная секция через
+// PairCardGallery (см. LitterPairCardBlock). Раньше встраивалась в puppy-grid
+// при нечётном числе щенков — давало баги с расхождением подсчёта visiblePuppies.
 
 function puppyLabel(puppy: Puppy): string {
   if (puppy.name && puppy.name.trim()) return puppy.name;

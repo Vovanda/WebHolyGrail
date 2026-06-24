@@ -36,6 +36,12 @@ export interface CarouselProps {
   readonly background?: string;
   readonly rounded?: string;
   /**
+   * Если true и objectFit='contain' — рендерит blurred copy слайда как backdrop,
+   * заполняющий поля по бокам/сверху-снизу. Letterbox-стиль для смешанной
+   * ориентации фото (горизонталь+вертикаль в одной карусели).
+   */
+  readonly backdropBlur?: boolean;
+  /**
    * Если указан — клик/тап по слайду открывает PhotoLightbox с этой группой.
    * Должно быть уникальным per-карусель (например `dog-65923`, `litter-n-pair`).
    */
@@ -63,6 +69,7 @@ function CarouselInner({
   arrows = false,
   swipe = true,
   objectFit = 'contain',
+  backdropBlur = false,
   aspect,
   height,
   heightFromFirstSlide = false,
@@ -140,8 +147,28 @@ function CarouselInner({
         />
       )}
 
+      {/* Letterbox blur backdrop — заполняет поля по сторонам когда objectFit='contain'
+          и aspect фото не совпадает с aspect контейнера (например горизонтальное фото
+          в 4:5 контейнере). Тот же кадр размытый и масштабированный больше 100%. */}
+      {backdropBlur && imgFit === 'contain' && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={slides[active]!.url}
+          alt=""
+          aria-hidden
+          draggable={false}
+          className="absolute inset-0 w-full h-full select-none"
+          style={{
+            objectFit: 'cover',
+            filter: 'blur(24px) brightness(0.85)',
+            transform: 'scale(1.15)',
+            pointerEvents: 'none',
+          }}
+        />
+      )}
+
       <div
-        className={useFirstAsSpacer ? 'absolute inset-0 flex' : 'flex h-full w-full'}
+        className={useFirstAsSpacer ? 'absolute inset-0 flex' : 'flex h-full w-full relative'}
         style={{
           transform: `translateX(-${active * 100}%)`,
           transition: 'transform 1s cubic-bezier(.4,0,.2,1)',

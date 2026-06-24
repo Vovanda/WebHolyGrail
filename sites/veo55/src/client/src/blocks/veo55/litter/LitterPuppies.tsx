@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { getLitterById } from '@/lib/api-client';
 import { ContentFrame } from '@/blocks/decor/ContentFrame';
 
-import { PuppyCard, VisitkaCard, puppyGridClass, resolveMediaUrl } from './_shared';
+import { PuppyCard, puppyGridClass } from './_shared';
 
 /**
  * LitterPuppies — секция «Сетка карточек щенков».
@@ -48,25 +48,12 @@ export async function LitterPuppies({
   });
   if (visiblePuppies.length === 0) return null;
 
-  // Координация с LitterPairCardBlock: при нечётном числе щенков визитка
-  // встаёт первой карточкой в грид (через `pairAsPuppy`) — тогда total=n+1
-  // чётное и ряды балансируются. Pair-card блок в этом же помёте прячется
-  // (см. LitterPairCardBlock — условие `% 2 === 1`).
-  const pairImages = (litter.pairCard?.images ?? []).filter((it) => resolveMediaUrl(it.image));
-  const pairInGrid = pairImages.length > 0 && visiblePuppies.length % 2 === 1;
-  const gridCount = pairInGrid ? visiblePuppies.length + 1 : visiblePuppies.length;
-
+  // Визитка пары больше НЕ встраивается в puppy-grid. Она отдельной секцией
+  // выводится через LitterPairCardBlock. См. комментарий там.
   return (
     <section className="bg-bg pt-6 md:pt-8 pb-9 md:pb-12">
       <ContentFrame side="none" className="px-6">
-        <div className={cn(puppyGridClass(gridCount))}>
-          {pairInGrid && (
-            <VisitkaCard
-              images={pairImages}
-              caption={litter.pairCard?.caption}
-              litterId={litter.id}
-            />
-          )}
+        <div className={cn(puppyGridClass(visiblePuppies.length))}>
           {visiblePuppies.map((p) => (
             <PuppyCard key={p.id} puppy={p} litterId={litter.id} />
           ))}
