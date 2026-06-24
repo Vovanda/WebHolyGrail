@@ -28,7 +28,7 @@ description: Меняешь Payload-блок/коллекцию/глобал —
 1. **Backup БД**:
 
    ```bash
-   cp sites/veo55/src/cms/data/veo55.db sites/veo55/src/cms/data/veo55.db.pre-migrations
+   cp src/cms/data/veo55.db src/cms/data/veo55.db.pre-migrations
    ```
 
 2. **Patch `payload.config.ts`** в `db: sqliteAdapter({...})`:
@@ -61,7 +61,7 @@ description: Меняешь Payload-блок/коллекцию/глобал —
 4. **Baseline миграция** (один раз — закрепить текущее состояние БД как стартовую точку, чтобы dev-payload-migrations table перестала фейлить):
 
    ```bash
-   cd sites/veo55/src/cms
+   cd src/cms
    DOTENV_CONFIG_PATH=.env.local pnpm migrate:create baseline
    ```
 
@@ -85,7 +85,7 @@ description: Меняешь Payload-блок/коллекцию/глобал —
 1. Поменял `*.ts` блока/коллекции
 2. Создать миграцию:
    ```bash
-   cd sites/veo55/src/cms
+   cd src/cms
    DOTENV_CONFIG_PATH=.env.local pnpm migrate:create <smth-descriptive>
    ```
 3. Открыть сгенерированный `migrations/<ts>_<name>.ts`. drizzle-kit диффит против последнего `.json` снапшота, кладёт SQL в `up`/`down` автоматически.
@@ -226,3 +226,52 @@ sqlite3 data/veo55.db ".schema _pages_v_blocks_quote"
 - ❌ Не править схему через произвольные SQL-скрипты в обход миграций — drizzle-snapshot десинхронизируется
 - ❌ Не делать `migrate:fresh` если есть пользовательские правки
 - ❌ Не коммитить миграцию без `.json` снапшота — следующая `migrate:create` сломается
+
+## Blue-green safety (prod)
+
+> На prod деплой через blue-green (`deploy/prod/compose.bluegreen.yml` + `deploy.sh`). Старый и новый цвет работают **на ОДНОЙ БД** во время switch (1-2 минуты). Миграции должны быть **expand-only** — старый цвет не должен падать на новой схеме.
+
+| Изменение                                    | Безопасно в blue-green? | Стратегия                                                                                                                                                  |
+| -------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Добавить **новое** поле / коллекцию / индекс | ✅ ДА                   | Один PR. Старый код игнорирует — норм.                                                                                                                     |
+| Сделать существующее nullable                | ✅ ДА                   | Один PR.                                                                                                                                                   |
+| Переименовать поле                           | ❌ Прямо нельзя         | **2 PR**: (1) добавить новое поле + копировать данные + оставить старое + writes в оба; (2) после deploy и убедиться что трафик на новом — удалить старое. |
+| Удалить поле                                 | ❌ Прямо нельзя         | **2 PR**: (1) перестать использовать в коде, deploy; (2) DROP COLUMN отдельным PR.                                                                         |
+| Изменить тип / NOT NULL без default          | ❌ Прямо нельзя         | Доп. поле → миграция данных → swap → drop старое (3-4 PR).                                                                                                 |
+
+### Маркеры в коде миграции
+
+В каждом migration-файле первой строкой комментарий:
+
+```ts
+// @safe-bluegreen — миграция expand-only, безопасна в blue-green deploy
+```
+
+или
+
+```ts
+// @needs-maintenance — миграция не backward-compatible, требует maintenance window
+```
+
+### Maintenance window для несовместимых миграций
+
+Если миграция не expand-only (rename, drop, type-change в одном PR) — деплой через **maintenance**:
+
+```bash
+# 1. nginx → 503 maintenance.html
+docker exec holygrail-nginx sh -c 'echo "return 503;" > /tmp/maintenance.conf && nginx -s reload'
+
+# 2. Применить миграции через одну версию (без blue-green)
+docker exec veo55-cms-blue pnpm --filter veo55-cms migrate
+
+# 3. После — обратно
+# (или просто blue-green после миграции с новой image)
+```
+
+Это редкий путь — стараемся **избегать**, дисциплина 2-PR-flow для несовместимых изменений.
+
+### Чек после правки схемы (CMS PR-flow)
+
+- [ ] Миграция написана + помечена `@safe-bluegreen` ИЛИ `@needs-maintenance`
+- [ ] Если `@needs-maintenance` — в PR description есть план развёртывания (maintenance window)
+- [ ] Старый код (тот что уже на проде, до этого PR) — НЕ упадёт на новой схеме (mental check: какие SELECT'ы он делает, есть ли они в новой схеме)
