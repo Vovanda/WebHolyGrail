@@ -1,53 +1,129 @@
 #!/usr/bin/env bash
-# deploy.sh — деплой veo55 на production VPS.
+# Blue-green deploy для veo55-site на VPS.
+# Запускается локально на VPS (вызывается из GitHub Actions через SSH).
 #
-# Использование (с локальной машины):
-#   VPS_HOST=user@1.2.3.4 ./deploy.sh
+# Использование:
+#   /opt/sites/veo55/deploy/prod/deploy.sh [TAG]
 #
-# Что делает:
-#   1. rsync репо на VPS (исключая node_modules, .next, .git, data)
-#   2. ssh: docker compose build + up -d
-#   3. ssh: pnpm migrate (применить новые миграции)
-#   4. smoke: curl https://<DOMAIN> + /admin
+# TAG = git SHA из GH Actions (default: latest).
 #
-# Первый деплой — см. README.md (нужны certbot certs, infisical setup).
+# Логика:
+#   1. Прочитать текущий active color (default blue если первый запуск)
+#   2. Pull новых images для inactive color
+#   3. Up inactive color на свободных портах
+#   4. Healthcheck loop (60 сек total)
+#   5. Switch nginx upstream symlink → reload
+#   6. Stop старый color (5 сек на in-flight)
+#
+# При failure healthcheck — rollback (down inactive, active не трогаем).
 
 set -euo pipefail
 
-: "${VPS_HOST:?VPS_HOST env required, e.g. user@1.2.3.4}"
-: "${REMOTE_DIR:=/srv/veo55}"
-: "${DOMAIN:=veo55.ru}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SITE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+COMPOSE_FILE="$SCRIPT_DIR/compose.bluegreen.yml"
+ENV_FILE="$SCRIPT_DIR/.env.production"
+STATE_FILE="$SITE_DIR/ACTIVE_COLOR"
 
-echo "[deploy] target: $VPS_HOST → $REMOTE_DIR (domain: $DOMAIN)"
+TAG="${1:-latest}"
+ACTIVE="$(cat "$STATE_FILE" 2>/dev/null || echo blue)"
+INACTIVE=$([ "$ACTIVE" = blue ] && echo green || echo blue)
 
-# --- 1. Sync code ---
-rsync -avz --delete \
-  --exclude='.git' \
-  --exclude='node_modules' \
-  --exclude='.next' \
-  --exclude='dist' \
-  --exclude='.tmp' \
-  --exclude='*.bak-*' \
-  --exclude='.env.local' \
-  --exclude='.env.production' \
-  --exclude='**/data/*.db' \
-  --exclude='**/data/*.db.bak-*' \
-  ./ "$VPS_HOST:$REMOTE_DIR/"
+if [ "$INACTIVE" = blue ]; then
+  INACTIVE_CMS_PORT=3001
+  INACTIVE_CLIENT_PORT=3000
+else
+  INACTIVE_CMS_PORT=3011
+  INACTIVE_CLIENT_PORT=3010
+fi
 
-# --- 2. Build + restart stack ---
-ssh "$VPS_HOST" "cd $REMOTE_DIR && \
-  infisical run --env=prod -- docker compose \
-    -f sites/veo55/deploy/prod/docker-compose.yml \
-    up -d --build --remove-orphans"
+echo "═══════════════════════════════════════════════════════"
+echo " Deploy veo55-site"
+echo "   active   : $ACTIVE"
+echo "   inactive : $INACTIVE (cms=$INACTIVE_CMS_PORT, client=$INACTIVE_CLIENT_PORT)"
+echo "   image tag: $TAG"
+echo "═══════════════════════════════════════════════════════"
 
-# --- 3. Apply migrations внутри контейнера cms ---
-ssh "$VPS_HOST" "docker exec veo55-cms pnpm --filter veo55-cms migrate"
+cd "$SCRIPT_DIR"
 
-# --- 4. Smoke ---
-echo "[deploy] smoke checks…"
-sleep 5
-curl -sS -o /dev/null -w "  client: %{http_code}\n" "https://$DOMAIN/"
-curl -sS -o /dev/null -w "  admin:  %{http_code}\n" "https://$DOMAIN/admin"
-curl -sS -o /dev/null -w "  api:    %{http_code}\n" "https://$DOMAIN/api/access"
+# Убедимся что external network существует
+docker network inspect veo55-net >/dev/null 2>&1 || docker network create veo55-net
 
-echo "[deploy] done."
+# 1. Pull новых images
+echo
+echo "→ Pulling images (tag=$TAG)..."
+COLOR=$INACTIVE \
+CMS_PORT=$INACTIVE_CMS_PORT \
+CLIENT_PORT=$INACTIVE_CLIENT_PORT \
+TAG=$TAG \
+  docker compose -p veo55-$INACTIVE --env-file "$ENV_FILE" -f "$COMPOSE_FILE" pull
+
+# 2. Up inactive
+echo
+echo "→ Starting $INACTIVE..."
+COLOR=$INACTIVE \
+CMS_PORT=$INACTIVE_CMS_PORT \
+CLIENT_PORT=$INACTIVE_CLIENT_PORT \
+TAG=$TAG \
+  docker compose -p veo55-$INACTIVE --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d
+
+# 3. Healthcheck loop — 60 секунд total (30 итераций × 2 сек)
+echo
+echo "→ Healthcheck loop (max 60s)..."
+HEALTHY=false
+for i in $(seq 1 30); do
+  if curl -sf --max-time 3 "http://localhost:$INACTIVE_CMS_PORT/api/access" >/dev/null 2>&1 && \
+     curl -sf --max-time 3 "http://localhost:$INACTIVE_CLIENT_PORT/" >/dev/null 2>&1; then
+    echo "   ✓ $INACTIVE healthy (after $((i*2))s)"
+    HEALTHY=true
+    break
+  fi
+  sleep 2
+done
+
+if [ "$HEALTHY" != true ]; then
+  echo
+  echo "   ✗ $INACTIVE failed healthcheck after 60s — rolling back"
+  echo "   cms logs (last 30):"
+  docker logs --tail 30 "veo55-cms-$INACTIVE" 2>&1 | sed 's/^/     /'
+  COLOR=$INACTIVE \
+  CMS_PORT=$INACTIVE_CMS_PORT \
+  CLIENT_PORT=$INACTIVE_CLIENT_PORT \
+  TAG=$TAG \
+    docker compose -p veo55-$INACTIVE --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down
+  exit 1
+fi
+
+# 4. Switch nginx upstream symlink (хост путь = bind-mount в nginx container)
+echo
+echo "→ Switching nginx upstream → $INACTIVE..."
+ln -sf "veo55-upstream-$INACTIVE.conf" /opt/proxy/nginx/snippets/veo55-upstream-active.conf
+docker exec holygrail-nginx nginx -t
+docker exec holygrail-nginx nginx -s reload
+echo "   ✓ nginx reloaded"
+
+# 5. Save state
+echo "$INACTIVE" > "$STATE_FILE"
+
+# 6. Wait + stop old color (если был ranee active)
+if [ "$ACTIVE" != "$INACTIVE" ] && docker ps --format '{{.Names}}' | grep -q "veo55-cms-$ACTIVE"; then
+  echo
+  echo "→ Draining old $ACTIVE (5s grace)..."
+  sleep 5
+  if [ "$ACTIVE" = blue ]; then
+    OLD_CMS_PORT=3001; OLD_CLIENT_PORT=3000
+  else
+    OLD_CMS_PORT=3011; OLD_CLIENT_PORT=3010
+  fi
+  COLOR=$ACTIVE \
+  CMS_PORT=$OLD_CMS_PORT \
+  CLIENT_PORT=$OLD_CLIENT_PORT \
+  TAG=$TAG \
+    docker compose -p veo55-$ACTIVE --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down
+  echo "   ✓ $ACTIVE stopped"
+fi
+
+echo
+echo "═══════════════════════════════════════════════════════"
+echo " ✓ Deploy done. Active: $INACTIVE, tag: $TAG"
+echo "═══════════════════════════════════════════════════════"
