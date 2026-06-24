@@ -52,7 +52,7 @@ if [ "$TAG" != "latest" ] && [ "$ACTIVE" != "" ]; then
   else
     ACTIVE_CLIENT_PORT=3010
   fi
-  CURRENT_SHA=$(curl -sf --max-time 3 "http://localhost:$ACTIVE_CLIENT_PORT/api/_status" 2>/dev/null \
+  CURRENT_SHA=$(curl -sf --max-time 3 "http://localhost:$ACTIVE_CLIENT_PORT/api/health" 2>/dev/null \
                  | jq -r '.sha' 2>/dev/null || echo "")
   EXPECTED_SHORT=$(echo "$TAG" | cut -c1-7)
   if [ -n "$CURRENT_SHA" ] && [ "$CURRENT_SHA" = "$EXPECTED_SHORT" ]; then
@@ -91,7 +91,7 @@ echo "→ Healthcheck loop (max 60s)..."
 HEALTHY=false
 for i in $(seq 1 30); do
   if curl -sf --max-time 3 "http://localhost:$INACTIVE_CMS_PORT/api/access" >/dev/null 2>&1 && \
-     curl -sf --max-time 3 "http://localhost:$INACTIVE_CLIENT_PORT/api/_status" >/dev/null 2>&1; then
+     curl -sf --max-time 3 "http://localhost:$INACTIVE_CLIENT_PORT/api/health" >/dev/null 2>&1; then
     echo "   ✓ $INACTIVE healthy (after $((i*2))s)"
     HEALTHY=true
     break

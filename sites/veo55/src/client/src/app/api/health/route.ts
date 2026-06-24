@@ -1,5 +1,5 @@
 /**
- * GET /api/_status — runtime info о контейнере client.
+ * GET /api/health — runtime info о контейнере client.
  *
  * Что важно:
  *   - `sha` берётся из `process.env.BUILD_SHA` который вшит в image **во время build**
@@ -10,7 +10,7 @@
  *
  * Не отдаём секреты. Используется как:
  *   - healthcheck endpoint в compose
- *   - smoke-проверка после deploy: `curl https://veo55.ru/api/_status | jq .sha`
+ *   - smoke-проверка после deploy: `curl https://veo55.ru/api/health | jq .sha`
  *   - debug: какая версия + какой цвет реально на проде
  */
 
