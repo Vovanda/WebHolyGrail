@@ -7,30 +7,35 @@ import Zoom from 'yet-another-react-lightbox/plugins/zoom';
 import Counter from 'yet-another-react-lightbox/plugins/counter';
 import 'yet-another-react-lightbox/styles.css';
 import 'yet-another-react-lightbox/plugins/counter.css';
+import { RowsPhotoAlbum, type Photo } from 'react-photo-album';
+import 'react-photo-album/rows.css';
 
 import { cn } from '@/lib/utils';
 
 /**
- * SocialMediaGrid — единая сетка фото+видео VK-стиля.
+ * SocialMediaGrid — VK-style mixed photo+video grid через `react-photo-album`.
  *
  * @remarks
- * Layout 1:1 с legacy `news.html → .veo-post__media.n1..n6`:
+ * Раньше: hardcoded grid n1..n6 со square-cropping → пустые блоки + crop вертикальных
+ * фоток + не учитывала aspect ratio.
  *
- *  - n=1: full-width, без crop, max-height 560px, cream-фон (`object-contain`)
- *  - n=2: 2 равных колонки (`grid-cols-2`)
- *  - n=3: `2fr 1fr` × 2 ряда, p0 занимает обе строки слева (big + 2 справа)
- *  - n=4: 2x2
- *  - n=5: `2fr 1fr 1fr` × 2 ряда, p0 занимает обе строки слева
- *  - n=6: 3x2
- *  - n=7+: те же 6 слотов, **последний** с overlay `+N` (legacy `.veo-post__more`)
+ * Теперь: «тетрис» через `react-photo-album` (rows layout — distributes по строкам так
+ * что sum(aspect) ≈ target row aspect, нормализуется на full width). Первая фотка
+ * получает удвоенную target-height — становится «героем поста».
  *
- * Gap 2px, фон между фото — `#F3EFE7` (тёплый-кремовый, чтобы шов был мягче чёрного).
- * Видео-элементы — затемнённый превью + play-кружок поверх + длительность m:ss.
+ * Video — рендерится тем же layout'ом, но с play-overlay и длительностью через
+ * `render.extras`. Lightbox (yet-another-react-lightbox) переключается на VK iframe
+ * для video-слайдов.
  *
- * Client component — потому что нужен click → Lightbox для каждой ячейки.
- * Без `'use client'` нельзя повесить onClick, а ссылки на embed-страницы VK
- * мы хотим перехватить чтобы открыть свой lightbox с каруселью.
+ * Client component — onClick → lightbox.
  */
+type PhotoExt = Photo & {
+  isVideo?: boolean;
+  duration?: number | undefined;
+  title?: string | undefined;
+  originalIndex: number;
+};
+
 export function SocialMediaGrid({
   media,
   groupId,
@@ -40,11 +45,30 @@ export function SocialMediaGrid({
 }) {
   const [index, setIndex] = useState<number | null>(null);
   const isOpen = index !== null;
-  // hash-shareable URL для фото-видео группы. Если postId не передан —
-  // фоллбэк на детерминированный из media[0].url (грязно, но lightbox работает).
   const gid = groupId ?? `media-${media[0]?.url?.slice(-12) ?? 'x'}`;
 
-  // Lightbox slides: фото → стандартные {src}; видео → custom slide с iframe.
+  // Album photos (для всех media — фото и видео). originalIndex — чтобы при клике
+  // открыть правильный slide в lightbox.
+  const photos = useMemo<PhotoExt[]>(
+    () =>
+      media.map((m, i): PhotoExt => {
+        const w = m.width && m.width > 0 ? m.width : 800;
+        const h = m.height && m.height > 0 ? m.height : m.type === 'video' ? 450 : 600;
+        return {
+          src: m.url,
+          width: w,
+          height: h,
+          alt: m.type === 'video' ? (m.title ?? 'Видео') : 'Фото к посту',
+          isVideo: m.type === 'video',
+          duration: m.duration,
+          title: m.title,
+          originalIndex: i,
+        };
+      }),
+    [media],
+  );
+
+  // Lightbox slides — фото обычные, видео — iframe.
   const slides = useMemo<Slide[]>(
     () =>
       media.map((m): Slide => {
@@ -115,35 +139,25 @@ export function SocialMediaGrid({
 
   if (media.length === 0) return null;
 
-  const slotCount = media.length >= 7 ? 6 : media.length;
-  const shown = media.slice(0, slotCount);
-  const extra = media.length - slotCount;
-
   return (
     <>
-      <div
-        className={cn(
-          // Нейтральный cream-фон вместо чёрного (для n=1 раньше был чёрный —
-          // создавал «траурные» полосы у вертикальных/широких фото). Вписывается
-          // в палитру бренда.
-          'grid gap-[2px] bg-[#F3EFE7]',
-          gridClass(slotCount),
-        )}
-      >
-        {shown.map((item, i) => {
-          const isLast = i === shown.length - 1 && extra > 0;
-          const isFirstBig = i === 0 && (slotCount === 3 || slotCount === 5);
-          return (
-            <MediaCell
-              key={i}
-              item={item}
-              single={slotCount === 1}
-              isFirstBig={isFirstBig}
-              overlayPlus={isLast ? extra : 0}
-              onClick={() => open(i)}
-            />
-          );
-        })}
+      <div className="bg-[#F3EFE7] rounded-[2px] overflow-hidden">
+        <RowsPhotoAlbum
+          photos={photos}
+          // 240px target row height — компактно, видно много, видео-аспект не теряется.
+          // На мобиле RowsPhotoAlbum сам уменьшит в proportion из-за breakpoints.
+          targetRowHeight={240}
+          rowConstraints={{ minPhotos: 1, maxPhotos: 4 }}
+          spacing={2}
+          onClick={({ photo }) => open((photo as PhotoExt).originalIndex)}
+          render={{
+            extras: (_, { photo }) => {
+              const p = photo as PhotoExt;
+              if (!p.isVideo) return null;
+              return <VideoOverlay duration={p.duration} title={p.title} />;
+            },
+          }}
+        />
       </div>
 
       <Lightbox
@@ -184,106 +198,39 @@ export function SocialMediaGrid({
   );
 }
 
-function gridClass(n: number): string {
-  // grid-rows-* нужны для n=3 и n=5 — где p0 растягивается на 2 строки.
-  switch (n) {
-    case 1:
-      return 'grid-cols-1';
-    case 2:
-      return 'grid-cols-2';
-    case 3:
-      return 'grid-cols-[2fr_1fr] grid-rows-2';
-    case 4:
-      return 'grid-cols-2 grid-rows-2';
-    case 5:
-      return 'grid-cols-[2fr_1fr_1fr] grid-rows-2';
-    case 6:
-      return 'grid-cols-3 grid-rows-2';
-    default:
-      return 'grid-cols-3 grid-rows-2';
-  }
-}
-
-function MediaCell({
-  item,
-  single,
-  isFirstBig,
-  overlayPlus,
-  onClick,
+function VideoOverlay({
+  duration,
+  title: _title,
 }: {
-  readonly item: SocialPostMedia;
-  readonly single: boolean;
-  readonly isFirstBig: boolean;
-  readonly overlayPlus: number;
-  readonly onClick: () => void;
+  duration?: number | undefined;
+  title?: string | undefined;
 }) {
-  const isVideo = item.type === 'video';
-  // n=1: натуральный аспект, без crop, ограничен 560px по высоте.
-  // n>=2: квадратный crop (aspect-square) с object-cover.
-  const aspectClass = single ? 'flex items-center justify-center' : 'aspect-square overflow-hidden';
-  const spanClass = isFirstBig ? 'row-span-2' : '';
-  const imgClass = single
-    ? 'w-auto h-auto max-w-full max-h-[560px] object-contain block'
-    : 'w-full h-full object-cover block';
-
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        'relative block leading-none overflow-hidden cursor-zoom-in p-0 m-0 border-0 bg-transparent',
-        aspectClass,
-        spanClass,
-      )}
-      aria-label={isVideo ? `Открыть видео${item.title ? ` «${item.title}»` : ''}` : 'Открыть фото'}
-    >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={item.url}
-        alt={isVideo ? (item.title ?? 'Видео') : 'Фото к посту'}
-        loading="lazy"
-        className={cn(imgClass, 'bg-[#F3EFE7]', isVideo && 'opacity-[0.88]')}
-      />
-
-      {isVideo && (
-        <>
-          <span
-            aria-hidden
-            className={cn(
-              'absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
-              'flex items-center justify-center rounded-full bg-black/70',
-              'border-2 border-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.4)]',
-              single ? 'w-[72px] h-[72px]' : 'w-[60px] h-[60px]',
-            )}
-          >
-            <span
-              aria-hidden
-              className={cn(
-                'block w-0 h-0',
-                single
-                  ? 'ml-[6px] border-l-[22px] border-t-[14px] border-b-[14px]'
-                  : 'ml-[5px] border-l-[18px] border-t-[11px] border-b-[11px]',
-                'border-l-white border-t-transparent border-b-transparent',
-              )}
-            />
-          </span>
-          {item.duration ? (
-            <span className="absolute right-2 bottom-2 px-2 py-px rounded bg-black/75 text-white text-xs font-semibold font-sans leading-snug">
-              {formatDuration(item.duration)}
-            </span>
-          ) : null}
-        </>
-      )}
-
-      {overlayPlus > 0 && (
+    <>
+      <span
+        aria-hidden
+        className={cn(
+          'pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+          'flex items-center justify-center rounded-full bg-black/70',
+          'border-2 border-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.4)]',
+          'w-[56px] h-[56px]',
+        )}
+      >
         <span
           aria-hidden
-          className="absolute inset-0 flex items-center justify-center font-display text-white font-extrabold text-2xl bg-black/55"
-        >
-          +{overlayPlus}
+          className={cn(
+            'block w-0 h-0',
+            'ml-[5px] border-l-[16px] border-t-[10px] border-b-[10px]',
+            'border-l-white border-t-transparent border-b-transparent',
+          )}
+        />
+      </span>
+      {duration ? (
+        <span className="pointer-events-none absolute right-2 bottom-2 px-2 py-px rounded bg-black/75 text-white text-xs font-semibold font-sans leading-snug">
+          {formatDuration(duration)}
         </span>
-      )}
-    </button>
+      ) : null}
+    </>
   );
 }
 
