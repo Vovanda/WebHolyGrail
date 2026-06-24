@@ -167,12 +167,26 @@ function ParentSlot({
           href={`/dog/${slug}`}
           data-detail-dialog={slug}
           className={cn(
-            'font-sans font-bold uppercase text-base text-ink text-center leading-snug',
-            'underline decoration-accent decoration-[1.5px] underline-offset-[4px]',
-            'hover:decoration-[2.5px] transition-[text-decoration-thickness] duration-150',
+            'group/parent inline-flex items-center gap-1.5',
+            'font-sans font-bold uppercase text-base text-ink text-center leading-snug cursor-pointer',
+            'underline decoration-accent decoration-[2px] underline-offset-[4px]',
+            'hover:text-accent hover:decoration-[3px] transition-all duration-150',
           )}
         >
-          {renderWordWrapped(name)}
+          <span>{renderWordWrapped(name)}</span>
+          <svg
+            viewBox="0 0 16 16"
+            aria-hidden
+            className="w-3 h-3 mt-0.5 opacity-50 group-hover/parent:opacity-100 group-hover/parent:translate-x-0.5 group-hover/parent:-translate-y-0.5 transition-all shrink-0"
+          >
+            <path
+              d="M5 3h8v8M13 3L5 11"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              fill="none"
+            />
+          </svg>
         </a>
       ) : (
         <span className="font-sans font-bold uppercase text-base text-ink text-center leading-snug">
