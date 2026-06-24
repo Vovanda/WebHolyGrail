@@ -1,0 +1,36 @@
+# Сборка идёт через multi-stage в Dockerfile, контекст должен быть минимальным.
+# Без этого docker build тянет ~1.4GB локальных node_modules и тонет на
+# checksum'е symlink'ов pnpm.
+
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/.cache
+
+**/.git
+**/.github
+**/.husky
+
+**/.env
+**/.env.*
+!**/.env.production.example
+
+**/.tmp
+**/.playwright-mcp
+**/*.bak-*
+**/data/*.db
+**/data/*.db.bak-*
+
+**/.DS_Store
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+
+**/README.md
+**/docs
+
+# Не нужны на runtime
+**/coverage
+**/*.log
