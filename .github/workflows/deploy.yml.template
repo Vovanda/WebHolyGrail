@@ -26,7 +26,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - id: meta
-        run: echo "tag=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_OUTPUT
+        run: |
+          echo "tag=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_OUTPUT
+          echo "build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
 
       - uses: docker/setup-buildx-action@v3
 
@@ -54,6 +56,9 @@ jobs:
           context: .
           file: src/client/Dockerfile
           push: true
+          build-args: |
+            BUILD_SHA=${{ github.sha }}
+            BUILD_TIME=${{ steps.meta.outputs.build_time }}
           tags: |
             ${{ env.CLIENT_IMAGE }}:${{ steps.meta.outputs.tag }}
             ${{ env.CLIENT_IMAGE }}:latest
@@ -77,3 +82,16 @@ jobs:
         run: |
           ssh deploy@83.217.200.27 \
             "GHCR_OWNER=vovanda /opt/sites/veo55/deploy/prod/deploy.sh ${{ needs.build.outputs.tag }}"
+
+      - name: Verify deployed SHA
+        run: |
+          EXPECTED=$(echo ${{ github.sha }} | cut -c1-7)
+          # подождём 10 сек на nginx warm-up after reload
+          sleep 10
+          DEPLOYED=$(curl -sf https://veo55.ru/api/_status | jq -r '.sha')
+          echo "expected: $EXPECTED"
+          echo "deployed: $DEPLOYED"
+          if [ "$EXPECTED" != "$DEPLOYED" ]; then
+            echo "::error::SHA mismatch — image не из этого commit'а!"
+            exit 1
+          fi

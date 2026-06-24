@@ -44,6 +44,24 @@ echo "   inactive : $INACTIVE (cms=$INACTIVE_CMS_PORT, client=$INACTIVE_CLIENT_P
 echo "   image tag: $TAG"
 echo "═══════════════════════════════════════════════════════"
 
+# Idempotency — skip если запрошенный SHA уже задеплоен на active.
+# (актуально при workflow rerun / повторных triggers того же commit'а)
+if [ "$TAG" != "latest" ] && [ "$ACTIVE" != "" ]; then
+  if [ "$ACTIVE" = blue ]; then
+    ACTIVE_CLIENT_PORT=3000
+  else
+    ACTIVE_CLIENT_PORT=3010
+  fi
+  CURRENT_SHA=$(curl -sf --max-time 3 "http://localhost:$ACTIVE_CLIENT_PORT/api/_status" 2>/dev/null \
+                 | jq -r '.sha' 2>/dev/null || echo "")
+  EXPECTED_SHORT=$(echo "$TAG" | cut -c1-7)
+  if [ -n "$CURRENT_SHA" ] && [ "$CURRENT_SHA" = "$EXPECTED_SHORT" ]; then
+    echo
+    echo "✓ SHA $EXPECTED_SHORT уже задеплоен на $ACTIVE — skip"
+    exit 0
+  fi
+fi
+
 cd "$SCRIPT_DIR"
 
 # Убедимся что external network существует
@@ -73,7 +91,7 @@ echo "→ Healthcheck loop (max 60s)..."
 HEALTHY=false
 for i in $(seq 1 30); do
   if curl -sf --max-time 3 "http://localhost:$INACTIVE_CMS_PORT/api/access" >/dev/null 2>&1 && \
-     curl -sf --max-time 3 "http://localhost:$INACTIVE_CLIENT_PORT/" >/dev/null 2>&1; then
+     curl -sf --max-time 3 "http://localhost:$INACTIVE_CLIENT_PORT/api/_status" >/dev/null 2>&1; then
     echo "   ✓ $INACTIVE healthy (after $((i*2))s)"
     HEALTHY=true
     break
