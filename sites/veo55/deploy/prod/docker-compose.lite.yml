@@ -34,7 +34,9 @@ services:
       ADMIN_INITIAL_EMAIL: ${ADMIN_INITIAL_EMAIL:?required}
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?required}
     volumes:
-      - veo55_db:/data
+      # bind-mount БД с хоста — виден простым `ls`, бэкапится через `cp`/`sqlite3 .backup`,
+      # не зависит от состояния docker-volume. .dockerignore исключает data/*.db из build context.
+      - ../../src/cms/data:/data
     ports:
       # Только loopback — наружу через host-nginx
       - '127.0.0.1:3001:3001'
@@ -68,7 +70,3 @@ services:
       start_period: 60s
       retries: 3
     restart: unless-stopped
-
-volumes:
-  veo55_db:
-    name: veo55_db
