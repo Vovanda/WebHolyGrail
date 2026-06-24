@@ -214,11 +214,11 @@ export function CatalogSearchForm({ initialQuery = '' }: CatalogSearchFormProps)
                 }}
               />
               <span className="min-w-0 flex-1">
-                <span className="font-semibold text-[13.5px] uppercase tracking-[0.2px] leading-[1.2] block">
+                <span className="font-semibold text-[12px] sm:text-[13.5px] uppercase tracking-[0.1px] sm:tracking-[0.2px] leading-[1.2] block break-words">
                   {it.name}
                 </span>
                 {it.birth && (
-                  <span className="font-display italic text-[14px] text-muted leading-[1] mt-0.5 block">
+                  <span className="font-display italic text-[13px] sm:text-[14px] text-muted leading-[1] mt-0.5 block">
                     {it.birth}
                   </span>
                 )}
