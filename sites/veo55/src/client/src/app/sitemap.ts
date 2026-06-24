@@ -78,6 +78,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     });
 
   // 5. РКФ собаки с приставкой питомника. Многостраничный paginate через hasMore.
+  // Фильтр: исключаем тех у кого rkfId есть в наших Dogs — они уже представлены
+  // через /dog/<slug> (canonical). /catalog?dog=N для них redirect'ит — дубль
+  // не нужен в sitemap.
+  const ourRkfIds = new Set(dogs.map((d) => d.rkfId).filter((id): id is number => Boolean(id)));
+
   const rkfEntries: MetadataRoute.Sitemap = [];
   try {
     let page = 1;
@@ -85,7 +90,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       const result = await searchRkf(KENNEL_NAME, page);
       if (!result.items || result.items.length === 0) break;
       for (const dog of result.items) {
-        if (dog.id) {
+        if (dog.id && !ourRkfIds.has(dog.id)) {
           rkfEntries.push({
             url: `${baseUrl}/catalog?dog=${dog.id}`,
             lastModified: now,
