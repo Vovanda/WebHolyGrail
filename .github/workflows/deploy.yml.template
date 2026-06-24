@@ -7,7 +7,12 @@ on:
 
 concurrency:
   group: deploy-prod
-  cancel-in-progress: false
+  # Володя 2026-06-25: «частый пуш не должен ломать. Очереди не должно быть.
+  # Деплоить тупо последнее». При новом push'е текущий in-progress workflow
+  # отменяется, последний коммит выигрывает. Safe: при cancel deploy.sh state
+  # — inactive color, active не трогается, миграции применяются только когда
+  # дойдём до switch.
+  cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
