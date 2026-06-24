@@ -30,6 +30,9 @@
 | Theme infrastructure | `[data-theme="<name>"]` + ThemeBootstrap inline-script + SiteSettings.theme | 2026-06-19 (этот коммит)      | `tokens.css` dark-block, `lib/theme-bootstrap.tsx`, `contracts/theme.ts`, Payload group      | SSR-safe переключение тем без FOUC; light/dark/auto + opt-in userToggle. dark-палитра — заготовка-структура, точные цвета подберём по запросу (R9). Палитра-в-админке — TODO holygrail-themepalette, см. `reference/roadmap-tokens-editor`  |
 | Агентский слой       | `.claude/rules/common.md` + project `settings.json`                         | 2026-06-19 (8017d36, 08512b0) | `.claude/rules/`, `.claude/settings.json`                                                    | R1–R9 в развёрнутом виде, allow-list для команд                                                                                                                                                                                             |
 | Demo-tunnel          | local nginx (Docker) + SSH reverse-tunnel + socat + Володин VPS nginx       | 2026-06-20 (этот коммит)      | `.tmp/local-nginx.conf`, `.tmp/veo.conf` (на VPS — `/opt/SawkingTech/nginx/conf.d/veo.conf`) | Показать прототип Володе из любой сети без публичного IP. `*.trycloudflare.com` режется RKN-DNS на RU-VPN, поэтому свой канал через sawking.tech. Используем для veo55 → `https://veo.sawking.tech/`. Подробнее — раздел «Demo tunnel» ниже |
+| Production VPS       | Timeweb Cloud MSK 80 (4 vCPU / 8 GB / 80 GB NVMe / Debian 13)               | 2026-06-24 (этот коммит)      | `83.217.200.27` (holygrail-msk). SSH alias `holygrail` (deploy@), key `~/.ssh/id_holygrail`. | Первый production VPS Web Holy Grail. На нём держим веоо55-site и будущие инстансы template'а. Подробнее — раздел «Production VPS» ниже                                                                                                     |
+| Host-nginx (proxy)   | nginx:1.27-alpine в Docker host-network + certbot (Let's Encrypt webroot)   | 2026-06-24 (этот коммит)      | `/opt/proxy/` на VPS. Конфиги изначально из `veo55-site/.tmp/proxy-stack/`.                  | Глобальный TLS termination + HTTP/3 + reverse-proxy для всех сайтов на VPS. Per-site vhost'ы в `conf.d/<domain>.conf`. Подробнее — раздел «Proxy stack»                                                                                     |
+| Twc CLI              | twc-cli (Python, PyPI)                                                      | 2026-06-24 (этот коммит)      | Установлен локально через `pipx install twc-cli`. Auth — `twc config`.                       | Управление Timeweb Cloud (firewall rules, VPS-ы, S3-бакеты). CLI Reference: `github.com/timeweb-cloud/twc/blob/master/docs/ru/CLI_REFERENCE.md`                                                                                             |
 
 ## Подробнее по слоям
 
@@ -205,6 +208,97 @@ ssh debian@sawking.tech "ss -tlnp 2>/dev/null | grep -E ':8080|:8090'"
 Проверка: `curl -I https://veo.sawking.tech/` → 200 + правильный title.
 
 **Стоимость.** Бесплатно (Володин VPS уже оплачен, certbot Let's Encrypt бесплатный). Под demo-просмотр прототипа лимита нет.
+
+## Production VPS — Timeweb Cloud MSK (holygrail-msk)
+
+**Добавлено 2026-06-24.** Первый production VPS Web Holy Grail. На него деплоится `veo55-site` (далее — другие инстансы template'а).
+
+### Конфигурация
+
+| Параметр                    | Значение                                                                                                       |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Провайдер                   | **Timeweb Cloud** (МСК, регион Москва)                                                                         |
+| Тариф                       | Cloud MSK 80 — 4 vCPU / 8 GB RAM / 80 GB NVMe / 1 Гбит/с                                                       |
+| ОС                          | Debian 13 (Trixie)                                                                                             |
+| IPv4                        | `83.217.200.27`                                                                                                |
+| IPv6                        | `2a03:6f00:a::2:9efc`                                                                                          |
+| Hostname                    | `holygrail-msk` (после `hostnamectl set-hostname`)                                                             |
+| Стоимость                   | 1 800 ₽/мес + 180 ₽/мес publIP. Без бэкапов (свои S3-бэкапы поверх). 5% скидка при оплате 3 мес.               |
+| Закрытые порты по умолчанию | 2525, 53413, 3389, 465, 389, 25, 587 (outbound через timeweb; 80/443 inbound — нужно открыть в cloud-firewall) |
+
+### SSH
+
+- Локальный SSH-ключ: `~/.ssh/id_holygrail` (ed25519, dedicated key для этого VPS — изоляция)
+- `~/.ssh/config` aliases:
+  - `holygrail` — main user `deploy` (passwordless sudo)
+  - `holygrail-root` — root fallback (отключён в sshd, для recovery через Timeweb-консоль)
+- Hardening (применено через `ssh root@... + script`):
+  - `/etc/ssh/sshd_config.d/00-hardening.conf`: `PermitRootLogin no`, `PasswordAuthentication no`, `ClientAliveInterval 60`
+  - Non-root user `deploy` с `docker` + `sudo` group
+  - `fail2ban` на sshd (1h ban после 5 retry за 10 мин)
+  - `ufw`: allow 22/80/443, deny остальное incoming
+  - Swap 4GB (`/swapfile`), `vm.swappiness=10`
+  - `unattended-upgrades` для security patches
+
+### Docker
+
+- Docker CE 29.x + compose v5.x (из официального репо `download.docker.com/linux/debian`)
+- `/etc/docker/daemon.json`:
+  - `log-driver: json-file`, max-size 10m, max-file 3 (не съест диск логами)
+  - `registry-mirrors: ["https://mirror.gcr.io"]` — обход Docker Hub rate-limit для unauthenticated pulls (Timeweb IP shared с многими пользователями, на чистый pull без mirror быстро упираемся в limit)
+
+### Proxy stack — `/opt/proxy/`
+
+Один host-nginx (Docker, `network_mode: host`) как глобальный TLS termination + HTTP/3 + reverse-proxy для всех будущих сайтов на этом VPS.
+
+```
+/opt/proxy/
+├── docker-compose.yml      # nginx + certbot (профиль `tools`)
+├── nginx/
+│   ├── nginx.conf          # http2/h3, gzip, scanner-block, default 444, ACME path
+│   ├── conf.d/             # per-site vhost'ы
+│   │   └── <domain>.conf
+│   └── snippets/
+│       ├── ssl-modern.conf       # TLS 1.2/1.3, OCSP stapling, X25519
+│       ├── security-headers.conf # HSTS, X-Frame, Referrer-Policy
+│       └── proxy-upstream.conf   # proxy_set_header набор для Next/Payload
+└── certs/                  # /etc/letsencrypt/ (bind-mount)
+└── nginx/webroot/          # /var/www/certbot для ACME challenge
+```
+
+**Запуск:** `cd /opt/proxy && docker compose up -d`. Certbot — `docker compose run --rm certbot certonly --webroot -w /var/www/certbot -d <domain>`. Renewal — cron на хосте (TBD).
+
+### Sites layout — `/opt/sites/<site>/`
+
+Каждый сайт — отдельный compose-стек, биндит loopback (127.0.0.1:300X), host-nginx проксирует. Структура совпадает с GH-репо сайта (`git pull` + `docker compose up -d`).
+
+```
+/opt/sites/
+└── veo55/                  # = clone github.com/Vovanda/veo55-site
+    ├── deploy/prod/
+    │   ├── docker-compose.lite.yml
+    │   └── .env.production  # gitignored, scp с локалки (или Infisical в будущем)
+    ├── src/cms/data/        # bind-mount SQLite (виден `ls`, бэкап `cp` / `sqlite3 .backup`)
+    └── ...
+```
+
+### Twc CLI — управление Timeweb Cloud
+
+`twc` (twc-cli) — официальный Python-CLI для управления ресурсами Timeweb Cloud (серверы, firewall, сети, домены, S3-бэкапы).
+
+- GitHub: `github.com/timeweb-cloud/twc`
+- CLI Reference: `github.com/timeweb-cloud/twc/blob/master/docs/ru/CLI_REFERENCE.md`
+- Установка: `pipx install twc-cli` (или `pip install --user twc-cli`)
+- Auth: `twc config` → вставить API token из панели → сохраняется в `~/.config/twc/config.toml`
+- Полезно для:
+  - Открыть inbound TCP 80/443/UDP 443 в cloud-firewall (нужно при первом деплое)
+  - Создать/удалить VPS-ы для новых инстансов template'а
+  - Управлять Object Storage бакетами
+
+### DNS
+
+- `veo.sawking.tech` (staging) — A `83.217.200.27`, TTL 86400. Управляется через reg.ru DNS sawking.tech зоны.
+- `veo55.ru` (production target) — пока на legacy hosting (Joomla), DNS на reg.ru. При cutover на новый VPS — A-запись `veo55.ru` + `www.veo55.ru` → `83.217.200.27`. `cdn.veo55.ru` НЕ трогаем (остаётся на VK Cloud Object Storage CDN).
 
 ## Что НЕ установлено (и почему — фиксируем чтобы не повторять обсуждение)
 
