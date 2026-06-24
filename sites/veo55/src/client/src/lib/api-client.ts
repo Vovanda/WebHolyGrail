@@ -134,6 +134,23 @@ export async function getDogBySlug(slug: string): Promise<DogDoc | null> {
  *
  * @param sex — фильтр по полу, опционально
  */
+/**
+ * Поиск нашей собаки по `rkfId` — нужно чтобы понять стоит ли redirect'нуть с
+ * `/catalog?dog=N` (proxy на РКФ) на `/dog/<slug>` (наша canonical-страница).
+ * Архитектурное правило: одна собака = один canonical URL.
+ */
+export async function getDogByRkfId(rkfId: number): Promise<DogDoc | null> {
+  const params = new URLSearchParams({
+    'where[rkfId][equals]': String(rkfId),
+    depth: '1',
+    limit: '1',
+  });
+  const response = await fetch(`${CMS_URL}/api/dogs?${params.toString()}`, { cache: 'no-store' });
+  if (!response.ok) return null;
+  const data = (await response.json()) as { docs: DogDoc[] };
+  return data.docs[0] ?? null;
+}
+
 export async function listDogs(sex?: 'male' | 'female'): Promise<readonly DogDoc[]> {
   const params = new URLSearchParams({ depth: '1', limit: '200', sort: '-dob' });
   if (sex) params.set('where[sex][equals]', sex);

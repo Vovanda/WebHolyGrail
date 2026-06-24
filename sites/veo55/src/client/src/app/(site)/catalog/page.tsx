@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import type { Metadata } from 'next';
 
-import { getRkfDog, searchRkf } from '@/lib/api-client';
+import { getDogByRkfId, getRkfDog, searchRkf } from '@/lib/api-client';
 import { CatalogSearchForm } from '@/components/catalog/CatalogSearchForm';
 import { CatalogDogCard } from '@/components/catalog/CatalogDogCard';
 import { CatalogSearchResults } from '@/components/catalog/CatalogSearchResults';
@@ -82,6 +82,16 @@ export default async function CatalogPage({
           <NotFound query={dogIdStr} />
         </CatalogShell>
       );
+
+    // Архитектурное правило: одна собака = один canonical URL. Если эта
+    // RKF-собака уже в нашей `dogs` коллекции — её canonical = `/dog/<slug>`,
+    // не `/catalog?dog=N`. Делаем 301 redirect → нет дубликата в индексе Google,
+    // вся PageRank-сила идёт на нашу страницу.
+    const ourDog = await getDogByRkfId(id).catch(() => null);
+    if (ourDog?.slug) {
+      redirect(`/dog/${ourDog.slug}`);
+    }
+
     const result = await getRkfDog(id);
     if (result.status === 'not-found')
       return (
