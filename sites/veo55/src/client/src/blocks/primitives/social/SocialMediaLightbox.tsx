@@ -66,6 +66,12 @@ export function SocialMediaLightbox({
   const hasPrev = idx > 0;
   const hasNext = idx < items.length - 1;
 
+  // VK embedUrl: для новых постов берём из адаптера, для старых (синкнутых до
+  // апдейта vk-adapter) — выводим из pageUrl формата `vk.com/video<oid>_<vid>`.
+  // Используем vk.ru (российский домен — стабильнее под РФ-VPN/блокировками).
+  const vkEmbedUrl =
+    current.type === 'video' ? (current.embedUrl ?? deriveVkEmbedUrl(current.pageUrl)) : null;
+
   return (
     <dialog
       ref={dialogRef}
@@ -160,9 +166,9 @@ export function SocialMediaLightbox({
 
         {/* Контент */}
         <div className="relative max-w-[92vw] max-h-[88vh] flex items-center justify-center">
-          {current.type === 'video' && current.embedUrl ? (
+          {current.type === 'video' && vkEmbedUrl ? (
             <iframe
-              src={current.embedUrl}
+              src={vkEmbedUrl}
               title={current.title ?? 'Видео'}
               allow="autoplay; encrypted-media; fullscreen; picture-in-picture; screen-wake-lock"
               allowFullScreen
@@ -218,4 +224,20 @@ export function SocialMediaLightbox({
       </div>
     </dialog>
   );
+}
+
+/**
+ * Из `pageUrl` формата `https://vk.com/video-22822305_456241864` (или vk.ru)
+ * строим embed URL для iframe. Используется как fallback для старых постов
+ * без `embedUrl` (синкнутых до апдейта vk-adapter).
+ *
+ * Домен `vk.ru` стабильнее под РФ-VPN/блокировками чем vk.com.
+ */
+function deriveVkEmbedUrl(pageUrl: string | undefined): string | null {
+  if (!pageUrl) return null;
+  const m = /\/video(-?\d+)_(\d+)/.exec(pageUrl);
+  if (!m) return null;
+  const oid = m[1];
+  const vid = m[2];
+  return `https://vk.ru/video_ext.php?oid=${oid}&id=${vid}&hd=2&autoplay=1`;
 }

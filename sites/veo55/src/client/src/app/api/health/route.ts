@@ -14,6 +14,8 @@
  *   - debug: какая версия + какой цвет реально на проде
  */
 
+import os from 'node:os';
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -24,7 +26,9 @@ export async function GET() {
       fullSha: process.env.BUILD_SHA ?? 'unknown',
       builtAt: process.env.BUILD_TIME ?? 'unknown',
       color: process.env.COLOR ?? 'unknown',
-      hostname: process.env.HOSTNAME ?? 'unknown',
+      // os.hostname() = реальное container_name (`veo55-client-blue|green`).
+      // process.env.HOSTNAME = Next bind-address ('0.0.0.0'), misleading.
+      hostname: os.hostname(),
       now: new Date().toISOString(),
       ok: true,
     },
