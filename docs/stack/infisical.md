@@ -104,9 +104,67 @@ docker exec infisical infisical bootstrap \
 
 Один Postgres → один pg_dump per день в `/backups/infisical/`. Не забывать ENCRYPTION_KEY (без него БД нечитаема даже с дампом).
 
-### TLS
+### Reverse proxy + TLS
 
-Через `deploy/proxy-stack/nginx` (тот же что для сайтов): reverse-proxy на `localhost:8080` с Let's Encrypt сертом для `infisical.<domain>`.
+**Решение: per-subdomain на каждый сайт** (`infisical.<site>.tld`), не subpath.
+
+```nginx
+server {
+  listen 443 ssl http2;
+  server_name infisical.veo55.ru;
+
+  ssl_certificate     /etc/letsencrypt/live/infisical.veo55.ru/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/infisical.veo55.ru/privkey.pem;
+  include /etc/nginx/snippets/ssl-modern.conf;
+
+  location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+  }
+}
+```
+
+`certbot --nginx -d infisical.<site>.tld` — отдельный cert на каждый сайт.
+
+#### Почему не subpath (`site.tld/infisical/`) — пруф эксперимента 2026-06-25
+
+Пробовали через `location /infisical/ { proxy_pass http://127.0.0.1:8080/; ... }` + `X-Forwarded-Prefix`. Не работает из коробки:
+
+```
+$ curl -sI https://veo55.ru/infisical/
+HTTP/2 308
+location: /infisical                         # ← Infisical Next.js редиректит на /infisical БЕЗ slash
+
+$ curl -sI https://veo55.ru/infisical
+HTTP/1.1 404 Not Found                       # ← без slash не матчит nginx location /infisical/,
+                                             #   ловит catch-all `/` → veo55 client 404
+$ curl -sL https://veo55.ru/infisical/login
+<!DOCTYPE html>...                           # ← это HTML 404-страница veo55, не Infisical:
+... NEXT_HTTP_ERROR_FALLBACK;404 ...         #   Infisical UI ходит по абсолютным /_next/, /static/,
+                                             #   /api/, которые promelают мимо location /infisical/
+```
+
+Корневая причина: Infisical UI = Next.js приложение, hard-coded под root URL. Нет env-флага `BASE_PATH` / `PATH_PREFIX`. Frontend генерирует абсолютные пути (`/static/...`, `/_next/...`, `/api/...`) без префикса subpath.
+
+Костыль через nginx `sub_filter` (rewrite response body) теоретически возможен, но:
+
+- ломается при включённом gzip
+- ломается при `Accept-Encoding: br` (brotli)
+- регулярно ломается при обновлении Infisical (новые пути в UI)
+- не покрывает WebSocket subscription paths
+- не покрывает JSON API responses с absolute URLs
+
+**Решение** — отдельный subdomain на каждый сайт. Cert через `certbot --nginx` стандартно.
+
+### Backup стратегия
+
+Один Postgres → один pg_dump per день в `/backups/infisical/`. Не забывать ENCRYPTION_KEY (без него БД нечитаема даже с дампом).
 
 ## Scaffold нового сайта на self-host
 

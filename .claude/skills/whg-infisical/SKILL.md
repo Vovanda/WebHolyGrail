@@ -221,6 +221,72 @@ infisical run --token=$TOKEN --env=prod -- docker compose -f compose.bluegreen.y
 
 **TODO:** deploy/prod/deploy.sh ещё использует legacy `/etc/infisical/token` подход (single-site), нужно обновить под multi-site UA flow.
 
+## Reverse proxy для UI — per-subdomain, не subpath
+
+**Канон:** на каждом Holy Grail сайте создаём отдельный subdomain `infisical.<site>.tld`, который проксирует на shared `localhost:8080`. Всех сайтов VPS-shared один Infisical instance — изоляция через project RBAC, не network.
+
+### Почему НЕ subpath (`site.tld/infisical/`) — пруф 2026-06-25
+
+Пробовали subpath через `location /infisical/ { proxy_pass http://127.0.0.1:8080/; X-Forwarded-Prefix: /infisical; }`. Сломалось:
+
+```
+$ curl -sI https://veo55.ru/infisical/
+HTTP/2 308
+location: /infisical          # ← Infisical Next.js редирект на /infisical БЕЗ slash
+
+$ curl -sI https://veo55.ru/infisical
+HTTP/1.1 404 Not Found        # ← без slash не матчит location /infisical/, ловит catch-all `/`,
+                              #   попадает в veo55 client который 404 на /infisical
+```
+
+При запросе `/infisical/login` UI Infisical отдаёт HTML с абсолютными `<script src="/_next/...">`, `<link href="/static/...">`, `fetch('/api/...')`. Эти пути промахиваются мимо `location /infisical/`, ловят `/` → veo55 client → 404.
+
+Root cause: Infisical UI = Next.js, hard-coded под root URL. Нет env-флага `BASE_PATH`/`PATH_PREFIX`. Нет официальной поддержки subpath.
+
+Костыль через nginx `sub_filter` (response body rewrite `/static/` → `/infisical/static/`) теоретически возможен, но:
+
+- ломается на gzip / brotli
+- ломается при апгрейде Infisical (новые пути в UI)
+- не покрывает WebSocket subscription paths
+- не покрывает JSON API responses с absolute URLs
+
+### Канонический nginx server-block
+
+`/opt/proxy/nginx/conf.d/infisical.<site>.tld.conf` (через `certbot --nginx -d infisical.<site>.tld` авто-генерируется):
+
+```nginx
+server {
+  listen 80;
+  server_name infisical.<site>.tld;
+  location /.well-known/acme-challenge/ { root /var/www/certbot; try_files $uri =404; }
+  location / { return 301 https://$host$request_uri; }
+}
+
+server {
+  listen 443 ssl http2;
+  server_name infisical.<site>.tld;
+
+  ssl_certificate     /etc/letsencrypt/live/infisical.<site>.tld/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/infisical.<site>.tld/privkey.pem;
+  include /etc/nginx/snippets/ssl-modern.conf;
+
+  location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+  }
+}
+```
+
+DNS: `infisical.<site>.tld A 83.217.200.27` (через регистратора сайта).
+
+Infisical `SITE_URL` env — один canonical (например `https://infisical.veo55.ru` если основной admin сайт). Другие subdomain доступны как proxy-аliases — magic links/OAuth редиректят на canonical, но т.к. UI используется редко (только админ), это не блокер.
+
 ## Ротация секрета
 
 ```bash
@@ -237,7 +303,7 @@ ssh deploy@vps "cd /opt/sites/<site> && bash deploy/prod/deploy.sh <sha>"
 
 ### UI path (для человека через браузер)
 
-1. `https://infisical.<your-domain>.tld/` (self-host) → Create Project → Add Environments → Add Secrets → Add Machine Identity → Get Client Secret → Add to Project → Copy credentials.
+1. `https://infisical.<site>.tld/` (per-site subdomain, см. секцию выше) → Create Project → Add Environments → Add Secrets → Add Machine Identity → Get Client Secret → Add to Project → Copy credentials.
 2. Документация: см. README + `docs/whg/37-scaffolding.md`.
 3. Время: 5-10 минут.
 
