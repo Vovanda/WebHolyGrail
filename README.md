@@ -13,6 +13,8 @@ A GitHub template repo with one stack, one set of architectural rules (R0–R15,
 
 Targets the gap between static one-pagers (no content editing) and plugin-based CMSes (data welded to presentation, hard to grow into a real backend).
 
+**One site grows with the business.** When the company adds a new sub-product, blog, team page, or case-studies section, you add it as `blocks/domain/<niche>/` + collections + routes in the same repo. No "we need a new website" project for every pivot — R4 side-scaling baked into the architecture.
+
 Generic code lives upstream in this template. Each instance you create stays in sync via [`sync-template.sh`](scripts/sync-template.sh) — picks up new primitives, fixes, and Payload upgrades without touching your domain blocks.
 
 ## Stack

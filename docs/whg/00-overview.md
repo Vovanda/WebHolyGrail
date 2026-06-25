@@ -14,6 +14,7 @@ Over time the pack will evolve — some tools may become optional, others may be
 
 Optimises for long-term maintainability rather than first-day setup speed:
 
+- **Growth ≠ rewrite.** When the business adds a new sub-product, niche, blog, team page, or case-study section — it goes into the same site as another `blocks/domain/<niche>/` + collections + routes. The first site outlives the company's mental model of "what the website is for". No "we need a new website" project every time a business pivots. This is R4 (side-scaling) made explicit.
 - New capabilities (forms, dashboards, custom backend services) added by side-scaling, without rewriting the original site.
 - Project structure is conventional enough that a new contributor onboards in hours.
 - The CMS can be swapped or removed without migrating data — data sits in its own tables behind an access layer.
