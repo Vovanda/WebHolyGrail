@@ -91,36 +91,46 @@ export default buildConfig({
   ),
   plugins: [
     /**
-     * S3-совместимое хранилище для Media.
+     * S3-совместимое хранилище для Media — **подключается условно**.
      *
-     * Env-переменные (через Infisical в prod, .env.local в dev):
+     * Если `S3_BUCKET` пустой/не задан → plugin не подключается, Payload
+     * пишет Media на локальный диск (`src/cms/data/media/`). Это удобно для
+     * первого запуска (Use this template → ./dev.sh → работает без настройки
+     * S3). Файлы видны в админке, отдаются через `/api/media/file/...`.
+     *
+     * Когда понадобится S3 — задай в Infisical env:
      *  - `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`
      *  - `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`
-     *  - `S3_PUBLIC_URL` — публичный CDN base (например `https://cdn.example.com`)
+     *  - `S3_PUBLIC_URL` — публичный base URL (CDN или прямой S3-endpoint)
      *
-     * Если у вас не S3 — закомментируйте секцию `plugins`, Media будет писать
-     * на локальный диск (Payload local upload).
+     * Для локального теста S3-flow без облака — подними MinIO:
+     *   `docker compose --profile minio -f deploy/local/docker-compose.yml up -d`
+     * и установи S3_* env'ы на `http://localhost:9000` + `minioadmin/minioadmin`.
      */
-    s3Storage({
-      collections: {
-        media: {
-          generateFileURL: ({ filename, prefix }) => {
-            const base = process.env.S3_PUBLIC_URL ?? '';
-            return `${base}/${prefix ? prefix + '/' : ''}${filename}`;
-          },
-        },
-      },
-      bucket: process.env.S3_BUCKET ?? '',
-      acl: 'public-read',
-      config: {
-        credentials: {
-          accessKeyId: process.env.S3_ACCESS_KEY_ID ?? '',
-          secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? '',
-        },
-        region: process.env.S3_REGION ?? '',
-        endpoint: process.env.S3_ENDPOINT ?? '',
-        forcePathStyle: true,
-      },
-    }),
+    ...(process.env.S3_BUCKET
+      ? [
+          s3Storage({
+            collections: {
+              media: {
+                generateFileURL: ({ filename, prefix }) => {
+                  const base = process.env.S3_PUBLIC_URL ?? '';
+                  return `${base}/${prefix ? prefix + '/' : ''}${filename}`;
+                },
+              },
+            },
+            bucket: process.env.S3_BUCKET,
+            acl: 'public-read',
+            config: {
+              credentials: {
+                accessKeyId: process.env.S3_ACCESS_KEY_ID ?? '',
+                secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? '',
+              },
+              region: process.env.S3_REGION ?? '',
+              endpoint: process.env.S3_ENDPOINT ?? '',
+              forcePathStyle: true,
+            },
+          }),
+        ]
+      : []),
   ],
 });

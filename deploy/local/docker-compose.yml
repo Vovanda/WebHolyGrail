@@ -1,28 +1,45 @@
-# Local stack for veo55 site.
+# Local stack for a Holy Grail site.
 #
-# Запуск:
+# Usage:
 #   infisical run --env=dev -- docker compose -f deploy/local/docker-compose.yml up -d
-# Или из корня:
+# или из корня:
 #   pnpm compose:up
 #
-# Build context — корень монорепо (нам нужен pnpm-workspace + contracts), пути к
-# Dockerfile — относительно того же корня. Это даёт Docker доступ ко всем нужным
-# workspace-пакетам при сборке через `pnpm install --filter`.
+# Build context — корень репо (нам нужен pnpm-workspace + contracts), пути к
+# Dockerfile — относительно того же корня.
+#
+# Optional MinIO для локального теста S3-flow без облака:
+#   docker compose --profile minio -f deploy/local/docker-compose.yml up -d
+# Тогда задай в Infisical dev env:
+#   S3_BUCKET=local-media
+#   S3_ENDPOINT=http://minio:9000   (или http://localhost:9000 из хоста)
+#   S3_REGION=us-east-1
+#   S3_PUBLIC_URL=http://localhost:9000/local-media
+#   S3_ACCESS_KEY_ID=minioadmin
+#   S3_SECRET_ACCESS_KEY=minioadmin
+# Console UI: http://localhost:9001 (minioadmin / minioadmin).
 
 services:
   cms:
-    container_name: veo55-cms
+    container_name: holygrail-cms
     build:
       context: ../..
       dockerfile: src/cms/Dockerfile
     environment:
       PAYLOAD_SECRET: ${PAYLOAD_SECRET:?must be injected via infisical run}
-      DATABASE_URI: file:/data/veo55.db
+      DATABASE_URI: file:/data/site.db
       PAYLOAD_PUBLIC_SERVER_URL: ${PAYLOAD_PUBLIC_SERVER_URL:-http://localhost:3001}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-http://localhost:3000}
+      # S3 — если переменные пустые, Payload пишет на локальный диск.
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_REGION: ${S3_REGION:-}
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_PUBLIC_URL: ${S3_PUBLIC_URL:-}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
       NODE_ENV: production
     volumes:
-      - veo55_db:/data
+      - cms_data:/data
     ports:
       - '3001:3001'
     healthcheck:
@@ -33,10 +50,10 @@ services:
       retries: 3
     restart: unless-stopped
     networks:
-      - veo55-net
+      - holygrail-net
 
   client:
-    container_name: veo55-client
+    container_name: holygrail-client
     build:
       context: ../..
       dockerfile: src/client/Dockerfile
@@ -57,13 +74,58 @@ services:
       retries: 3
     restart: unless-stopped
     networks:
-      - veo55-net
+      - holygrail-net
+
+  # ── Optional MinIO для локального S3-теста ─────────────────────────────────
+  # Поднимается только с `--profile minio`.
+  minio:
+    image: minio/minio:latest
+    container_name: holygrail-minio
+    profiles: ['minio']
+    command: server /data --console-address ':9001'
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - '9000:9000'  # S3 API
+      - '9001:9001'  # Web console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - holygrail-net
+
+  # Создать bucket "local-media" при старте MinIO (одноразовый init-контейнер).
+  minio-init:
+    image: minio/mc:latest
+    container_name: holygrail-minio-init
+    profiles: ['minio']
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      sh -c "
+        mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin} &&
+        mc mb local/local-media --ignore-existing &&
+        mc anonymous set public local/local-media &&
+        echo 'MinIO bucket local-media ready'
+      "
+    networks:
+      - holygrail-net
+    restart: 'no'
 
 volumes:
-  veo55_db:
-    name: veo55_db
+  cms_data:
+    name: holygrail_cms_data
+  minio_data:
+    name: holygrail_minio_data
 
 networks:
-  veo55-net:
-    name: veo55-net
+  holygrail-net:
+    name: holygrail-net
     driver: bridge
