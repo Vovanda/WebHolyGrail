@@ -7,6 +7,19 @@ description: Workflow секретов в Holy Grail сайтах — self-host 
 
 > Секреты на любом Holy Grail сайте — self-host Infisical + Universal Auth machine identities. Никаких .env.production на диске, никаких legacy service tokens, никакого Terraform для 1-2 сайтов. Прямой REST API + полностью автоматизированный scaffold.
 
+## Канонический путь (наш workflow — источник правды)
+
+1. **One self-host Infisical instance на VPS** (`/opt/infisical/`), shared между всеми сайтами. Не клонировать per-site.
+2. **Canonical hostname** — `infisical.sawking.tech` (домен infrastructure-команды, не сайта-клиента). Magic links / OAuth редиректят сюда.
+3. **Subdomain-aliases на каждый сайт** — `infisical.veo55.ru`, `infisical.<новый-сайт>.tld` и т.д. Все nginx server-блоки `proxy_pass http://127.0.0.1:8080`, один backend. **НЕ subpath** — Infisical UI hard-coded под root (см. пруф в секции «Reverse proxy» ниже).
+4. **Project per site** — `holygrail-<slug>`, авто через `pnpm setup-infisical --site <slug>`. Идемпотентно: reuse existing.
+5. **Per-site admin** — приглашённый user видит ТОЛЬКО свой project. Авторизуется через любой alias (даже canonical), но workspace-list фильтруется RBAC.
+6. **Per-site machine identity (UA)** для prod deploy — creds в `/etc/infisical/<slug>/{client-id,client-secret}` (chmod 600 deploy:deploy).
+7. **Local dev secrets chain** (приоритет): (a) VPS Infisical online → (b) local Infisical контейнер на dev-машине → (c) `.env.local` файлы (offline, без контейнера). `dev.sh` пробует по порядку.
+8. **Что хранится** — секреты + env-runtime + feature flags + rate limits. См. `docs/whg/45-data-location.md`.
+
+Если несовпадение этого канона с практикой — править этот раздел + код, не наоборот.
+
 ## Когда триггерить
 
 - Создаёшь новый сайт — нужны Infisical project, environments, identity.
@@ -165,6 +178,23 @@ POST /api/v1/auth/universal-auth/identities/<identityId>/client-secrets
 ### Шаг 6 — add identity to project with prod-env scope
 
 **TODO/verify:** точный endpoint для add identity to project membership ещё не зафиксирован. При первом scaffold пробую `POST /api/v2/workspace/{projectId}/identity-memberships/{identityId}` с body `{ role: "read", environment: "prod" }`. Если 404 — fallback на UI на этом единственном шаге. Скилл обновлю после первого реального scaffold.
+
+### Шаг 6.5 — invite per-site admin user (RBAC)
+
+Чтобы у каждого сайта был свой «человеческий» админ (отдельно от Володи-root и от prod-deploy machine identity), приглашаем user в project с правами `admin` только на этот workspace.
+
+```
+POST /api/v3/users/signup-invite
+{ "email": "<admin-email>", "organizationId": "<orgId>" }
+→ { "completeInviteLink": "https://infisical.sawking.tech/signupinvite?token=..." }
+
+POST /api/v2/workspace/{projectId}/memberships
+{ "emails": ["<admin-email>"], "roles": ["admin"] }
+```
+
+Invited user логинится через любой `infisical.<site>.tld` alias → видит ТОЛЬКО `holygrail-<slug>`. Изоляция через native Infisical project membership filter.
+
+Когда не нужно — пропустить (для test/internal сайтов).
 
 ### Шаг 7 — write `.infisical.json`
 

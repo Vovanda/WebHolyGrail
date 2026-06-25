@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 # Run the dev stack (CMS :3001 + Client :3000).
 #
-# Secrets resolution (ТОЛЬКО для local dev — prod через deploy/prod/deploy.sh,
-# там Infisical обязателен hard, никакого fallback):
-#   1. Infisical (если CLI установлен + .infisical.json есть + instance доступен)
-#   2. .env.local — offline fallback (см. .env.local.example)
+# Secrets resolution chain (только для local dev — prod через deploy/prod/deploy.sh,
+# там Infisical обязателен hard):
+#
+#   1. Infisical CLI + .infisical.json (любой инстанс):
+#      a) VPS shared instance (https://infisical.<canonical>.tld) — приоритет,
+#         тот же state что у других разработчиков, prod-like
+#      b) local container на dev-машине (если поднят `docker compose` локально)
+#   2. .env.local — offline fallback (см. .env.local.example), когда:
+#      - VPS Infisical недоступен (нет сети)
+#      - не лень поднять local Infisical контейнер
 #   3. fail-fast если ни того, ни другого нет
 
 set -e

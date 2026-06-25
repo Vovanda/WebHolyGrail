@@ -21,12 +21,34 @@ VPS (под Holy Grail инстансы)
 
 **Изоляция между проектами** — native Infisical project-level RBAC:
 
-- Member со scope=`project-X` не видит `project-Y`
+- Member со scope=`project-X` не видит `project-Y` (даже на одном instance, тот же UI)
 - Audit log per project
 - Сompromised member одного project'а не утекает другие
-- **Instance admin** (root) видит всё — но это namespace-level admin для апгрейдов / бэкапов, не для прод-деплоев. Для деплоев — отдельные service identities (UA) per project, scope=`prod env` of `project-X`.
+- **Instance admin** (Володя как root) видит всё — для scaffold / апгрейдов / бэкапов
+- **Per-site admin** (приглашённый user/identity) — видит ТОЛЬКО свой project. Например админ veo55 логинится через https://infisical.veo55.ru/ → видит только `holygrail-veo55`, для него `holygrail-sawking-tech` не существует
+- **Prod deploy identity** — отдельная UA machine identity per project (см. `setup-infisical.ts`), scope=prod env, никаких других прав
 
 **Когда хватит одного instance:** до десятков проектов один Infisical справляется. Free / OSS edition покрывает наш use case.
+
+## Канонический путь использования (наш workflow)
+
+> Этот раздел — **источник правды** про то как мы используем Infisical в WHG. Если есть несовпадение с практикой — править эту секцию + код, не наоборот.
+
+1. **One self-host instance на VPS** — `/opt/infisical/docker-compose.yml`, поднят раз навсегда. Не клонируется per-site.
+2. **One canonical hostname** — `infisical.sawking.tech` (домен infrastructure-команды, не привязан к конкретному сайту-клиенту). Магические-ссылки / OAuth редиректят сюда.
+3. **Дополнительные subdomain-aliases на каждый сайт** — `infisical.veo55.ru`, `infisical.<новый-сайт>.tld` и т.д. Все nginx server-блоки `proxy_pass http://127.0.0.1:8080`, один backend. Subpath (`site.tld/infisical/`) НЕ работает — см. подсекцию ниже.
+4. **Project per site** — `holygrail-<slug>`, создаётся автоматически через `pnpm setup-infisical --site <slug>` (REST API, идемпотентно). Каждый — изолированный workspace.
+5. **Per-site admin invited** — для каждого сайта приглашается user-admin (например админ veo55 = Володя+1 кто угодно), которому видим **только этот project**. Через REST: `POST /api/v3/users/signup` + `POST /api/v2/workspace/{id}/users`. Авторизуется через `infisical.<сайт>.tld` (любой alias) → видит только свой workspace.
+6. **Per-site machine identity (UA)** — для prod deploy. Creds в `/etc/infisical/<slug>/{client-id,client-secret}` на VPS (chmod 600 deploy:deploy). `deploy.sh` через `infisical login --method=universal-auth ...`.
+7. **Local dev secrets chain** (приоритет сверху вниз):
+   - **a) VPS shared Infisical** — если разработчик в сети и есть `INFISICAL_HOST_URL` + admin token / project member access. Тот же state что у других, prod-like. Дефолт когда онлайн.
+   - **b) Local Infisical container на dev-машине** — один shared (не per-repo), если разработчик хочет offline-prod-like среду. `dev.sh` находит local CLI и `.infisical.json` указывающий на `localhost:8080`.
+   - **c) `.env.local` файлы** — когда VPS недоступен И лень поднимать local контейнер. Минимальный путь для quick dev.
+   - **d) fail-fast** — если ни Infisical, ни `.env.local`.
+
+   `dev.sh` пробует по порядку, выбирает первый рабочий.
+
+8. **Содержимое БД Infisical**: секреты + env-dependent runtime + feature flags + rate limits — всё что меняется devops без relays code. См. `docs/whg/45-data-location.md`.
 
 ## Текущие версии
 
