@@ -89,6 +89,7 @@ pnpm setup-infisical -- --site my-site [--type minimal]
 | [`37-scaffolding.md`](docs/whg/37-scaffolding.md)       | Как рождается новый сайт (gh template → Infisical → dev)                 |
 | [`38-invariants.md`](docs/whg/38-invariants.md)         | Инвариантные коллекции и блоки, переиспользуемые между сайтами           |
 | [`40-versions.md`](docs/whg/40-versions.md)             | Версии стека, политика апгрейдов, breaking-change дисциплина             |
+| [`45-data-location.md`](docs/whg/45-data-location.md)   | Где живут значения — Payload / Infisical / код, разделение по "кто меняет" |
 
 ## Лицензия
 

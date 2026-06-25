@@ -40,15 +40,17 @@ basename "$(pwd)"
 
 ## Где что живёт
 
-| Что | Где | Почему |
-|---|---|---|
-| Секреты (PAYLOAD_SECRET, S3 keys, DB URL с паролем) | Infisical Cloud | Никогда в git |
-| Env-dependent runtime (S3_BUCKET, NEXT_PUBLIC_*, ALLOWED_ORIGINS) | Infisical Cloud | Меняется dev/staging/prod без deploy |
-| Бренд + контент (siteName, contacts, mainNav, theme) | Payload `SiteSettings` global | R0 — менеджер сайта редактирует без разработчика |
-| Доменные сущности | Payload collections (`src/cms/src/collections/`) | R0 |
-| Build-time константы (feature flags) | `src/client/src/config.ts` | Никогда не меняется в runtime |
+Граница проводится по **кто меняет**, не по типу данных:
 
-**Принцип:** если можешь поменять без deploy кода — в Infisical (если env-dep) или Payload (если контент). Если только с релизом — в коде.
+| Кто меняет | Где | Что туда уходит |
+|---|---|---|
+| **Content manager** (через UI без разработчика) | Payload `SiteSettings` global + collections | siteName, контакты, mainNav, footer links, theme/palette name, бренд, доменные сущности (Posts, Products, Customers, …) |
+| **Разработчик / DevOps** (через CLI/UI без deploy) | Infisical Cloud | Secrets (PAYLOAD_SECRET, S3 keys, DB URL), env-dependent runtime (URLs, S3 config, ALLOWED_ORIGINS), **feature flags**, **rate limits**, technical knobs |
+| **Никто** (только с релизом кода) | Код | TypeScript типы, app structure (routes, Dockerfile), архитектурные константы как комменты в R-правилах |
+
+**Не путать:** «build-time константы» — это не значения которые могут менять devops, это типы и структура. Feature flag `ENABLE_NEW_DASHBOARD` → в Infisical (хочешь toggle без deploy), не в коде.
+
+**Принцип:** если значение **может** менять кто-то без релиза кода — оно НЕ в коде. Куда именно — зависит от **кто**: content-менеджер → Payload, devops → Infisical.
 
 ## Skills (триггерить при попадании в зону)
 

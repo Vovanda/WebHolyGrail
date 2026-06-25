@@ -89,6 +89,7 @@ The four component levels (L1–L4) — `ui/` atoms, `primitives/` molecules, `l
 | [`37-scaffolding.md`](docs/whg/37-scaffolding.md)       | How a new site is scaffolded (gh template → Infisical → dev)            |
 | [`38-invariants.md`](docs/whg/38-invariants.md)         | Invariant collections and blocks reused across sites                    |
 | [`40-versions.md`](docs/whg/40-versions.md)             | Stack versions, upgrade policy, breaking-change discipline              |
+| [`45-data-location.md`](docs/whg/45-data-location.md)   | Where values live — Payload vs Infisical vs code, by "who changes them" |
 
 ## License
 
