@@ -6,6 +6,8 @@ description: End-to-end workflow создания нового Holy Grail инс
 # Skill: holygrail-scaffold
 
 > Zero-config scaffolding нового Holy Grail инстанса. 5-10 минут от `gh repo create` до работающего dev стека.
+>
+> **Human-readable source of truth:** [`docs/whg/37-scaffolding.md`](../../../docs/whg/37-scaffolding.md). Этот skill — рабочая компактная версия для агента; держим их симметричными. Если хочешь обновить процесс — правь оба, оставляя cross-references.
 
 ## Когда триггерить
 
@@ -38,7 +40,7 @@ cd <slug>
 
 `<slug>` — короткое имя сайта (например `sawking-tech`, `clinic-vita`, `cafe-zerno`). Используется как Infisical project name, docker network namespace.
 
-Default visibility — `--private` для коммерческого инстанса. Для open-source / показательного — `--public`.
+**Visibility — всегда `--private`.** Holy Grail инстансы — коммерческие сайты клиентов с domain-логикой / контентом / инфра-ссылками, которые не должны попадать в публичный доступ. Open-source / demo — явное исключение, только по прямой команде Володи.
 
 После клона: проверь `git remote -v` указывает на свой репо (а не WHG).
 
@@ -232,4 +234,6 @@ bash deploy/prod/deploy.sh <git-sha>
 
 ## Human-readable версия
 
-`docs/whg/37-scaffolding.md` — то же самое для пользователя без агента.
+[`docs/whg/37-scaffolding.md`](../../../docs/whg/37-scaffolding.md) — то же самое для пользователя без агента. Source of truth — там; этот skill = его проекция для агента.
+
+При апдейте: правь оба синхронно. Если правишь только skill — это техдолг, добавь TODO в 37-scaffolding.md.
