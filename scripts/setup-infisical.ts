@@ -41,9 +41,12 @@ interface Args {
 
 interface AdminEnv {
   hostUrl: string;
-  clientId: string;
-  clientSecret: string;
   orgId: string;
+  // Two auth modes: either a pre-issued admin token (from `infisical bootstrap`)
+  // or Universal Auth client credentials. Token wins if both present.
+  token?: string;
+  clientId?: string;
+  clientSecret?: string;
 }
 
 const STANDARD_SECRETS = [
@@ -110,15 +113,19 @@ function parseArguments(): Args {
 
 function readAdminEnv(): AdminEnv {
   const hostUrl = process.env['INFISICAL_HOST_URL'];
+  const orgId = process.env['INFISICAL_ADMIN_ORG_ID'];
+  const token = process.env['INFISICAL_ADMIN_TOKEN'];
   const clientId = process.env['INFISICAL_ADMIN_CLIENT_ID'];
   const clientSecret = process.env['INFISICAL_ADMIN_CLIENT_SECRET'];
-  const orgId = process.env['INFISICAL_ADMIN_ORG_ID'];
 
   const missing: string[] = [];
   if (!hostUrl) missing.push('INFISICAL_HOST_URL');
-  if (!clientId) missing.push('INFISICAL_ADMIN_CLIENT_ID');
-  if (!clientSecret) missing.push('INFISICAL_ADMIN_CLIENT_SECRET');
   if (!orgId) missing.push('INFISICAL_ADMIN_ORG_ID');
+  if (!token && !(clientId && clientSecret)) {
+    missing.push(
+      'INFISICAL_ADMIN_TOKEN (или INFISICAL_ADMIN_CLIENT_ID + INFISICAL_ADMIN_CLIENT_SECRET)',
+    );
+  }
 
   if (missing.length > 0) {
     console.error(`ERROR: missing env: ${missing.join(', ')}`);
@@ -129,9 +136,10 @@ function readAdminEnv(): AdminEnv {
 
   return {
     hostUrl: hostUrl!.replace(/\/$/, ''),
-    clientId: clientId!,
-    clientSecret: clientSecret!,
     orgId: orgId!,
+    token,
+    clientId,
+    clientSecret,
   };
 }
 
@@ -150,18 +158,56 @@ class Infisical {
     if (!this.accessToken) throw new Error('login: no accessToken in response');
   }
 
-  async createProject(slug: string, orgId: string): Promise<string> {
-    const res = await this.fetch('POST', '/api/v2/workspace', {
-      projectName: `holygrail-${slug}`,
-      slug: `holygrail-${slug}`,
-      type: 'secret-manager',
-      projectDescription: `Holy Grail site: ${slug}`,
-      organizationId: orgId,
-    });
-    const projectId =
-      (res as { project?: { id?: string } }).project?.id ?? (res as { id?: string }).id;
-    if (!projectId) throw new Error('createProject: no project id in response');
-    return projectId;
+  useToken(token: string): void {
+    this.accessToken = token;
+  }
+
+  async createProject(slug: string, orgId: string): Promise<{ id: string; reused: boolean }> {
+    const projectSlug = `holygrail-${slug}`;
+    try {
+      const res = await this.fetch('POST', '/api/v2/workspace', {
+        projectName: projectSlug,
+        slug: projectSlug,
+        type: 'secret-manager',
+        projectDescription: `Holy Grail site: ${slug}`,
+        organizationId: orgId,
+      });
+      const id = (res as { project?: { id?: string } }).project?.id ?? (res as { id?: string }).id;
+      if (!id) throw new Error('createProject: no project id in response');
+      return { id, reused: false };
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (!msg.includes('already exists')) throw err;
+      // Idempotent: find existing.
+      const list = await this.fetch('GET', '/api/v1/workspace');
+      const projects =
+        (list as { workspaces?: Array<{ id: string; slug: string }> }).workspaces ?? [];
+      const found = projects.find((p) => p.slug === projectSlug);
+      if (!found)
+        throw new Error(
+          `createProject: "${projectSlug}" reported as existing but not found in /workspace list`,
+        );
+      return { id: found.id, reused: true };
+    }
+  }
+
+  async listEnvironments(
+    projectId: string,
+  ): Promise<Array<{ id: string; slug: string; name: string }>> {
+    const res = await this.fetch('GET', `/api/v1/workspace/${projectId}`);
+    return (
+      (res as { workspace?: { environments?: Array<{ id: string; slug: string; name: string }> } })
+        .workspace?.environments ?? []
+    );
+  }
+
+  async findIdentity(name: string, orgId: string): Promise<string | null> {
+    const res = await this.fetch('GET', `/api/v2/organizations/${orgId}/identity-memberships`);
+    const memberships =
+      (res as { identityMemberships?: Array<{ identity: { id: string; name: string } }> })
+        .identityMemberships ?? [];
+    const found = memberships.find((m) => m.identity.name === name);
+    return found ? found.identity.id : null;
   }
 
   async createEnvironment(
@@ -265,21 +311,33 @@ async function main(): Promise<void> {
 
   const inf = new Infisical(env.hostUrl);
 
-  console.log('→ login (admin UA)');
-  await inf.login(env.clientId, env.clientSecret);
+  if (env.token) {
+    console.log('→ auth: pre-issued admin token');
+    inf.useToken(env.token);
+  } else {
+    console.log('→ auth: Universal Auth login');
+    await inf.login(env.clientId!, env.clientSecret!);
+  }
   console.log('  ✓ authenticated');
 
   console.log(`→ createProject(holygrail-${args.site})`);
-  const projectId = await inf.createProject(args.site, env.orgId);
-  console.log(`  ✓ project ${projectId}`);
+  const project = await inf.createProject(args.site, env.orgId);
+  console.log(
+    `  ${project.reused ? '·' : '✓'} project ${project.id}${project.reused ? ' (existing, reused)' : ''}`,
+  );
+  const projectId = project.id;
 
-  console.log(`→ createEnvironment × ${ENVIRONMENTS.length}`);
+  console.log('→ ensureEnvironments dev/staging/prod');
+  const existingEnvs = await inf.listEnvironments(projectId);
+  const existingSlugs = new Set(existingEnvs.map((e) => e.slug));
+  console.log(`  · already present: ${[...existingSlugs].join(', ') || '(none)'}`);
   for (const e of ENVIRONMENTS) {
+    if (existingSlugs.has(e.slug)) continue;
     try {
       await inf.createEnvironment(projectId, e);
-      console.log(`  ✓ env "${e.slug}"`);
+      console.log(`  ✓ env "${e.slug}" created`);
     } catch (err) {
-      console.warn(`  ⚠ env "${e.slug}" skipped: ${(err as Error).message.split('\n')[0]}`);
+      console.warn(`  ⚠ env "${e.slug}" failed: ${(err as Error).message.split('\n')[0]}`);
     }
   }
 
@@ -302,28 +360,38 @@ async function main(): Promise<void> {
   console.log('  ✓ placeholders разложены');
 
   const identityName = `${args.site}-prod-deploy`;
-  console.log(`→ createIdentity(${identityName})`);
-  const identityId = await inf.createIdentity(identityName, env.orgId);
-  console.log(`  ✓ identity ${identityId}`);
+  console.log(`→ ensureIdentity(${identityName})`);
+  let identityId = await inf.findIdentity(identityName, env.orgId);
+  let prodClientId: string | null = null;
+  let prodClientSecret: string | null = null;
 
-  console.log('→ attachUniversalAuth');
-  const prodClientId = await inf.attachUniversalAuth(identityId);
-  console.log(`  ✓ clientId ${prodClientId}`);
-
-  console.log('→ createClientSecret');
-  const prodClientSecret = await inf.createClientSecret(identityId, `${args.site} prod-deploy`);
-  console.log('  ✓ clientSecret получен');
-
-  console.log('→ addIdentityToProject');
-  try {
-    await inf.addIdentityToProject(projectId, identityId, 'no-access');
-    console.log('  ✓ identity attached');
-  } catch (err) {
-    console.warn(`  ⚠ addIdentityToProject failed: ${(err as Error).message.split('\n')[0]}`);
-    console.warn('    → fallback: добавь identity к project вручную через UI:');
-    console.warn(
-      `    ${env.hostUrl}/project/${projectId}/access-management → Add Machine Identity → ${identityName}`,
+  if (identityId) {
+    console.log(
+      `  · identity exists ${identityId} (skip create + UA setup; rotate client-secret вручную если нужно)`,
     );
+  } else {
+    identityId = await inf.createIdentity(identityName, env.orgId);
+    console.log(`  ✓ identity ${identityId}`);
+
+    console.log('→ attachUniversalAuth');
+    prodClientId = await inf.attachUniversalAuth(identityId);
+    console.log(`  ✓ clientId ${prodClientId}`);
+
+    console.log('→ createClientSecret');
+    prodClientSecret = await inf.createClientSecret(identityId, `${args.site} prod-deploy`);
+    console.log('  ✓ clientSecret получен');
+
+    console.log('→ addIdentityToProject');
+    try {
+      await inf.addIdentityToProject(projectId, identityId, 'no-access');
+      console.log('  ✓ identity attached');
+    } catch (err) {
+      console.warn(`  ⚠ addIdentityToProject failed: ${(err as Error).message.split('\n')[0]}`);
+      console.warn('    → fallback: добавь identity к project вручную через UI:');
+      console.warn(
+        `    ${env.hostUrl}/project/${projectId}/access-management → Add Machine Identity → ${identityName}`,
+      );
+    }
   }
 
   const infisicalJson = {
@@ -336,17 +404,31 @@ async function main(): Promise<void> {
   console.log(`  ✓ .infisical.json → ${outPath}`);
 
   console.log('\n──────────────────────────────────────────────');
-  console.log('PROD MACHINE IDENTITY CREATED:');
-  console.log(`  Client ID:     ${prodClientId}`);
-  console.log(`  Client Secret: ${prodClientSecret}`);
-  console.log('  (Client Secret показывается ОДИН раз — сохрани сейчас!)');
-  console.log('');
-  console.log('Положи на VPS:');
-  console.log('  sudo install -d -m 700 -o deploy -g deploy /etc/infisical');
-  console.log(`  echo "${prodClientId}" | sudo tee /etc/infisical/client-id > /dev/null`);
-  console.log(`  echo "${prodClientSecret}" | sudo tee /etc/infisical/client-secret > /dev/null`);
-  console.log('  sudo chmod 600 /etc/infisical/*');
-  console.log('  sudo chown deploy:deploy /etc/infisical/*');
+  if (prodClientId && prodClientSecret) {
+    console.log('PROD MACHINE IDENTITY CREATED:');
+    console.log(`  Client ID:     ${prodClientId}`);
+    console.log(`  Client Secret: ${prodClientSecret}`);
+    console.log('  (Client Secret показывается ОДИН раз — сохрани сейчас!)');
+    console.log('');
+    console.log('Положи на VPS:');
+    console.log(`  sudo install -d -m 700 -o deploy -g deploy /etc/infisical/${args.site}`);
+    console.log(
+      `  echo "${prodClientId}"     | sudo tee /etc/infisical/${args.site}/client-id     > /dev/null`,
+    );
+    console.log(
+      `  echo "${prodClientSecret}" | sudo tee /etc/infisical/${args.site}/client-secret > /dev/null`,
+    );
+    console.log(`  sudo chmod 600 /etc/infisical/${args.site}/*`);
+    console.log(`  sudo chown deploy:deploy /etc/infisical/${args.site}/*`);
+  } else {
+    console.log(`PROD MACHINE IDENTITY EXISTS (${identityId})`);
+    console.log(
+      '  Client Secret НЕ повторяется — используй существующий из /etc/infisical/' +
+        args.site +
+        '/',
+    );
+    console.log('  Если потерян: rotate через UI или удалить identity и перезапустить scaffold.');
+  }
   console.log('');
   console.log('Дальше:');
   console.log('  1. Заполни секреты dev env: через UI или `infisical secrets set --env=dev`');
