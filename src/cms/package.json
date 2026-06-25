@@ -5,9 +5,9 @@
   "description": "Payload CMS for Holy Grail site",
   "type": "module",
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev -p 3001",
+    "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev -p ${CMS_PORT:-3001}",
     "build": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap && cross-env NODE_OPTIONS=--no-deprecation next build",
-    "start": "cross-env NODE_OPTIONS=--no-deprecation next start -p 3001",
+    "start": "cross-env NODE_OPTIONS=--no-deprecation next start -p ${CMS_PORT:-3001}",
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",

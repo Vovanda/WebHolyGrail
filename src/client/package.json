@@ -5,9 +5,9 @@
   "description": "Next.js client for Holy Grail site",
   "type": "module",
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "next dev -p ${CLIENT_PORT:-3000}",
     "build": "next build",
-    "start": "next start -p 3000",
+    "start": "next start -p ${CLIENT_PORT:-3000}",
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "smoke": "playwright test"
