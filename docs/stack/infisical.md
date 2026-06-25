@@ -1,6 +1,6 @@
 # Infisical
 
-> Env-aware versioned key-value config storage. **Self-host single instance** на VPS Володи. Каждый Holy Grail сайт = отдельный **project** в этом instance (native Infisical RBAC изоляция). Cloud не используем — vendor lock-in недопустим.
+> Env-aware versioned key-value config storage. **Self-host single instance** на VPS Володи — тот же web UI / API / SDK что у Cloud (OSS = open-source версия cloud edition). Каждый Holy Grail сайт = отдельный **project** в этом instance (native Infisical RBAC изоляция). Cloud SaaS не используем — vendor lock-in недопустим.
 >
 > В Holy Grail используется как **general-purpose config store** — секреты + env-dependent runtime + feature flags + rate limits. Не только для секретов. Подробнее — [`45-data-location.md`](../whg/45-data-location.md).
 
@@ -195,7 +195,7 @@ npx skills add Infisical/ai-skills
 
 ## Self-host обходит chicken-egg
 
-`infisical bootstrap` команда создаёт admin user + org + admin identity автоматически при первой инициализации. **Никаких UI шагов** — полная автономия с первой команды:
+`infisical bootstrap` команда создаёт admin user + org + admin machine identity автоматически при первой инициализации — **обходит UI clicks для первичного setup'а**:
 
 ```bash
 TOKEN=$(docker exec infisical infisical bootstrap \
@@ -205,11 +205,24 @@ TOKEN=$(docker exec infisical infisical bootstrap \
   | jq -r '.identity.credentials.token')
 ```
 
-После bootstrap'а Володя только заходит в UI один раз чтобы:
-- Запомнить admin password (на случай recovery)
-- Опционально добавить других members с scope=specific project (если будет команда)
+После bootstrap у нас:
+- Admin user + пароль (для входа в web UI через браузер)
+- Admin machine identity + Client ID + Client Secret (для programmatic admin REST)
 
-Для типичного «один Володя — все проекты» — даже UI не нужен после первого старта.
+## Web UI — есть, полноценный
+
+Self-host edition Infisical — **тот же web UI** что Cloud (это open-source версия cloud edition, одна кодовая база). После запуска docker-контейнера UI доступен на `https://infisical.<your-domain>.tld/` (через свой `deploy/proxy-stack/nginx` с TLS).
+
+Через UI можно:
+- Управлять secrets вручную (set / view / rotate)
+- Просматривать audit log per project
+- Создавать / редактировать / удалять projects
+- Управлять members и их scope'ом (RBAC)
+- Создавать / ротировать machine identities
+- Настраивать access policies (folder-path-based, role-based)
+- Импорт/экспорт secrets (CSV, JSON, .env)
+
+**UI и programmatic API/CLI/MCP работают параллельно** — никакого выбора "или/или". Володя пользуется тем что удобно в моменте: код / скрипт когда автоматизирует, UI когда хочется визуально посмотреть или быстро рукой подправить.
 
 ## REST endpoints что я использую
 
