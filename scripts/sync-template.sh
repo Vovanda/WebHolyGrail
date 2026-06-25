@@ -137,9 +137,13 @@ WHITELIST=(
   # Deploy
   "deploy/"
 
-  # Root scripts
+  # Root scripts + meta
   "dev.sh"
   "dev-setup.sh"
+  "CLAUDE.md"
+  ".github/ISSUE_TEMPLATE/"
+  "docs/whg/"
+  "docs/stack/"
 
   # Claude skills — наши whg-* (без whg-scaffold — он только в upstream WHG)
   # + скачанные официальные payload/, cms-migration/, infisical-*/
