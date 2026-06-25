@@ -1,52 +1,50 @@
-# Holy Grail — скаффолдинг сайта
+# Site scaffolding
 
-> ⚠️ ЧЕРНОВИК. Как рождается новый сайт из шаблона. Базлайн зафиксирован, тяжёлые инструменты — открытый вопрос.
+> Status: experimental. Conventions are settling; the exact tooling around them is open.
 
-## Базлайн (отправная точка, простой путь)
+## Approach
 
-Не «умный генератор фреймворка», а **клонирование готового шаблона + переименование + умное наполнение агентом**:
+A new site is created by cloning the template, renaming, and filling in niche-specific content:
 
-1. **git repo copy** — взять `_template`, скопировать как новый репо/папку.
-2. **rename конфиг-переменных** — пройтись по конфигам, поменять: имя проекта, домен, имя БД, namespace, токены клиента (палитра).
-3. **rename корня папки** — папка → имя нового сайта.
-4. **анализ: какие страницы нужны** — Claude (или аналитик) смотрит на нишу → решает структуру (главная, о нас, услуги, контакты, каталог, форма...).
-5. **CLI создал + наполнил** — генератор создаёт эти страницы из блоков и наполняет реальным контентом.
+1. **Copy** `packages/_template/` into `sites/<site>/`.
+2. **Rename** configuration variables: project name, domain, database name, namespace, palette tokens.
+3. **Rename** the folder to match the new site.
+4. **Plan pages** — manually or with an LLM agent: pick the page set for the niche (home, about, services, contacts, catalogue, contact form, etc.).
+5. **Scaffold content** — a script (or agent acting through the Payload Local API) creates pages from blocks and fills them with realistic content.
 
-Суть: **каркас клонируется готовым** (детерминированно, одинаково), **интеллект — на Claude**.
+The split: the scaffold is deterministic and identical across sites; the intelligence (which pages, which content) lives in whatever drives step 4-5 — a human, a script, or an agent.
 
-## Что из этого следует
+## Implications for tooling
 
-Если базлайн = «копируй репо + ренейм + Claude наполнил», то для СТАРТА тяжёлые скаффолд-платформы (Nx) и даже шаблонные генераторы (Plop) **не нужны**. Достаточно:
+If the baseline is "copy + rename + fill in content", then for the first sites a heavy scaffolding platform (Nx) — or even a template generator (Plop) — is not required. What is needed:
 
-- **скрипт ренейма** (или Claude-скилл `new-site`);
-- умная часть (анализ страниц, контент) — агент, не инструмент.
+- a deterministic rename step (a small Bash/Node script);
+- something intelligent for the content pass (a human, an agent skill, a custom CLI).
 
-Скаффолд-платформа — вопрос «потом», когда сайтов десятки.
+A full scaffolding platform becomes relevant later, when many sites are being produced from the same template.
 
-## Открытые вопросы
+## Open questions
 
-1. **Ренейм — скрипт или Claude-скилл?** Простой bash/node-скрипт (надёжно) vs скилл агента (гибче). Может, гибрид: скрипт ренеймит детерминированно, агент — анализ+контент.
-2. **«CLI создал страницы» — что за CLI?** Свой скрипт поверх Payload Local API? Или Claude через MCP дёргает Payload? Или Plop-генератор страниц?
-3. **Параметризация шаблона** — env-переменные, конфиг-файл `site.config.ts` (имя, домен, БД, палитра в одном месте), placeholder-замена?
-4. **Когда вводить Turborepo/pnpm workspaces** — на старте (1 сайт) не нужно. Развязка: монорепо с workspaces нужен, когда либа `@holygrail/ui` реально тянется в сайты.
-5. **Нужен ли вообще отдельный скаффолд-тул**, или Claude-скилл `new-site` закрывает всё.
+1. **Rename step:** deterministic script vs. agent-driven? Likely a hybrid — the script does the mechanical rename, the agent handles content analysis.
+2. **Page-creation CLI:** custom script over Payload Local API, or an agent calling Payload through MCP, or a Plop-style generator?
+3. **Template parameterisation:** environment variables, a single `site.config.ts` (name, domain, DB, palette in one place), or placeholder substitution?
+4. **When to bring in pnpm workspaces and Turborepo:** not on day one with a single site. Becomes load-bearing once `@holygrail/ui` is actually consumed across sites.
+5. **Whether a dedicated scaffold tool is needed at all,** or whether an agent skill named `new-site` covers the use case.
 
-## Справка: чем скаффолдят TS/JS
+## Reference: scaffolding tools in the TypeScript/JavaScript ecosystem
 
-**Оркестрация монорепо:**
+**Monorepo orchestration:**
 
-- **Turborepo** (Vercel) — быстрые сборки, минимальный конфиг, родной Next. Генераторов кода НЕТ.
-- **Nx** (Nrwl) — полноценная платформа: генераторы, enforcement модульных границ, affected-команды. Мощнее, тяжелее.
-- **pnpm workspaces** — лёгкая база, связывает packages↔sites локально.
+- **Turborepo** — fast incremental builds, minimal config, native Next.js support. No code generators of its own.
+- **Nx** — full platform: generators, module-boundary enforcement, affected-graph commands. Heavier.
+- **pnpm workspaces** — lightweight package linking; the baseline for monorepos.
 
-**Генерация файлов:**
+**File generation:**
 
-- **Plop.js** — ходовой генератор по Handlebars-шаблонам.
-- **Hygen** — альтернатива Plop.
-- **Nx-генераторы** — мощнее: AST-трансформы TS. Но тяжесть платформы.
+- **Plop.js** — Handlebars-based generator.
+- **Hygen** — alternative to Plop.
+- **Nx generators** — more capable (AST transforms), at the cost of platform weight.
 
-**Вывод-кандидат:** pnpm workspaces + Turborepo (оркестрация) + Plop/`turbo gen` (шаблонный каркас), Claude поверх (умное наполнение). **Nx сознательно мимо** — его главная ценность (умные генераторы) у нас на агенте.
+## Current direction
 
-## Резюме
-
-Базлайн (копия+ренейм+Claude) — достаточно для первых сайтов. Платформа (Turborepo+Plop) — когда сайтов много. Главный кандидат — **Claude-скилл `new-site`** поверх простого ренейм-скрипта.
+A combination of pnpm workspaces + Turborepo (orchestration) + Plop or `turbo gen` (deterministic file scaffolding), with an agent layered on top for content. Nx is intentionally avoided here — its strongest value (smart generators) is provided by the agent layer instead.

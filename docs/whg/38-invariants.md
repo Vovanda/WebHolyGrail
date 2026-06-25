@@ -1,66 +1,67 @@
-# Holy Grail — инварианты данных и блоков
+# Invariant data and blocks
 
-> Что повторяется почти в любом сайте → живёт в `_template` и базовой либе, не создаётся заново.
+> Patterns that recur in almost every site live in `packages/_template` and the shared library, not re-created per site.
 
-## Три уровня данных
+## Three layers of data
 
-1. **Инварианты** — есть почти всегда, лежат в `_template` готовыми.
-2. **Нишевое** — зависит от сектора, подключается нишевым пакетом.
-3. **Уникальное** — пишется под конкретный сайт; если паттерн повторился — переезжает в либу.
+1. **Invariant** — present in almost every site, shipped in `_template`.
+2. **Niche** — depends on the sector, comes from a niche package.
+3. **Unique** — written for one site; if a pattern repeats, it graduates into the shared library.
 
-## Инвариантные сущности (коллекции — в шаблоне)
+## Invariant collections
 
-- **Pages** — страницы из блоков. Ядро, всегда. Поля: title, slug, blocks[], seo, published.
-- **Media** — загрузки (картинки, файлы) → S3. Всегда. Поля: file, alt, sizes.
-- **Users** — **редакторы CMS** (админ-домен): кто заходит в админку и правит контент. Инвариант. Живёт в `cms/` (Payload), родная сущность. Поля: email, role (admin/editor), name.
-- **FormSubmissions** — заявки с форм. Почти всегда. Поля: formType, payload(JSON), createdAt, status, source.
-- **Globals** — синглтон настроек сайта: контакты, соцсети, лого, шапка/подвал, реквизиты.
-- **Navigation/Menu** — структура меню. Часто инвариант.
-- **Redirects** — старый URL → новый, для SEO при переездах.
+Shipped in the template:
 
-## Инвариантные поля
+- **Pages** — pages built from blocks. Fields: `title`, `slug`, `blocks[]`, `seo`, `published`.
+- **Media** — uploaded files (images, documents) → S3. Fields: `file`, `alt`, `sizes`.
+- **Users** — CMS editors (the admin domain). People who log into the admin UI and edit content. Lives in `cms/`. Fields: `email`, `role` (`admin` / `editor`), `name`.
+- **FormSubmissions** — submissions from public forms. Fields: `formType`, `payload` (JSON), `createdAt`, `status`, `source`.
+- **Globals** — singleton site settings: contacts, social links, logo, header/footer, legal details.
+- **Navigation / Menu** — menu structure. Frequently invariant.
+- **Redirects** — old URL → new URL, for SEO continuity during migrations.
 
-- **SEO** — meta title, description, OG-image. К каждой Page.
-- **Slug** — ЧПУ из title. Везде.
-- **Timestamps** — createdAt/updatedAt. Payload даёт сам.
-- **Publish-статус** — draft/published. Почти везде.
-- **Audit** — кто создал/изменил.
+## Invariant fields
 
-## Инвариантные блоки
+- **SEO** — meta title, description, OG image. Attached to every Page.
+- **Slug** — URL slug derived from title.
+- **Timestamps** — `createdAt` / `updatedAt`. Payload provides them.
+- **Publish status** — `draft` / `published`.
+- **Audit** — author / last editor.
 
-Hero (заголовок + подзаголовок + CTA + фон), RichText, Image/Gallery, CTA, Form, Contacts (адрес/телефон/карта), Features/Services (сетка), FAQ, Footer-контент.
+## Invariant blocks
 
-## Граница Users vs клиентская сущность (важно)
+`Hero` (heading + subheading + CTA + background), `RichText`, `Image` / `Gallery`, `CTA`, `Form`, `Contacts` (address / phone / map), `Features` / `Services` grid, `FAQ`, footer content.
 
-Два РАЗНЫХ домена людей, никогда не мешать:
+## Users vs. end-customer entity
 
-- **Users = редакторы CMS** (управляют сайтом изнутри). Инвариант. Владелец — `cms/`. Всегда одно имя.
-- **Клиенты бизнеса** (внешние, для кого бизнес существует) — **НЕ инвариант**, появляются при росте (модель 2). Владелец — `api/`, не CMS.
+Two separate domains of people; do not merge them:
 
-Не пересекаются: директор кофейни (Users, правит меню) и посетитель, забронировавший столик (клиент) — разные люди в разных системах.
+- **Users = CMS editors.** People who manage the site from the inside. Invariant. Owned by `cms/`. Always one name.
+- **End customers** (the people the business exists for) are **not** invariant — they appear when the site grows past model 1 (see [`32-structure.md`](32-structure.md)). Owned by `api/`, not by the CMS.
 
-### Клиентскую сущность НЕ называть универсально
+These do not overlap: a coffee-shop owner editing the menu through the admin UI (a User) and a guest who booked a table (an end customer) are different people in different systems.
 
-Универсального имени (`CrmUsers`, `Clients`) не даём. Имя берётся по сути бизнеса:
+### End-customer entity is named by domain
 
-- магазин → **Customers** (покупатели);
-- клиника → **Patients** (пациенты);
-- питомник → **Owners** / **Buyers** (владельцы/покупатели щенков);
-- сервис с кабинетом → **Members** (участники).
+There is no universal name (no `CrmUsers`, no `Clients`). The name comes from the business:
 
-Правило: **`Users` — инвариант (редакторы, одно имя); клиентская сущность именуется по домену ниши.**
+- shop → **Customers**;
+- clinic → **Patients**;
+- membership site → **Members**;
+- booking service → **Bookings** with associated holders.
 
-## Нишевое (не инвариант, нишевый пакет)
+Rule: **`Users` is invariant (CMS editors, one name across sites); the end-customer entity is named after the niche.**
 
-Примеры по секторам:
+## Niche packages (not invariant)
 
-- **автосервис** — Запись-на-ТО, Прайс-работ, Услуги-СТО;
-- **питомник** — Собаки/Помёты, Карточка-щенка, Родословная;
-- **кофейня** — Меню, Бронь-столика;
-- **магазин** — Products, Cart, Orders.
+Examples by sector:
 
-## Формула сборки
+- **auto-service** — `ServiceBookings`, `LabourPricing`, `Services`;
+- **coffee shop** — `Menu`, `TableReservations`;
+- **shop** — `Products`, `Cart`, `Orders`.
 
-**Новый сайт = инварианты (из `_template`, готовы ~70%) + нишевый набор + уникальное.**
+## Composition formula
 
-Следствие: анализ «какие страницы/сущности» нужен **только для специфики** — инвариантные (Pages, Media, Users, формы) уже в шаблоне. 70% сайта не создаётся вообще — оно в шаблоне.
+**A new site = invariants (already in `_template`) + niche set + unique pieces.**
+
+Consequence: the analysis "which pages and entities does this site need" applies only to the niche and unique layers. Pages, Media, Users, and basic forms are inherited from the template and require no decision.

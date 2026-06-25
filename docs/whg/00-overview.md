@@ -12,18 +12,16 @@ Over time the pack will evolve — some tools may become optional, others may be
 
 ## What problem it solves
 
-Most "starter templates" optimise for the first day. They make the homepage appear fast and then leak architectural debt for years.
+Optimises for long-term maintainability rather than first-day setup speed:
 
-WHG optimises for **year three**:
-
-- Add a payment form, then a customer dashboard, then a real backend service — without throwing the original site away.
-- Hand the project to a different developer (or a future-you) — and the structure is obvious enough that onboarding takes hours, not weeks.
-- Swap the CMS for a custom backend — the data stays where it was, because it was never welded to the CMS in the first place.
+- New capabilities (forms, dashboards, custom backend services) added by side-scaling, without rewriting the original site.
+- Project structure is conventional enough that a new contributor onboards in hours.
+- The CMS can be swapped or removed without migrating data — data sits in its own tables behind an access layer.
 
 ## Three architectural separations it enforces
 
 1. **Data is separate from UI.** Content lives in clean relational tables (Postgres or SQLite). The frontend never reads the database directly. There is always a layer between them — Payload's API or a custom backend — and that layer speaks through typed contracts.
-2. **Logic is separate from the database.** Business logic doesn't live in queries or in CMS hooks. When a real backend is needed, it sits in its own workspace (`src/api/`) with repositories on top of the same tables. Swap the database adapter, the logic doesn't notice.
+2. **Logic is separate from the database.** Business logic does not live in queries or in CMS hooks. When a custom backend is needed, it sits in its own workspace (`src/api/`) with repositories on top of the same tables. Swapping the database adapter (SQLite ↔ Postgres) requires no logic changes.
 3. **Modules are interchangeable.** Frontend, CMS, future backend — each is a self-contained workspace with its own Dockerfile. They communicate through `contracts/` (shared TypeScript types), never through cross-imports. Pull any one of them out, the others keep working.
 
 This gives a project a clear **growth path**: it can start as a single-CMS landing page and grow into a multi-service system, with the same data layer holding it all up.
@@ -34,10 +32,9 @@ This gives a project a clear **growth path**: it can start as a single-CMS landi
 - **Not a hosting platform.** You bring your own server. Production deploy scripts (blue-green via Docker compose) are included as reference.
 - **Not a kitchen-sink CMS.** Payload handles content, media, simple forms, and invariant collections. Domain-specific business logic moves to `src/api/` when the site grows past that.
 
-## Two horizons
+## Abstraction follows experience (R9)
 
-- **Now (delivery):** Use what's there. Don't carve custom CSS, don't write your own primitives. Cut the site, ship it.
-- **Later (specialty work):** When something genuinely doesn't fit, write the custom piece. Patterns that repeat across sites earn their way into the shared library, **organically and after experience** — not in advance. See R9 in [`30`](30-philosophy.md).
+Shared abstractions enter `packages/` after a pattern has appeared in two or more sites — not in advance. See R9 in [`30-philosophy.md`](30-philosophy.md).
 
 ## Where to read next
 

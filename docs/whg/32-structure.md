@@ -96,7 +96,7 @@ A site declares the shared packages as workspace dependencies, not by copying: `
 
 - **Dockerfile lives with the app, not in `deploy/`.** `client/Dockerfile`, `cms/Dockerfile`. The app knows how to build itself and carries that with it. `deploy/` only orchestrates.
 - **`contracts/` sits above `src/`, not inside it.** The seam isn't on the same level as the apps it connects. Dependency is one-way: `client/`, `cms/`, `api/` depend on `contracts/`; `contracts/` depends on no one. Putting it inside `src/` invites accidental reverse imports (client → contracts → client) and breaks the seam.
-- **The database is visible but behind an access layer.** `deploy/db/` (init + volume + backup). Data is the permanent foundation — it doesn't belong hidden inside a single compose line. Picking SQLite vs. Postgres is a pragmatic call (see [`70`](70-backend-data.md), R8).
+- **The database is visible but behind an access layer.** `deploy/db/` holds init scripts, the volume mount, and the backup configuration. Lifecycle is managed there rather than inlined into the compose file. Picking SQLite vs. Postgres is a per-site call (see R8).
 - **Environments belong in `deploy/`.** `local/` and `prod/`. Secrets management hooks into these.
 - **`.env.example` is documentation, not storage.** Lists what variables exist; real values come from your secrets manager.
 
@@ -106,7 +106,7 @@ A site declares the shared packages as workspace dependencies, not by copying: `
 - **Model 2 — CMS + api side by side (growth).** Business logic appears → write `src/api/` (e.g. .NET) with repositories. **CMS stays** and keeps owning content; `api/` owns data and logic. Side-scaling, the core isn't touched (R4).
 - **Model 3 — no CMS (highload, rare).** `cms/` is pulled out entirely. Database and `client/` stay. The frontend doesn't change — it still talks via `contracts/`.
 
-The common misreading is "the CMS gets replaced by a backend". That's wrong: the **backend grows up alongside the CMS** (model 2). The CMS leaves only in model 3, which most sites never reach.
+In model 2 the CMS keeps owning content while the `api/` workspace owns business logic and grows alongside it. Model 3 (full removal of the CMS) is reserved for high-load scenarios most sites never need.
 
 ## When a site graduates to its own repo
 
