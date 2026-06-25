@@ -78,10 +78,18 @@ export function Timeline({
                     : undefined
                 }
               >
+                {/*
+                  Соосность точки с вертикальной линией:
+                  - `<ol>` имеет `border-l-4` (4px) → центр линии в x=2 от левого края ol.
+                  - `<ol>` имеет `px-10` (padding-left 40px) → `<li>` content начинается в x=44.
+                  - Точка width=14px (центр на +7). Чтобы центр точки совпал с центром линии (x=2),
+                    нужно `left = 2 - 7 - 44 = -49px` относительно `<li>`.
+                  Володя 2026-06-25 14:25: «точки чуть левее чем надо» — было -47 (центр x=4, на 2px правее линии).
+                */}
                 <span
                   aria-hidden
                   className="
-                    absolute -left-[47px] top-2 h-[14px] w-[14px] rounded-full
+                    absolute -left-[49px] top-2 h-[14px] w-[14px] rounded-full
                     bg-accent border-[3px] border-bg
                   "
                   style={{ boxShadow: '0 0 0 2px var(--color-border)' }}
