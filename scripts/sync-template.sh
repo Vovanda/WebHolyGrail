@@ -31,12 +31,14 @@ INSTANCE=""
 REF="main"
 REPO=""
 DRY_RUN=false
+INCLUDE_CLAUDE=false
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --ref) REF="$2"; shift 2 ;;
     --repo) REPO="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
+    --include-claude) INCLUDE_CLAUDE=true; shift ;;
     --help|-h)
       sed -n '2,32p' "$0"; exit 0 ;;
     -*) echo "Unknown flag: $1" >&2; exit 1 ;;
@@ -137,13 +139,29 @@ WHITELIST=(
   # Deploy
   "deploy/"
 
-  # Root scripts + meta
+  # Root scripts
   "dev.sh"
   "dev-setup.sh"
-  "CLAUDE.md"
+
+  # Generic configs (одинаковые во всех Holy Grail сайтах)
+  "commitlint.config.js"
+  "pnpm-workspace.yaml"
+  "tsconfig.base.json"
+  ".husky/"
+  ".gitleaks.toml"
+  ".changeset/config.json"
+  ".editorconfig"
+  ".prettierrc.json"
+  ".prettierignore"
+  ".gitattributes"
+  ".env.local.example"
+
+  # Issue templates + framework docs
   ".github/ISSUE_TEMPLATE/"
   "docs/whg/"
   "docs/stack/"
+
+  # CLAUDE.md — opt-in (--include-claude), может содержать downstream-кастомизацию
 
   # Claude skills — наши whg-* (без whg-scaffold — он только в upstream WHG)
   # + скачанные официальные payload/, cms-migration/, infisical-*/
@@ -181,6 +199,11 @@ $DRY_RUN && RSYNC_FLAGS="$RSYNC_FLAGS --dry-run"
 echo ""
 echo "→ Syncing whitelist (${#WHITELIST[@]} paths)..."
 echo ""
+
+if $INCLUDE_CLAUDE; then
+  WHITELIST+=("CLAUDE.md")
+  echo "  ↳ --include-claude: CLAUDE.md included (overwrites local customizations)"
+fi
 
 for path in "${WHITELIST[@]}"; do
   src="$SOURCE_DIR/$path"
