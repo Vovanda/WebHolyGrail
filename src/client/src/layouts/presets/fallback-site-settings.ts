@@ -1,31 +1,31 @@
 import type { SiteSettings } from 'contracts';
 
 import { DEFAULT_THEME_CONFIG } from '@/lib/theme-bootstrap';
-import { CLASSIC_VEO55_LAYOUT } from './classic-veo55';
+import { CLASSIC_SITE_LAYOUT } from './classic';
 
 /**
- * Дефолтный SiteSettings — используется когда CMS недоступна или global ещё не
- * заполнен (первый запуск). Так первый запуск никогда не "пустой экран".
+ * Default SiteSettings — used when the CMS is unreachable or the global has
+ * not been filled in yet (first launch). Guarantees the first page render is
+ * never a blank screen.
  *
  * @remarks
- * Контент-минимум который позволит главной отрендериться: имя сайта, базовые
- * контакты, навигация-заглушка, layout-preset, theme-дефолт. Реальные значения
- * админ потом меняет в Payload-админке.
+ * Bare minimum so the home page can render: site name, basic contacts, stub
+ * navigation, layout preset, theme default. The admin can then override every
+ * value from the Payload admin UI.
  */
 export const FALLBACK_SITE_SETTINGS: SiteSettings = {
-  siteName: 'Питомник «Омская Дружина»',
+  siteName: 'Example Site',
   contacts: {
-    phone: '+7 908 313 25 49',
-    email: 'info@veo55.ru',
-    address: 'Омск',
+    phone: '+1 555 0100',
+    email: 'contact@example.com',
+    address: 'City, Country',
   },
   mainNav: [
-    { href: '/', label: 'Главная' },
-    { href: '/faq', label: 'Ответы на вопросы' },
-    { href: '/news', label: 'Новости' },
-    { href: '/catalog', label: 'Каталог собак' },
+    { href: '/', label: 'Home' },
+    { href: '/about', label: 'About' },
+    { href: '/contact', label: 'Contact' },
   ],
-  social: [{ platform: 'vk', url: 'https://vk.com/veo55', label: 'ВКонтакте' }],
+  social: [],
   theme: DEFAULT_THEME_CONFIG,
-  layout: CLASSIC_VEO55_LAYOUT,
+  layout: CLASSIC_SITE_LAYOUT,
 };

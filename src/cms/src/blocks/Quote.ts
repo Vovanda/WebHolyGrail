@@ -1,30 +1,30 @@
 import type { Block } from 'payload';
 
 /**
- * Quote / Testimonial — цитата с подписью.
- * Может быть «О нас» (с фото автора) или отзыв клиента.
+ * Quote / Testimonial — a quote with an attribution.
+ * Can be an "About us" block (with author photo) or a customer testimonial.
  */
 export const QuoteBlock: Block = {
   slug: 'quote',
-  labels: { singular: 'Цитата / Отзыв', plural: 'Цитаты' },
+  labels: { singular: 'Quote / Testimonial', plural: 'Quotes' },
   fields: [
     {
       name: 'heading',
-      label: 'Заголовок секции (опционально)',
+      label: 'Section heading (optional)',
       type: 'text',
-      defaultValue: 'О нас',
+      defaultValue: 'About us',
     },
-    { name: 'body', label: 'Текст цитаты', type: 'textarea', required: true },
-    { name: 'author', label: 'Автор', type: 'text', required: true },
-    { name: 'role', label: 'Должность / роль', type: 'text' },
+    { name: 'body', label: 'Quote text', type: 'textarea', required: true },
+    { name: 'author', label: 'Author', type: 'text', required: true },
+    { name: 'role', label: 'Role / title', type: 'text' },
     {
       name: 'photoUrls',
-      label: 'Фото автора (одно или несколько → карусель)',
+      label: 'Author photo (one or more → carousel)',
       type: 'array',
-      labels: { singular: 'Фото', plural: 'Фото' },
+      labels: { singular: 'Photo', plural: 'Photos' },
       admin: {
         description:
-          'Если несколько — будут крутиться каруселью с автосменой 5 сек, со стрелками и свайпом.',
+          'If more than one — rotates in a carousel (5s auto-advance), with arrows and swipe.',
       },
       fields: [
         {
@@ -32,19 +32,19 @@ export const QuoteBlock: Block = {
           label: 'URL',
           type: 'text',
           required: true,
-          admin: { description: 'Например: https://cdn.veo55.ru/images/about/olga-1.jpg' },
+          admin: { description: 'Public URL of the image (e.g. https://cdn.example.com/img.jpg).' },
         },
       ],
     },
     {
       name: 'variant',
-      label: 'Вариант дизайна',
+      label: 'Design variant',
       type: 'select',
       defaultValue: 'card-accent-left',
       options: [
-        { label: 'Карточка с янтарной полосой (veo55-стиль, с фото)', value: 'card-accent-left' },
-        { label: 'Минимал (без фото, без карточки)', value: 'minimal-modern' },
-        { label: 'Фото-карточка (отзыв клиента)', value: 'photo-card' },
+        { label: 'Card with accent stripe (with photo)', value: 'card-accent-left' },
+        { label: 'Minimal (no photo, no card)', value: 'minimal-modern' },
+        { label: 'Photo card (customer testimonial)', value: 'photo-card' },
       ],
     },
   ],

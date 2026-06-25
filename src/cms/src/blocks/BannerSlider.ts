@@ -1,33 +1,33 @@
 import type { Block } from 'payload';
 
 /**
- * BannerSlider — автослайдер с фотографиями. Самостоятельный блок-секция,
- * можно добавить в любом месте страницы. При 1 фото — статичная, при >1 — карусель.
+ * BannerSlider — image slider. A standalone section block; can be placed anywhere
+ * on a page. One image = static, more than one = auto-rotating carousel.
  */
 export const BannerSliderBlock: Block = {
   slug: 'banner-slider',
-  labels: { singular: 'Слайдер баннеров', plural: 'Слайдеры баннеров' },
+  labels: { singular: 'Banner slider', plural: 'Banner sliders' },
   fields: [
     {
       name: 'banners',
-      label: 'Баннеры (фото)',
+      label: 'Banners (images)',
       type: 'array',
-      labels: { singular: 'Баннер', plural: 'Баннеры' },
+      labels: { singular: 'Banner', plural: 'Banners' },
       minRows: 1,
       admin: {
-        description: 'Вставь URL фото с CDN. При нескольких — автоматическая карусель (5 сек).',
+        description: 'Paste image URLs. If more than one, rotates as a carousel (5s).',
       },
       fields: [
         {
           name: 'imageUrl',
-          label: 'URL картинки',
+          label: 'Image URL',
           type: 'text',
           required: true,
-          admin: { description: 'Например: https://cdn.veo55.ru/headers/banner1.png' },
+          admin: { description: 'Public URL (e.g. https://cdn.example.com/banners/1.png).' },
         },
         {
           name: 'alt',
-          label: 'Alt-текст (для SEO и скринридеров)',
+          label: 'Alt text (for SEO and screen readers)',
           type: 'text',
         },
       ],
