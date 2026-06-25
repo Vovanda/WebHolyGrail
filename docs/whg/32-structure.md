@@ -75,7 +75,12 @@
 ├── scripts/
 │   ├── setup-infisical.ts           # bootstrap Infisical project for this site
 │   ├── sync-template.sh             # pull updates FROM upstream WHG → this instance
-│   └── migrate-veo55-to-domain.sh   # one-shot: legacy veo55-site → template format
+│   ├── seeds/                       # project type seed pipelines (idempotent, Payload Local API)
+│   │   ├── minimal/                 # current: initial admin + empty home
+│   │   ├── business-card/           # roadmap: home/about/contacts/services
+│   │   ├── blog/                    # roadmap: /blog routes + sample post
+│   │   └── portal/                  # roadmap: customer auth + dashboard
+│   └── migrate-*.sh                 # one-shot migrations for specific legacy layouts
 │
 ├── docs/whg/                        # you're reading this
 │
@@ -113,6 +118,19 @@ src/client/src/
 
 Generic levels (L1–L3) — provided by the template, updated via `sync-template.sh`.
 Domain level (L4) — owned by the instance, untouched by sync.
+
+## Project types — different starting points, same architecture
+
+A site is scaffolded with a **type** (`--type minimal|business-card|blog|portal`) that determines its starting collection set, seed data, routes, and domain blocks. The architecture below is identical across types — only the starting configuration differs.
+
+| Type | What's added on top of generic |
+|---|---|
+| `minimal` (current) | initial admin + empty home page |
+| `business-card` (roadmap) | + Pages presets, contact form, services grid, contacts info |
+| `blog` (roadmap) | + active Posts/Comments, `/blog` routes, `blocks/domain/blog/` |
+| `portal` (roadmap) | + Customer Users with auth/roles, `/login`/`/dashboard`, `blocks/domain/portal/` |
+
+Type is a **starting point**, not a lock-in. Once the site is up, growth happens by adding more `blocks/domain/<niche>/` — independent of which type bootstrapped you.
 
 ## Three growth models (same tree)
 

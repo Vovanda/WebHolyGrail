@@ -2,14 +2,36 @@
 
 > One command on GitHub, one on the shell, two on Infisical. ~30 minutes from zero to dev stack running.
 
+## Project type
+
+Holy Grail supports several project types. The type defines which collections, blocks, routes, and seed data are bootstrapped on top of the generic minimum:
+
+| Type | Status | What you get |
+|---|---|---|
+| `minimal` | ✅ available | Generic Pages/Media/Users/FormSubmissions/ReusableBlocks + initial admin user + empty home page. Build the rest in admin or extend `blocks/domain/` yourself. |
+| `business-card` | 🔜 roadmap | + Pages presets (home/about/contacts/services), ContactsBlock, ServicesGrid, working contact form |
+| `blog` | 🔜 roadmap | + active Posts/Comments, `/blog` routes, `blocks/domain/blog/` (PostCard/PostList/PostContent), RSS, sample post |
+| `portal` | 🔜 roadmap | + Customer Users (auth + roles separate from admin), `/login`/`/signup`/`/dashboard` routes, `blocks/domain/portal/`, email integration |
+
+Choose type at scaffold time (`--type <name>`). Default — `minimal`.
+
+Codebase is structured to accept the additional types without rewrites:
+- `scripts/seeds/<type>/index.ts` — type-specific seed pipeline (idempotent, Payload Local API).
+- `migrations/` files prefixed by type (`10000_business-card_*`, `11000_blog_*`, `20000_portal_*`) apply on demand.
+- `blocks/domain/<type>/` directories copied conditionally by scaffold.
+
+Existing types you build for an instance live as `blocks/domain/<niche>/` regardless — the project type is just the **starting** configuration. Your real growth happens via domain layer.
+
 ## Create the instance repo
 
 ```bash
-# Option A — GitHub UI: open https://github.com/Vovanda/WebHolyGrail → "Use this template"
+# Option A — GitHub UI: open https://github.com/Vovanda/WebHolyGrail → "Use this template" → Private
 # Option B — gh CLI:
 gh repo create <owner>/<my-site> --template Vovanda/WebHolyGrail --private --clone
 cd <my-site>
 ```
+
+Holy Grail instances are **always private** by default — they contain client/business logic, infrastructure endpoints, and content that shouldn't be public. Public is an explicit opt-in.
 
 The repo arrives with the full Holy Grail skeleton at the root — no folder to unpack.
 
@@ -25,26 +47,35 @@ Installs `client`, `cms`, `contracts` workspaces.
 
 Holy Grail uses **Infisical Cloud** for all secrets — no `.env.production` files on the VPS, no committed `.env`. See [`holygrail-infisical` skill](../../.claude/skills/holygrail-infisical/SKILL.md) for the full workflow.
 
-Prerequisites (one-time per machine):
-```bash
-infisical login                                       # browser flow, token in keychain
-```
+Prerequisites (one-time per organisation, not per site):
+
+1. In Infisical UI: create a `claude-scaffold-admin` machine identity with org-admin role (Universal Auth) — see [`holygrail-infisical`](../../.claude/skills/holygrail-infisical/SKILL.md) for the one-time setup steps.
+2. Put its credentials in your shell env (`~/.zshrc`, `~/.bashrc`, or Windows env):
+   ```bash
+   export INFISICAL_ADMIN_CLIENT_ID=<...>
+   export INFISICAL_ADMIN_CLIENT_SECRET=<...>
+   ```
+
+After that, every scaffold is fully automated through REST API — no more UI clicks.
 
 Bootstrap the project for this site:
 ```bash
-INFISICAL_ORG_ID=<your-org-id> pnpm setup-infisical -- --site <slug>
+pnpm setup-infisical -- --site <slug> [--type minimal]
 ```
 
-What the script does:
-- Creates Infisical project `holygrail-<slug>`.
-- Creates 3 environments: `dev`, `staging`, `prod`.
-- Seeds empty placeholder secrets (PAYLOAD_SECRET, DATABASE_URI, S3_*, NEXT_PUBLIC_*).
-- Writes `.infisical.json` (workspace marker) — commit it.
+What the script does (8 steps, fully automated via REST):
+1. Log in as the admin identity using the env credentials.
+2. Create Infisical project `holygrail-<slug>`.
+3. Create 3 environments: `dev`, `staging`, `prod`.
+4. Seed empty placeholder secrets (PAYLOAD_SECRET, DATABASE_URI, S3_*, NEXT_PUBLIC_*, VK_*).
+5. Create service machine identity `<slug>-prod-deploy` (Universal Auth, scoped to prod).
+6. Attach Universal Auth config to the service identity.
+7. Generate Client Secret for the service identity — printed to console (one-time only, save it!).
+8. Write `.infisical.json` (workspace marker, `defaultEnvironment: dev`) — commit it.
 
-Then **in the Infisical UI** — one-time manual:
-1. Project → Access Control → Machine Identities → Create `<slug>-prod-deploy` (Universal Auth).
-2. Bind identity to `prod` environment, read-only.
-3. Generate Client ID + Client Secret. Save them — they go on the VPS during first deploy.
+The printed Client ID and Client Secret are what you put on the production VPS for `deploy/prod/deploy.sh`. See deploy section below.
+
+Migration path from old setup: if your instance was scaffolded before this REST automation existed, the manual UI steps still work (create service identity, get credentials by hand). Both paths land at the same outcome.
 
 ## Secrets for dev
 

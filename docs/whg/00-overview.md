@@ -19,6 +19,12 @@ Optimises for long-term maintainability rather than first-day setup speed:
 - Project structure is conventional enough that a new contributor onboards in hours.
 - The CMS can be swapped or removed without migrating data — data sits in its own tables behind an access layer.
 
+## Starts as the type you need
+
+A site is scaffolded with a **project type** — `minimal`, `business-card`, `blog`, `portal`. The type defines the starting set of collections, routes, blocks, and seed data; the rest of the architecture is identical across types. Currently `minimal` is the available type; the others are on the roadmap and codebase is structured to absorb them without refactor (`scripts/seeds/<type>/`, prefixed migrations, conditional `blocks/domain/<type>/`).
+
+The type is just the **starting configuration**. Real long-term growth happens through `blocks/domain/<niche>/` added on top, regardless of which type bootstrapped you. A site started as `minimal` and grown into a portal looks identical in code to one started as `portal` — the path doesn't matter, the destination does.
+
 ## Three architectural separations it enforces
 
 1. **Data is separate from UI.** Content lives in clean relational tables (Postgres or SQLite). The frontend never reads the database directly. There is always a layer between them — Payload's API or a custom backend — and that layer speaks through typed contracts.

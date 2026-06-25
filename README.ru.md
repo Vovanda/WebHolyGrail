@@ -35,7 +35,7 @@ Generic-код живёт upstream в этом шаблоне. Каждый ин
 ## Быстрый старт
 
 ```bash
-# 1. Создаём инстанс из шаблона:
+# 1. Создаём инстанс из шаблона (всегда --private — инстансы не публичные):
 gh repo create <owner>/my-site --template Vovanda/WebHolyGrail --private --clone
 cd my-site
 
@@ -43,14 +43,15 @@ cd my-site
 corepack enable
 pnpm install
 
-# 3. Bootstrap секретов (Infisical Cloud):
-infisical login                                # один раз на машину
-pnpm setup-infisical -- --site my-site         # project + dev/staging/prod envs
+# 3. Bootstrap (Infisical project + секреты + dev/staging/prod envs):
+pnpm setup-infisical -- --site my-site [--type minimal]
 
 # 4. Запускаем dev-стек:
-./dev-setup.sh                                 # один раз на checkout
+./dev-setup.sh                                 # один раз — MinIO + Infisical defaults
 ./dev.sh                                       # CMS :3001 + Client :3000
 ```
+
+Типы проектов: `minimal` (доступен), `business-card` / `blog` / `portal` (roadmap). Тип — стартовая конфигурация; рост всегда через `blocks/domain/<niche>/` поверх.
 
 Дальше http://localhost:3000 (сайт) и http://localhost:3001/admin (админка Payload).
 
