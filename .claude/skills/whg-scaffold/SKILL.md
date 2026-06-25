@@ -1,6 +1,6 @@
 ---
 name: whg-scaffold
-description: End-to-end workflow создания нового Holy Grail инстанса с нуля — gh repo create --template → pnpm setup-infisical → ./dev-setup.sh → ./dev.sh. От пустого GH-репозитория до работающего локального dev стека за 5-10 минут. Покрывает все шаги, грабли и smoke-проверки. Триггерить когда создаёшь новый сайт (любой ниши — блог, кафе, клиника, питомник, авто), тестируешь template ("Use this template" → работает за минуты), onboarding нового разработчика на WHG, или когда нужно пройти полный путь от создания репо до запуска dev.
+description: End-to-end workflow создания нового Holy Grail инстанса с нуля — gh repo create --template → pnpm setup-infisical → ./dev-setup.sh → ./dev.sh. От пустого GH-репозитория до работающего локального dev стека за 5-10 минут. Покрывает все шаги, грабли и smoke-проверки. Триггерить когда создаёшь новый сайт (любой ниши — блог, кафе, клиника, business, авто), тестируешь template ("Use this template" → работает за минуты), onboarding нового разработчика на WHG, или когда нужно пройти полный путь от создания репо до запуска dev.
 ---
 
 # Skill: whg-scaffold
@@ -11,21 +11,21 @@ description: End-to-end workflow создания нового Holy Grail инс
 
 ## Когда триггерить
 
-- Создание нового сайта (любой ниши — блог, кафе, клиника, питомник, авто, школа)
-- Володя говорит "scaffold sawking-tech" / "начни blog/clinic/cafe на WHG"
+- Создание нового сайта (любой ниши — блог, кафе, клиника, business, авто, школа)
+- instance admin говорит "scaffold <slug-b>" / "начни blog/clinic/cafe на WHG"
 - Тестирование template — проверка что "Use this template" → работающий dev за минуты
 - Onboarding нового разработчика на WHG architecture
 - Воспроизведение чужого Holy Grail инстанса с нуля (debugging "почему у меня не стартует")
 
 ## Prereqs на машине разработчика (один раз)
 
-| Tool | Версия | Проверка |
-|---|---|---|
-| Docker | 24+ | `docker --version` (нужен для MinIO) |
-| pnpm | 11.8+ | `pnpm --version` |
-| Node | 20.11+ LTS | `node --version` |
-| Infisical CLI | latest | `infisical --version`, и `infisical login` один раз |
-| gh CLI | 2.40+ | `gh --version`, и `gh auth status` |
+| Tool          | Версия     | Проверка                                            |
+| ------------- | ---------- | --------------------------------------------------- |
+| Docker        | 24+        | `docker --version` (нужен для MinIO)                |
+| pnpm          | 11.8+      | `pnpm --version`                                    |
+| Node          | 20.11+ LTS | `node --version`                                    |
+| Infisical CLI | latest     | `infisical --version`, и `infisical login` один раз |
+| gh CLI        | 2.40+      | `gh --version`, и `gh auth status`                  |
 
 Если что-то не установлено — см. соответствующий install (Infisical: `brew install infisical/get-cli/infisical` / `winget install Infisical.CLI` / curl-script).
 
@@ -38,9 +38,9 @@ gh repo create <owner>/<slug> --template Vovanda/WebHolyGrail --private --clone
 cd <slug>
 ```
 
-`<slug>` — короткое имя сайта (например `sawking-tech`, `clinic-vita`, `cafe-zerno`). Используется как Infisical project name, docker network namespace.
+`<slug>` — короткое имя сайта (например `<slug-b>`, `clinic-vita`, `cafe-zerno`). Используется как Infisical project name, docker network namespace.
 
-**Visibility — всегда `--private`.** Holy Grail инстансы — коммерческие сайты клиентов с domain-логикой / контентом / инфра-ссылками, которые не должны попадать в публичный доступ. Open-source / demo — явное исключение, только по прямой команде Володи.
+**Visibility — всегда `--private`.** Holy Grail инстансы — коммерческие сайты клиентов с domain-логикой / контентом / инфра-ссылками, которые не должны попадать в публичный доступ. Open-source / demo — явное исключение, только по прямой команде instance admin.
 
 После клона: проверь `git remote -v` указывает на свой репо (а не WHG).
 
@@ -61,9 +61,10 @@ pnpm setup-infisical -- --site <slug>
 ```
 
 Что делает `pnpm setup-infisical`:
+
 - `createProject({ projectName: "holygrail-<slug>", type: "secret-manager" })`
 - `createEnvironment` × 3 (dev / staging / prod)
-- Seed placeholders для STANDARD_SECRETS (PAYLOAD_*, DATABASE_URI, S3_*, NEXT_PUBLIC_*, VK_*)
+- Seed placeholders для STANDARD*SECRETS (PAYLOAD*_, DATABASE*URI, S3*_, NEXT*PUBLIC*_, VK\__)
 - Пишет `.infisical.json` в корень (`workspaceId` + `defaultEnvironment: "dev"`)
 
 `.infisical.json` — **коммитится** (там только UUID workspace'а, не секреты).
@@ -77,6 +78,7 @@ pnpm setup-infisical -- --site <slug>
 ```
 
 Что делает:
+
 - Проверяет infisical CLI / docker / .infisical.json — fail-fast если что-то не так
 - `infisical init` если ещё не было — линкует папку к проекту
 - Поднимает MinIO docker контейнер (`holygrail-minio`) + bucket `local-media` через `mc` init-контейнер
@@ -97,11 +99,13 @@ pnpm setup-infisical -- --site <slug>
 ```
 
 Что происходит:
+
 - Pre-check `.infisical.json` существует, MinIO запущен (если нет — поднимает)
 - `infisical run --env=dev --recursive --` инжектит все dev-секреты в env
 - `concurrently` запускает CMS (Payload :3001) + Client (Next :3000)
 
 При первом запуске:
+
 - CMS делает migrations (если есть)
 - Создаётся SQLite файл `src/cms/data/site.db`
 - Должен открыться `http://localhost:3001/admin` → "Create first user" страница
@@ -115,6 +119,7 @@ pnpm setup-infisical -- --site <slug>
 ### 7. Настроить SiteSettings
 
 Globals → SiteSettings → заполнить:
+
 - `siteName` (отображается в `<title>`, header)
 - `description` (используется в meta + footer)
 - `mainNav` — главное меню (массив `{label, href, external?}`)
@@ -133,6 +138,7 @@ Pages → Create → slug = `home`, status = `published`, blocks = [Hero, Quote,
 ### 1. Machine Identity для prod-деплоя
 
 В Infisical UI:
+
 1. Project `holygrail-<slug>` → Access Control → Machine Identities → Create
 2. Name: `<slug>-prod-deploy`, Type: Universal Auth
 3. Привязать к environment `prod`, scope `Read`
@@ -156,6 +162,7 @@ sudo chown deploy:deploy /etc/infisical/*
 ### 3. Заполнить prod-секреты
 
 В Infisical UI → prod environment → заполнить **real** значения:
+
 - `PAYLOAD_SECRET` — production 32-byte hex (НЕ тот что в dev)
 - `DATABASE_URI` — для prod (Postgres URL или путь к SQLite на VPS volume)
 - `S3_*` — **real** cloud bucket (Backblaze B2 / Cloudflare R2 / AWS / Yandex Cloud / VK Cloud)
@@ -165,6 +172,7 @@ sudo chown deploy:deploy /etc/infisical/*
 ### 4. Первый деплой
 
 В GH Actions / вручную через SSH:
+
 ```bash
 bash deploy/prod/deploy.sh <git-sha>
 ```
@@ -174,6 +182,7 @@ bash deploy/prod/deploy.sh <git-sha>
 ## Smoke-проверки
 
 После `./dev.sh`:
+
 - [ ] `http://localhost:3000/` → "Страница «home» создана, но блоки ещё не добавлены" (если home Page ещё нет) или валидная главная
 - [ ] `http://localhost:3001/admin` → админка открывается
 - [ ] `http://localhost:3000/api/health` → JSON со sha
@@ -204,7 +213,7 @@ bash deploy/prod/deploy.sh <git-sha>
 
 ### Payload падает на старте: "Missing required env S3_BUCKET"
 
-- **Причина:** `dev-setup.sh` не отработал, S3_* пустые в Infisical dev env.
+- **Причина:** `dev-setup.sh` не отработал, S3\_\* пустые в Infisical dev env.
 - **Решение:** Перезапустить `./dev-setup.sh` или вручную проверить через Infisical UI / `infisical secrets list --env=dev`.
 
 ### Первый запуск долгий (CMS не отвечает)

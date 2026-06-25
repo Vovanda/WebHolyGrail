@@ -5,6 +5,7 @@
 ## Зачем
 
 Хранилище секретов нужно **с первого коммита**, чтобы:
+
 - деплой на VPS был тривиален (`infisical run -- docker compose up -d`);
 - секреты не текли через `.env` файлы и dotfile-бэкапы;
 - ротация ключей делалась в одном месте, не в десяти конфигах;
@@ -20,12 +21,13 @@ winget install infisical.infisical
 infisical login
 
 # 3. Привязка проекта (выполняется в корне репо)
-cd /c/Users/SawKing/Documents/ClaudeProjects/WebHolyGrail/sites/veo55
+cd /c/Users/<your-org>/Documents/ClaudeProjects/WebHolyGrail/sites/veo55
 infisical init     # выбирает organization → project → env
 # создаёт .infisical.json в текущей папке (gitignored)
 ```
 
 После этого:
+
 ```bash
 infisical run --env=dev -- pnpm dev     # подтягивает dev-секреты в env-переменные
 ```

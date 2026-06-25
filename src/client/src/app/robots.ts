@@ -9,7 +9,7 @@ import type { MetadataRoute } from 'next';
  *  - Sitemap указан явно — Google/Yandex подхватят URL'ы по списку, не только через discovery
  */
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://veo55.ru';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://example.com';
 
   return {
     rules: [

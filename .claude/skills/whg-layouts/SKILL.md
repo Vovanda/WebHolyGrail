@@ -1,6 +1,6 @@
 ---
 name: whg-layouts
-description: Композиция сайта через Panel/Slot в SiteLayout. Две независимых оси ширины (layout-panels vs content-blocks), 6 слотов (top/bottom/left/right/center/overlay), drawer-канон навигации. Триггерить когда правишь SiteLayout / PanelConfig / layout-presets, добавляешь Header/Footer/NavDrawer/sidebar, выбираешь где живёт ширина блока. Detail-модалки сущностей (карточка собаки/помёта/мастера в попапе) — отдельный скилл `whg-modals`.
+description: Композиция сайта через Panel/Slot в SiteLayout. Две независимых оси ширины (layout-panels vs content-blocks), 6 слотов (top/bottom/left/right/center/overlay), drawer-канон навигации. Триггерить когда правишь SiteLayout / PanelConfig / layout-presets, добавляешь Header/Footer/NavDrawer/sidebar, выбираешь где живёт ширина блока. Detail-модалки сущностей (карточка item в попапе) — отдельный скилл `whg-modals`.
 ---
 
 # Skill: whg-layouts
@@ -76,7 +76,7 @@ Drawer-блок = `'use client'` со своим стейтом. SiteLayout их
 
 ## Detail-модалки (overlay для одной сущности) → `whg-modals`
 
-Если делаешь модалку-карточку **одной сущности** (собака, помёт, FAQ-ответ, член команды, мастер, товар) — это не drawer'ы выше (это были навигационные панели), а отдельный паттерн. Триггерь **`whg-modals`** — там единый канон: варианты позиционирования (right/left drawer, center dialog, bottom sheet, fullscreen) с критериями выбора, шаги добавления новой модалки, R15 same-origin proxy.
+Если делаешь модалку-карточку **одной сущности** (item, помёт, FAQ-ответ, член команды, мастер, товар) — это не drawer'ы выше (это были навигационные панели), а отдельный паттерн. Триггерь **`whg-modals`** — там единый канон: варианты позиционирования (right/left drawer, center dialog, bottom sheet, fullscreen) с критериями выбора, шаги добавления новой модалки, R15 same-origin proxy.
 
 Коротко: в `app/layout.tsx` монтируется `<EntityDetailDrawerRoot>` (один на сущность), любая ссылка получает `data-detail-<kind>="<id>"`, click-перехватчик делает `openDetail('<kind>:<id>')` → hash → fetch через `/internal/<entity>/<id>` (same-origin, см. R15). Крестик закрытия всегда top-right, на мобилке fullscreen.
 

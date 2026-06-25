@@ -21,7 +21,7 @@ export const SiteSettings: GlobalConfig = {
       label: 'Имя сайта',
       type: 'text',
       required: true,
-      defaultValue: 'Питомник «Омская Дружина»',
+      defaultValue: 'Питомник «Example Co.»',
     },
     {
       name: 'logo',

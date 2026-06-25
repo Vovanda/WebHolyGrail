@@ -142,8 +142,8 @@
     opacity: var(--decor-vine-opacity);
     transition: opacity 300ms ease-out;
     background-image:
-      url('https://cdn.veo55.ru/vines/vine-left.webp'),
-      url('https://cdn.veo55.ru/vines/vine-right.webp');
+      url('https://cdn.example.com/vines/vine-left.webp'),
+      url('https://cdn.example.com/vines/vine-right.webp');
     background-repeat: repeat-y, repeat-y;
     background-position:
       right 0 top 55px,
@@ -167,8 +167,8 @@
     opacity: var(--decor-vine-opacity);
     transition: opacity 300ms ease-out;
     background-image:
-      url('https://cdn.veo55.ru/vines/vine-right.webp'),
-      url('https://cdn.veo55.ru/vines/vine-left.webp');
+      url('https://cdn.example.com/vines/vine-right.webp'),
+      url('https://cdn.example.com/vines/vine-left.webp');
     background-repeat: repeat-y, repeat-y;
     background-position:
       left 0 top 0,

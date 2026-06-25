@@ -21,7 +21,7 @@ test.describe('Web Holy Grail — smoke', () => {
     expect(response?.status(), 'GET / должен вернуть 200').toBe(200);
 
     // <title> приходит из SiteSettings.siteName (см. client/src/app/layout.tsx).
-    // Если CMS отвалилась — генерируется fallback «Питомник «Омская Дружина»».
+    // Если CMS отвалилась — генерируется fallback «Питомник «Example Co.»».
     await expect(page).toHaveTitle(/Питомник/);
 
     // H1 — тот же siteName из contracts, sanity-check что server-fetch отработал.

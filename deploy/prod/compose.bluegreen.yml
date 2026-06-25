@@ -13,8 +13,8 @@
 
 services:
   cms:
-    image: ghcr.io/${GHCR_OWNER:-vovanda}/veo55-cms:${TAG:-latest}
-    container_name: veo55-cms-${COLOR:?required}
+    image: ghcr.io/${GHCR_OWNER:-vovanda}/<slug>-cms:${TAG:-latest}
+    container_name: <slug>-cms-${COLOR:?required}
     environment:
       PAYLOAD_SECRET: ${PAYLOAD_SECRET:?required}
       DATABASE_URI: file:/data/veo55.db
@@ -52,11 +52,11 @@ services:
     restart: unless-stopped
 
   client:
-    image: ghcr.io/${GHCR_OWNER:-vovanda}/veo55-client:${TAG:-latest}
-    container_name: veo55-client-${COLOR:?required}
+    image: ghcr.io/${GHCR_OWNER:-vovanda}/<slug>-client:${TAG:-latest}
+    container_name: <slug>-client-${COLOR:?required}
     environment:
       # SSR ходит к своему же cms по container_name внутри shared network veo55-net
-      NEXT_PUBLIC_CMS_URL: http://veo55-cms-${COLOR}:3001
+      NEXT_PUBLIC_CMS_URL: http://<slug>-cms-${COLOR}:3001
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?required}
       NODE_ENV: production
       # Прокидываем COLOR в runtime для /api/health → debug какой цвет сейчас работает.

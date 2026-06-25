@@ -361,7 +361,7 @@ ssh deploy@vps "cd /opt/sites/<site> && bash deploy/prod/deploy.sh <sha>"
 - **Drift dev vs prod** — Infisical UI показывает diff между environments. Перед prod-deploy полезно сверить.
 - **Add identity to project endpoint** — точный URL ещё не зафиксирован в моих заметках. При первом scaffold нужно verify через trial-error или Infisical Discord. После — обновить skill.
 
-## Stop-conditions (зову Володю)
+## Stop-conditions (зову instance admin)
 
 - **Утёк admin client-secret** — destructive rotation: rerun `infisical bootstrap` нельзя (он только для пустого instance). Создать новую admin identity через REST через старый client-secret пока работает; если уже revoked — через Web UI вручную (стандартный fallback).
 - **Невозможно залогиниться через `INFISICAL_ADMIN_CLIENT_ID/SECRET`** — admin identity revoked или permission lost. Не «починить наугад» — посмотреть в UI.

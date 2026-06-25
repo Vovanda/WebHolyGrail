@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 /**
- * DetailDrawer — выезжающая слева панель «карточка детали» (собака / щенок /
+ * DetailDrawer — выезжающая слева панель «карточка детали» (item / щенок /
  * помёт). Модалка-overlay не центральная: симметрично NavDrawer (справа).
  *
  * @remarks

@@ -31,9 +31,8 @@ export function Hero({
   // Defaults 1:1 из оригинала veo55/main.html L282-286.
   const title = data.title ?? '{accent} с документами РКФ';
   const titleAccent = data.titleAccent ?? 'Щенки ВЕО';
-  const subtitle =
-    data.subtitle ?? 'Питомник восточноевропейской овчарки «Омская Дружина» · г. Омск';
-  const subtitleShort = data.subtitleShort ?? 'Питомник ВЕО «Омская Дружина» · г. Омск';
+  const subtitle = data.subtitle ?? 'Питомник example овчарки «Example Co.» · г. Омск';
+  const subtitleShort = data.subtitleShort ?? 'Питомник ВЕО «Example Co.» · г. Омск';
 
   const [titleHead, titleTail = ''] = title.split('{accent}');
 

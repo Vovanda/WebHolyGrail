@@ -1,4 +1,4 @@
-# veo55-cms — Payload 3.x
+# <slug>-cms — Payload 3.x
 
 Отдельное Next 15 приложение под Payload-админку и REST/GraphQL API. Не имеет публичных страниц — фронт сайта живёт в `../client`.
 
@@ -24,7 +24,7 @@
 
 ```bash
 # Из корня монорепо
-infisical run --env=dev -- pnpm --filter veo55-cms dev
+infisical run --env=dev -- pnpm --filter <slug>-cms dev
 # → Payload админка: http://localhost:3001/admin
 # → API: http://localhost:3001/api
 ```

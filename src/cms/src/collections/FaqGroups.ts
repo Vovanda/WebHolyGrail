@@ -4,7 +4,7 @@ import type { CollectionConfig } from 'payload';
  * FAQ-группы — раздел сайта «Ответы на вопросы».
  *
  * @remarks
- * **R5++ generic.** Подходит любому сайту: «О питомнике / Документы /
+ * **R5++ generic.** Подходит любому сайту: «О business / Документы /
  * Выбор и покупка» (для veo55), «Услуги / Цены / Запись» (автосервис),
  * «Приём / Анализы / Оплата» (клиника).
  *
@@ -15,7 +15,7 @@ import type { CollectionConfig } from 'payload';
  * **Render:** блок `faq-accordion` на странице берёт все опубликованные
  * группы и рендерит по `order` (или фильтр через `groups` relation в блоке).
  *
- * **Drafts + versions** включены — Ольга может править ответ → preview →
+ * **Drafts + versions** включены — content manager может править ответ → preview →
  * publish без раскатки на лайв до проверки.
  */
 export const FaqGroups: CollectionConfig = {
@@ -59,7 +59,7 @@ export const FaqGroups: CollectionConfig = {
           required: true,
           admin: {
             width: '60%',
-            description: 'Например: «О питомнике», «Документы и здоровье».',
+            description: 'Например: «О business, «Документы и здоровье».',
           },
         },
       ],

@@ -11,10 +11,10 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [{ protocol: 'http', hostname: 'localhost' }],
   },
-  // Next 15 dev требует список origin'ов для cross-origin /_next/* запросов,
-  // иначе chunks ломаются с `__webpack_require__.n is not a function`.
-  // Demo-tunnel (veo.sawking.tech) + локальный nginx demo (8080).
-  allowedDevOrigins: ['veo.sawking.tech', 'sawking.tech', '*.sawking.tech', 'localhost:8080'],
+  // Next 15 dev requires an explicit list of origins for cross-origin /_next/*
+  // requests — otherwise chunks fail with `__webpack_require__.n is not a function`.
+  // Extend this list per instance (e.g. demo-tunnel hostname, local nginx demo origin).
+  allowedDevOrigins: ['localhost:8080'],
   // TODO(holygrail-faq-blocknode): contracts/FaqAccordionBlockData несовместим с
   // BlockNode.data (index signature). Тех-долг. Временно ignore чтобы пройти
   // prod-build.

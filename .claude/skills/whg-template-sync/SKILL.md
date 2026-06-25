@@ -1,6 +1,6 @@
 ---
 name: whg-template-sync
-description: Workflow обновления Holy Grail инстансов (veo55-site / sawking-tech / ...) из upstream template (WebHolyGrail) через `scripts/sync-template.sh`. Whitelist-based rsync только generic-частей (primitives/layout/decor/system/ui, layouts/, lib generic, contracts generic, deploy, .claude/skills/holygrail-*), domain-папки (blocks/domain/, src/cms/src/collections/<domain>, app/(site)/<domain-routes>) **не трогает**. Поддерживает выбор source-ветки (--ref main/develop/sha/tag) и удалённого репо (--repo). Триггерить когда: правится template-уровневый код в WHG → нужно зеркалить в инстансы; новый PR в инстанс с template-syncом; устанавливаешь свежую версию template на pinned tag.
+description: Workflow обновления Holy Grail инстансов (<slug>-site / <slug-b> / ...) из upstream template (WebHolyGrail) через `scripts/sync-template.sh`. Whitelist-based rsync только generic-частей (primitives/layout/decor/system/ui, layouts/, lib generic, contracts generic, deploy, .claude/skills/holygrail-*), domain-папки (blocks/domain/, src/cms/src/collections/<domain>, app/(site)/<domain-routes>) **не трогает**. Поддерживает выбор source-ветки (--ref main/develop/sha/tag) и удалённого репо (--repo). Триггерить когда: правится template-уровневый код в WHG → нужно зеркалить в инстансы; новый PR в инстанс с template-syncом; устанавливаешь свежую версию template на pinned tag.
 ---
 
 # Skill: whg-template-sync
@@ -13,7 +13,7 @@ description: Workflow обновления Holy Grail инстансов (veo55-
 - Создал свежий инстанс — хочешь подтянуть последний WHG как baseline.
 - Инстансу нужен specific tag/PR template'а — например `v0.2.0` или `pr/42`.
 - Появилось расхождение между инстансом и template (дрифт), хочешь привести к общему знаменателю.
-- Дебажишь странность типа «в WHG fix есть, в veo55 нет» — sync приведёт к общему состоянию.
+- Дебажишь странность типа «в WHG fix есть, в <slug> нет» — sync приведёт к общему состоянию.
 
 ## Когда НЕ триггерить
 
@@ -23,8 +23,8 @@ description: Workflow обновления Holy Grail инстансов (veo55-
 ## Workflow
 
 ```bash
-# В инстансе (например veo55-site/):
-cd ../veo55-site
+# В инстансе (например <slug>-site/):
+cd ../<slug>-site
 git checkout -b chore/sync-template-$(date +%Y%m%d)
 
 # Запуск sync (из WHG):
@@ -52,16 +52,17 @@ gh pr create --title "Sync template main → <sha>" --body "..."
 
 ## Параметры скрипта
 
-| Флаг | Default | Зачем |
-|---|---|---|
-| `<instance-path>` | required | Куда rsync'аем (root инстанса) |
-| `--ref` | `main` | Source-ветка/тег/sha в template. `develop` для preview изменений до релиза. `tag/v0.2.0` для pinned. `pr/42` для пробного PR. `<sha>` для точной фиксации. |
-| `--repo` | local sibling | Path к локальному clone WHG или GitHub `owner/name` / URL. Если не передан — берёт `..` от skill |
-| `--dry-run` | `false` | rsync --dry-run, ничего не пишет, только показывает что будет |
+| Флаг              | Default       | Зачем                                                                                                                                                      |
+| ----------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<instance-path>` | required      | Куда rsync'аем (root инстанса)                                                                                                                             |
+| `--ref`           | `main`        | Source-ветка/тег/sha в template. `develop` для preview изменений до релиза. `tag/v0.2.0` для pinned. `pr/42` для пробного PR. `<sha>` для точной фиксации. |
+| `--repo`          | local sibling | Path к локальному clone WHG или GitHub `owner/name` / URL. Если не передан — берёт `..` от skill                                                           |
+| `--dry-run`       | `false`       | rsync --dry-run, ничего не пишет, только показывает что будет                                                                                              |
 
 ## Whitelist (что копируется из WHG → инстанс)
 
 **Client:**
+
 - `src/client/src/ui/` (shadcn-атомы)
 - `src/client/src/blocks/{primitives,layout,decor,system}/`
 - `src/client/src/layouts/`
@@ -69,6 +70,7 @@ gh pr create --title "Sync template main → <sha>" --body "..."
 - `src/client/src/styles/`
 
 **CMS:**
+
 - `src/cms/src/blocks/` (Hero/Quote/Timeline/etc Payload-блок-defs)
 - `src/cms/src/collections/{Pages,Media,Users,FormSubmissions,ReusableBlocks,Posts,Comments,FaqGroups}.ts`
 - `src/cms/src/globals/SiteSettings.ts`
@@ -76,6 +78,7 @@ gh pr create --title "Sync template main → <sha>" --body "..."
 **Contracts:** generic only — `blocks/faq/forms/globals/layout/media/notices/pages/reusable/social/theme.ts`
 
 **Deploy + skills:**
+
 - `deploy/` (local + prod)
 - `.claude/skills/holygrail-*`, `payload*`
 - `dev.sh`, `dev-setup.sh` (Infisical-aware)
@@ -91,7 +94,7 @@ gh pr create --title "Sync template main → <sha>" --body "..."
 - `contracts/src/<domain>.ts` (dogs, litters, pedigree, rkf — domain types)
 - `contracts/src/index.ts` — **merge-zone** (не overwrite — там может быть domain reexports)
 - `src/cms/src/payload.config.ts` — **merge-zone** (инстанс добавляет domain collections поверх generic)
-- `.claude/skills/<site>-*` (например veo55-context, veo55-migration)
+- `.claude/skills/<site>-*` (например <slug>-context, <slug>-migration)
 - `site.config.ts`, `.env*`, `.infisical.json`
 
 ## Конфликты
@@ -124,6 +127,7 @@ previous_sha=8c873d7
 ```
 
 Использовать:
+
 - Узнать на какой версии WHG едет инстанс — `cat .template-version`.
 - Посмотреть что изменилось в template с последнего sync — `git -C ../WebHolyGrail log $(grep previous_sha .template-version | cut -d= -f2)..main --oneline`.
 - В CI — алерт если sync не делали >30 дней (technical drift).
@@ -133,7 +137,7 @@ previous_sha=8c873d7
 ## Стратегия веток в WHG
 
 - **`main`** — стабильный, после ревью. Default для production-инстансов.
-- **`develop`** — собираются изменения, preview. Для adventurous инстансов (sawking-tech возможно).
+- **`develop`** — собираются изменения, preview. Для adventurous инстансов (<slug-b> возможно).
 - **(опционально) `nightly`** — auto-rebase develop по cron с тестами.
 - **tags `v0.1.0, v0.2.0`** — pinned релизы. Инстанс пинится `--ref tag/v0.2.0` если хочет стабильности и не хочет автомат-апгрейдов.
 
@@ -145,11 +149,11 @@ previous_sha=8c873d7
 
 **Триггер для перехода:** когда rsync конфликтит regularly (>3 раза за месяц на >1 инстанс) или когда хочется одновременно поддерживать v1.0 (legacy инстансы) и v2.0 (новые).
 
-## Stop-conditions (зову Володю)
+## Stop-conditions (зову instance admin)
 
 - **Sync ломает critical-path в proд-инстансе** (после sync prod не стартует). Откатить через `git reset --hard HEAD~1` в feature-ветке (sync делался не в main — это и есть зачем feature-ветка).
 - **rsync падает на permission denied** или `.git` corrupt — не «починить наугад», посмотреть state.
-- **Архитектурное решение перейти на npm-пакеты** — крупная развилка, требует Володю.
+- **Архитектурное решение перейти на npm-пакеты** — крупная развилка, требует instance admin.
 
 ## Связанные
 

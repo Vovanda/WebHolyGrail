@@ -1,26 +1,26 @@
 import type { CollectionConfig } from 'payload';
 
 /**
- * Media — загруженные файлы (картинки и документы).
+ * Media — uploaded files (images and documents).
  *
  * @remarks
- * Хранилище — S3 (VK Object Storage `veo55` bucket), подключается через плагин
- * `@payloadcms/storage-s3` в `payload.config.ts`. По доке плагина — он
- * автоматически выставляет `disableLocalStorage: true` для подключённой
- * коллекции, поэтому `staticDir` тут НЕ указан (если оставить — Payload
- * пишет локальную копию параллельно S3, и потом отдаёт её через `/api/media/...`
- * перекрывая CDN-URL).
+ * Storage is S3-compatible (any provider — AWS S3, Cloudflare R2, Backblaze B2,
+ * MinIO, etc.) wired in `payload.config.ts` via `@payloadcms/storage-s3`. The
+ * plugin automatically sets `disableLocalStorage: true` for the attached
+ * collection, so `staticDir` is intentionally absent here (leaving it on would
+ * make Payload also write a local copy and serve it via `/api/media/...`, which
+ * would override the CDN URL).
  *
- * Производные размеры (`imageSizes`) рендерятся sharp при загрузке. Имена
- * вариантов совпадают с ключами `MediaDoc.sizes` в `contracts`.
+ * Derived image sizes are produced by sharp on upload. The variant names match
+ * the keys of `MediaDoc.sizes` in `contracts`.
  */
 export const Media: CollectionConfig = {
   slug: 'media',
-  labels: { singular: 'Файл', plural: 'Медиа' },
+  labels: { singular: 'File', plural: 'Media' },
   admin: {
     useAsTitle: 'filename',
     defaultColumns: ['filename', 'alt', 'mimeType', 'filesize'],
-    group: 'Контент',
+    group: 'Content',
   },
   upload: {
     mimeTypes: ['image/*', 'application/pdf'],
@@ -37,30 +37,30 @@ export const Media: CollectionConfig = {
   fields: [
     {
       name: 'alt',
-      label: 'Альтернативный текст',
+      label: 'Alt text',
       type: 'text',
       required: true,
       admin: {
         description:
-          'Описывает содержимое картинки для скринридеров и поисковиков. Не оставлять пустым.',
+          'Describes the image for screen readers and search engines. Do not leave empty.',
       },
     },
     {
-      // Имя `prefix` — конвенция `@payloadcms/storage-s3` (он читает поле
-      // именно с таким slug-ом, доп-настройки не нужны). Label — «Папка».
+      // The field name `prefix` is the convention of `@payloadcms/storage-s3` (it
+      // reads the field with exactly that slug, no extra setup needed).
       name: 'prefix',
-      label: 'Папка в bucket (опц.)',
+      label: 'Bucket folder (optional)',
       type: 'text',
       defaultValue: 'media',
       admin: {
         description:
-          'Подпапка внутри S3 bucket — например `litters/2026-04-14-n` для фото помёта Н. Дефолт `media` (без подпапки). С `useCompositePrefixes` итоговый key = `<этот prefix>/<filename>`.',
+          'Sub-folder inside the S3 bucket. Default `media` (no sub-folder). With `useCompositePrefixes` the resulting key is `<this prefix>/<filename>`.',
         position: 'sidebar',
       },
     },
     {
       name: 'caption',
-      label: 'Подпись (опционально)',
+      label: 'Caption (optional)',
       type: 'text',
     },
   ],
@@ -72,21 +72,22 @@ export const Media: CollectionConfig = {
   },
   hooks: {
     /**
-     * Cache-busting через `?v=<updatedAt>` к публичному URL.
+     * Cache-busting via `?v=<updatedAt>` appended to the public URL.
      *
-     * Проблема: VK CDN (`cdn.veo55.ru`) держит файлы с долгим TTL по Etag.
-     * Если файл на S3 заменён под тем же ключом (Володя загрузил новую версию
-     * напрямую в bucket или через админку при том же filename) — CDN edge
-     * продолжает отдавать старую копию из своего кеша.
+     * Problem: many CDNs keep objects with a long TTL keyed by Etag. If the file
+     * at S3 is replaced under the same key (re-uploaded through the admin with
+     * the same filename, or written directly to the bucket out-of-band), the CDN
+     * edge keeps serving the old copy from its cache.
      *
-     * Хук добавляет `?v=<timestamp>` к `url` и каждому `sizes.*.url`. Любое
-     * обновление записи Media в Payload меняет `updatedAt` → меняется
-     * query-string → CDN edge тянет свежий файл с S3 (query — часть cache-key).
+     * This hook appends `?v=<timestamp>` to `url` and to each `sizes.*.url`. Any
+     * update of the Media record in Payload bumps `updatedAt` → the query string
+     * changes → the CDN edge fetches the fresh file from S3 (the query string is
+     * part of the cache key).
      *
-     * Side-effect для контрибьюторов: если файл правится прямо на S3 без
-     * сохранения Media через админку — busting не сработает (`updatedAt` не
-     * изменился). В этом случае: открыть запись Media в /admin → нажать
-     * «Сохранить» (touch updatedAt) → CDN подхватит новую версию.
+     * Side-effect: if a file is replaced directly on S3 without saving the Media
+     * record through the admin, busting will not trigger (`updatedAt` is
+     * unchanged). In that case open the Media record in `/admin` and click Save
+     * (touches `updatedAt`) so the CDN picks up the new version.
      */
     afterRead: [
       ({ doc }) => {

@@ -10,7 +10,7 @@ import type { Block } from 'payload';
  * заголовком/лидом/CTA. Если `groups` пуст — рендерится **все** опубликованные
  * группы по `order`. Если задан фильтр — только указанные.
  *
- * Так Ольга править вопросы в `faq-groups` (drag&drop, отдельная сущность),
+ * Так content manager править вопросы в `faq-groups` (drag&drop, отдельная сущность),
  * а на странице держать тонкую обвязку — заголовок, лид, CTA.
  */
 export const FaqAccordionBlock: Block = {

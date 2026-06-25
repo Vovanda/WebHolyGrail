@@ -10,8 +10,8 @@
  *
  * Не отдаём секреты. Используется как:
  *   - healthcheck endpoint в compose
- *   - smoke-проверка после deploy: `curl https://veo55.ru/api/health | jq .sha`
- *   - debug: какая версия + какой цвет реально на проде
+ *   - smoke check after deploy: `curl https://<your-domain>/api/health | jq .sha`
+ *   - debug: which build + which colour is actually live
  */
 
 import os from 'node:os';
@@ -26,7 +26,7 @@ export async function GET() {
       fullSha: process.env.BUILD_SHA ?? 'unknown',
       builtAt: process.env.BUILD_TIME ?? 'unknown',
       color: process.env.COLOR ?? 'unknown',
-      // os.hostname() = реальное container_name (`veo55-client-blue|green`).
+      // os.hostname() = the real container_name (e.g. `${SITE_SLUG}-client-blue|green`).
       // process.env.HOSTNAME = Next bind-address ('0.0.0.0'), misleading.
       hostname: os.hostname(),
       now: new Date().toISOString(),

@@ -1,4 +1,4 @@
-# veo55.ru — production на holygrail-msk VPS.
+# example.com — production на holygrail-msk VPS.
 # Blue-green ready: upstream загружается через symlink veo55-upstream-active.conf
 # (на blue/green snippet — переключается deploy.sh скриптом).
 
@@ -8,7 +8,7 @@ include /etc/nginx/snippets/veo55-upstream-active.conf;
 server {
     listen 80;
     listen [::]:80;
-    server_name veo55.ru www.veo55.ru;
+    server_name example.com www.example.com;
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
@@ -16,7 +16,7 @@ server {
     }
 
     location / {
-        return 301 https://veo55.ru$request_uri;
+        return 301 https://example.com$request_uri;
     }
 }
 
@@ -27,16 +27,16 @@ server {
     listen 443 quic reuseport;
     listen [::]:443 quic reuseport;
     http2 on;
-    server_name www.veo55.ru;
+    server_name www.example.com;
 
     add_header Alt-Svc 'h3=":443"; ma=86400' always;
 
-    ssl_certificate /etc/letsencrypt/live/veo55.ru/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/veo55.ru/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
     include /etc/nginx/snippets/ssl-modern.conf;
     include /etc/nginx/snippets/security-headers.conf;
 
-    return 301 https://veo55.ru$request_uri;
+    return 301 https://example.com$request_uri;
 }
 
 # HTTPS — основной vhost
@@ -44,12 +44,12 @@ server {
     listen 443 ssl;
     listen [::]:443 ssl;
     http2 on;
-    server_name veo55.ru;
+    server_name example.com;
 
     add_header Alt-Svc 'h3=":443"; ma=86400' always;
 
-    ssl_certificate /etc/letsencrypt/live/veo55.ru/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/veo55.ru/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
     include /etc/nginx/snippets/ssl-modern.conf;
     include /etc/nginx/snippets/security-headers.conf;
 

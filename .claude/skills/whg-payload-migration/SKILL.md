@@ -7,7 +7,7 @@ description: Меняешь Payload-блок/коллекцию/глобал —
 
 > Применяй каждый раз когда меняешь схему Payload (поле / коллекция / блок / глобал). Не угадывай — следуй рецепту.
 
-> **Молча и сразу, не спрашивай разрешения.** Если поменял схему — миграция обязательна в той же серии правок. Володя: «Блять ты заебал меня спрашивать про миграции». «План: создаю миграцию, применить?» = пустой шум, ответ всегда «да». Спрашивай только когда реальная опасность (drop column с нужными данными / подозрительный SQL от drizzle / нет места для backup'а).
+> **Молча и сразу, не спрашивай разрешения.** Если поменял схему — миграция обязательна в той же серии правок. instance admin: «Блять ты заебал меня спрашивать про миграции». «План: создаю миграцию, применить?» = пустой шум, ответ всегда «да». Спрашивай только когда реальная опасность (drop column с нужными данными / подозрительный SQL от drizzle / нет места для backup'а).
 
 ## Когда триггерить
 
@@ -28,14 +28,14 @@ description: Меняешь Payload-блок/коллекцию/глобал —
 1. **Backup БД**:
 
    ```bash
-   cp src/cms/data/veo55.db src/cms/data/veo55.db.pre-migrations
+   cp src/cms/data/<slug>.db src/cms/data/<slug>.db.pre-migrations
    ```
 
 2. **Patch `payload.config.ts`** в `db: sqliteAdapter({...})`:
 
    ```ts
    db: sqliteAdapter({
-     client: { url: process.env.DATABASE_URI ?? 'file:./data/veo55.db' },
+     client: { url: process.env.DATABASE_URI ?? 'file:./data/<slug>.db' },
      push: false,
      migrationDir: path.resolve(dirname, 'migrations'),
    }),
@@ -77,7 +77,7 @@ description: Меняешь Payload-блок/коллекцию/глобал —
    Вручную добавить baseline в `payload_migrations` и убрать push-маркер:
 
    ```bash
-   sqlite3 data/veo55.db "INSERT INTO payload_migrations (name, batch, created_at, updated_at) VALUES ('<ts>_baseline', 1, datetime('now'), datetime('now')); DELETE FROM payload_migrations WHERE batch = -1;"
+   sqlite3 data/<slug>.db "INSERT INTO payload_migrations (name, batch, created_at, updated_at) VALUES ('<ts>_baseline', 1, datetime('now'), datetime('now')); DELETE FROM payload_migrations WHERE batch = -1;"
    ```
 
 ## Стандартный workflow для одной правки
@@ -123,7 +123,7 @@ grep -E 'task_i_d|task_id' src/cms/payload-types.ts
 **Правило:** если поле содержит `ID` или другие капсы — **обязательно** `migrate:create` через drizzle (он знает правильный snake-case через introspect Payload schema), не писать руками. 5. **Backup перед apply**:
 
 ```bash
-cp data/veo55.db data/veo55.db.bak-$(date +%Y%m%d_%H%M%S)
+cp data/<slug>.db data/<slug>.db.bak-$(date +%Y%m%d_%H%M%S)
 ```
 
 6. **Применить**:
@@ -139,7 +139,7 @@ cp data/veo55.db data/veo55.db.bak-$(date +%Y%m%d_%H%M%S)
 
 1. **Лог dev-сервера** — после рестарта (или ждать HMR-компиляции) читаю первые ~30 строк лога CMS-таска. Ищу: `error`, `Cannot find module`, `Module not found`, `SyntaxError`, `TypeError`. Если нашёл — фикшу до того как сказать «готово».
 2. **`generate:importmap` молчаливый** — после правки `admin.importMap.baseDir` или добавления нового custom component файла **обязательно** открываю сгенерированный `cms/src/app/(payload)/admin/importMap.js`, грепаю мой компонент и проверяю что относительный путь резолвится (от папки `importMap.js` через `../`-цепочку до файла компонента).
-3. **Миграция применена** → `sqlite3 data/veo55.db ".schema <new_table>"` подтверждает что таблица создалась как ожидал. + `SELECT COUNT(*)` если данные мигрировал.
+3. **Миграция применена** → `sqlite3 data/<slug>.db ".schema <new_table>"` подтверждает что таблица создалась как ожидал. + `SELECT COUNT(*)` если данные мигрировал.
 4. **Endpoint добавил** → `curl -X <METHOD> http://localhost:3001/api/<...>` хотя бы один happy-path вызов. Без curl-проверки можно сказать «endpoint готов» но он отдаст 500.
 5. **Custom field component** → открыть страницу редактирования соответствующего документа (`/admin/collections/<collection>/<id>`) → убедиться что компонент рендерится. Если в браузере Build Error — фикшу.
 
@@ -230,7 +230,7 @@ export async function down({ db }: MigrateDownArgs): Promise<void> {
 Проверка какие v-таблицы есть:
 
 ```bash
-sqlite3 data/veo55.db ".schema _pages_v_blocks_quote"
+sqlite3 data/<slug>.db ".schema _pages_v_blocks_quote"
 ```
 
 ## SQLite-quirks
@@ -244,7 +244,7 @@ sqlite3 data/veo55.db ".schema _pages_v_blocks_quote"
 
 - **Миграция упала на середине** — транзакция откатывается автоматически, БД в том же состоянии что до миграции. Просто исправляешь SQL и снова `pnpm migrate`.
 - **Применилась, но баги** — `pnpm migrate:down` откатит последний batch (через `down` функции).
-- **Совсем сломалось** — backup восстанавливаешь: `cp data/veo55.db.bak-XXX data/veo55.db`, удаляешь файл миграции, начинаешь заново.
+- **Совсем сломалось** — backup восстанавливаешь: `cp data/<slug>.db.bak-XXX data/<slug>.db`, удаляешь файл миграции, начинаешь заново.
 
 ## Что НЕ делать
 
@@ -260,7 +260,7 @@ sqlite3 data/veo55.db ".schema _pages_v_blocks_quote"
 
 1. Build → push → pull → up inactive
 2. Healthcheck inactive (контейнер up + отвечает на `/api/access` + `/api/health`)
-3. **`docker exec veo55-cms-<INACTIVE> pnpm migrate`** — payload skip'ает уже применённые
+3. **`docker exec <slug>-cms-<INACTIVE> pnpm migrate`** — payload skip'ает уже применённые
 4. nginx switch → старый цвет drains
 
 **Идемпотентность** — `payload migrate` смотрит `payload_migrations` table, не применяет повторно. Запуск на каждом deploy безопасен.
@@ -304,7 +304,7 @@ sqlite3 data/veo55.db ".schema _pages_v_blocks_quote"
 docker exec holygrail-nginx sh -c 'echo "return 503;" > /tmp/maintenance.conf && nginx -s reload'
 
 # 2. Применить миграции через одну версию (без blue-green)
-docker exec veo55-cms-blue pnpm --filter veo55-cms migrate
+docker exec <slug>-cms-blue pnpm --filter <slug>-cms migrate
 
 # 3. После — обратно
 # (или просто blue-green после миграции с новой image)

@@ -1,11 +1,13 @@
 import type { NextConfig } from 'next';
 
 /**
- * Next config for veo55 client (public frontend).
+ * Next config for the public client frontend.
  *
  * @remarks
- * Client не знает про Payload напрямую (R3). CMS-URL задаётся через
- * `NEXT_PUBLIC_CMS_URL`, картинки Payload Media — через `remotePatterns`.
+ * Client does not know about Payload directly (R3). The CMS URL is provided via
+ * `NEXT_PUBLIC_CMS_URL`, and Payload Media images are allow-listed in
+ * `remotePatterns`. Extend `remotePatterns` and `allowedDevOrigins` per instance
+ * with the production domain(s) and any demo-tunnel hostnames you use.
  */
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -13,23 +15,18 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: 'http', hostname: 'localhost' },
       { protocol: 'http', hostname: 'cms' },
-      // Прод-домены проксирующего nginx (через VPS sawking.tech)
-      { protocol: 'https', hostname: 'sawking.tech' },
-      { protocol: 'https', hostname: '*.sawking.tech' },
     ],
   },
-  // Next 15 dev блокирует cross-origin запросы к `/_next/*` от внешних
-  // origin'ов — браузер падает с `__webpack_require__.n is not a function`,
-  // т.к. chunks возвращаются 403 без CORS-headers. Разрешаем demo-tunnel
-  // (veo.sawking.tech) и временные Cloudflare-tunnel'ы.
-  // Доку: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
-  allowedDevOrigins: ['veo.sawking.tech', 'sawking.tech', '*.sawking.tech', '*.trycloudflare.com'],
-  // TODO(holygrail-faq-blocknode): SocialPostCard/SocialFeed exactOptionalPropertyTypes
-  // тех-долг. Временно ignore для прод-сборки.
+  // Next 15 dev blocks cross-origin requests to `/_next/*` from external origins —
+  // the browser otherwise fails with `__webpack_require__.n is not a function`
+  // because chunks return 403 without CORS headers. Add demo-tunnel hostnames
+  // and temporary tunnel domains (e.g. `*.trycloudflare.com`) per instance.
+  // Docs: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+  allowedDevOrigins: [],
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
   experimental: {
-    // Сервер-компоненты Next 15 — дефолт. Тут можно future-флаги.
+    // Next 15 Server Components are the default. Add future flags here.
   },
 };
 

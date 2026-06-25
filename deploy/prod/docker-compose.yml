@@ -14,7 +14,7 @@
 
 services:
   cms:
-    container_name: veo55-cms
+    container_name: <slug>-cms
     build:
       context: ../..
       dockerfile: src/cms/Dockerfile
@@ -42,7 +42,7 @@ services:
       # SQLite (если переедем на Postgres — заменить на сервис postgres + dsn)
       - veo55_db:/data
       # Media НЕ монтируется: s3Storage плагин выставляет disableLocalStorage:true,
-      # все аплоады идут напрямую в S3 (cdn.veo55.ru), локальной копии нет.
+      # все аплоады идут напрямую в S3 (cdn.example.com), локальной копии нет.
     expose:
       - '3001' # внутри сети, наружу только через nginx
     healthcheck:
@@ -56,7 +56,7 @@ services:
       - veo55-net
 
   client:
-    container_name: veo55-client
+    container_name: <slug>-client
     build:
       context: ../..
       dockerfile: src/client/Dockerfile

@@ -51,7 +51,7 @@ export interface SocialPostMedia {
  * Упоминание в тексте поста — server-side резолв.
  *  - `profile` — `[id123|name]` (VK) / `@username` (TG): ссылка на профиль
  *  - `hashtag` — `#тег`: ссылка на поиск по тегу
- *  - `dog` — кличка собаки из РКФ, резолвится через `dog-mentions`
+ *  - `dog` — кличка item из РКФ, резолвится через `dog-mentions`
  *    (свой extractor по словарю кличек + регэкспам)
  *  - `url` — голый URL в тексте
  */
