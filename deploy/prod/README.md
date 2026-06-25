@@ -1,182 +1,140 @@
-# veo55 — production deployment
+# Production deployment
 
-Стек: Payload CMS (3001) + Next 15 client (3000) + nginx reverse-proxy + certbot.
-БД: SQLite (volume `veo55_db`).
-Media: VK Object Storage (S3-совместимое).
+Stack: Payload CMS (3001) + Next 15 client (3000) + host nginx reverse-proxy + certbot.
+DB: SQLite (named volume) by default, swap to Postgres when needed.
+Media: S3-compatible storage (any provider — AWS S3, Backblaze B2, Cloudflare R2, MinIO, etc.).
 
-## Первый деплой
+## First deploy
 
-### 0. Подготовка VPS
+### 0. Prepare the VPS
 
 ```bash
-# Любой Ubuntu 22.04+ / Debian 12 c минимум 2 GB RAM, 20 GB SSD.
+# Any Ubuntu 22.04+ / Debian 12 with at least 2 GB RAM, 20 GB SSD.
 apt update && apt install -y curl ca-certificates rsync
 
 # Docker + compose plugin
 curl -fsSL https://get.docker.com | sh
 systemctl enable --now docker
 
-# Infisical CLI (для секретов)
+# Infisical CLI (for secrets)
 curl -fsSL https://artifacts-cli.infisical.com/install.sh | sh
 
-# DNS: A-запись @ и www → IP VPS (ждать TTL'а провайдера 5-60 мин)
-dig +short veo55.ru
+# DNS: A record @ and www → VPS IP (wait for provider TTL, 5–60 min)
+dig +short <your-domain>
 ```
 
 ### 1. Initial sync
 
-С локальной машины:
+From the local machine:
 
 ```bash
-# rsync кода (без node_modules, без data)
-VPS_HOST=root@veo55.ru ./deploy/prod/deploy.sh
+# rsync the code (no node_modules, no data)
+VPS_HOST=root@<your-domain> ./deploy/prod/deploy.sh
 ```
 
-### 2. Setup Infisical (на сервере)
+### 2. Setup Infisical (on the server)
 
 ```bash
-ssh root@veo55.ru
-cd /srv/veo55
+ssh root@<your-domain>
+cd /srv/<site-slug>
 
-# Логин в Infisical Cloud (откроет браузер на dev-машине)
+# Log in to Infisical Cloud (opens a browser on the dev machine)
 infisical login
 
-# Связать с проектом
-infisical init   # выбрать workspace «veo55»
+# Link to the project
+infisical init   # select your workspace
 
-# Заполнить секреты (один раз) — список из .env.production.example
-# Делается через web-UI infisical.com или CLI:
+# Fill secrets (one-time)
 infisical secrets set PAYLOAD_SECRET=$(openssl rand -hex 32) --env=prod
 infisical secrets set S3_ACCESS_KEY_ID=... --env=prod
-# … остальные
+# … the rest
 ```
 
-**Альтернатива** — без Infisical, через `.env.production`:
+**Alternative** — without Infisical, via `.env.production`:
 
 ```bash
 cp deploy/prod/.env.production.example \
    deploy/prod/.env.production
-nano deploy/prod/.env.production   # заполнить все
+nano deploy/prod/.env.production   # fill all values
 ```
 
-### 3. Получить TLS-сертификаты (certbot)
+### 3. Obtain TLS certificates (certbot)
+
+TLS termination is handled by the host nginx in `deploy/proxy-stack/`. See that directory's docs for the certbot webroot flow. Per-site vhost goes into `deploy/proxy-stack/nginx/conf.d/<your-domain>.conf` (use `site.conf.template` as a starting point).
+
+### 4. Start the full stack
 
 ```bash
-# Запустить только nginx (без TLS пока — слушает :80 для http-01 challenge)
-docker compose -f deploy/prod/docker-compose.yml up -d nginx
-# nginx сейчас упадёт потому что conf.d/veo55.conf требует cert. Временно
-# закомментировать `listen 443 ssl` блок до получения сертификата.
-
-# Запросить сертификат через certbot контейнер (one-shot):
-docker run --rm -it \
-  -v veo55_certbot_www:/var/www/certbot \
-  -v veo55_certbot_certs:/etc/letsencrypt \
-  certbot/certbot certonly --webroot -w /var/www/certbot \
-  -d veo55.ru -d www.veo55.ru \
-  --email mail@veo55.ru --agree-tos --no-eff-email
-
-# Раскомментировать `listen 443 ssl` в conf.d/veo55.conf
-docker compose -f deploy/prod/docker-compose.yml restart nginx
-```
-
-Certbot контейнер из стека потом будет автоматически продлевать раз в 12 ч (см. `docker-compose.yml` → `certbot` service).
-
-### 4. Запустить весь стек
-
-```bash
-# Вариант A — через Infisical (рекомендуется):
-cd /srv/veo55
+# Option A — via Infisical (recommended):
+cd /srv/<site-slug>
 infisical run --env=prod -- docker compose \
   -f deploy/prod/docker-compose.yml up -d --build
 
-# Вариант B — через .env.production файл:
+# Option B — via .env.production file:
 docker compose --env-file deploy/prod/.env.production \
   -f deploy/prod/docker-compose.yml up -d --build
 
-# Применить миграции БД
-docker exec veo55-cms pnpm --filter veo55-cms migrate
+# Apply DB migrations
+docker exec ${SITE_SLUG}-cms pnpm --filter cms migrate
 
 # Smoke
-curl -I https://veo55.ru/
-curl -I https://veo55.ru/admin
+curl -I https://<your-domain>/
+curl -I https://<your-domain>/admin
 ```
 
 ### 5. Bootstrap admin user
 
-При первом запуске Payload создаёт первого админ-юзера если коллекция `users` пуста — используя `ADMIN_INITIAL_EMAIL` и `ADMIN_INITIAL_PASSWORD` из env. После входа поменять пароль в `/admin/account`.
+On first start Payload creates the first admin user if the `users` collection is empty — using `ADMIN_INITIAL_EMAIL` and `ADMIN_INITIAL_PASSWORD` from env. Change the password in `/admin/account` after the first login.
 
-### 6. Sync контента (первый раз)
+## Regular deploys
 
-```bash
-# Sync VK-постов (50 свежих + комменты)
-docker exec veo55-cms pnpm --filter veo55-cms sync:vk-posts 50
+Use blue-green: see `compose.bluegreen.yml` and `deploy.sh`. The script:
 
-# Импорт родословной из РКФ для всех Dogs с rkfId
-docker exec veo55-cms pnpm --filter veo55-cms seed:fetch-pedigree
-```
+1. `rsync` fresh code
+2. `docker compose up -d --build` (new images)
+3. `pnpm migrate` (apply new migrations)
+4. Smoke check `/`, `/admin`, `/api/health`
+5. Swap nginx upstream from old colour to new
 
-Далее **синхронизация автоматическая** через Payload Jobs Queue:
-
-- `sync-vk-posts` каждые 15 мин (off-minutes :07/:22/:37/:52)
-- `fetch-pedigree` раз в неделю (вс 04:13)
-- runner (`autoRun`) проверяет queue каждую минуту
-
-Видно в админке `/admin/collections/payload-jobs` (группа «Лента») — статус, retries, output, error.
-
-## Регулярные деплои
+## Rollback
 
 ```bash
-VPS_HOST=root@veo55.ru ./deploy/prod/deploy.sh
-```
+ssh root@<your-domain>
+cd /srv/<site-slug>
 
-Скрипт:
-
-1. `rsync` свежий код
-2. `docker compose up -d --build` (новые образы)
-3. `pnpm migrate` (применить новые миграции)
-4. Smoke: статус-коды `/`, `/admin`, `/api/access`
-
-## Откат
-
-```bash
-ssh root@veo55.ru
-cd /srv/veo55
-
-# Posts/comments/media — в БД и S3, не страдают от rsync.
-# Код — git history.
+# Content lives in DB and S3, untouched by rsync.
+# Code — git history.
 git log --oneline -5
 git checkout <commit-sha>
 
-# Применить старые миграции (если есть down)
+# Re-apply migrations if needed
 docker compose -f deploy/prod/docker-compose.yml restart cms
-docker exec veo55-cms pnpm --filter veo55-cms migrate
+docker exec ${SITE_SLUG}-cms pnpm --filter cms migrate
 ```
 
-## Backup БД и Media
+## Backup DB and Media
 
 ```bash
-# SQLite — один файл, копируем
-ssh root@veo55.ru "docker run --rm -v veo55_db:/data alpine \
+# SQLite — a single file
+ssh root@<your-domain> "docker run --rm -v ${SITE_SLUG}_db:/data alpine \
   tar czf - /data" > backup-$(date +%Y%m%d).tar.gz
 
-# Media — в S3, бэкапит провайдер (VK Cloud), но можно дополнительно:
-# (TODO: rclone sync s3://veo55 ./backup/media/)
+# Media is in S3 — your provider handles redundancy; for extra safety:
+# rclone sync s3://<bucket> ./backup/media/
 ```
 
 ## Troubleshooting
 
-| Симптом                                         | Причина                   | Решение                                                                                         |
-| ----------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------- |
-| `502 Bad Gateway` от nginx                      | client / cms не поднялись | `docker compose logs cms client`                                                                |
-| `cms` падает на старте — `no such table: posts` | миграции не применены     | `docker exec veo55-cms pnpm --filter veo55-cms migrate`                                         |
-| `sync:vk-posts` 401 / 5xx                       | VK token истёк            | сгенерить новый через vk.com/dev (это service token, бессрочный — обычно проблема в rate-limit) |
-| Лента не обновляется автоматически              | runner упал               | `docker exec veo55-cms ps` — проверить process, рестарт `docker compose restart cms`            |
-| Сертификат истёк                                | certbot не renewнул       | `docker logs veo55-certbot` — проверить, ручной renew `docker exec veo55-certbot certbot renew` |
+| Symptom                                       | Cause                      | Fix                                                                     |
+| --------------------------------------------- | -------------------------- | ----------------------------------------------------------------------- |
+| `502 Bad Gateway` from nginx                  | client / cms did not start | `docker compose logs cms client`                                        |
+| `cms` crashes on start — `no such table: ...` | migrations not applied     | `docker exec ${SITE_SLUG}-cms pnpm --filter cms migrate`                |
+| Certificate expired                           | certbot did not renew      | check `docker logs certbot`, manual `docker exec certbot certbot renew` |
 
-## TODO до полного прод-ready
+## TODO before fully prod-ready
 
-- [ ] Замена SQLite → Postgres (когда трафик пойдёт). См. `holy-grail/reference/security-sqlite-todo`.
-- [ ] Backup в облако через rclone / Yandex Object Storage.
-- [ ] Monitoring (Prometheus + Grafana или Uptime Kuma как минимум).
-- [ ] Логирование наружу (Loki / Datadog).
-- [ ] CI/CD GitHub Actions: build → push registry → SSH deploy (вместо local rsync + build).
+- [ ] Swap SQLite → Postgres when traffic grows
+- [ ] Off-site backup (rclone / object-storage replication)
+- [ ] Monitoring (Prometheus + Grafana or Uptime Kuma at minimum)
+- [ ] Logs shipping (Loki / Datadog)
+- [ ] CI/CD GitHub Actions: build → push registry → SSH deploy (instead of local rsync + build)

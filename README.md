@@ -5,7 +5,7 @@ Opinionated monorepo template for production small-business websites — Next.js
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square&logo=opensourceinitiative&logoColor=white)](LICENSE)
 [![Stack](https://img.shields.io/badge/stack-Next.js%20·%20Payload%20·%20TypeScript-2E86AB?style=flat-square)](docs/whg/30-philosophy.md)
 
-[Live examples](https://whg.sawking.tech) · [Docs](docs/whg/) · [README на русском](README.ru.md)
+[Docs](docs/whg/) · [README на русском](README.ru.md)
 
 ## What it is
 
@@ -29,8 +29,6 @@ Generic code lives upstream in this template. Each instance you create stays in 
 | Containers    | Docker + compose, blue-green for prod            | Per-app Dockerfile; reference deploy scripts included                           |
 | Storage       | S3-compatible (any provider or MinIO)            | Same API across providers                                                       |
 | Tests         | Vitest + Playwright                              | Unit + smoke at every PR                                                        |
-
-Live examples of sites built on this template: [whg.sawking.tech](https://whg.sawking.tech).
 
 ## Quick start
 
@@ -68,7 +66,7 @@ For the full scaffolding flow (machine identity for prod, deploy, sync) see [`do
 │   └── cms/                   # Payload 3.x (own Dockerfile)
 ├── contracts/                 # typed seam — client/cms → contracts (one-way)
 ├── deploy/{local,prod,proxy-stack}/
-├── scripts/                   # setup-infisical, sync-template, migrate-veo55
+├── scripts/                   # setup-infisical, sync-template, …
 ├── docs/whg/                  # architecture docs
 ├── .claude/skills/            # holygrail-* + payload* + infisical + template-sync
 ├── dev.sh, dev-setup.sh       # Infisical-wrapped dev
@@ -79,19 +77,19 @@ The four component levels (L1–L4) — `ui/` atoms, `primitives/` molecules, `l
 
 ## Documentation
 
-|                                                         |                                                                         |
-| ------------------------------------------------------- | ----------------------------------------------------------------------- |
-| [`00-overview.md`](docs/whg/00-overview.md)             | Entry point: what this is, what it isn't, the architectural separations |
-| [`30-philosophy.md`](docs/whg/30-philosophy.md)         | Architectural rules R1–R9                                               |
-| [`32-structure.md`](docs/whg/32-structure.md)           | Monorepo and per-site layout, three growth models                       |
-| [`35-frontend-stack.md`](docs/whg/35-frontend-stack.md) | Frontend stack and the block model                                      |
-| [`36-block-coverage.md`](docs/whg/36-block-coverage.md) | Block-model coverage: Payload out of the box vs. custom work            |
-| [`37-scaffolding.md`](docs/whg/37-scaffolding.md)       | How a new site is scaffolded (gh template → Infisical → dev)            |
-| [`38-invariants.md`](docs/whg/38-invariants.md)         | Invariant collections and blocks reused across sites                    |
-| [`40-versions.md`](docs/whg/40-versions.md)             | Stack versions, upgrade policy, breaking-change discipline              |
-| [`45-data-location.md`](docs/whg/45-data-location.md)   | Where values live — Payload vs Infisical vs code, by "who changes them" |
+|                                                         |                                                                               |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| [`00-overview.md`](docs/whg/00-overview.md)             | Entry point: what this is, what it isn't, the architectural separations       |
+| [`30-philosophy.md`](docs/whg/30-philosophy.md)         | Architectural rules R1–R9                                                     |
+| [`32-structure.md`](docs/whg/32-structure.md)           | Monorepo and per-site layout, three growth models                             |
+| [`35-frontend-stack.md`](docs/whg/35-frontend-stack.md) | Frontend stack and the block model                                            |
+| [`36-block-coverage.md`](docs/whg/36-block-coverage.md) | Block-model coverage: Payload out of the box vs. custom work                  |
+| [`37-scaffolding.md`](docs/whg/37-scaffolding.md)       | How a new site is scaffolded (gh template → Infisical → dev)                  |
+| [`38-invariants.md`](docs/whg/38-invariants.md)         | Invariant collections and blocks reused across sites                          |
+| [`40-versions.md`](docs/whg/40-versions.md)             | Stack versions, upgrade policy, breaking-change discipline                    |
+| [`45-data-location.md`](docs/whg/45-data-location.md)   | Where values live — Payload vs Infisical vs code, by "who changes them"       |
 | [`stack/`](docs/stack/)                                 | Stack components reference — versions, install, MCP servers, AI skills, links |
 
 ## License
 
-[MIT](LICENSE) © 2026 Vladimir Savkin / [Sawking.Tech](https://sawking.tech).
+[MIT](LICENSE) — see [`LICENSE`](LICENSE) for copyright.

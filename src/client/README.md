@@ -1,56 +1,50 @@
-# veo55-client — Next 15 публичный фронт
+# client — Next 15 public frontend
 
-Публичная сторона veo55.ru. Знает про cms **только** через `@veo55/contracts` (R3).
+Public-facing site. Talks to the CMS **only** through `@<scope>/contracts` (R3).
 
-## Стек
+## Stack
 
-- **Next 15** + React 19 + App Router (SSR)
-- **Tailwind 3.4** — утилиты внутри компонентов (R1)
-- **CSS-токены** (`src/styles/tokens.css`) — единый источник палитры/радиусов/типографики (R2)
-- **clsx + tailwind-merge** — `cn` helper для условных классов
-- **Playwright** — smoke и E2E
+- **Next 15** + React 19 + App Router (SSR by default)
+- **Tailwind 3.4** — utilities encapsulated inside components (R1)
+- **CSS tokens** (`src/styles/tokens.css`) — single source of truth for palette / radii / typography (R2)
+- **clsx + tailwind-merge** — `cn` helper for conditional classes
+- **Playwright** — smoke and E2E
 
-## Запуск (локально, без Docker)
+## Run locally (no Docker)
 
 ```bash
-# Из корня монорепо
-pnpm --filter veo55-client dev
+# From the monorepo root
+pnpm --filter client dev
 # → http://localhost:3000
 ```
 
-Требует чтобы CMS уже была поднята на `http://localhost:3001` (см. `../cms/README.md`).
-Через Infisical:
+Requires the CMS to be running on `http://localhost:3001` (see `../cms/README.md`).
+
+Via Infisical:
 
 ```bash
-infisical run --env=dev -- pnpm --filter veo55-client dev
+infisical run --env=dev -- pnpm --filter client dev
 ```
 
-## Структура
+## Structure
 
 ```
 src/
-├── app/                       # App Router (Server Components по умолчанию)
-│   ├── layout.tsx             # root layout + metadata из SiteSettings
-│   └── page.tsx               # главная (заглушка до Шага 4)
+├── app/                       # App Router (Server Components by default)
+│   ├── layout.tsx             # root layout + metadata from SiteSettings
+│   └── page.tsx               # home page
 ├── lib/
-│   ├── api-client.ts          # клиент к CMS через @veo55/contracts
+│   ├── api-client.ts          # CMS client via contracts
 │   └── utils.ts               # cn helper
 └── styles/
-    ├── tokens.css             # CSS-переменные (R2)
-    └── globals.css            # tailwind + базовые стили
+    ├── tokens.css             # CSS variables (R2)
+    └── globals.css            # tailwind + base styles
 ```
 
-## Принципы
+## Principles
 
-- **R1** — Tailwind утилиты прячутся внутрь компонентов, не голые `<div className="px-4 py-2 bg-...">` на страницах.
-- **R2** — никаких `bg-[#hex]` / inline-color. Только переменные из `tokens.css`.
-- **R3** — `import from '../../cms/...'` — **запрет**. Только `@veo55/contracts`.
-- **R5+** — будущие блоки JSON-сериализуемые, без `children: ReactNode` в публичном API. См. `.claude/rules/common.md` секция R5+.
-- **Server Components по умолчанию.** `'use client'` — только когда есть state/effect/handler.
-
-## TODO к Шагу 4
-
-- Real layout: Header (логотип + nav), Footer (контакты + соцсети), Container.
-- Базовые блоки: Hero, RichText, Gallery, CTA, Form, Contacts, FAQ.
-- Динамический роут `/[slug]/page.tsx` для CMS-страниц.
-- shadcn primitives по мере появления контролов (Button, Input, ...). Через `npx shadcn@latest add <name>`, не init авансом.
+- **R1** — Tailwind utilities live inside components, not bare `<div className="px-4 py-2 bg-...">` on pages.
+- **R2** — no `bg-[#hex]` / inline color. Only variables from `tokens.css`.
+- **R3** — `import from '../../cms/...'` is **forbidden**. Only through the contracts workspace.
+- **R5+** — blocks are JSON-serializable, no `children: ReactNode` in public APIs. See `docs/whg/30-philosophy.md`.
+- **Server Components by default.** `'use client'` only when there is state/effect/handler.

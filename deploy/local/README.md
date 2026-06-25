@@ -1,67 +1,67 @@
 # Local stack — Docker Compose
 
-`docker-compose.yml` поднимает **client** (Next 15 на 3000) и **cms** (Payload на 3001) в одной сети, с volume для SQLite и Media.
+`docker-compose.yml` brings up **client** (Next 15 on 3000) and **cms** (Payload on 3001) in one network, with a volume for SQLite and Media.
 
-## Запуск
+## Run
 
 ```bash
-# Из корня монорепо
+# From the monorepo root
 pnpm compose:up
-# что то же самое:
+# equivalent to:
 infisical run --env=dev -- docker compose -f deploy/local/docker-compose.yml up -d
 ```
 
-Остановка:
+Stop:
 
 ```bash
 pnpm compose:down
 ```
 
-Логи:
+Logs:
 
 ```bash
 pnpm compose:logs
 ```
 
-## Что внутри
+## What is inside
 
-| Сервис                  | Порт | Image из                | Volume                                                               |
-| ----------------------- | ---- | ----------------------- | -------------------------------------------------------------------- |
-| `cms` (veo55-cms)       | 3001 | `src/cms/Dockerfile`    | `veo55_db` (SQLite). Media → S3 (cdn.veo55.ru), локальной копии нет. |
-| `client` (veo55-client) | 3000 | `src/client/Dockerfile` | —                                                                    |
+| Service  | Port | Image from              | Volume                                        |
+| -------- | ---- | ----------------------- | --------------------------------------------- |
+| `cms`    | 3001 | `src/cms/Dockerfile`    | `cms_db` (SQLite). Media → S3, no local copy. |
+| `client` | 3000 | `src/client/Dockerfile` | —                                             |
 
-Сеть `veo55-net` (bridge). Client ходит в cms через DNS-имя `cms:3001` (Docker DNS), не через `localhost`.
+Network is a bridge. Client reaches cms by Docker DNS name `cms:3001`, not via `localhost`.
 
 ## Healthchecks
 
-- **cms:** `GET /api/access` каждые 30с (после 60с start_period для первой компиляции Next).
-- **client:** `GET /` каждые 30с. Зависит от `cms: service_healthy` — не запускается пока cms не ответит.
+- **cms:** `GET /api/access` every 30s (after a 60s `start_period` for the first Next compile).
+- **client:** `GET /` every 30s. Depends on `cms: service_healthy` — it will not start until cms is ready.
 
 ## Volumes
 
-- `veo55_db` — `/data` внутри cms-контейнера, там лежит `veo55.db`.
-- **Media НЕ монтируется.** `s3Storage` плагин в `payload.config.ts` выставляет `disableLocalStorage:true` — загруженные через админку файлы идут напрямую в S3 (bucket `veo55`, prefix `media/`), отдаются через `cdn.veo55.ru`. Места на сервере копии не занимают.
+- `cms_db` — `/data` inside the cms container, holds the SQLite file.
+- **Media is not mounted.** The `s3Storage` plugin in `payload.config.ts` sets `disableLocalStorage:true` — uploads go directly to S3 and are served via the CDN domain configured in env. No local copy on the host.
 
-**Бэкап:** `docker run --rm -v veo55_db:/data -v $(pwd):/backup alpine tar czf /backup/veo55-db-$(date +%F).tar.gz -C /data .`
+**Backup:** `docker run --rm -v cms_db:/data -v $(pwd):/backup alpine tar czf /backup/cms-db-$(date +%F).tar.gz -C /data .`
 
-**Сброс БД** (опасно — удалит весь контент!):
+**Reset DB** (destructive — wipes all content!):
 
 ```bash
 pnpm compose:down
-docker volume rm veo55_db
+docker volume rm cms_db
 pnpm compose:up
 ```
 
 ## ENV
 
-Compose ждёт что Infisical инжектит:
+Compose expects Infisical to inject:
 
-- `PAYLOAD_SECRET` — обязателен, иначе compose не стартует (`:?must be injected via infisical run`)
+- `PAYLOAD_SECRET` — required, otherwise compose refuses to start (`:?must be injected via infisical run`)
 - `PAYLOAD_PUBLIC_SERVER_URL` (default `http://localhost:3001`)
 - `NEXT_PUBLIC_SITE_URL` (default `http://localhost:3000`)
-- `DATABASE_URI` зафиксирован compose'ом на `file:/data/veo55.db` (внутренний путь в volume)
-- `NEXT_PUBLIC_CMS_URL` для client зафиксирован на `http://cms:3001` (Docker DNS)
+- `DATABASE_URI` is fixed by compose to `file:/data/site.db` (internal path in the volume)
+- `NEXT_PUBLIC_CMS_URL` for client is fixed to `http://cms:3001` (Docker DNS)
 
-## Prod-вариант
+## Prod variant
 
-Появится в `deploy/prod/` на Шаге 7 — там добавится nginx-reverse-proxy, TLS через Traefik / Caddy, и compose без `restart: unless-stopped` (а через systemd-unit на VPS).
+See `deploy/prod/` — blue-green deploy with host nginx reverse-proxy and TLS termination, see `deploy/proxy-stack/`.
