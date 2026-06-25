@@ -1,20 +1,20 @@
 ---
 name: holygrail-infisical
-description: Workflow секретов в Holy Grail сайтах — Infisical Cloud + Universal Auth machine identity. Bootstrap нового проекта (`pnpm setup-infisical --site <slug>`), local dev через `.infisical.json`+`dev.sh`, prod через `/etc/infisical/client-id`+`client-secret` и `deploy.sh` обёрнутый в `infisical run --token=...`. Никаких legacy service tokens, никаких .env.production. Триггерить при создании нового сайта, ротации секрета, debug "secret not found", добавлении нового env-переменной, миграции существующего сайта с .env на Infisical.
+description: Workflow секретов в Holy Grail сайтах — Infisical Cloud + Universal Auth machine identities. Полностью автономный bootstrap (создание project + environments + service identity + client secret через REST API) через `pnpm setup-infisical --site <slug>`. Один one-time UI-шаг — создать admin identity Claude'у, дальше всё автоматически. Local dev через `.infisical.json`+`dev.sh`, prod через `/etc/infisical/{client-id,client-secret}`. Триггерить при создании нового сайта, ротации секрета, debug "secret not found", добавлении новой env-переменной, миграции существующего сайта с .env на Infisical.
 ---
 
 # Skill: holygrail-infisical
 
-> Секреты на любом Holy Grail сайте — через Infisical Cloud + Universal Auth machine identities. Никаких легаси service tokens, никаких .env.production на диске.
+> Секреты на любом Holy Grail сайте — Infisical Cloud + Universal Auth machine identities. Никаких .env.production на диске, никаких legacy service tokens, никакого Terraform для 1-2 сайтов. Прямой REST API.
 
 ## Когда триггерить
 
-- Создаёшь новый сайт (`pnpm holygrail new <site>` или клонируешь template) — нужно завести Infisical project, environments, identities.
-- Ротируешь production secret (PAYLOAD_SECRET, S3_*, VK_ACCESS_TOKEN, и т.д.).
+- Создаёшь новый сайт — нужны Infisical project, environments, identity.
+- Ротируешь production secret.
 - Debug «secret not found» / `process.env.X is undefined` на dev или prod.
 - Добавляешь новую env-переменную — где её ввести (dev/staging/prod каждое отдельно).
 - Мигрируешь существующий сайт с `.env.production` на VPS → Infisical.
-- Передаёшь сайт другому разработчику (как ему дать доступ к секретам не пересылая файлы).
+- Передаёшь сайт другому разработчику.
 
 ## Архитектура
 
@@ -33,99 +33,202 @@ CI / Prod (VPS)
   │
   │  GH Actions → ssh deploy@vps → bash deploy.sh
   │     ↓
-  │  /etc/infisical/client-id, /etc/infisical/client-secret  (chmod 600 deploy:deploy)
+  │  /etc/infisical/{client-id,client-secret}  (chmod 600 deploy:deploy)
   │     ↓
-  │  infisical login --method=universal-auth --client-id=... --client-secret=...
-  │     ↓
-  │  infisical run --env=prod -- docker compose up -d
+  │  infisical run --token=$(infisical login --method=universal-auth …) --env=prod -- docker compose up -d
   │     ↓
   │  Контейнеры получают env переменные при старте — НЕ записывается в файл
+
+Scaffold (новый сайт)
+  │
+  │  pnpm setup-infisical -- --site <slug>
+  │     ↓
+  │  Использует ADMIN identity Володи (INFISICAL_ADMIN_CLIENT_ID/SECRET в env или MCP)
+  │     ↓
+  │  REST API → create project + environments + service identity + client secret
+  │     ↓
+  │  Print Client ID + Secret + .infisical.json
 ```
 
-## Bootstrap нового сайта
+## One-time UI setup (единственный шаг руками — раз в жизни)
 
-```bash
-# Один раз глобально (если ещё не):
-infisical login    # браузерный flow, токен с org-scope в keychain
+В Infisical UI:
+1. Organization → Settings → Access Control → Identities → **Create Identity**
+2. Name: `claude-scaffold-admin`, Type: `Universal Auth`, Role: `admin` (org-level)
+3. После создания: Authentication Methods → Universal Auth → **Add Client Secret** → save Client ID + Client Secret (показываются один раз).
+4. Положить в **personal env** (через `~/.zshrc` / Windows env / passwordless):
+   ```
+   INFISICAL_ADMIN_CLIENT_ID=<...>
+   INFISICAL_ADMIN_CLIENT_SECRET=<...>
+   ```
 
-# Запуск scaffold-скрипта (в корне нового сайта):
-pnpm setup-infisical -- --site <slug>
+После этого **все scaffold-операции автоматизированы** через REST.
+
+## Автоматизированный bootstrap (pnpm setup-infisical)
+
+`scripts/setup-infisical.ts` через REST API:
+
+### Шаг 1 — auth
+Логинимся через admin identity:
+```
+POST https://app.infisical.com/api/v1/auth/universal-auth/login
+{
+  "clientId": process.env.INFISICAL_ADMIN_CLIENT_ID,
+  "clientSecret": process.env.INFISICAL_ADMIN_CLIENT_SECRET
+}
+→ { "accessToken": "<JWT>" }
 ```
 
-Org-id указывать **не нужно** — SDK берёт его из контекста auth-сессии (твой токен уже scoped к org). Для CI/non-interactive — `INFISICAL_CLIENT_ID` + `INFISICAL_CLIENT_SECRET` env (Universal Auth identity, без UI).
+Все следующие запросы — с заголовком `Authorization: Bearer <accessToken>`.
 
-Что делает скрипт (`scripts/setup-infisical.ts`):
-1. Auth через `INFISICAL_TOKEN` (keychain) или universal-auth (CI: `INFISICAL_CLIENT_ID/SECRET`).
-2. `client.projects().create({ projectName: "holygrail-<slug>", type: "secret-manager" })`.
-3. `client.environments().create()` × 3 — `dev`, `staging`, `prod`.
-4. `client.secrets().createSecret()` для каждого из STANDARD_SECRETS (PAYLOAD_SECRET, DATABASE_URI, S3_*, NEXT_PUBLIC_*, VK_*) — пустые placeholders.
-5. Пишет `.infisical.json` (workspaceId + defaultEnvironment) — линкует репо к проекту. **`.infisical.json` коммитится** (там только id, не секреты).
-6. Печатает hint про создание machine identity вручную через UI (SDK в текущей версии не умеет `createIdentity` напрямую — рекомендация Infisical через UI или Terraform-провайдер).
+### Шаг 2 — create project
+```
+POST /api/v2/workspace
+{ "projectName": "holygrail-<slug>", "type": "secret-manager", "slug": "holygrail-<slug>" }
+→ { "project": { "id": "<projectId>", ... } }
+```
+
+### Шаг 3 — create environments dev / staging / prod
+```
+POST /api/v1/workspace/{projectId}/environments
+{ "name": "Development", "slug": "dev", "position": 1 }
+```
+Повторить для staging (slug `staging`) и prod (slug `prod`).
+
+### Шаг 4 — seed placeholder secrets
+Для каждого env (dev/staging/prod) × каждого STANDARD_SECRET (PAYLOAD_SECRET / DATABASE_URI / S3_* / NEXT_PUBLIC_* / VK_*):
+```
+POST /api/v3/secrets/raw/<KEY>
+{ "workspaceId": projectId, "environment": "dev", "secretValue": "", "secretComment": "Заполни через UI или infisical secrets set" }
+```
+
+### Шаг 5 — create service identity для prod-деплоя
+```
+POST /api/v1/identities
+{ "name": "<slug>-prod-deploy", "organizationId": <orgId>, "role": "no-access" }
+→ { "identity": { "id": "<identityId>", "orgId": "<orgId>" } }
+```
+
+Attach Universal Auth:
+```
+POST /api/v1/auth/universal-auth/identities/<identityId>
+{ "accessTokenTTL": 2592000, "accessTokenMaxTTL": 2592000, ... }
+→ { "identityUniversalAuth": { "clientId": "<clientId>", ... } }
+```
+
+Create client secret:
+```
+POST /api/v1/auth/universal-auth/identities/<identityId>/client-secrets
+{ "description": "<slug> prod-deploy", "ttl": 0 }
+→ { "clientSecret": "<clientSecret>", "clientSecretData": { ... } }
+```
+
+### Шаг 6 — add identity to project with prod-env scope
+**TODO/verify:** точный endpoint для add identity to project membership ещё не зафиксирован. При первом scaffold пробую `POST /api/v2/workspace/{projectId}/identity-memberships/{identityId}` с body `{ role: "read", environment: "prod" }`. Если 404 — fallback на UI на этом единственном шаге. Скилл обновлю после первого реального scaffold.
+
+### Шаг 7 — write `.infisical.json`
+```json
+{ "workspaceId": "<projectId>", "defaultEnvironment": "dev" }
+```
+
+### Шаг 8 — print credentials для VPS
+```
+PROD MACHINE IDENTITY CREATED:
+  Client ID:     <clientId>
+  Client Secret: <clientSecret>  (показывается ОДИН раз — сохрани сейчас!)
+
+  Положи на VPS:
+    sudo install -d -m 700 -o deploy -g deploy /etc/infisical
+    echo "<clientId>" | sudo tee /etc/infisical/client-id > /dev/null
+    echo "<clientSecret>" | sudo tee /etc/infisical/client-secret > /dev/null
+    sudo chmod 600 /etc/infisical/*
+    sudo chown deploy:deploy /etc/infisical/*
+```
 
 ## Local dev
 
-После `setup-infisical`:
-
+После setup-infisical:
 ```bash
-./dev-setup.sh    # проверка CLI, login если надо, init если .infisical.json нет
+./dev-setup.sh    # поднимает MinIO + сетит дефолты в Infisical dev env
 ./dev.sh          # infisical run --env=dev --recursive -- pnpm dev
 ```
 
-`--recursive` важен — без него env-переменные не пропустятся в child workspaces (cms + client). `dev.sh` в WHG-template уже обёрнут.
+`--recursive` важен для monorepo — без него child workspaces не получают env.
 
 ## Prod deploy
 
-`deploy.sh` (deploy/prod/) ожидает:
+`deploy/prod/deploy.sh` ожидает:
 - `/etc/infisical/client-id` (chmod 600 deploy:deploy)
-- `/etc/infisical/client-secret` (chmod 600 deploy:deploy)
-- `INFISICAL_ENV=prod` (default)
+- `/etc/infisical/client-secret`
+- env `INFISICAL_ENV=prod` (default)
 
-Каждый `docker compose pull/up/down` в `deploy.sh` обёрнут в:
-
+Каждый `docker compose` обёрнут:
 ```bash
-INFISICAL_RUN=(infisical run --token="$INFISICAL_TOKEN" --env="$INFISICAL_ENV" --)
-"${INFISICAL_RUN[@]}" docker compose -f compose.bluegreen.yml up -d
+TOKEN=$(infisical login --method=universal-auth \
+  --client-id=$(cat /etc/infisical/client-id) \
+  --client-secret=$(cat /etc/infisical/client-secret) \
+  --plain --silent)
+infisical run --token=$TOKEN --env=prod -- docker compose -f compose.bluegreen.yml up -d
 ```
-
-Контейнеры получают env через injection, ничего на диск не пишется.
 
 ## Ротация секрета
 
 ```bash
-# Локально:
 infisical secrets set --env=prod KEY=newvalue
-# или через UI: https://app.infisical.com/project/<id>/secrets/prod
+# или через UI
 
-# Деплой: следующий `deploy.sh` подхватит при старте. Работающие контейнеры не пересоздаются автоматически — нужен ребилд или restart:
+# Прод подхватит на следующем deploy / restart контейнера
 ssh deploy@vps "cd /opt/sites/<site> && bash deploy/prod/deploy.sh <sha>"
-# Или просто `docker compose restart` для уже задеплоенного цвета — но env читается только при старте процесса.
 ```
 
-## Добавление нового env-переменной
+## Triple path (UI / AI / Shell)
 
-1. UI → Project → нужный env → Add Secret. Повторить для всех env (dev/staging/prod) с правильными значениями.
-2. Локально перезапустить `./dev.sh` (контейнеры подхватят при старте).
-3. Прод — следующий деплой.
+Согласно `feedback_triple_path_no_ai_lockin.md`:
 
-В код добавляй чтение через `process.env.X ?? defaultValue` (всегда fallback на случай старой версии прода во время deploy lag).
+### UI path (для человека через браузер)
+1. https://app.infisical.com → Create Project → Add Environments → Add Secrets → Add Machine Identity → Get Client Secret → Add to Project → Copy credentials.
+2. Документация: см. README + `docs/whg/37-scaffolding.md`.
+3. Время: 5-10 минут.
+
+### AI path (Claude автономно через эту сессию)
+1. `pnpm setup-infisical -- --site <slug>` — делает всё через REST.
+2. Skill использует `INFISICAL_ADMIN_CLIENT_ID/SECRET` из env (один раз настроены).
+3. Время: 30 секунд.
+
+### Shell path (CI / cron / debug)
+1. Те же REST endpoints через `curl` либо `setup-infisical.ts` через `tsx scripts/...`.
+2. В CI: `INFISICAL_ADMIN_CLIENT_ID/SECRET` через `gh secret` или подобное.
+3. Время: 30 секунд.
+
+Все три пути дают идентичный результат — Infisical project готов, credentials выданы.
 
 ## Подводные камни
 
-- **`.infisical.json` коммитится.** Внутри только `workspaceId` (UUID) + `defaultEnvironment`. Секретов там нет — это **линк** репо↔проект. Без него `infisical run` не знает куда смотреть.
-- **`--recursive` обязателен** для monorepo. Без него child pnpm filter'ы не получают env (pnpm workspace = свой Node-процесс, env не наследуется автоматом).
-- **Machine identity vs Service token.** Universal Auth machine identities — современный API (token обновляется, scope per-environment, audit log). Legacy service tokens — deprecated, не использовать.
-- **Rotation client-secret** — если client-secret машины утёк → в UI пересоздать identity (или revoke + сгенерировать новый секрет), обновить `/etc/infisical/client-secret` на VPS. Старый client-id остаётся валидным.
-- **Drift dev vs prod** — Infisical UI показывает diff между environments. Перед prod-deploy полезно сверить что нет «случайно забытых» секретов в одном из.
+- **`.infisical.json` коммитится.** Внутри `workspaceId` (UUID) + `defaultEnvironment`. Секретов нет.
+- **`--recursive` обязателен** для monorepo. Без него child pnpm filter'ы не получают env.
+- **Universal Auth vs Service Token.** UA — современный (token обновляется, scope per-env, audit). Service tokens — deprecated.
+- **Rotation client-secret** — если admin client-secret утёк → пересоздать в UI, обновить env. Service identity client-secret rotation — пересоздать через REST (`DELETE /api/v1/auth/universal-auth/identities/{id}/client-secrets/{secretId}` + `POST .../client-secrets`).
+- **Org context** — все REST admin вызовы используют orgId из JWT (admin identity scope'нут к org). Не нужно явно передавать `--org-id`.
+- **Drift dev vs prod** — Infisical UI показывает diff между environments. Перед prod-deploy полезно сверить.
+- **Add identity to project endpoint** — точный URL ещё не зафиксирован в моих заметках. При первом scaffold нужно verify через trial-error или Infisical Discord. После — обновить skill.
 
 ## Stop-conditions (зову Володю)
 
-- **Утёк client-secret прод** — destructive rotation, обсудить с Володей блокировку identity и пересоздание.
-- **Невозможно залогиниться через `infisical login`** дольше 5 минут — может быть Org-permission проблема или Cloudflare-блокировка.
-- **`infisical run` падает «no secrets found»** при существующем `.infisical.json` — workspaceId мог измениться (project пересоздан) или identity потеряло доступ. Не «починить наугад» — посмотреть в UI что с правами.
+- **Утёк admin client-secret** — destructive rotation, нужен Володя для replacement в UI и обновления env везде.
+- **Невозможно залогиниться через `INFISICAL_ADMIN_CLIENT_ID/SECRET`** — admin identity revoked или permission lost. Не «починить наугад» — посмотреть в UI.
+- **REST endpoint падает 401/403** на identity create — admin identity не имеет role `admin` в org. Поднять role в UI.
+- **REST endpoint падает 404** на identity-project-membership — endpoint URL устарел / изменён. Verify через docs или Discord, обновить skill.
 
 ## Ссылки
 
-- [Infisical Bootstrap CLI](https://infisical.com/docs/cli/commands/bootstrap)
-- [Machine Identities](https://infisical.com/blog/introducing-machine-identities)
-- [Node SDK](https://github.com/Infisical/infisical-node)
-- [Terraform Provider](https://github.com/Infisical/terraform-provider-infisical) — для declarative управления projects/environments/identities (рассмотреть после 3+ сайтов).
+- [Infisical REST: create identity](https://infisical.com/docs/api-reference/endpoints/identities/create)
+- [Infisical REST: attach universal auth](https://infisical.com/docs/api-reference/endpoints/universal-auth/attach)
+- [Infisical REST: create client secret](https://infisical.com/docs/api-reference/endpoints/universal-auth/create-client-secret)
+- [Infisical: Machine Identities guide](https://infisical.com/blog/introducing-machine-identities)
+- [Infisical CLI login](https://infisical.com/docs/cli/commands/login)
+
+## Human-readable версия
+
+[`docs/whg/37-scaffolding.md`](../../../docs/whg/37-scaffolding.md) — то же самое для пользователя без агента. Source of truth — там; этот skill = его проекция для агента.
+
+При апдейте: правь оба синхронно.
