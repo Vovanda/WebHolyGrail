@@ -1,4 +1,4 @@
-import type { ThemeConfig } from '@veo55/contracts';
+import type { ThemeConfig } from 'contracts';
 
 const STORAGE_KEY = 'hg-theme';
 

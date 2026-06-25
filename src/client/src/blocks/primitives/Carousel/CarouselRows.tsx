@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
-import { PhotoLightbox } from './PhotoLightbox';
-import type { CarouselProps, CarouselSlide } from './types';
+import { PhotoLightbox } from '../PhotoLightbox';
+import type { CarouselProps } from './types';
 
 /**
  * Carousel — универсальный track-based слайдер с translateX-анимацией.
@@ -28,7 +28,9 @@ export function CarouselRows(props: CarouselProps) {
         slides={props.slides.map((s) => ({ src: s.url, alt: s.alt }))}
         groupId={lightboxGroupId}
       >
-        {(open) => <CarouselInner {...rest} onSlideClick={open} />}
+        {(open: (groupId: string, index: number) => void) => (
+          <CarouselInner {...rest} onSlideClick={open} />
+        )}
       </PhotoLightbox>
     );
   }
