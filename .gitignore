@@ -69,3 +69,6 @@ desktop.ini
 /*.jpeg
 /*.jpg
 /check-users.mjs
+
+# Claude Code worktrees
+.claude/worktrees/

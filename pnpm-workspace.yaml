@@ -1,11 +1,9 @@
-# Workspaces for Web Holy Grail monorepo.
-# Each site contributes three workspaces: contracts (shared types),
-# src/client (Next), src/cms (Payload). packages/* — shared libs (grow from sites).
+# holy-grail site workspace packages.
+# Structure: contracts (shared types) + src/client (Next) + src/cms (Payload).
 packages:
-  - 'sites/*/contracts'
-  - 'sites/*/src/client'
-  - 'sites/*/src/cms'
-  - 'packages/*'
+  - 'contracts'
+  - 'src/client'
+  - 'src/cms'
 
 # pnpm 11 security: postinstall scripts must be opted-in per package.
 # - esbuild: Vitest / Tinypool native binary download.

@@ -1,51 +1,42 @@
 #!/usr/bin/env bash
-# Первоначальная настройка .env.local для локального dev.
-# Запускать один раз. Не перезаписывает если файл уже есть.
+# First-time setup: install Infisical, log in, link this folder to the project.
+# Run once per machine.
 
 set -e
 cd "$(dirname "$0")"
 
-CMS_ENV="sites/veo55/src/cms/.env.local"
-CLIENT_ENV="sites/veo55/src/client/.env.local"
-
 echo ""
-echo "  veo55 dev-setup"
+echo "  Infisical dev-setup"
 echo ""
 
-# ── CMS .env.local ─────────────────────────────────────────────────────────
-if [ -f "$CMS_ENV" ]; then
-  echo "  [skip] $CMS_ENV уже существует"
+# 1. Check CLI is installed.
+if ! command -v infisical >/dev/null 2>&1; then
+  echo "  ERROR: infisical CLI not found."
+  echo "  Install:"
+  echo "    macOS:    brew install infisical/get-cli/infisical"
+  echo "    Windows:  winget install Infisical.CLI"
+  echo "    Linux:    curl -1sLf 'https://artifacts-cli.infisical.com/install.sh' | sh"
+  echo ""
+  exit 1
+fi
+echo "  [ok]   infisical CLI: $(infisical --version 2>&1 | head -1)"
+
+# 2. Log in (skipped if a valid session already exists).
+if ! infisical user 2>/dev/null | grep -q '@'; then
+  echo "  [next] running 'infisical login' — sign in via browser"
+  infisical login
 else
-  # Генерируем PAYLOAD_SECRET (32 случайных байта → hex)
-  SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
-  cat > "$CMS_ENV" << EOF
-# Локальный dev — НЕ для прода. Сгенерировано dev-setup.sh.
-PAYLOAD_SECRET=$SECRET
-DATABASE_URI=file:./data/veo55.db
-PAYLOAD_PUBLIC_SERVER_URL=http://localhost:3001
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-NODE_ENV=development
-EOF
-  echo "  [ok]   $CMS_ENV создан (PAYLOAD_SECRET сгенерирован)"
+  echo "  [ok]   already logged in"
 fi
 
-# ── Client .env.local ───────────────────────────────────────────────────────
-if [ -f "$CLIENT_ENV" ]; then
-  echo "  [skip] $CLIENT_ENV уже существует"
+# 3. Link this folder to an Infisical project.
+if [ -f .infisical.json ]; then
+  echo "  [ok]   .infisical.json already exists — skipping init"
 else
-  cat > "$CLIENT_ENV" << EOF
-# Локальный dev — НЕ для прода. Сгенерировано dev-setup.sh.
-NEXT_PUBLIC_CMS_URL=http://localhost:3001
-NEXT_PUBLIC_SITE_URL=http://localhost:3000
-NODE_ENV=development
-EOF
-  echo "  [ok]   $CLIENT_ENV создан"
+  echo "  [next] running 'infisical init' — pick the project for this site"
+  infisical init
 fi
 
-# Создаём папку data для SQLite если нет
-mkdir -p sites/veo55/src/cms/data
-echo "  [ok]   sites/veo55/src/cms/data/ — папка для SQLite"
-
 echo ""
-echo "  Готово. Теперь запускай: ./dev.sh"
+echo "  Done. Now run ./dev.sh"
 echo ""

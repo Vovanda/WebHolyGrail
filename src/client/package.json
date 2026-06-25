@@ -1,0 +1,38 @@
+{
+  "name": "client",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Next.js client for Holy Grail site",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "smoke": "playwright test"
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.460.0",
+    "next": "^15.0.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-photo-album": "^3.6.0",
+    "tailwind-merge": "^2.6.0",
+    "yet-another-react-lightbox": "^3.32.0",
+    "contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.2",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5"
+  }
+}
