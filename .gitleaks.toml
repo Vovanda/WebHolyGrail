@@ -18,6 +18,11 @@ paths = [
   '''.*/__fixtures__/.*''',
   '''.*\.test\.(ts|tsx|js|jsx)$''',
   '''.*\.spec\.(ts|tsx|js|jsx)$''',
+  # AI skill docs from Infisical/payloadcms — содержат example tokens, secrets
+  # как код-сниппеты в reference docs. Реальных секретов в них нет.
+  '''\.claude/skills/.*''',
+  '''docs/stack/.*\.md$''',
+  '''docs/whg/.*\.md$''',
 ]
 # Patterns that look like secrets but are placeholders/docs
 regexes = [
