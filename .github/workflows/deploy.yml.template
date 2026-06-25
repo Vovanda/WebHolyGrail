@@ -1,5 +1,23 @@
 name: Build & blue-green deploy
 
+# ────────────────────────────────────────────────────────────────────────────
+# Generic Holy Grail blue-green deploy workflow.
+#
+# Required GitHub Actions secrets (Settings → Secrets and variables → Actions):
+#   VPS_HOST              IP или hostname production VPS (например 1.2.3.4)
+#   VPS_SSH_KEY           SSH private key для deploy user
+#
+# Required GitHub Actions variables (Settings → Secrets and variables → Actions):
+#   VPS_USER              SSH user на VPS (default deploy)
+#   VPS_PATH              путь установки сайта на VPS (например /opt/sites/<repo>)
+#   PUBLIC_URL            production URL для verify health-check (например https://example.com)
+#   GHCR_OWNER            владелец GHCR (обычно ${{ github.repository_owner }} в lowercase)
+#
+# Image names собираются автоматически из github.repository (например
+# vovanda/<repo>-cms). Если используется отдельный namespace в GHCR — переопределяй
+# через GHCR_OWNER variable.
+# ────────────────────────────────────────────────────────────────────────────
+
 on:
   push:
     branches: [main]
@@ -7,17 +25,16 @@ on:
 
 concurrency:
   group: deploy-prod
-  # Володя 2026-06-25: «частый пуш не должен ломать. Очереди не должно быть.
-  # Деплоить тупо последнее». При новом push'е текущий in-progress workflow
-  # отменяется, последний коммит выигрывает. Safe: при cancel deploy.sh state
-  # — inactive color, active не трогается, миграции применяются только когда
-  # дойдём до switch.
+  # «Частый пуш не должен ломать. Очереди не должно быть. Деплоить тупо последнее.»
+  # При новом push'е текущий in-progress workflow отменяется, последний коммит
+  # выигрывает. Safe: при cancel deploy.sh state — inactive color, active не
+  # трогается, миграции применяются только когда дойдём до switch.
   cancel-in-progress: true
 
 env:
   REGISTRY: ghcr.io
-  CMS_IMAGE: ghcr.io/vovanda/veo55-cms
-  CLIENT_IMAGE: ghcr.io/vovanda/veo55-client
+  REPO_NAME: ${{ github.event.repository.name }}
+  GHCR_OWNER: ${{ vars.GHCR_OWNER || github.repository_owner }}
 
 jobs:
   build:
@@ -27,13 +44,18 @@ jobs:
       packages: write
     outputs:
       tag: ${{ steps.meta.outputs.tag }}
+      cms_image: ${{ steps.meta.outputs.cms_image }}
+      client_image: ${{ steps.meta.outputs.client_image }}
     steps:
       - uses: actions/checkout@v4
 
       - id: meta
         run: |
+          OWNER_LC=$(echo "${{ env.GHCR_OWNER }}" | tr '[:upper:]' '[:lower:]')
           echo "tag=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_OUTPUT
           echo "build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
+          echo "cms_image=${{ env.REGISTRY }}/$OWNER_LC/${{ env.REPO_NAME }}-cms" >> $GITHUB_OUTPUT
+          echo "client_image=${{ env.REGISTRY }}/$OWNER_LC/${{ env.REPO_NAME }}-client" >> $GITHUB_OUTPUT
 
       - uses: docker/setup-buildx-action@v3
 
@@ -50,8 +72,8 @@ jobs:
           file: src/cms/Dockerfile
           push: true
           tags: |
-            ${{ env.CMS_IMAGE }}:${{ steps.meta.outputs.tag }}
-            ${{ env.CMS_IMAGE }}:latest
+            ${{ steps.meta.outputs.cms_image }}:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.cms_image }}:latest
           cache-from: type=gha,scope=cms
           cache-to: type=gha,scope=cms,mode=max
 
@@ -65,14 +87,19 @@ jobs:
             BUILD_SHA=${{ github.sha }}
             BUILD_TIME=${{ steps.meta.outputs.build_time }}
           tags: |
-            ${{ env.CLIENT_IMAGE }}:${{ steps.meta.outputs.tag }}
-            ${{ env.CLIENT_IMAGE }}:latest
+            ${{ steps.meta.outputs.client_image }}:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.client_image }}:latest
           cache-from: type=gha,scope=client
           cache-to: type=gha,scope=client,mode=max
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    env:
+      VPS_USER: ${{ vars.VPS_USER || 'deploy' }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PATH: ${{ vars.VPS_PATH }}
+      PUBLIC_URL: ${{ vars.PUBLIC_URL }}
     steps:
       - uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -81,24 +108,31 @@ jobs:
       - name: Add VPS to known_hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H 83.217.200.27 >> ~/.ssh/known_hosts
+          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
 
-      - name: Sync /opt/sites/veo55 (git pull) — обновить deploy.sh, compose, миграции
+      - name: Sync site directory on VPS (git pull)
         run: |
-          ssh deploy@83.217.200.27 \
-            "cd /opt/sites/veo55 && git fetch --depth 50 origin main && git reset --hard origin/main"
+          ssh "$VPS_USER@$VPS_HOST" \
+            "cd $VPS_PATH && git fetch --depth 50 origin main && git reset --hard origin/main"
 
       - name: Blue-green deploy
+        env:
+          GHCR_OWNER_LC: ${{ env.GHCR_OWNER }}
         run: |
-          ssh deploy@83.217.200.27 \
-            "GHCR_OWNER=vovanda /opt/sites/veo55/deploy/prod/deploy.sh ${{ needs.build.outputs.tag }}"
+          OWNER_LC=$(echo "$GHCR_OWNER_LC" | tr '[:upper:]' '[:lower:]')
+          ssh "$VPS_USER@$VPS_HOST" \
+            "GHCR_OWNER=$OWNER_LC $VPS_PATH/deploy/prod/deploy.sh ${{ needs.build.outputs.tag }}"
 
       - name: Verify deployed SHA
         run: |
           EXPECTED=$(echo ${{ github.sha }} | cut -c1-7)
-          # подождём 10 сек на nginx warm-up after reload
+          # Подождём 10 сек на nginx warm-up after reload
           sleep 10
-          DEPLOYED=$(curl -sf https://veo55.ru/api/health | jq -r '.sha')
+          if [ -z "$PUBLIC_URL" ]; then
+            echo "::warning::PUBLIC_URL variable not set — skipping SHA verify"
+            exit 0
+          fi
+          DEPLOYED=$(curl -sf "$PUBLIC_URL/api/health" | jq -r '.sha' || echo "unknown")
           echo "expected: $EXPECTED"
           echo "deployed: $DEPLOYED"
           if [ "$EXPECTED" != "$DEPLOYED" ]; then

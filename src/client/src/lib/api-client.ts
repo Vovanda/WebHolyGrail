@@ -1,4 +1,4 @@
-import type { PageDoc, ReusableBlockDoc, SiteSettings } from 'contracts';
+import type { FaqGroupDoc, PageDoc, ReusableBlockDoc, SiteSettings } from 'contracts';
 
 /**
  * Минимальный generic-клиент к Payload CMS REST API для template-уровневых
@@ -76,4 +76,22 @@ export async function getReusableBlockById(
   });
   if (!response.ok) return null;
   return (await response.json()) as ReusableBlockDoc;
+}
+
+/**
+ * Получить FAQ-группы по slug'ам (для FaqAccordion блока).
+ *
+ * @param slugs — если массив пуст, возвращает все опубликованные группы.
+ */
+export async function listFaqGroups(slugs: readonly string[] = []): Promise<FaqGroupDoc[]> {
+  const query = new URLSearchParams({ depth: '1', limit: '50' });
+  if (slugs.length > 0) {
+    query.append('where[slug][in]', slugs.join(','));
+  }
+  const response = await fetch(`${CMS_URL}/api/faq-groups?${query.toString()}`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) return [];
+  const data = (await response.json()) as { docs: FaqGroupDoc[] };
+  return data.docs;
 }
