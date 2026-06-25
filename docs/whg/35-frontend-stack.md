@@ -4,42 +4,42 @@
 
 ## Stack
 
-- **React + Next.js** — фреймворк. SSR/роутинг/SEO из коробки, родная платформа shadcn.
-- **shadcn/ui** — база компонентов. Копируется в проект (код твой). Под капотом Radix — доступность готова.
-- **Tailwind** — стилизация. Утилиты прячутся внутрь компонентов (R1).
-- **CSS-переменные (токены)** — единый источник дизайна. Ставится с первого дня.
-- **CSS Grid + Flexbox** — раскладка. Это и есть движок блочной сетки.
-- **CVA (class-variance-authority)** — варианты контролов (`variant`, `size`), когда появятся.
+- **React + Next.js** — framework. SSR, file-based routing, SEO out of the box. Native platform for shadcn.
+- **shadcn/ui** — component base. Copied into the project (the code is yours). Under the hood: Radix — accessibility primitives.
+- **Tailwind** — styling. Utilities are encapsulated inside components (R1).
+- **CSS variables (tokens)** — single source of design tokens. Wired from day one.
+- **CSS Grid + Flexbox** — layout engine. Drives the block grid below.
+- **CVA (class-variance-authority)** — component variants (`variant`, `size`), introduced when variants actually appear.
 
-Набор закрыт и достаточен. Новое добавляем только под реальную нужду.
+The set is intentionally closed. New tools are added only when there is a concrete need.
 
 ## Block model
 
 UI composes as a tree of rectangular blocks on a grid. A grid + a catalogue of blocks + a reordering mechanism covers the majority of typical small-business UIs without requiring a generic visual builder.
 
-### Рекурсивность
+### Recursion
 
-Блоки вкладываются на любую глубину — грид в гриде законно и естественно. Страница = список блоков; блок может содержать блоки; секция → колонки → карточки → инпуты — всё блоки на вложенных сетках.
+Blocks nest at any depth: grid inside grid is a legitimate primitive. A page is a list of blocks; a block may contain blocks; section → columns → cards → inputs — all blocks on nested grids.
 
-### Два типа блоков (не смешивать)
+### Two kinds of blocks (do not mix)
 
-- **layout-блоки** (Grid, Stack, Columns) — только раскладка, своих данных нет, держат детей. Контейнеры.
-- **контент-блоки** (Hero, Card, Input, Image) — листья дерева, рендерят данные.
+- **Layout blocks** (`Grid`, `Stack`, `Columns`) — pure layout. Hold no data of their own, only children.
+- **Content blocks** (`Hero`, `Card`, `Input`, `Image`) — leaves of the tree. Render data.
 
-Разделение критично: без него раскладка и контент слипаются, и нельзя переставить структуру, не трогая содержимое.
+This separation matters: without it, layout and content become entangled and the structure cannot be reorganised without touching the content.
 
-### Дисциплина (R5 на уровне блоков)
+### Block discipline (R5 applied)
 
-**Блок — чистая функция от пропсов на любой глубине.** Не знает, где стоит; не лезет к родителю; не тянет данные сам — получает пропсы, рендерит детей. Тогда рекурсия масштабируется без запутывания.
+**A block is a pure function of its props at every nesting level.** It does not know where it sits, does not reach for its parent, does not fetch data on its own — it receives props, renders children. Recursion stays manageable.
 
-### Граница глубины — смысловая, не техническая
+### Depth boundary is semantic, not technical
 
-Технически вложенность бесконечна. Но **редактор в CMS** не должен собирать пятиуровневую вложенность руками. Поэтому: сложную вложенную структуру разработчик упаковывает в **готовый блок** (карточка с её внутренней сеткой = один блок «Карточка» для редактора). Разработчик мыслит рекурсивно, редактор — плоско.
+Nesting is technically unbounded. In practice, a non-developer editor in the CMS should not be assembling five-level nested structures by hand. A complex nested structure is wrapped into a single ready-made block (`<Card>` with its own inner grid is exposed as one "Card" entry to the editor). Developers think recursively; editors operate on a flat list.
 
-## Как это связывает всё
+## How the model connects
 
-Один механизм — три применения:
+One mechanism, three uses:
 
-- **фронт** — страница рендерится из дерева блоков;
-- **CMS (Payload blocks)** — редактор переставляет блоки, потому что страница = упорядоченный список блоков;
-- **либа секций** — это и есть растущий каталог блоков.
+- **Frontend** — a page renders from a tree of blocks.
+- **CMS** (Payload blocks) — an editor reorders blocks because a page is an ordered list of blocks.
+- **Component library** — a growing catalogue of blocks shared across sites.

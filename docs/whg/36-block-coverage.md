@@ -2,46 +2,48 @@
 
 > Capability map: what the block model provides through Payload out of the box vs. what requires custom work.
 
-## Три уровня компоновки (важно не путать)
+## Three composition levels
 
-**Уровень 1 — секции-строки (плоский список).**
-Страница = вертикальный список крупных блоков-полос: Hero, «О нас», Прайс, Галерея, Форма, Футер. Редактор переставляет их вверх/вниз, включает/выключает, правит содержимое.
+**Level 1 — section-rows (flat list).**
+A page is a vertical list of section-sized blocks: Hero, About, Pricing, Gallery, Form, Footer. The editor reorders them, toggles visibility, edits content inside.
 
-**Уровень 2 — блок с внутренней структурой (готовый, собран разработчиком).**
-Внутри секции — своя сетка: колонки, карточки, сетка фото. Но для редактора это **один готовый блок** «Карточки услуг» или «Галерея 3×N» с настройками.
+**Level 2 — composite block with built-in structure (assembled by a developer).**
+A section contains its own grid: columns, cards, a photo grid. For the editor this is **one ready-made block** — "Service Cards" or "Gallery 3×N" — exposed with a few settings.
 
-**Уровень 3 — произвольная рекурсивная компоновка (грид в гриде).**
-Редактор сам строит дерево: кладёт колонки в секцию, карточки в колонки, инпуты в карточки. Это полноценный конструктор уровня Tilda/Webflow.
+**Level 3 — arbitrary recursive composition (grid in grid).**
+The editor assembles the tree directly: drops columns into a section, cards into columns, inputs into cards. This is a full visual builder in the spirit of Tilda or Webflow.
 
-## Что покрыто из коробки (Payload, бесплатно)
+## What is covered out of the box (Payload)
 
-**Уровень 1 и Уровень 2 — закрыты Payload blocks полностью.**
+**Levels 1 and 2 are fully covered by Payload blocks.**
 
-- редактор переставляет секции (drag вверх/вниз в админке);
-- включает/выключает, дублирует секции;
-- правит контент внутри через поля (текст, цена, фото, ссылки);
-- выбирает из готовых блоков и добавляет на страницу;
-- настраивает блок в рамках заданных разработчиком опций (колонок 2 или 3).
+- The editor reorders sections (drag up/down in the admin UI).
+- Sections can be toggled, duplicated.
+- Content is edited inside through typed fields (text, price, photo, link).
+- Pre-built blocks are picked from a catalogue and added to a page.
+- Each block exposes the options the developer defined (e.g. 2 or 3 columns).
 
-Это **принципиальная потребность** микробизнеса, и она закрыта без единой строчки кастомного конструктора.
+This covers the typical small-business content workflow without any custom builder code.
 
-## Что придётся дорабатывать
+## What requires custom work
 
-**Уровень 3 — Payload из коробки НЕ даёт.**
+**Level 3 is not provided by Payload out of the box.**
 
-- визуальный canvas с drag-n-drop блоков друг в друга;
-- live-preview;
-- управление вложенностью мышкой;
-- контроль, чтобы редактор не собрал сломанную структуру.
+Building it means writing:
 
-Это месяцы разработки, а не настройка. Отдельный продукт поверх каркаса, не часть типового сайта.
+- a visual canvas with drag-and-drop of blocks into blocks;
+- live preview;
+- depth and nesting controls in the UI;
+- validation to prevent the editor from assembling broken structures.
 
-## Граница, которую держим
+This is months of work — a separate product on top of the framework, not part of a typical site.
 
-|                                     | Кто собирает                               | Payload из коробки | В каркасе  |
-| ----------------------------------- | ------------------------------------------ | ------------------ | ---------- |
-| Уровень 1 (секции-строки)           | редактор                                   | ✅ да              | ✅         |
-| Уровень 2 (готовые составные блоки) | разработчик зашивает, редактор настраивает | ✅ да              | ✅         |
-| Уровень 3 (рекурсивный конструктор) | редактор визуально                         | ❌ нет             | надстройка |
+## The boundary
 
-**Правило:** рекурсивность живёт в **коде** (разработчик мыслит блок-в-блоке, R5), а для редактора она упакована в готовые блоки. Редактор работает плоско.
+| Level                 | Who composes                           | Payload out of the box | In the framework |
+| --------------------- | -------------------------------------- | ---------------------- | ---------------- |
+| 1 (section rows)      | editor                                 | ✅ yes                 | ✅               |
+| 2 (composite blocks)  | developer assembles, editor configures | ✅ yes                 | ✅               |
+| 3 (recursive builder) | editor, visually                       | ❌ no                  | add-on           |
+
+**Rule:** recursion lives in **code** (the developer thinks block-in-block, R5). For the editor it is wrapped into ready-made blocks. The editor works flat.
