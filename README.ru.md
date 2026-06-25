@@ -90,6 +90,7 @@ pnpm setup-infisical -- --site my-site [--type minimal]
 | [`38-invariants.md`](docs/whg/38-invariants.md)         | Инвариантные коллекции и блоки, переиспользуемые между сайтами           |
 | [`40-versions.md`](docs/whg/40-versions.md)             | Версии стека, политика апгрейдов, breaking-change дисциплина             |
 | [`45-data-location.md`](docs/whg/45-data-location.md)   | Где живут значения — Payload / Infisical / код, разделение по "кто меняет" |
+| [`stack/`](docs/stack/)                                 | Reference по компонентам стека — версии, установка, MCP servers, AI skills, ссылки |
 
 ## Лицензия
 
