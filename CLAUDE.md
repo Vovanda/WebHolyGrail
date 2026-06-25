@@ -88,25 +88,20 @@ basename "$(pwd)"
 
 ## Sources of truth (где что искать)
 
-| Что                                        | Где                                                                            | Назначение                                                                                                                                                                     |
-| ------------------------------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Backlog** (все задачи, open + closed)    | [GitHub Issues](https://github.com/Vovanda/WebHolyGrail/issues)                | Bugs, features, chore. Labels: `bug`/`feat`/`chore`, `priority:*`, `area:*`. Single source of truth по тому что сделано / что предстоит. Закрытые issues = changelog по факту. |
-| **PLAN (chain активных задач)**            | MCP `HolyGrail/plan/PLAN`                                                      | Короткая цепочка `1. #N → 2. #M → 3. #K`. Не дублирует backlog — указывает на issue-номера. Какая задача сейчас в работе, что после неё.                                       |
-| **Findings (технические notes per issue)** | `docs/backlog/findings/<N>-<slug>.md`                                          | Длинные diagnostics / curl outputs / stack traces / design decisions которые неудобно в issue comment. Линкуется из issue.                                                     |
-| **Session state (mid-task)**               | MCP `HolyGrail/session/active` + fallback `.claude/session-context/current.md` | Что делаю прямо в момент прерывания: «остановился на certbot retry», «жду docker pull», «гипотеза X в проверке». **Не** список задач — moment-in-time state для resume.        |
-| **Memory rules / facts**                   | `~/.claude/projects/<sanitized-path>/memory/MEMORY.md`                         | Поведенческие правила, архитектурные решения, факты про проект которые AI должен помнить между сессиями.                                                                       |
-| **Skills**                                 | `.claude/skills/<name>/SKILL.md`                                               | Reusable workflows для AI. Триггерятся по описанию.                                                                                                                            |
-| **Docs / архитектура**                     | `docs/whg/`                                                                    | R0-R15, philosophy, decisions. Версионируется с кодом.                                                                                                                         |
+| Что                                   | Где                                                             | Назначение                                                                                                                                                                                                                                             |
+| ------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Backlog + tech notes + discussion** | [GitHub Issues](https://github.com/Vovanda/WebHolyGrail/issues) | Задачи (open/closed), findings, diagnostics, design decisions — всё в issue body + comments. Labels: `bug`/`feat`/`chore`, `priority:*`, `area:*`. Закрытые issues = changelog. **Один артефакт** — не разводим в репо файлы которые потом забываются. |
+| **Memory rules / facts**              | `~/.claude/projects/<sanitized-path>/memory/MEMORY.md`          | Поведенческие правила, архитектурные решения.                                                                                                                                                                                                          |
+| **Skills**                            | `.claude/skills/<name>/SKILL.md`                                | Reusable workflows для AI.                                                                                                                                                                                                                             |
+| **Docs / архитектура**                | `docs/whg/`                                                     | R-правила, philosophy, decisions. Версионируется с кодом.                                                                                                                                                                                              |
+
+AI internal state (порядок задач в работе, mid-task pause) — в MCP memory, не публикуется.
 
 ### Workflow
 
-1. **Новая задача от Володи** → `gh issue create --template <bug|feat|chore>` (попадает в backlog).
-2. **Беру в работу** → добавляю как next step в PLAN.md chain (`#N → ...`).
-3. **Mid-task state** (паузы, прерывания) → `HolyGrail/session/active` короткая запись.
-4. **Технические findings по ходу** → `docs/backlog/findings/<N>-<slug>.md`, линкую обратно из issue.
-5. **Готово** → commit с `Closes #N` (auto-closes issue) → вычёркиваю из chain.
-
-`/save-context` skill сохраняет session state (3), не дублирует backlog (1) или chain (2).
+1. **Новая задача** → `gh issue create --template <bug|feat|chore>` (backlog).
+2. **Технические findings по ходу** → дописываю в issue (body или comment), не отдельный файл.
+3. **Готово** → commit с `Closes #N` → auto-closes issue.
 
 ---
 
