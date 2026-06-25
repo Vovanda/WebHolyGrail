@@ -25,29 +25,50 @@ COMPOSE_FILE="$SCRIPT_DIR/compose.bluegreen.yml"
 STATE_FILE="$SITE_DIR/ACTIVE_COLOR"
 
 # ── Secrets via Infisical ───────────────────────────────────────────────
-# All secrets (PAYLOAD_SECRET, DATABASE_URI, VK_ACCESS_TOKEN, S3_*, etc.)
-# are pulled from Infisical at runtime. The only file persisted on the VPS
-# is `/etc/infisical/token` (chmod 600 deploy:deploy) holding the service
-# token; no plaintext `.env.production` lives on disk.
+# Per-site Universal Auth machine identity. Creds живут в:
+#   /etc/infisical/<slug>/client-id      (chmod 600 deploy:deploy)
+#   /etc/infisical/<slug>/client-secret  (chmod 600 deploy:deploy)
 #
-# Every `docker compose ...` invocation in this script is wrapped in
-# `infisical run --token=... --env=prod -- <cmd>` so secrets are injected
-# into the compose environment without writing them to disk.
-INFISICAL_TOKEN_FILE="${INFISICAL_TOKEN_FILE:-/etc/infisical/token}"
+# Скрипт делает `infisical login --method=universal-auth ...` → JWT, потом
+# каждый `docker compose ...` оборачивает в `infisical run --token=$JWT --env=prod`,
+# чтобы секреты летели в env контейнеров без записи на диск.
+#
+# Multi-site (несколько Holy Grail сайтов на одной VPS) — каждый имеет
+# свою папку `/etc/infisical/<slug>/`, изолированную RBAC'ом Infisical.
+#
+# Slug определяется (по убыванию приоритета): $SITE_SLUG env → basename
+# директории сайта. Hostname Infisical instance — $INFISICAL_HOST_URL env.
+SITE_SLUG="${SITE_SLUG:-$(basename "$SITE_DIR")}"
 INFISICAL_ENV="${INFISICAL_ENV:-prod}"
+INFISICAL_HOST_URL="${INFISICAL_HOST_URL:-}"
+CREDS_DIR="/etc/infisical/$SITE_SLUG"
 
 if ! command -v infisical >/dev/null 2>&1; then
   echo "ERROR: infisical CLI not installed on this host." >&2
   echo "Install: curl -1sLf 'https://artifacts-cli.infisical.com/install.sh' | sh" >&2
   exit 1
 fi
-if [ ! -r "$INFISICAL_TOKEN_FILE" ]; then
-  echo "ERROR: $INFISICAL_TOKEN_FILE not readable. Place the service token there (chmod 600 deploy:deploy)." >&2
+if [ -z "$INFISICAL_HOST_URL" ]; then
+  echo "ERROR: INFISICAL_HOST_URL env not set (e.g. https://infisical.your-domain.tld)." >&2
+  exit 1
+fi
+if [ ! -r "$CREDS_DIR/client-id" ] || [ ! -r "$CREDS_DIR/client-secret" ]; then
+  echo "ERROR: $CREDS_DIR/{client-id,client-secret} not readable." >&2
+  echo "Set them up via \`pnpm setup-infisical -- --site $SITE_SLUG\` output." >&2
   exit 1
 fi
 
-INFISICAL_TOKEN="$(cat "$INFISICAL_TOKEN_FILE")"
-INFISICAL_RUN=(infisical run --token="$INFISICAL_TOKEN" --env="$INFISICAL_ENV" --)
+echo "→ Infisical login (slug=$SITE_SLUG, env=$INFISICAL_ENV, host=$INFISICAL_HOST_URL)"
+INFISICAL_TOKEN="$(infisical login --method=universal-auth \
+  --client-id="$(cat "$CREDS_DIR/client-id")" \
+  --client-secret="$(cat "$CREDS_DIR/client-secret")" \
+  --domain="$INFISICAL_HOST_URL" \
+  --plain --silent)"
+if [ -z "$INFISICAL_TOKEN" ]; then
+  echo "ERROR: infisical login returned empty token" >&2
+  exit 1
+fi
+INFISICAL_RUN=(infisical run --token="$INFISICAL_TOKEN" --domain="$INFISICAL_HOST_URL" --env="$INFISICAL_ENV" --)
 
 TAG="${1:-latest}"
 ACTIVE="$(cat "$STATE_FILE" 2>/dev/null || echo blue)"
