@@ -1,0 +1,20 @@
+name: Chore / Refactor
+description: Tooling, refactor, cleanup, docs — не bug, не feat
+labels: ['chore']
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: Что сделать
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Зачем
+      description: Что улучшается (DX, perf, читаемость, безопасность)
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      placeholder: Какие файлы / папки / пакеты затрагиваются

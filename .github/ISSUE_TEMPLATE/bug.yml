@@ -1,0 +1,34 @@
+name: Bug
+description: Что-то работает не так как ожидалось
+labels: ['bug']
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: Что произошло
+      description: Один-два предложения. Без «не работает» — конкретика.
+      placeholder: При scaffold нового инстанса setup-infisical падает на createIdentity 401.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Как воспроизвести
+      placeholder: |
+        1. gh repo create … --template Vovanda/WebHolyGrail
+        2. cd <slug> && pnpm setup-infisical -- --site <slug>
+        3. Ожидал ✓ identity, получил FATAL 401
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      placeholder: |
+        - WHG HEAD: <sha>
+        - Node: 20.x
+        - OS: Windows 11 / macOS / Linux
+        - Infisical instance: self-host vX.Y / Cloud
+  - type: textarea
+    id: findings
+    attributes:
+      label: Findings / links
+      description: Линк на `docs/backlog/findings/<issue-N>-<slug>.md` если есть отдельный technical note
