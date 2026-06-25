@@ -35,18 +35,18 @@ VPS (под Holy Grail инстансы)
 > Этот раздел — **источник правды** про то как мы используем Infisical в WHG. Если есть несовпадение с практикой — править эту секцию + код, не наоборот.
 
 1. **One self-host instance на VPS** — `/opt/infisical/docker-compose.yml`, поднят раз навсегда. Не клонируется per-site.
-2. **One canonical hostname** — `infisical.sawking.tech` (домен infrastructure-команды, не привязан к конкретному сайту-клиенту). Магические-ссылки / OAuth редиректят сюда.
-3. **Дополнительные subdomain-aliases на каждый сайт** — `infisical.veo55.ru`, `infisical.<новый-сайт>.tld` и т.д. Все nginx server-блоки `proxy_pass http://127.0.0.1:8080`, один backend. Subpath (`site.tld/infisical/`) НЕ работает — см. подсекцию ниже.
+2. **One canonical hostname** — `infisical.<canonical-domain>.tld` (домен команды infrastructure, не привязан к конкретному сайту-клиенту). Магические ссылки / OAuth редиректят сюда. Хост задаётся через env `INFISICAL_HOST_URL` при scaffold.
+3. **Дополнительные subdomain-aliases на каждый сайт** — `infisical.<site-domain>.tld` для каждого инстанса. Все nginx server-блоки `proxy_pass http://127.0.0.1:8080`, один backend. Subpath (`site.tld/infisical/`) НЕ работает — см. подсекцию ниже.
 4. **Project per site** — `holygrail-<slug>`, создаётся автоматически через `pnpm setup-infisical --site <slug>` (REST API, идемпотентно). Каждый — изолированный workspace.
-5. **Per-site admin invited** — для каждого сайта приглашается user-admin (например админ veo55 = Володя+1 кто угодно), которому видим **только этот project**. Через REST: `POST /api/v3/users/signup` + `POST /api/v2/workspace/{id}/users`. Авторизуется через `infisical.<сайт>.tld` (любой alias) → видит только свой workspace.
+5. **Per-site admin invited** — для каждого сайта приглашается user-admin, которому виден **только этот project**. Через REST: `POST /api/v3/users/signup-invite` + `POST /api/v2/workspace/{id}/memberships`. Авторизуется через любой `infisical.<site>.tld` alias → видит только свой workspace.
 6. **Per-site machine identity (UA)** — для prod deploy. Creds в `/etc/infisical/<slug>/{client-id,client-secret}` на VPS (chmod 600 deploy:deploy). `deploy.sh` через `infisical login --method=universal-auth ...`.
-7. **Local dev secrets chain** (приоритет сверху вниз):
-   - **a) VPS shared Infisical** — если разработчик в сети и есть `INFISICAL_HOST_URL` + admin token / project member access. Тот же state что у других, prod-like. Дефолт когда онлайн.
-   - **b) Local Infisical container на dev-машине** — один shared (не per-repo), если разработчик хочет offline-prod-like среду. `dev.sh` находит local CLI и `.infisical.json` указывающий на `localhost:8080`.
-   - **c) `.env.local` файлы** — когда VPS недоступен И лень поднимать local контейнер. Минимальный путь для quick dev.
-   - **d) fail-fast** — если ни Infisical, ни `.env.local`.
+7. **Local dev secrets chain** (приоритет по факту что доступно):
+   - **a) VPS shared Infisical** — если есть сеть до `$INFISICAL_HOST_URL` И валидный admin token / project membership. Тот же state что у других разработчиков, prod-like.
+   - **b) Local Infisical container на dev-машине** — если поднят (`docker compose` через `scripts/setup-local-infisical.sh` или ручной). Полностью offline-prod-like, изолированный state per dev. `.infisical.json` указывает на `localhost:8080`.
+   - **c) `.env.local` файл** — minimal fallback без infrastructure. Никакой централизованной ротации, никакого audit, всё руками. Подходит когда не нужен Infisical state (новый проект, локальные эксперименты, оффлайн).
+   - **d) fail-fast** — нет ни одного из (a-c).
 
-   `dev.sh` пробует по порядку, выбирает первый рабочий.
+   `dev.sh` пробует по порядку, выбирает первый рабочий. Чем выше — тем ближе к prod-like среде.
 
 8. **Содержимое БД Infisical**: секреты + env-dependent runtime + feature flags + rate limits — всё что меняется devops без relays code. См. `docs/whg/45-data-location.md`.
 

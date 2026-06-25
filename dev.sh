@@ -5,13 +5,13 @@
 # там Infisical обязателен hard):
 #
 #   1. Infisical CLI + .infisical.json (любой инстанс):
-#      a) VPS shared instance (https://infisical.sawking.tech) — приоритет,
-#         тот же state что у других разработчиков, prod-like
+#      a) VPS shared instance ($INFISICAL_HOST_URL из .infisical.json/env) —
+#         приоритет, тот же state что у других разработчиков, prod-like
 #      b) local container на dev-машине (если поднят `docker compose` локально)
-#   2. .env.local — offline fallback (см. .env.local.example), когда:
-#      - VPS Infisical недоступен (нет сети)
-#      - не лень поднять local Infisical контейнер
-#   3. fail-fast если ни того, ни другого нет
+#   2. .env.local — minimal fallback (см. .env.local.example), когда нет ни
+#      VPS-доступа, ни поднятого local Infisical контейнера. Без centralized
+#      rotation, без audit — всё руками. Подходит для quick start / offline.
+#   3. fail-fast если ни (1), ни (2) недоступны
 
 set -e
 cd "$(dirname "$0")"

@@ -10,8 +10,8 @@ description: Workflow секретов в Holy Grail сайтах — self-host 
 ## Канонический путь (наш workflow — источник правды)
 
 1. **One self-host Infisical instance на VPS** (`/opt/infisical/`), shared между всеми сайтами. Не клонировать per-site.
-2. **Canonical hostname** — `infisical.sawking.tech` (домен infrastructure-команды, не сайта-клиента). Magic links / OAuth редиректят сюда.
-3. **Subdomain-aliases на каждый сайт** — `infisical.veo55.ru`, `infisical.<новый-сайт>.tld` и т.д. Все nginx server-блоки `proxy_pass http://127.0.0.1:8080`, один backend. **НЕ subpath** — Infisical UI hard-coded под root (см. пруф в секции «Reverse proxy» ниже).
+2. **Canonical hostname** — `infisical.<canonical-domain>.tld` (домен infrastructure-команды, не сайта-клиента). Magic links / OAuth редиректят сюда. Задаётся env `INFISICAL_HOST_URL` при scaffold.
+3. **Subdomain-aliases на каждый сайт** — `infisical.<site-domain>.tld` для каждого инстанса. Все nginx server-блоки `proxy_pass http://127.0.0.1:8080`, один backend. **НЕ subpath** — Infisical UI hard-coded под root (см. пруф в секции «Reverse proxy» ниже).
 4. **Project per site** — `holygrail-<slug>`, авто через `pnpm setup-infisical --site <slug>`. Идемпотентно: reuse existing.
 5. **Per-site admin** — приглашённый user видит ТОЛЬКО свой project. Авторизуется через любой alias (даже canonical), но workspace-list фильтруется RBAC.
 6. **Per-site machine identity (UA)** для prod deploy — creds в `/etc/infisical/<slug>/{client-id,client-secret}` (chmod 600 deploy:deploy).
@@ -186,13 +186,13 @@ POST /api/v1/auth/universal-auth/identities/<identityId>/client-secrets
 ```
 POST /api/v3/users/signup-invite
 { "email": "<admin-email>", "organizationId": "<orgId>" }
-→ { "completeInviteLink": "https://infisical.sawking.tech/signupinvite?token=..." }
+→ { "completeInviteLink": "$INFISICAL_HOST_URL/signupinvite?token=..." }
 
 POST /api/v2/workspace/{projectId}/memberships
 { "emails": ["<admin-email>"], "roles": ["admin"] }
 ```
 
-Invited user логинится через любой `infisical.<site>.tld` alias → видит ТОЛЬКО `holygrail-<slug>`. Изоляция через native Infisical project membership filter.
+Invited user логинится через любой `infisical.<site>.tld` alias → видит ТОЛЬКО `holygrail-<slug>` (если ему дан membership ровно к одному project). Изоляция через native Infisical project membership filter. `completeInviteLink` высылается приглашённому, он завершает signup → password reset → login.
 
 Когда не нужно — пропустить (для test/internal сайтов).
 
