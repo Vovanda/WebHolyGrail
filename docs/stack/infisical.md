@@ -303,5 +303,5 @@ Self-host edition Infisical — **тот же web UI** что Cloud (это open
 ## Связанные
 
 - [`45-data-location.md`](../whg/45-data-location.md) — где живут какие значения
-- [`holygrail-infisical` skill](../../.claude/skills/holygrail-infisical/SKILL.md) — workflow для агента
+- [`whg-infisical` skill](../../.claude/skills/whg-infisical/SKILL.md) — workflow для агента
 - [`37-scaffolding.md`](../whg/37-scaffolding.md) — scaffolding нового сайта

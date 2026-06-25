@@ -73,5 +73,5 @@ For now, treat this as the working default. Don't fight it on a case-by-case bas
 ## Cross-references
 
 - [`30-philosophy.md`](30-philosophy.md) — R0 (content in DB, not code) and how it relates.
-- [`holygrail-infisical` skill](../../.claude/skills/holygrail-infisical/SKILL.md) — operational details.
+- [`whg-infisical` skill](../../.claude/skills/whg-infisical/SKILL.md) — operational details.
 - [`feedback_data_location_by_who_changes_it`](../../) (private memory) — short-form rule for agent sessions.

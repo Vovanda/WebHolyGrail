@@ -1,9 +1,9 @@
 ---
-name: holygrail-rules
+name: whg-rules
 description: Архитектурные правила Web Holy Grail (R0-R15) — изоляция фронт/бэк через contracts, блок = чистая функция, контент в БД не хардкод, ЧПУ, SSR-default, R5++ функциональное именование блоков под _template, темизация через токены, client-fetch только same-origin через /internal/* proxy. Триггерить когда пишешь новый блок / меняешь contracts / создаёшь страницу / добавляешь Payload-коллекцию / решаешь куда положить логику / делаешь client-side fetch.
 ---
 
-# Skill: holygrail-rules
+# Skill: whg-rules
 
 > 14 правил Web Holy Grail. Применяй при любом архитектурном выборе.
 

@@ -1,9 +1,9 @@
 ---
-name: holygrail-infisical
+name: whg-infisical
 description: Workflow секретов в Holy Grail сайтах — Infisical Cloud + Universal Auth machine identities. Полностью автономный bootstrap (создание project + environments + service identity + client secret через REST API) через `pnpm setup-infisical --site <slug>`. Один one-time UI-шаг — создать admin identity Claude'у, дальше всё автоматически. Local dev через `.infisical.json`+`dev.sh`, prod через `/etc/infisical/{client-id,client-secret}`. Триггерить при создании нового сайта, ротации секрета, debug "secret not found", добавлении новой env-переменной, миграции существующего сайта с .env на Infisical.
 ---
 
-# Skill: holygrail-infisical
+# Skill: whg-infisical
 
 > Секреты на любом Holy Grail сайте — Infisical Cloud + Universal Auth machine identities. Никаких .env.production на диске, никаких legacy service tokens, никакого Terraform для 1-2 сайтов. Прямой REST API.
 

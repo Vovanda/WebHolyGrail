@@ -1,5 +1,5 @@
 ---
-name: payload-jobs
+name: whg-payload-jobs
 description: Создаёшь фоновую задачу (sync контента, импорт, periodic check, генерация отчёта) — этот skill даёт workflow Payload 3.x Jobs Queue 1:1 — без велосипеда, с админкой, расписанием, retries и admin-UI кнопкой «Run».
 ---
 
@@ -116,7 +116,7 @@ export default buildConfig({
 
 ## Миграция SQLite (1 раз на проект)
 
-Payload **не создаёт** таблицы автоматически если `db.push: false` (наш дефолт по `holygrail-rules`). Нужна **ручная** миграция:
+Payload **не создаёт** таблицы автоматически если `db.push: false` (наш дефолт по `whg-rules`). Нужна **ручная** миграция:
 
 - `payload_jobs` (id, input, completed_at, total_tried, has_error, error, task_slug, queue, wait_until, processing, meta, updated_at, created_at)
 - `payload_jobs_log` (array: executed_at, completed_at, task_slug, **`task_i_d`**, input, output, state, error, parent_task_slug, **`parent_task_i_d`**)

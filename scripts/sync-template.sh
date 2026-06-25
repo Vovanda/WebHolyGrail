@@ -141,16 +141,25 @@ WHITELIST=(
   "dev.sh"
   "dev-setup.sh"
 
-  # Claude skills — только holygrail-* и payload*
-  ".claude/skills/holygrail-rules/"
-  ".claude/skills/holygrail-layouts/"
-  ".claude/skills/holygrail-modals/"
-  ".claude/skills/holygrail-ui-reference/"
-  ".claude/skills/holygrail-infisical/"
-  ".claude/skills/holygrail-template-sync/"
+  # Claude skills — наши whg-* (без whg-scaffold — он только в upstream WHG)
+  # + скачанные официальные payload/, cms-migration/, infisical-*/
+  ".claude/skills/whg-rules/"
+  ".claude/skills/whg-layouts/"
+  ".claude/skills/whg-modals/"
+  ".claude/skills/whg-ui-reference/"
+  ".claude/skills/whg-infisical/"
+  ".claude/skills/whg-template-sync/"
+  ".claude/skills/whg-payload-jobs/"
+  ".claude/skills/whg-payload-migration/"
   ".claude/skills/payload/"
-  ".claude/skills/payload-jobs/"
-  ".claude/skills/payload-migration/"
+  ".claude/skills/cms-migration/"
+  ".claude/skills/infisical-setup/"
+  ".claude/skills/infisical-self-host/"
+  ".claude/skills/infisical-secret-syncs/"
+  ".claude/skills/infisical-dynamic-secrets/"
+  ".claude/skills/infisical-agent/"
+  ".claude/skills/infisical-terraform/"
+  ".claude/skills/infisical-api/"
 )
 
 # Blacklist — что rsync должен исключать **даже внутри whitelist'ов**

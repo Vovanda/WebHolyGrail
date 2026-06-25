@@ -1,5 +1,5 @@
 ---
-name: payload-migration
+name: whg-payload-migration
 description: Меняешь Payload-блок/коллекцию/глобал — этот скилл даёт точный workflow для миграции SQLite без потери данных
 ---
 

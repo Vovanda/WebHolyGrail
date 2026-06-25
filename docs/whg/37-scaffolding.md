@@ -45,11 +45,11 @@ Installs `client`, `cms`, `contracts` workspaces.
 
 ## Bootstrap secrets via Infisical
 
-Holy Grail uses **Infisical Cloud** for all secrets — no `.env.production` files on the VPS, no committed `.env`. See [`holygrail-infisical` skill](../../.claude/skills/holygrail-infisical/SKILL.md) for the full workflow.
+Holy Grail uses **Infisical Cloud** for all secrets — no `.env.production` files on the VPS, no committed `.env`. See [`whg-infisical` skill](../../.claude/skills/whg-infisical/SKILL.md) for the full workflow.
 
 Prerequisites (one-time per organisation, not per site):
 
-1. In Infisical UI: create a `claude-scaffold-admin` machine identity with org-admin role (Universal Auth) — see [`holygrail-infisical`](../../.claude/skills/holygrail-infisical/SKILL.md) for the one-time setup steps.
+1. In Infisical UI: create a `claude-scaffold-admin` machine identity with org-admin role (Universal Auth) — see [`whg-infisical`](../../.claude/skills/whg-infisical/SKILL.md) for the one-time setup steps.
 2. Put its credentials in your shell env (`~/.zshrc`, `~/.bashrc`, or Windows env):
    ```bash
    export INFISICAL_ADMIN_CLIENT_ID=<...>
@@ -158,7 +158,7 @@ git push -u origin chore/sync-template-...
 gh pr create
 ```
 
-`sync-template.sh` only touches the generic whitelist — your `blocks/domain/`, domain collections, migrations, and `site.config`-equivalent stay intact. Full details: [`holygrail-template-sync` skill](../../.claude/skills/holygrail-template-sync/SKILL.md).
+`sync-template.sh` only touches the generic whitelist — your `blocks/domain/`, domain collections, migrations, and `site.config`-equivalent stay intact. Full details: [`whg-template-sync` skill](../../.claude/skills/whg-template-sync/SKILL.md).
 
 ## Migrating a pre-template site
 

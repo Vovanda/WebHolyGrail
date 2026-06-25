@@ -1,9 +1,9 @@
 ---
-name: holygrail-template-sync
+name: whg-template-sync
 description: Workflow обновления Holy Grail инстансов (veo55-site / sawking-tech / ...) из upstream template (WebHolyGrail) через `scripts/sync-template.sh`. Whitelist-based rsync только generic-частей (primitives/layout/decor/system/ui, layouts/, lib generic, contracts generic, deploy, .claude/skills/holygrail-*), domain-папки (blocks/domain/, src/cms/src/collections/<domain>, app/(site)/<domain-routes>) **не трогает**. Поддерживает выбор source-ветки (--ref main/develop/sha/tag) и удалённого репо (--repo). Триггерить когда: правится template-уровневый код в WHG → нужно зеркалить в инстансы; новый PR в инстанс с template-syncом; устанавливаешь свежую версию template на pinned tag.
 ---
 
-# Skill: holygrail-template-sync
+# Skill: whg-template-sync
 
 > Обновление дочерних инстансов Holy Grail из upstream template — без npm-либ. Пока (1-3 инстанса) — rsync white-list; после 3+ инстансов переезжаем на `@holygrail/*` npm-пакеты.
 
@@ -155,5 +155,5 @@ previous_sha=8c873d7
 
 - `scripts/sync-template.sh` — реализация.
 - `.template-version` — version marker в инстансе.
-- `holygrail-rules` — R3 (contracts seam), R5 (block = чистая функция), R9 (abstraction follows experience) — почему именно whitelist именно такой.
-- `holygrail-infisical` — секреты не в этом sync'е, они в Infisical Cloud (workspaceId в `.infisical.json` — НЕ перетирается sync'ом).
+- `whg-rules` — R3 (contracts seam), R5 (block = чистая функция), R9 (abstraction follows experience) — почему именно whitelist именно такой.
+- `whg-infisical` — секреты не в этом sync'е, они в Infisical Cloud (workspaceId в `.infisical.json` — НЕ перетирается sync'ом).

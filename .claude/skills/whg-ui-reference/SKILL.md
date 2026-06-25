@@ -1,9 +1,9 @@
 ---
-name: holygrail-ui-reference
+name: whg-ui-reference
 description: Workflow проектирования и реализации UI в Web Holy Grail-сайтах. Дефолт — я сам дизайнер, набираю насмотренность через WebSearch (awwwards/dribbble/pinterest), активирую frontend-design skill, делаю чистый production-grade UI без shadcn-дефолта. Если у заказчика есть существующий сайт / макет (как у veo55 — повезло) — копирую с улучшениями + face-off через Playwright. UI-механики (carousel/dnd/form/picker) — opensource, не велосипед. Триггерить при создании любого блока / страницы / визуальной композиции.
 ---
 
-# Skill: holygrail-ui-reference
+# Skill: whg-ui-reference
 
 > Я и есть дизайнер. В большинстве будущих сайтов Holy Grail-категории (микробизнес: автосервис, кофейня, клиника, питомник) у заказчика **не будет** макета и часто не будет даже старого сайта — будут тексты, фото, идея.
 
@@ -84,8 +84,8 @@ browser_navigate('http://localhost:3000/<page>') → take_screenshot  # мой
 | UI / новый блок / визуальная композиция         | `frontend-design` (обязателен в обоих режимах) |
 | Меняешь Payload-коллекцию/блок/global           | `payload-migration`                            |
 | Кропать фото в карточках/превью                 | site-specific (для veo55 — `veo-photo-crop`)   |
-| Меняешь SiteLayout / panels / slots             | `holygrail-layouts`                            |
-| Любой архитектурный выбор                       | `holygrail-rules`                              |
+| Меняешь SiteLayout / panels / slots             | `whg-layouts`                            |
+| Любой архитектурный выбор                       | `whg-rules`                              |
 | Конкретика текущего сайта (бренд, пути, скрины) | `<site>-context` (для veo55 — `veo55-context`) |
 
 Skill applicable, но не вызван = автоматический фак-ап.

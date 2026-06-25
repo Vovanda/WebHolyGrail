@@ -36,7 +36,7 @@ basename "$(pwd)"
 - **R9** — Обобщение снизу вверх (не делать generic-`Card` до 2-3 живых niche-карточек).
 - **R14** — SSR по умолчанию. `'use client'` только для DOM/browser API.
 
-Перед архитектурным выбором — активируй skill `holygrail-rules`.
+Перед архитектурным выбором — активируй skill `whg-rules`.
 
 ## Где что живёт
 
@@ -56,14 +56,17 @@ basename "$(pwd)"
 
 | Skill | Когда |
 |---|---|
-| `holygrail-rules` | Архитектурный выбор: блок / contracts / collection / URL-схема |
-| `holygrail-layouts` | SiteLayout / PanelConfig / Header/Footer/NavDrawer |
-| `holygrail-modals` | Detail-модалка сущности (карточка с overlay) |
-| `holygrail-ui-reference` | Создаёшь UI-блок / страницу / визуальную композицию |
-| `holygrail-infisical` | Секреты — bootstrap, ротация, новая env-переменная |
-| `holygrail-template-sync` | Подтянуть upstream WHG generic |
-| `holygrail-scaffold` | (upstream only) — создание нового инстанса |
-| `payload`, `payload-jobs`, `payload-migration` | Payload — collections, fields, hooks, миграции, jobs |
+| `whg-rules` | Архитектурный выбор: блок / contracts / collection / URL-схема |
+| `whg-layouts` | SiteLayout / PanelConfig / Header/Footer/NavDrawer |
+| `whg-modals` | Detail-модалка сущности (карточка с overlay) |
+| `whg-ui-reference` | Создаёшь UI-блок / страницу / визуальную композицию |
+| `whg-infisical` | Секреты — bootstrap, ротация, новая env-переменная |
+| `whg-template-sync` | Подтянуть upstream WHG generic |
+| `whg-scaffold` | (upstream only) — создание нового инстанса |
+| `whg-payload-jobs` | Payload Jobs Queue в нашем стиле (поверх официального) |
+| `whg-payload-migration` | Миграции Payload в нашем blue-green deploy.sh |
+| `whg-skill-authoring` | Создаёшь / обновляешь наш `whg-*` skill — правила naming, inline vs reference |
+| `payload`, `cms-migration`, `infisical-*` | Скачанные официальные — базовое знание от вендоров |
 | `frontend-design` | UI с дизайн-усилиями |
 
 ## Что НЕ делать

@@ -62,7 +62,7 @@ When a major bump introduces a breaking change in template:
 4. Document the migration in `docs/whg/migrations/<from>-to-<to>.md`.
 5. Instance maintainers pull via `sync-template.sh --ref tag/v0.X.0` to stay on the old major, or follow the migration guide to take the new one.
 
-Instances are free to pin to a specific template tag and upgrade on their own schedule — see [`holygrail-template-sync`](../../.claude/skills/holygrail-template-sync/SKILL.md).
+Instances are free to pin to a specific template tag and upgrade on their own schedule — see [`whg-template-sync`](../../.claude/skills/whg-template-sync/SKILL.md).
 
 ## Why this strategy
 

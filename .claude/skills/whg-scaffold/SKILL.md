@@ -1,9 +1,9 @@
 ---
-name: holygrail-scaffold
+name: whg-scaffold
 description: End-to-end workflow создания нового Holy Grail инстанса с нуля — gh repo create --template → pnpm setup-infisical → ./dev-setup.sh → ./dev.sh. От пустого GH-репозитория до работающего локального dev стека за 5-10 минут. Покрывает все шаги, грабли и smoke-проверки. Триггерить когда создаёшь новый сайт (любой ниши — блог, кафе, клиника, питомник, авто), тестируешь template ("Use this template" → работает за минуты), onboarding нового разработчика на WHG, или когда нужно пройти полный путь от создания репо до запуска dev.
 ---
 
-# Skill: holygrail-scaffold
+# Skill: whg-scaffold
 
 > Zero-config scaffolding нового Holy Grail инстанса. 5-10 минут от `gh repo create` до работающего dev стека.
 >
@@ -120,7 +120,7 @@ Globals → SiteSettings → заполнить:
 - `mainNav` — главное меню (массив `{label, href, external?}`)
 - `contacts` — email/phone/address
 - `socials` — VK/Telegram/Instagram ссылки
-- `layout` — выбрать preset (см. `holygrail-layouts` skill)
+- `layout` — выбрать preset (см. `whg-layouts` skill)
 
 ### 8. Создать главную страницу
 
@@ -226,11 +226,11 @@ bash deploy/prod/deploy.sh <git-sha>
 
 ## Связанные skills
 
-- **holygrail-infisical** — детали Infisical setup, ротация секретов, debug "secret not found"
-- **holygrail-template-sync** — sync обновлений из upstream WHG в инстанс
+- **whg-infisical** — детали Infisical setup, ротация секретов, debug "secret not found"
+- **whg-template-sync** — sync обновлений из upstream WHG в инстанс
 - **payload-migration** — миграции схемы Payload при изменении collections
-- **holygrail-rules** — R0-R15 архитектурные правила
-- **holygrail-layouts** — SiteSettings.layout config (panels/slots)
+- **whg-rules** — R0-R15 архитектурные правила
+- **whg-layouts** — SiteSettings.layout config (panels/slots)
 
 ## Human-readable версия
 

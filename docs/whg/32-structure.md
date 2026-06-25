@@ -142,4 +142,4 @@ Type is a **starting point**, not a lock-in. Once the site is up, growth happens
 
 - **This repo** (`Vovanda/WebHolyGrail`, public, MIT, isTemplate=true) — upstream template. Generic only.
 - **Instances** (private, one per real site) — created via "Use this template". Generic + domain overlay.
-- **Sync** — `sync-template.sh` pulls updates from template into instance. Domain isn't touched. See [`.claude/skills/holygrail-template-sync/SKILL.md`](../../.claude/skills/holygrail-template-sync/SKILL.md).
+- **Sync** — `sync-template.sh` pulls updates from template into instance. Domain isn't touched. See [`.claude/skills/whg-template-sync/SKILL.md`](../../.claude/skills/whg-template-sync/SKILL.md).
