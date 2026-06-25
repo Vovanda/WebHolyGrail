@@ -4,7 +4,7 @@ Compact reference per компонент стека Holy Grail: что испо�
 
 | Component | File | Что покрывает |
 |---|---|---|
-| Infisical | [`infisical.md`](infisical.md) | Cloud vs self-host, CLI/SDK/MCP server установка, AI skills repo, chicken-egg admin identity, REST endpoints, ограничения |
+| Infisical | [`infisical.md`](infisical.md) | Self-host (single instance + project per site), Postgres, CLI/SDK установка, AI skills repo, `infisical bootstrap`, REST endpoints, ограничения |
 | Payload CMS | _todo_ | (заглушка — добавится при первом большом изменении) |
 | Next.js | _todo_ | (заглушка) |
 | S3 storage (MinIO) | _todo_ | (заглушка) |

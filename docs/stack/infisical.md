@@ -34,13 +34,12 @@ VPS (под Holy Grail инстансы)
 | Infisical server | latest stable (OSS) | в docker compose tag |
 | CLI | latest stable | `infisical --version` |
 | Node SDK `@infisical/sdk` | `^3.0.0` | в `package.json` |
-| MCP server `@infisical/mcp` | latest | `npx @infisical/mcp --version` |
+| Postgres (для Infisical) | `14` | в docker compose tag |
 
 Релизы tracking:
 - [Main server releases](https://github.com/Infisical/infisical/releases) — для self-host docker image
 - [CLI releases](https://github.com/Infisical/cli/releases)
 - [SDK releases](https://github.com/Infisical/node-sdk-v2/releases)
-- [MCP server releases](https://github.com/Infisical/infisical-mcp-server/releases)
 
 ## Что мы используем
 
@@ -129,53 +128,9 @@ docker exec infisical infisical bootstrap \
 
 Для self-host: `infisical login --domain https://infisical.<your-domain>.tld` (browser-flow на свой instance, не Cloud).
 
-## MCP server (для меня — Claude в этом репо)
+## AI Skills repo (для агента)
 
-Официальный `@infisical/mcp` экспонирует Infisical API как MCP tools.
-
-### Установка в Claude Code
-
-```bash
-claude mcp add infisical -- npx -y @infisical/mcp
-```
-
-В `~/.claude/mcp.json` / `claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "infisical": {
-      "command": "npx",
-      "args": ["-y", "@infisical/mcp"],
-      "env": {
-        "INFISICAL_UNIVERSAL_AUTH_CLIENT_ID": "<UA-client-id>",
-        "INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET": "<UA-client-secret>",
-        "INFISICAL_HOST_URL": "https://infisical.<your-domain>.tld"
-      }
-    }
-  }
-}
-```
-
-`INFISICAL_HOST_URL` обязателен для self-host (default app.infisical.com = Cloud).
-
-### Tools которые MCP даёт
-
-- `create-secret`, `update-secret`, `delete-secret`, `list-secrets`, `get-secret`
-- `create-project`, `list-projects`
-- `create-environment`
-- `create-folder`
-- `invite-members-to-project`
-
-### Tools что MCP **не** даёт (важно)
-
-- ❌ `create-identity`, `attach-universal-auth`, `create-client-secret`, `add-identity-to-project`
-
-Для них — прямой REST (admin Bearer token от admin UA identity).
-
-## AI Skills repo
-
-`Infisical/ai-skills` — 6 официальных skills:
+`Infisical/ai-skills` — 6 официальных skills от Infisical для AI-агентов:
 
 | Skill | Что покрывает |
 |---|---|
@@ -192,6 +147,8 @@ npx skills add Infisical/ai-skills
 # или
 /plugin marketplace add Infisical/ai-skills
 ```
+
+MCP-server (`@infisical/mcp`) **не используем** — для нашего workflow достаточно CLI (`infisical run`, `infisical secrets`) и Node SDK (`@infisical/sdk`) в `setup-infisical.ts`. Лишний слой инструмента без оправданной пользы.
 
 ## Self-host обходит chicken-egg
 
@@ -244,19 +201,19 @@ Self-host edition Infisical — **тот же web UI** что Cloud (это open
 | Что | Когда |
 |---|---|
 | Infisical server (docker image) | quarterly review changelog, не часто (stable releases) |
-| CLI / SDK / MCP | continuous через caret-range / npx -y |
+| CLI / SDK | continuous через caret-range / `brew upgrade` |
 | AI skills | `npx skills add` периодически |
 
-При major upgrade Infisical server — Backup БД перед `docker compose up -d` с новым tag'ом.
+При major upgrade Infisical server — backup Postgres БД перед `docker compose up -d` с новым tag'ом.
 
 ## Известные ограничения и watch list
 
-- Один Postgres → бэкап-стратегия обязательна (без ENCRYPTION_KEY БД мертва)
-- SDK не имеет identity management методов (только secrets) — admin ops через REST
-- MCP server tools не покрывают identity management — fallback на REST
-- CLI не печатает session JWT в stdout — keychain непрозрачен для скриптов
-- При полной потере VPS — нужны бэкапы. Без них всё переcоздавать заново
-- `INFISICAL_HOST_URL` нужно во всех конфигах (CLI, SDK, MCP) — не забудь при добавлении нового интеграции
+- Postgres обязателен (SQLite не поддерживается). Бэкап-стратегия обязательна (без `ENCRYPTION_KEY` БД мертва).
+- SDK не имеет identity management методов (только secrets) — admin ops через REST.
+- CLI не печатает session JWT в stdout — keychain непрозрачен для скриптов. Программный доступ — UA machine identity, не user токен.
+- При полной потере VPS — нужны бэкапы. Без них всё пересоздавать заново.
+- `INFISICAL_HOST_URL` нужно во всех конфигах (CLI, SDK, deploy.sh) — не забудь при добавлении новой интеграции.
+- Если VPS забьётся (много сайтов / тяжёлые workloads) — Infisical + его Postgres переносятся на отдельную machine без сложностей: backup → restore на новой машине → меняем `INFISICAL_HOST_URL`. Не оптимизируем под этот сценарий заранее.
 
 ## Ссылки
 
@@ -268,7 +225,6 @@ Self-host edition Infisical — **тот же web UI** что Cloud (это open
 - [GitHub: главный сервер](https://github.com/Infisical/infisical)
 - [GitHub: CLI](https://github.com/Infisical/cli)
 - [GitHub: Node SDK](https://github.com/Infisical/node-sdk-v2)
-- [GitHub: MCP server](https://github.com/Infisical/infisical-mcp-server)
 - [GitHub: AI skills](https://github.com/Infisical/ai-skills)
 - [Discord community](https://infisical.com/slack)
 
