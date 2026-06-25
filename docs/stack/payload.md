@@ -55,29 +55,56 @@ pnpm --filter cms dev                     # Next-dev для CMS на :3001
 
 Прод — docker контейнер `src/cms/Dockerfile`, отдельный от client'а.
 
-## AI Skills repo (для агента)
+## AI Skills (для агента)
 
-`@payloadcms/agentic-skills` — официальные skills от Payload для Claude/Cursor/Continue. Поставляется через `@payloadcms/skills` npm package.
+Существуют **два официальных источника skills от Payload** + **наши локальные**:
+
+### 1. `payloadcms/skills` repo (GitHub-based, не npm)
+
+| Skill | Что покрывает |
+|---|---|
+| `payload` | Общий workflow — collections, fields, hooks, access control, queries, adapters, jobs queue, custom endpoints, localization, plugins |
+| `cms-migration` | Interactive workflows для миграции **FROM** внешних CMSes — WordPress, Contentful, Strapi, Sanity, Webflow |
 
 Установка:
 ```bash
-npx @payloadcms/skills add                # интерактивный wizard выбора нужных skills
-# или конкретно:
-npx @payloadcms/skills add payload-collections
+# Universal CLI (пуллит из GitHub):
+npx skills add payloadcms/skills
+
+# Manual:
+git clone https://github.com/payloadcms/skills /tmp/payload-skills
+cp -r /tmp/payload-skills/skills/payload .claude/skills/
 ```
 
-После установки skills попадают в `~/.claude/skills/` (для Claude Code) или соответствующую папку другого AI-агента.
+### 2. `payloadcms/payload` monorepo plugin (`tools/claude-plugin/`)
 
-Tracking releases:
-- [GitHub releases](https://github.com/payloadcms/payload/releases) — skills публикуются вместе с core
-- [Payload docs](https://payloadcms.com/docs) — где описаны новые skills
+Тот же `payload` skill + детализированные reference-документы в `skills/payload/reference/`:
+- `FIELDS.md`, `COLLECTIONS.md`, `HOOKS.md`
+- `ACCESS-CONTROL.md`, `ACCESS-CONTROL-ADVANCED.md`
+- `QUERIES.md`, `ADAPTERS.md`, `ADVANCED.md`
 
-В нашем репо `.claude/skills/` уже есть:
-- `payload/SKILL.md` — общий workflow с Payload (config, collections, fields, hooks)
-- `payload-jobs/SKILL.md` — Jobs Queue 3.x (фоновые задачи)
-- `payload-migration/SKILL.md` — миграции SQLite без потери данных
+Установка:
+```bash
+/plugin install github:payloadcms/payload
+```
 
-Эти три — наши (написанные под Holy Grail), а не из `@payloadcms/skills`. Обновляем по мере находок (см. PLAN).
+Активируется автоматически когда работаешь с `payload.config.ts` или files в Payload-структуре. Явный вызов через `@payload` в чате.
+
+### 3. Наши локальные skills (`.claude/skills/` в этом репо)
+
+Holy Grail-flavored — учитывают **R-правила, contracts/ seam, blue-green deploy.sh, наши patterns**. Дополняют официальные, не дублируют.
+
+| Skill | Когда триггерить |
+|---|---|
+| `payload` (наш) | Любая работа с Payload в **Holy Grail контексте** — collections, fields, hooks с учётом R3 (contracts seam), R0 (контент в БД), наших access patterns |
+| `payload-jobs` | Создаёшь фоновую задачу через Jobs Queue 3.x — c учётом нашей структуры jobs/ и Holy Grail deploy lifecycle |
+| `payload-migration` | Меняешь блок/коллекцию/global — точный workflow миграции SQLite **с интеграцией в `deploy.sh` blue-green** (миграция применяется до nginx switch) |
+
+**Рекомендация:** установить **#1 + #2** официальные для широкого knowledge, наши локальные #3 — для project-specific patterns. Все три уровня вместе дают полное покрытие.
+
+## llms-full.txt
+
+Payload предоставляет AI-friendly version всей документации на [`https://payloadcms.com/llms-full.txt`](https://payloadcms.com/llms-full.txt). Можно загрузить в context через WebFetch когда нужно глубокое погружение в конкретную фичу.
 
 ## Local API я касаюсь в
 
@@ -145,10 +172,11 @@ pnpm --filter cms exec payload migrate
 - [Docs](https://payloadcms.com/docs)
 - [REST API reference](https://payloadcms.com/docs/rest-api/overview)
 - [Local API reference](https://payloadcms.com/docs/local-api/overview)
-- [GitHub: payload](https://github.com/payloadcms/payload)
-- [GitHub: skills (`@payloadcms/skills`)](https://github.com/payloadcms/payload) — в составе monorepo
+- [GitHub: payload monorepo](https://github.com/payloadcms/payload)
+- [GitHub: skills standalone repo](https://github.com/payloadcms/skills) — 2 skills, install через `npx skills add payloadcms/skills`
+- [GitHub: monorepo claude-plugin](https://github.com/payloadcms/payload/tree/main/tools/claude-plugin) — тот же `payload` skill + reference/ детализация
 - [Discord community](https://discord.com/invite/payload)
-- [llms.txt (для AI)](https://payloadcms.com/llms.txt) — если есть; иначе через WebFetch на docs URL
+- [`llms-full.txt` для AI context](https://payloadcms.com/llms-full.txt) — полные docs одним файлом, можно загрузить через WebFetch
 
 ## Связанные
 

@@ -189,22 +189,29 @@ UA credentials — admin identity bootstrap'нутая через `infisical boo
 
 ## AI Skills repo (для агента)
 
-`Infisical/ai-skills` — 6 официальных skills от Infisical:
+`Infisical/ai-skills` — **7 официальных skills** (GitHub-based, не npm package):
 
 | Skill | Что покрывает |
 |---|---|
 | `infisical-setup` | Setup-гайд: CLI, SDK, Docker, K8s, 12 методов auth |
+| `infisical-self-host` | **Self-host deployment** — Docker/K8s, Postgres, env vars, обновления, backup. Прямо для нас. |
 | `infisical-secret-syncs` | Sync секретов в 38+ внешних сервисов |
 | `infisical-dynamic-secrets` | Короткоживущие creds (DB, IAM, SSH) |
 | `infisical-agent` | Daemon agent — YAML config, auth, deploy |
 | `infisical-terraform` | Terraform Provider |
 | `infisical-api` | REST API reference |
 
-Установка:
+Установка (одна из трёх опций):
 ```bash
+# 1. Universal CLI (пуллит из GitHub, не npm-package):
 npx skills add Infisical/ai-skills
-# или через Claude Code plugins
+
+# 2. Claude Code plugin marketplace:
 /plugin marketplace add Infisical/ai-skills
+
+# 3. Manual — copy folders из skills/ в .claude/skills/ репо:
+git clone https://github.com/Infisical/ai-skills /tmp/inf-skills
+cp -r /tmp/inf-skills/skills/infisical-self-host .claude/skills/
 ```
 
 Также есть **docs-only MCP без auth** (только публичные docs Infisical для search в чате):
