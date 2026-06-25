@@ -35,7 +35,7 @@ Live examples of sites built on this template: [whg.sawking.tech](https://whg.sa
 ## Quick start
 
 ```bash
-# 1. Create your instance from this template:
+# 1. Create your instance (always --private — instances are not public):
 gh repo create <owner>/my-site --template Vovanda/WebHolyGrail --private --clone
 cd my-site
 
@@ -43,14 +43,15 @@ cd my-site
 corepack enable
 pnpm install
 
-# 3. Bootstrap secrets (Infisical Cloud):
-infisical login                                # one-time per machine
-pnpm setup-infisical -- --site my-site         # creates project + dev/staging/prod envs
+# 3. Bootstrap (Infisical project + secrets + dev/staging/prod envs):
+pnpm setup-infisical -- --site my-site [--type minimal]
 
 # 4. Run dev stack:
-./dev-setup.sh                                 # one-time per checkout
+./dev-setup.sh                                 # one-time — MinIO + Infisical defaults
 ./dev.sh                                       # starts CMS :3001 + Client :3000
 ```
+
+Project types: `minimal` (current), `business-card` / `blog` / `portal` (roadmap). Type is the starting configuration — growth always happens via `blocks/domain/<niche>/` on top.
 
 Open http://localhost:3000 (site) and http://localhost:3001/admin (Payload admin).
 
