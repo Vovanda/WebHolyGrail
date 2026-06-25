@@ -34,12 +34,14 @@ VPS (под Holy Grail инстансы)
 | Infisical server | latest stable (OSS) | в docker compose tag |
 | CLI | latest stable | `infisical --version` |
 | Node SDK `@infisical/sdk` | `^3.0.0` | в `package.json` |
+| MCP server `@infisical/mcp` | latest | `npx -y @infisical/mcp --version` |
 | Postgres (для Infisical) | `14` | в docker compose tag |
 
 Релизы tracking:
 - [Main server releases](https://github.com/Infisical/infisical/releases) — для self-host docker image
 - [CLI releases](https://github.com/Infisical/cli/releases)
 - [SDK releases](https://github.com/Infisical/node-sdk-v2/releases)
+- [MCP server releases](https://github.com/Infisical/infisical-mcp-server/releases)
 
 ## Что мы используем
 
@@ -128,9 +130,66 @@ docker exec infisical infisical bootstrap \
 
 Для self-host: `infisical login --domain https://infisical.<your-domain>.tld` (browser-flow на свой instance, не Cloud).
 
+## Инструменты для меня (Claude в этом репо)
+
+Два разных режима работы — два разных инструмента:
+
+### Build-time (scaffold-скрипты, deploy.sh, jobs)
+
+**CLI + Node SDK** — в коде, версионируется git'ом, повторяемо.
+- `scripts/setup-infisical.ts` использует `@infisical/sdk` + прямой REST для admin ops
+- `deploy.sh` и `dev.sh` используют `infisical run --token=...` CLI
+- Identity provisioning (REST endpoints) — fetch из Node, не интерактивно
+
+MCP server здесь **избыточен** — в коде уже есть всё что нужно.
+
+### Run-time (ad-hoc ops в чате через меня)
+
+**MCP server** `@infisical/mcp` — нативные tools в Claude Code. Без него мне Bash + `infisical run --token=$(cat ...)` + JSON parsing для каждой операции. С MCP — одна tool-call.
+
+Use cases где MCP помогает:
+- «Покажи все секреты в `holygrail-sawking-tech` dev env»
+- «Set `FEATURE_NEW_DASHBOARD=true` в `holygrail-cafe-x` prod env»
+- «Создай environment `preview` в `holygrail-veo55`»
+- «Покажи кто member в этом project'е»
+
+### Установка MCP в Claude Code
+
+```bash
+claude mcp add infisical -- npx -y @infisical/mcp
+```
+
+В `~/.claude/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "infisical": {
+      "command": "npx",
+      "args": ["-y", "@infisical/mcp"],
+      "env": {
+        "INFISICAL_UNIVERSAL_AUTH_CLIENT_ID": "<UA-client-id>",
+        "INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET": "<UA-client-secret>",
+        "INFISICAL_HOST_URL": "https://infisical.<your-domain>.tld"
+      }
+    }
+  }
+}
+```
+
+`INFISICAL_HOST_URL` обязателен для self-host (default `app.infisical.com` = Cloud).
+
+UA credentials — admin identity bootstrap'нутая через `infisical bootstrap` команду.
+
+### Tools MCP-сервера
+
+✅ Покрывает: `create-secret`, `update-secret`, `delete-secret`, `list-secrets`, `get-secret`, `create-project`, `list-projects`, `create-environment`, `create-folder`, `invite-members-to-project`
+
+❌ Не покрывает: identity management (`create-identity`, `attach-universal-auth`, `create-client-secret`, `add-identity-to-project`). Для этого — прямой REST из скрипта (build-time, не run-time).
+
 ## AI Skills repo (для агента)
 
-`Infisical/ai-skills` — 6 официальных skills от Infisical для AI-агентов:
+`Infisical/ai-skills` — 6 официальных skills от Infisical:
 
 | Skill | Что покрывает |
 |---|---|
@@ -144,11 +203,15 @@ docker exec infisical infisical bootstrap \
 Установка:
 ```bash
 npx skills add Infisical/ai-skills
-# или
+# или через Claude Code plugins
 /plugin marketplace add Infisical/ai-skills
 ```
 
-MCP-server (`@infisical/mcp`) **не используем** — для нашего workflow достаточно CLI (`infisical run`, `infisical secrets`) и Node SDK (`@infisical/sdk`) в `setup-infisical.ts`. Лишний слой инструмента без оправданной пользы.
+Также есть **docs-only MCP без auth** (только публичные docs Infisical для search в чате):
+
+```bash
+claude mcp add --transport http infisical-docs https://infisical.com/docs/mcp
+```
 
 ## Self-host обходит chicken-egg
 
@@ -202,7 +265,8 @@ Self-host edition Infisical — **тот же web UI** что Cloud (это open
 |---|---|
 | Infisical server (docker image) | quarterly review changelog, не часто (stable releases) |
 | CLI / SDK | continuous через caret-range / `brew upgrade` |
-| AI skills | `npx skills add` периодически |
+| MCP server | `npx -y @infisical/mcp` берёт latest автоматически |
+| AI skills | `npx skills add` периодически (новые skills) |
 
 При major upgrade Infisical server — backup Postgres БД перед `docker compose up -d` с новым tag'ом.
 
@@ -225,6 +289,7 @@ Self-host edition Infisical — **тот же web UI** что Cloud (это open
 - [GitHub: главный сервер](https://github.com/Infisical/infisical)
 - [GitHub: CLI](https://github.com/Infisical/cli)
 - [GitHub: Node SDK](https://github.com/Infisical/node-sdk-v2)
+- [GitHub: MCP server](https://github.com/Infisical/infisical-mcp-server)
 - [GitHub: AI skills](https://github.com/Infisical/ai-skills)
 - [Discord community](https://infisical.com/slack)
 

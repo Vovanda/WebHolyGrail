@@ -4,7 +4,7 @@ Compact reference per компонент стека Holy Grail: что испо�
 
 | Component | File | Что покрывает |
 |---|---|---|
-| Infisical | [`infisical.md`](infisical.md) | Self-host (single instance + project per site), Postgres, CLI/SDK установка, AI skills repo, `infisical bootstrap`, REST endpoints, ограничения |
+| Infisical | [`infisical.md`](infisical.md) | Self-host (single instance + project per site), Postgres, CLI/SDK для build-time + MCP для ad-hoc chat ops, AI skills repo, `infisical bootstrap`, REST endpoints, ограничения |
 | Payload CMS | [`payload.md`](payload.md) | Payload 3.x — 3 локальных skill'а + `@payloadcms/skills` AI repo, Local API / REST / Jobs Queue / migrations, что используем и НЕ используем |
 | Next.js | _todo_ | (добавится при первом большом изменении) |
 | S3 storage (MinIO) | _todo_ | (после первого реального теста с MinIO) |
