@@ -112,6 +112,26 @@ if [ "$HEALTHY" != true ]; then
   exit 1
 fi
 
+# 3.5. Auto-migrate. Идемпотентно: `payload migrate` skip'ает уже применённые.
+# Запускается ДО switch nginx — чтобы новый цвет получил актуальную schema до
+# того как принять traffic. Старый цвет ещё работает на старой schema; для
+# expand-only миграций это safe (см. payload-migration skill, blue-green safety).
+# Для несовместимых rename/drop — миграция может временно сломать старый цвет
+# (~5-10 сек до switch). Это редкий path, помечать `// @needs-maintenance`.
+echo
+echo "→ Applying migrations (pnpm migrate)..."
+if ! docker exec "veo55-cms-$INACTIVE" pnpm --filter veo55-cms migrate 2>&1 | tail -10; then
+  echo "   ✗ migrate failed — rolling back"
+  docker logs --tail 30 "veo55-cms-$INACTIVE" 2>&1 | sed 's/^/     /'
+  COLOR=$INACTIVE \
+  CMS_PORT=$INACTIVE_CMS_PORT \
+  CLIENT_PORT=$INACTIVE_CLIENT_PORT \
+  TAG=$TAG \
+    docker compose -p veo55-$INACTIVE --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down
+  exit 1
+fi
+echo "   ✓ migrations applied"
+
 # 4. Switch nginx upstream symlink (хост путь = bind-mount в nginx container)
 echo
 echo "→ Switching nginx upstream → $INACTIVE..."
@@ -140,6 +160,21 @@ if [ "$ACTIVE" != "$INACTIVE" ] && docker ps --format '{{.Names}}' | grep -q "ve
     docker compose -p veo55-$ACTIVE --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down
   echo "   ✓ $ACTIVE stopped"
 fi
+
+
+# 7. Post-success housekeeping — удалить unused images / containers / buildx-
+# cache. Делается после успешного switch чтобы освободить место под следующий
+# deploy. Активные blue/green контейнеры удерживают свои images — они НЕ будут
+# затронуты. `docker image prune -af` удалит только unused (старые SHA-теги,
+# базовые слои не attached). buildx prune --keep-storage 2GB — компромисс между
+# скоростью кэша и распуханием. На VPS с 5+ сайтами в будущем это обязательная
+# дисциплина — без неё 80 GB забьются за 10-15 deploy'ев.
+echo
+echo "→ Post-deploy cleanup (unused images / buildx cache)..."
+docker image prune -af 2>&1 | grep -E "Total reclaimed|deleted:" | tail -3 | sed 's/^/   /'
+docker container prune -f 2>&1 | grep -E "Total reclaimed" | tail -1 | sed 's/^/   /'
+docker buildx prune -af --keep-storage 2GB 2>&1 | grep -E "Total" | tail -1 | sed 's/^/   /'
+echo "   Disk: $(df -h / | tail -1 | awk '{print $3" used / "$2" ("$5")"}')"
 
 echo
 echo "═══════════════════════════════════════════════════════"
