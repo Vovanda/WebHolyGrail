@@ -156,12 +156,18 @@ WHITELIST=(
   ".gitattributes"
   ".env.local.example"
 
-  # Issue templates + framework docs
+  # Issue templates
   ".github/ISSUE_TEMPLATE/"
-  "docs/whg/"
-  "docs/stack/"
 
   # CLAUDE.md — opt-in (--include-claude), может содержать downstream-кастомизацию
+  # docs/whg/, docs/stack/ — overlay-режим (см. OVERLAY_WHITELIST ниже)
+)
+
+# Overlay whitelist — rsync без --delete: перезаписывает existing файлы template'а,
+# но не удаляет новые файлы что downstream добавил в эти папки.
+OVERLAY_WHITELIST=(
+  "docs/whg/"
+  "docs/stack/"
 
   # Claude skills — наши whg-* (без whg-scaffold — он только в upstream WHG)
   # + скачанные официальные payload/, cms-migration/, infisical-*/
@@ -197,7 +203,7 @@ RSYNC_FLAGS="-av --delete"
 $DRY_RUN && RSYNC_FLAGS="$RSYNC_FLAGS --dry-run"
 
 echo ""
-echo "→ Syncing whitelist (${#WHITELIST[@]} paths)..."
+echo "→ Syncing whitelist mirror (${#WHITELIST[@]} paths, --delete: устаревшие файлы удаляются)..."
 echo ""
 
 if $INCLUDE_CLAUDE; then
@@ -218,6 +224,30 @@ for path in "${WHITELIST[@]}"; do
   else
     mkdir -p "$(dirname "$dst")"
     rsync $RSYNC_FLAGS "$src" "$dst" 2>&1 | tail -2 | sed "s|^|    |"
+  fi
+done
+
+# Overlay rsync (без --delete) — обновляет existing файлы, не удаляет downstream-добавки.
+OVERLAY_FLAGS="-av"
+$DRY_RUN && OVERLAY_FLAGS="$OVERLAY_FLAGS --dry-run"
+
+echo ""
+echo "→ Syncing whitelist overlay (${#OVERLAY_WHITELIST[@]} paths, БЕЗ --delete: downstream-добавки сохраняются)..."
+echo ""
+
+for path in "${OVERLAY_WHITELIST[@]}"; do
+  src="$SOURCE_DIR/$path"
+  dst="$INSTANCE/$path"
+  if [ ! -e "$src" ]; then
+    echo "  ? $path (нет в source)"
+    continue
+  fi
+  if [ -d "$src" ]; then
+    mkdir -p "$dst"
+    rsync $OVERLAY_FLAGS "${EXCLUDES[@]}" "$src" "$dst" 2>&1 | tail -3 | sed "s|^|    |"
+  else
+    mkdir -p "$(dirname "$dst")"
+    rsync $OVERLAY_FLAGS "$src" "$dst" 2>&1 | tail -2 | sed "s|^|    |"
   fi
 done
 
