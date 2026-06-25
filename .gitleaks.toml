@@ -18,12 +18,17 @@ paths = [
   '''.*/__fixtures__/.*''',
   '''.*\.test\.(ts|tsx|js|jsx)$''',
   '''.*\.spec\.(ts|tsx|js|jsx)$''',
-  # AI skill docs from Infisical/payloadcms — содержат example tokens, secrets
-  # как код-сниппеты в reference docs. Реальных секретов в них нет.
-  '''\.claude/skills/.*''',
-  '''docs/stack/.*\.md$''',
-  '''docs/whg/.*\.md$''',
+  # Скачанные официальные AI-skills (Infisical, payloadcms) — read-only docs,
+  # содержат example tokens/secrets как code snippets. Мы не правим их inline,
+  # они переcкачиваются через `npx skills add` overwrite — поэтому paths,
+  # а не inline `# gitleaks:allow`.
+  '''\.claude/skills/infisical-[^/]+/.*''',
+  '''\.claude/skills/cms-migration/.*''',
+  '''\.claude/skills/payload/.*''',
 ]
+# Для наших файлов (CLAUDE.md, docs/whg/, holygrail-*, payload-jobs,
+# payload-migration) — НЕ paths-allowlist, а inline `# gitleaks:allow`
+# на конкретной строке когда нужно (точечная амнистия false positive).
 # Patterns that look like secrets but are placeholders/docs
 regexes = [
   # docs/secrets/README.md uses placeholder service-token example
