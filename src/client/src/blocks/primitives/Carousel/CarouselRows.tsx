@@ -28,9 +28,7 @@ export function CarouselRows(props: CarouselProps) {
         slides={props.slides.map((s) => ({ src: s.url, alt: s.alt }))}
         groupId={lightboxGroupId}
       >
-        {(open: (groupId: string, index: number) => void) => (
-          <CarouselInner {...rest} onSlideClick={open} />
-        )}
+        {(open: (index: number) => void) => <CarouselInner {...rest} onSlideClick={open} />}
       </PhotoLightbox>
     );
   }

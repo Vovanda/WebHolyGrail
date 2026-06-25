@@ -50,7 +50,7 @@ export interface FaqAccordionBlockData {
   readonly cta?: FaqAccordionCta;
 }
 
-export interface FaqAccordionBlockNode extends BlockNode {
+export type FaqAccordionBlockNode = BlockNode & {
   readonly blockType: 'faq-accordion';
-  readonly data: FaqAccordionBlockData;
-}
+  readonly data?: FaqAccordionBlockData;
+};

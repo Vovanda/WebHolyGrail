@@ -16,6 +16,7 @@ import { FormSubmissions } from './collections/FormSubmissions';
 import { ReusableBlocks } from './collections/ReusableBlocks';
 import { Posts } from './collections/Posts';
 import { Comments } from './collections/Comments';
+import { FaqGroups } from './collections/FaqGroups';
 import { SiteSettings } from './globals/SiteSettings';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -58,7 +59,7 @@ export default buildConfig({
       baseDir: dirname,
     },
   },
-  collections: [Users, Media, Pages, FormSubmissions, ReusableBlocks, Posts, Comments],
+  collections: [Users, Media, Pages, FormSubmissions, ReusableBlocks, Posts, Comments, FaqGroups],
   globals: [SiteSettings],
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET ?? '',

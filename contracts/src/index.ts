@@ -38,6 +38,14 @@ export type { ReusableBlockDoc, ReusableRefBlockNode, PageRefBlockNode } from '.
 export type { CertifiedNoticeBlockNode, CertifiedNoticeCriterion } from './notices';
 
 export type {
+  FaqGroupDoc,
+  FaqItemDoc,
+  FaqAccordionBlockNode,
+  FaqAccordionBlockData,
+  FaqAccordionCta,
+} from './faq';
+
+export type {
   SocialSource,
   SocialPostDoc,
   SocialPostAuthor,
