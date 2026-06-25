@@ -1,50 +1,132 @@
-# Site scaffolding
+# Scaffolding a new site
 
-> Status: experimental. Conventions are settling; the exact tooling around them is open.
+> One command on GitHub, one on the shell, two on Infisical. ~30 minutes from zero to dev stack running.
 
-## Approach
+## Create the instance repo
 
-A new site is created by cloning the template, renaming, and filling in niche-specific content:
+```bash
+# Option A — GitHub UI: open https://github.com/Vovanda/WebHolyGrail → "Use this template"
+# Option B — gh CLI:
+gh repo create <owner>/<my-site> --template Vovanda/WebHolyGrail --private --clone
+cd <my-site>
+```
 
-1. **Copy** `packages/_template/` into `sites/<site>/`.
-2. **Rename** configuration variables: project name, domain, database name, namespace, palette tokens.
-3. **Rename** the folder to match the new site.
-4. **Plan pages** — manually or with an LLM agent: pick the page set for the niche (home, about, services, contacts, catalogue, contact form, etc.).
-5. **Scaffold content** — a script (or agent acting through the Payload Local API) creates pages from blocks and fills them with realistic content.
+The repo arrives with the full Holy Grail skeleton at the root — no folder to unpack.
 
-The split: the scaffold is deterministic and identical across sites; the intelligence (which pages, which content) lives in whatever drives step 4-5 — a human, a script, or an agent.
+## Local install
 
-## Implications for tooling
+```bash
+pnpm install
+```
 
-If the baseline is "copy + rename + fill in content", then for the first sites a heavy scaffolding platform (Nx) — or even a template generator (Plop) — is not required. What is needed:
+Installs `client`, `cms`, `contracts` workspaces.
 
-- a deterministic rename step (a small Bash/Node script);
-- something intelligent for the content pass (a human, an agent skill, a custom CLI).
+## Bootstrap secrets via Infisical
 
-A full scaffolding platform becomes relevant later, when many sites are being produced from the same template.
+Holy Grail uses **Infisical Cloud** for all secrets — no `.env.production` files on the VPS, no committed `.env`. See [`holygrail-infisical` skill](../../.claude/skills/holygrail-infisical/SKILL.md) for the full workflow.
 
-## Open questions
+Prerequisites (one-time per machine):
+```bash
+infisical login                                       # browser flow, token in keychain
+```
 
-1. **Rename step:** deterministic script vs. agent-driven? Likely a hybrid — the script does the mechanical rename, the agent handles content analysis.
-2. **Page-creation CLI:** custom script over Payload Local API, or an agent calling Payload through MCP, or a Plop-style generator?
-3. **Template parameterisation:** environment variables, a single `site.config.ts` (name, domain, DB, palette in one place), or placeholder substitution?
-4. **When to bring in pnpm workspaces and Turborepo:** not on day one with a single site. Becomes load-bearing once `@holygrail/ui` is actually consumed across sites.
-5. **Whether a dedicated scaffold tool is needed at all,** or whether an agent skill named `new-site` covers the use case.
+Bootstrap the project for this site:
+```bash
+INFISICAL_ORG_ID=<your-org-id> pnpm setup-infisical -- --site <slug>
+```
 
-## Reference: scaffolding tools in the TypeScript/JavaScript ecosystem
+What the script does:
+- Creates Infisical project `holygrail-<slug>`.
+- Creates 3 environments: `dev`, `staging`, `prod`.
+- Seeds empty placeholder secrets (PAYLOAD_SECRET, DATABASE_URI, S3_*, NEXT_PUBLIC_*).
+- Writes `.infisical.json` (workspace marker) — commit it.
 
-**Monorepo orchestration:**
+Then **in the Infisical UI** — one-time manual:
+1. Project → Access Control → Machine Identities → Create `<slug>-prod-deploy` (Universal Auth).
+2. Bind identity to `prod` environment, read-only.
+3. Generate Client ID + Client Secret. Save them — they go on the VPS during first deploy.
 
-- **Turborepo** — fast incremental builds, minimal config, native Next.js support. No code generators of its own.
-- **Nx** — full platform: generators, module-boundary enforcement, affected-graph commands. Heavier.
-- **pnpm workspaces** — lightweight package linking; the baseline for monorepos.
+## Fill in secrets for dev
 
-**File generation:**
+```bash
+infisical secrets set --env=dev PAYLOAD_SECRET=$(openssl rand -hex 32)
+infisical secrets set --env=dev DATABASE_URI=file:./data/site.db
+infisical secrets set --env=dev NEXT_PUBLIC_CMS_URL=http://localhost:3001
+infisical secrets set --env=dev NEXT_PUBLIC_SITE_URL=http://localhost:3000
+# … S3_* if you have one; leave blank for local-disk media
+```
 
-- **Plop.js** — Handlebars-based generator.
-- **Hygen** — alternative to Plop.
-- **Nx generators** — more capable (AST transforms), at the cost of platform weight.
+Or do it in the Infisical UI — same effect.
 
-## Current direction
+## Start the dev stack
 
-A combination of pnpm workspaces + Turborepo (orchestration) + Plop or `turbo gen` (deterministic file scaffolding), with an agent layered on top for content. Nx is intentionally avoided here — its strongest value (smart generators) is provided by the agent layer instead.
+```bash
+./dev-setup.sh                # first time only — verify CLI, init project link
+./dev.sh                      # infisical run --env=dev --recursive -- pnpm dev
+```
+
+You should see:
+- CMS  → http://localhost:3001 (Payload admin at `/admin`)
+- Client → http://localhost:3000
+
+Open `http://localhost:3001/admin`, create the first user, log in.
+
+## Rename the site identity
+
+In `src/cms/package.json` and `src/client/package.json`, keep `"name": "cms"` and `"name": "client"` — those are the workspace handles, they don't change.
+
+The site-specific identity (display name, brand palette) lives in:
+- Payload `SiteSettings` global → fill in via admin UI
+- `src/client/src/styles/tokens.css` → tweak palette
+- `src/client/public/branding/` → drop logo / favicon
+
+There is **no** `site.config.ts` — the things that vary per site sit in the database (SiteSettings) and brand assets.
+
+## Make domain blocks
+
+Site-specific entities (Dogs / Patients / Vehicles / MenuItems / …) go in:
+- `src/cms/src/collections/<Domain>.ts` — Payload collection
+- `contracts/src/<domain>.ts` — public type
+- `src/client/src/blocks/domain/<niche>/` — React blocks
+- `src/client/src/app/(site)/<domain-route>/` — if the niche has its own pages
+
+This is the L4 layer (see [`32-structure.md`](32-structure.md)). The template never owns this — your instance does.
+
+## Deploy
+
+See [`Deploy: checklist for first launch on Timeweb VPS`](../infra-journal.md#first-deploy) and `deploy/prod/README.md`.
+
+Quick summary:
+- Push instance to GitHub.
+- VPS — install Docker + Infisical CLI + `/etc/infisical/{client-id,client-secret}` (chmod 600 deploy:deploy).
+- GitHub Actions deploy workflow — already wired in template (`.github/workflows/deploy.yml` if you ship one) or run `deploy/prod/deploy.sh <tag>` manually first time.
+
+## Stay in sync with template
+
+When upstream WHG ships generic improvements (new primitive, Carousel variant, Payload upgrade) — pull them in:
+
+```bash
+# In your instance repo:
+git checkout -b chore/sync-template-$(date +%Y%m%d)
+../WebHolyGrail/scripts/sync-template.sh . --ref main
+pnpm install
+pnpm -r exec tsc --noEmit
+pnpm dev          # runtime smoke
+git add -A && git commit -m "chore(sync): pull template main (<sha>)"
+git push -u origin chore/sync-template-...
+gh pr create
+```
+
+`sync-template.sh` only touches the generic whitelist — your `blocks/domain/`, domain collections, migrations, and `site.config`-equivalent stay intact. Full details: [`holygrail-template-sync` skill](../../.claude/skills/holygrail-template-sync/SKILL.md).
+
+## Migrating a pre-template site
+
+If you have a site built on an older Holy Grail layout (e.g. `components/dog/`, `blocks/veo55/`, `lib/dog-profile/`), run the one-shot migration once:
+
+```bash
+../WebHolyGrail/scripts/migrate-veo55-to-domain.sh ./<instance-path>
+```
+
+It renames legacy `components/` and `blocks/veo55/` into `blocks/domain/<niche>/`, splits Carousel/Separator into directory patterns, moves ContentFrame to `layouts/`, fixes all import paths. After it runs, the regular `sync-template.sh` works as documented above.
+
+This script is **one-time** per migrated instance. New instances created from template don't need it.
