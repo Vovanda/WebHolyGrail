@@ -7,7 +7,6 @@ import { ThemeBootstrap } from '@/lib/theme-bootstrap';
 import { YandexMetrika } from '@/lib/analytics';
 import { SiteLayout } from '@/layouts/site-layout';
 import { FALLBACK_SITE_SETTINGS } from '@/layouts/presets/fallback-site-settings';
-import { SocialLikePopupRoot } from '@/blocks/primitives/social/SocialLikePopup';
 import '@/styles/globals.css';
 
 /**
@@ -50,7 +49,6 @@ export async function generateMetadata(): Promise<Metadata> {
   const settings = (await getSiteSettings().catch(() => null)) ?? FALLBACK_SITE_SETTINGS;
   return {
     title: { default: settings.siteName, template: `%s — ${settings.siteName}` },
-    description: settings.description ?? '',
     icons: {
       icon: '/branding/logo.png',
       shortcut: '/branding/logo.png',
@@ -78,7 +76,6 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <SiteLayout config={layoutConfig} settings={settings}>
           {children}
         </SiteLayout>
-        {process.env.VK_GROUP_URL && <SocialLikePopupRoot vkGroupUrl={process.env.VK_GROUP_URL} />}
         {process.env.NEXT_PUBLIC_YM_ID && <YandexMetrika id={process.env.NEXT_PUBLIC_YM_ID} />}
       </body>
     </html>

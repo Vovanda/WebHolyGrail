@@ -14,7 +14,6 @@ import { AchievementBanner } from '@/blocks/primitives/AchievementBanner';
 import { CertifiedNotice } from '@/blocks/primitives/CertifiedNotice';
 import { ReusableRef } from '@/blocks/primitives/ReusableRef';
 import { PageRef } from '@/blocks/primitives/PageRef';
-import { SocialFeedServer } from '@/blocks/primitives/social/SocialFeedServer';
 import { FaqAccordion } from '@/blocks/primitives/FaqAccordion';
 import { PageOutlet } from '@/blocks/system/PageOutlet';
 
@@ -40,7 +39,6 @@ const REGISTRY: Record<string, BlockRenderer> = {
   'wave-divider': (node, settings) => <WaveDivider node={node} settings={settings} />,
   'achievement-banner': (node, settings) => <AchievementBanner node={node} settings={settings} />,
   'certified-notice': (node, settings) => <CertifiedNotice node={node} settings={settings} />,
-  'social-feed': (node, settings) => <SocialFeedServer node={node} settings={settings} />,
   'faq-accordion': (node, settings) => <FaqAccordion node={node} settings={settings} />,
   'reusable-ref': (node, settings) => <ReusableRef node={node} settings={settings} />,
   'page-ref': (node, settings) => <PageRef node={node} settings={settings} />,
