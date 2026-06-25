@@ -36,9 +36,7 @@ import { InfisicalSDK } from '@infisical/sdk';
 
 interface Args {
   site: string;
-  orgId: string;
   apiUrl: string;
-  authMethod: 'browser' | 'universal-auth';
   outDir: string;
 }
 
@@ -46,9 +44,7 @@ function parseArguments(): Args {
   const { values } = parseArgs({
     options: {
       site: { type: 'string', short: 's' },
-      'org-id': { type: 'string' },
       'api-url': { type: 'string', default: 'https://app.infisical.com' },
-      'auth-method': { type: 'string', default: 'browser' },
       'out-dir': { type: 'string', default: '.' },
       help: { type: 'boolean', short: 'h' },
     },
@@ -56,26 +52,20 @@ function parseArguments(): Args {
   });
 
   if (values.help || !values.site) {
-    console.error('Usage: pnpm setup-infisical -- --site <slug> [--org-id <id>]');
+    console.error('Usage: pnpm setup-infisical -- --site <slug>');
     console.error('  --site <slug>       site identifier (e.g. "sawking-tech")');
-    console.error('  --org-id <id>       Infisical org id (or INFISICAL_ORG_ID env)');
     console.error('  --api-url <url>     Infisical API base URL (default: app.infisical.com)');
-    console.error('  --auth-method       browser | universal-auth (default: browser)');
     console.error('  --out-dir <path>    where to write .infisical.json (default: .)');
+    console.error('');
+    console.error('Auth: использует токен из `infisical login` (keychain) — orgId берётся');
+    console.error('из контекста сессии, явно указывать не нужно. Для CI/non-interactive:');
+    console.error('задай INFISICAL_CLIENT_ID + INFISICAL_CLIENT_SECRET (Universal Auth).');
     process.exit(values.help ? 0 : 1);
-  }
-
-  const orgId = values['org-id'] ?? process.env['INFISICAL_ORG_ID'];
-  if (!orgId) {
-    console.error('ERROR: --org-id or INFISICAL_ORG_ID env required');
-    process.exit(1);
   }
 
   return {
     site: values.site as string,
-    orgId,
     apiUrl: values['api-url'] as string,
-    authMethod: (values['auth-method'] ?? 'browser') as 'browser' | 'universal-auth',
     outDir: resolve(values['out-dir'] ?? '.'),
   };
 }

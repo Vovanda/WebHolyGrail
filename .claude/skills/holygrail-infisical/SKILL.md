@@ -45,12 +45,14 @@ CI / Prod (VPS)
 ## Bootstrap нового сайта
 
 ```bash
-# Один раз глобально:
-infisical login    # браузерный flow, токен в keychain
+# Один раз глобально (если ещё не):
+infisical login    # браузерный flow, токен с org-scope в keychain
 
 # Запуск scaffold-скрипта (в корне нового сайта):
-INFISICAL_ORG_ID=<your-org-id> pnpm setup-infisical -- --site <slug>
+pnpm setup-infisical -- --site <slug>
 ```
+
+Org-id указывать **не нужно** — SDK берёт его из контекста auth-сессии (твой токен уже scoped к org). Для CI/non-interactive — `INFISICAL_CLIENT_ID` + `INFISICAL_CLIENT_SECRET` env (Universal Auth identity, без UI).
 
 Что делает скрипт (`scripts/setup-infisical.ts`):
 1. Auth через `INFISICAL_TOKEN` (keychain) или universal-auth (CI: `INFISICAL_CLIENT_ID/SECRET`).
