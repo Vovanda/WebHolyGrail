@@ -22,8 +22,32 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SITE_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 COMPOSE_FILE="$SCRIPT_DIR/compose.bluegreen.yml"
-ENV_FILE="$SCRIPT_DIR/.env.production"
 STATE_FILE="$SITE_DIR/ACTIVE_COLOR"
+
+# ── Secrets via Infisical ───────────────────────────────────────────────
+# All secrets (PAYLOAD_SECRET, DATABASE_URI, VK_ACCESS_TOKEN, S3_*, etc.)
+# are pulled from Infisical at runtime. The only file persisted on the VPS
+# is `/etc/infisical/token` (chmod 600 deploy:deploy) holding the service
+# token; no plaintext `.env.production` lives on disk.
+#
+# Every `docker compose ...` invocation in this script is wrapped in
+# `infisical run --token=... --env=prod -- <cmd>` so secrets are injected
+# into the compose environment without writing them to disk.
+INFISICAL_TOKEN_FILE="${INFISICAL_TOKEN_FILE:-/etc/infisical/token}"
+INFISICAL_ENV="${INFISICAL_ENV:-prod}"
+
+if ! command -v infisical >/dev/null 2>&1; then
+  echo "ERROR: infisical CLI not installed on this host." >&2
+  echo "Install: curl -1sLf 'https://artifacts-cli.infisical.com/install.sh' | sh" >&2
+  exit 1
+fi
+if [ ! -r "$INFISICAL_TOKEN_FILE" ]; then
+  echo "ERROR: $INFISICAL_TOKEN_FILE not readable. Place the service token there (chmod 600 deploy:deploy)." >&2
+  exit 1
+fi
+
+INFISICAL_TOKEN="$(cat "$INFISICAL_TOKEN_FILE")"
+INFISICAL_RUN=(infisical run --token="$INFISICAL_TOKEN" --env="$INFISICAL_ENV" --)
 
 TAG="${1:-latest}"
 ACTIVE="$(cat "$STATE_FILE" 2>/dev/null || echo blue)"
@@ -74,7 +98,7 @@ COLOR=$INACTIVE \
 CMS_PORT=$INACTIVE_CMS_PORT \
 CLIENT_PORT=$INACTIVE_CLIENT_PORT \
 TAG=$TAG \
-  docker compose -p veo55-$INACTIVE --env-file "$ENV_FILE" -f "$COMPOSE_FILE" pull
+  "${INFISICAL_RUN[@]}" docker compose -p veo55-$INACTIVE -f "$COMPOSE_FILE" pull
 
 # 2. Up inactive
 echo
@@ -83,7 +107,7 @@ COLOR=$INACTIVE \
 CMS_PORT=$INACTIVE_CMS_PORT \
 CLIENT_PORT=$INACTIVE_CLIENT_PORT \
 TAG=$TAG \
-  docker compose -p veo55-$INACTIVE --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d
+  "${INFISICAL_RUN[@]}" docker compose -p veo55-$INACTIVE -f "$COMPOSE_FILE" up -d
 
 # 3. Healthcheck loop — 60 секунд total (30 итераций × 2 сек)
 echo
@@ -108,7 +132,7 @@ if [ "$HEALTHY" != true ]; then
   CMS_PORT=$INACTIVE_CMS_PORT \
   CLIENT_PORT=$INACTIVE_CLIENT_PORT \
   TAG=$TAG \
-    docker compose -p veo55-$INACTIVE --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down
+    "${INFISICAL_RUN[@]}" docker compose -p veo55-$INACTIVE -f "$COMPOSE_FILE" down
   exit 1
 fi
 
@@ -127,7 +151,7 @@ if ! docker exec "veo55-cms-$INACTIVE" pnpm --filter veo55-cms migrate 2>&1 | ta
   CMS_PORT=$INACTIVE_CMS_PORT \
   CLIENT_PORT=$INACTIVE_CLIENT_PORT \
   TAG=$TAG \
-    docker compose -p veo55-$INACTIVE --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down
+    "${INFISICAL_RUN[@]}" docker compose -p veo55-$INACTIVE -f "$COMPOSE_FILE" down
   exit 1
 fi
 echo "   ✓ migrations applied"
@@ -157,7 +181,7 @@ if [ "$ACTIVE" != "$INACTIVE" ] && docker ps --format '{{.Names}}' | grep -q "ve
   CMS_PORT=$OLD_CMS_PORT \
   CLIENT_PORT=$OLD_CLIENT_PORT \
   TAG=$TAG \
-    docker compose -p veo55-$ACTIVE --env-file "$ENV_FILE" -f "$COMPOSE_FILE" down
+    "${INFISICAL_RUN[@]}" docker compose -p veo55-$ACTIVE -f "$COMPOSE_FILE" down
   echo "   ✓ $ACTIVE stopped"
 fi
 
