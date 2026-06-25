@@ -41,16 +41,19 @@ echo "  Admin  → http://localhost:3001/admin"
 echo "  Client → http://localhost:3000"
 echo ""
 
+CMS_PORT="${CMS_PORT:-3001}"
+CLIENT_PORT="${CLIENT_PORT:-3000}"
+
 if [ "$INFISICAL_OK" = "1" ]; then
-  echo "  ✓ secrets: Infisical (env=dev)"
+  echo "  ✓ secrets: Infisical (env=dev), ports cms=$CMS_PORT client=$CLIENT_PORT"
   echo ""
   exec infisical run --env=dev --recursive -- \
     pnpm exec concurrently \
       --names "cms,client" \
       --prefix-colors "yellow,cyan" \
       --kill-others-on-fail \
-      "pnpm --filter cms dev" \
-      "pnpm --filter client dev"
+      "pnpm --filter cms exec next dev -p $CMS_PORT" \
+      "pnpm --filter client exec next dev -p $CLIENT_PORT"
 elif [ -f .env.local ]; then
   echo "  ⚠ Infisical недоступен, fallback на .env.local (только для offline dev)"
   echo ""
@@ -58,12 +61,15 @@ elif [ -f .env.local ]; then
   # shellcheck disable=SC1091
   . ./.env.local
   set +a
+  CMS_PORT="${CMS_PORT:-3001}"
+  CLIENT_PORT="${CLIENT_PORT:-3000}"
+  echo "  ports: cms=$CMS_PORT client=$CLIENT_PORT"
   exec pnpm exec concurrently \
     --names "cms,client" \
     --prefix-colors "yellow,cyan" \
     --kill-others-on-fail \
-    "pnpm --filter cms dev" \
-    "pnpm --filter client dev"
+    "pnpm --filter cms exec next dev -p $CMS_PORT" \
+    "pnpm --filter client exec next dev -p $CLIENT_PORT"
 else
   echo "  ERROR: нет ни Infisical, ни .env.local."
   echo ""
