@@ -46,17 +46,27 @@ Then **in the Infisical UI** — one-time manual:
 2. Bind identity to `prod` environment, read-only.
 3. Generate Client ID + Client Secret. Save them — they go on the VPS during first deploy.
 
-## Fill in secrets for dev
+## Secrets for dev
 
-```bash
-infisical secrets set --env=dev PAYLOAD_SECRET=$(openssl rand -hex 32)
-infisical secrets set --env=dev DATABASE_URI=file:./data/site.db
-infisical secrets set --env=dev NEXT_PUBLIC_CMS_URL=http://localhost:3001
-infisical secrets set --env=dev NEXT_PUBLIC_SITE_URL=http://localhost:3000
-# … S3_* if you have one; leave blank for local-disk media
-```
+`./dev-setup.sh` automatically sets reasonable defaults in your Infisical dev environment if they're empty:
 
-Or do it in the Infisical UI — same effect.
+- `PAYLOAD_SECRET` — generated (32 random bytes hex)
+- `DATABASE_URI` — `file:./data/site.db` (SQLite)
+- `NEXT_PUBLIC_CMS_URL`, `NEXT_PUBLIC_SITE_URL`, `PAYLOAD_PUBLIC_SERVER_URL` — localhost
+- **`S3_*` — pointing at the local MinIO container** (bucket `local-media`, `minioadmin/minioadmin`)
+
+You don't have to set them by hand. If you want different values — edit them in the Infisical UI or `infisical secrets set --env=dev KEY=value` overrides them.
+
+## Storage: S3 only, no local-disk fallback
+
+Holy Grail uses **S3-compatible storage from day 1** — dev and prod both. This avoids the painful "we used local-disk and now we need to migrate to S3" path.
+
+- **Dev:** MinIO in Docker (auto-started by `dev-setup.sh`). Bucket `local-media`, exposed on `localhost:9000` (API) and `localhost:9001` (web console).
+- **Prod:** any S3-compatible provider — Backblaze B2 (free 10GB), Cloudflare R2 (free 10GB), AWS S3, MinIO Cloud, VK Cloud, Yandex Object Storage.
+
+If `S3_BUCKET` is empty when Payload boots, it **fails loud** with a clear message — no silent local-disk fallback that bites you later.
+
+If you really need to skip Docker / MinIO for a quick local test — set `S3_*` to a free Backblaze B2 or Cloudflare R2 bucket; same env-shape, no code change.
 
 ## Start the dev stack
 

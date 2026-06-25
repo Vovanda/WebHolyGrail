@@ -20,6 +20,9 @@
     "compose:up": "infisical run -- docker compose -f deploy/local/docker-compose.yml up -d",
     "compose:down": "docker compose -f deploy/local/docker-compose.yml down",
     "compose:logs": "docker compose -f deploy/local/docker-compose.yml logs -f",
+    "minio:up": "docker compose --profile minio -f deploy/local/docker-compose.yml up -d minio minio-init",
+    "minio:down": "docker compose --profile minio -f deploy/local/docker-compose.yml stop minio minio-init",
+    "minio:logs": "docker compose -f deploy/local/docker-compose.yml logs -f minio",
     "setup-infisical": "tsx scripts/setup-infisical.ts",
     "prepare": "husky"
   },

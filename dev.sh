@@ -25,6 +25,17 @@ if [ ! -f .infisical.json ]; then
   exit 1
 fi
 
+# Проверяем MinIO (S3 storage для Media). Если контейнер не запущен — поднимаем.
+if command -v docker >/dev/null 2>&1; then
+  if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q 'holygrail-minio'; then
+    echo "  → MinIO не запущен, поднимаю..."
+    docker compose --profile minio -f deploy/local/docker-compose.yml up -d minio minio-init >/dev/null 2>&1 || {
+      echo "  ⚠ Не удалось поднять MinIO. Запусти вручную: pnpm minio:up"
+      echo "    или настрой облачный S3 в Infisical."
+    }
+  fi
+fi
+
 echo ""
 echo "  dev stack (secrets via Infisical, env=dev)"
 echo "  CMS    → http://localhost:3001"
