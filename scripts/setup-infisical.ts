@@ -1,73 +1,49 @@
 #!/usr/bin/env tsx
 /**
- * setup-infisical.ts — bootstrap нового Holy Grail сайта в Infisical Cloud.
+ * setup-infisical.ts — bootstrap нового Holy Grail сайта на self-host Infisical.
  *
- * @remarks
- * Создаёт project + 3 environments (dev/staging/prod) + machine identity для
- * prod-деплоя + seed placeholders известных секретов + пишет
- * `.infisical.json` в корень репо.
+ * Делает через REST (native fetch — без SDK для consistency):
+ *  1. Login admin Universal Auth identity → accessToken
+ *  2. Create project `holygrail-<slug>`
+ *  3. Create environments dev / staging / prod
+ *  4. Seed placeholder secrets во все env
+ *  5. Create service identity `<slug>-prod-deploy`
+ *  6. Attach Universal Auth к identity
+ *  7. Create client secret для identity
+ *  8. Add identity к project с role
+ *  9. Write `.infisical.json`
+ * 10. Print Client ID + Client Secret для VPS
  *
  * Запуск:
- *   pnpm setup-infisical -- --site <slug> [--org-id <orgId>]
+ *   pnpm setup-infisical -- --site <slug>
  *
- * Пример:
- *   pnpm setup-infisical -- --site sawking-tech --org-id abc-def-123
- *
- * Prerequisites:
- *   - Infisical Cloud аккаунт (https://app.infisical.com — бесплатный tier хватает)
- *   - `infisical login` (один раз) — сохраняет токен в keychain
- *   - Слот в Org (orgId передаётся флагом или INFISICAL_ORG_ID env)
- *
- * Output:
- *   - Project ID и Client ID + Client Secret для prod-identity. Их надо
- *     положить на VPS в `/etc/infisical/client-id`, `/etc/infisical/client-secret`
- *     (chmod 600 deploy:deploy). Дальнейший `deploy.sh` `infisical login
- *     --method=universal-auth` подхватит.
+ * Env (обязательно):
+ *   INFISICAL_HOST_URL              — URL self-host instance (https://infisical.<your-domain>.tld)
+ *   INFISICAL_ADMIN_CLIENT_ID       — admin UA client ID (из `infisical bootstrap`)
+ *   INFISICAL_ADMIN_CLIENT_SECRET   — admin UA client secret
+ *   INFISICAL_ADMIN_ORG_ID          — orgId (из `infisical bootstrap` output)
  *
  * Документация:
- *   - https://infisical.com/docs/sdks/languages/node
- *   - https://infisical.com/blog/introducing-machine-identities
+ *   - `.claude/skills/whg-infisical/SKILL.md` — workflow для агента
+ *   - `docs/stack/infisical.md` — стек, версии, инструменты
+ *   - `docs/whg/37-scaffolding.md` — human-readable scaffold guide
  */
 
 import { writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import { InfisicalSDK } from '@infisical/sdk';
 
 interface Args {
   site: string;
-  apiUrl: string;
   outDir: string;
+  type: string;
 }
 
-function parseArguments(): Args {
-  const { values } = parseArgs({
-    options: {
-      site: { type: 'string', short: 's' },
-      'api-url': { type: 'string', default: 'https://app.infisical.com' },
-      'out-dir': { type: 'string', default: '.' },
-      help: { type: 'boolean', short: 'h' },
-    },
-    allowPositionals: false,
-  });
-
-  if (values.help || !values.site) {
-    console.error('Usage: pnpm setup-infisical -- --site <slug>');
-    console.error('  --site <slug>       site identifier (e.g. "sawking-tech")');
-    console.error('  --api-url <url>     Infisical API base URL (default: app.infisical.com)');
-    console.error('  --out-dir <path>    where to write .infisical.json (default: .)');
-    console.error('');
-    console.error('Auth: использует токен из `infisical login` (keychain) — orgId берётся');
-    console.error('из контекста сессии, явно указывать не нужно. Для CI/non-interactive:');
-    console.error('задай INFISICAL_CLIENT_ID + INFISICAL_CLIENT_SECRET (Universal Auth).');
-    process.exit(values.help ? 0 : 1);
-  }
-
-  return {
-    site: values.site as string,
-    apiUrl: values['api-url'] as string,
-    outDir: resolve(values['out-dir'] ?? '.'),
-  };
+interface AdminEnv {
+  hostUrl: string;
+  clientId: string;
+  clientSecret: string;
+  orgId: string;
 }
 
 const STANDARD_SECRETS = [
@@ -92,87 +68,264 @@ const STANDARD_SECRETS = [
   'NEXT_PUBLIC_YM_ID',
 ];
 
-async function loginInteractive(client: InfisicalSDK): Promise<void> {
-  // Universal-auth через env (для CI) или браузерный flow (для dev-machine).
-  const clientId = process.env['INFISICAL_CLIENT_ID'];
-  const clientSecret = process.env['INFISICAL_CLIENT_SECRET'];
+const ENVIRONMENTS = [
+  { name: 'Development', slug: 'dev', position: 1 },
+  { name: 'Staging', slug: 'staging', position: 2 },
+  { name: 'Production', slug: 'prod', position: 3 },
+];
 
-  if (clientId && clientSecret) {
-    console.log('→ Auth: universal-auth (INFISICAL_CLIENT_ID/SECRET env)');
-    await client.auth().universalAuth.login({ clientId, clientSecret });
-    return;
+function parseArguments(): Args {
+  const { values } = parseArgs({
+    options: {
+      site: { type: 'string', short: 's' },
+      'out-dir': { type: 'string', default: '.' },
+      type: { type: 'string', default: 'minimal' },
+      help: { type: 'boolean', short: 'h' },
+    },
+    allowPositionals: false,
+  });
+
+  if (values.help || !values.site) {
+    console.error(
+      'Usage: pnpm setup-infisical -- --site <slug> [--type minimal|business-card|blog|portal]',
+    );
+    console.error('  --site <slug>      site identifier (e.g. "sawking-tech")');
+    console.error('  --type <preset>    project type preset (default: minimal)');
+    console.error('  --out-dir <path>   where to write .infisical.json (default: .)');
+    console.error('');
+    console.error('Required env:');
+    console.error('  INFISICAL_HOST_URL              self-host URL');
+    console.error('  INFISICAL_ADMIN_CLIENT_ID       admin UA client ID');
+    console.error('  INFISICAL_ADMIN_CLIENT_SECRET   admin UA client secret');
+    console.error('  INFISICAL_ADMIN_ORG_ID          org ID');
+    process.exit(values.help ? 0 : 1);
   }
 
-  console.log('→ Auth: токен из локального `infisical login` (keychain).');
-  console.log('  Если не залогинен: запусти `infisical login` в отдельном терминале.');
-  const token = process.env['INFISICAL_TOKEN'];
-  if (!token) {
-    console.error('ERROR: INFISICAL_TOKEN env not set, run `infisical login` first');
-    console.error('  or pass INFISICAL_CLIENT_ID + INFISICAL_CLIENT_SECRET for CI');
+  return {
+    site: values.site as string,
+    outDir: resolve(values['out-dir'] ?? '.'),
+    type: values.type as string,
+  };
+}
+
+function readAdminEnv(): AdminEnv {
+  const hostUrl = process.env['INFISICAL_HOST_URL'];
+  const clientId = process.env['INFISICAL_ADMIN_CLIENT_ID'];
+  const clientSecret = process.env['INFISICAL_ADMIN_CLIENT_SECRET'];
+  const orgId = process.env['INFISICAL_ADMIN_ORG_ID'];
+
+  const missing: string[] = [];
+  if (!hostUrl) missing.push('INFISICAL_HOST_URL');
+  if (!clientId) missing.push('INFISICAL_ADMIN_CLIENT_ID');
+  if (!clientSecret) missing.push('INFISICAL_ADMIN_CLIENT_SECRET');
+  if (!orgId) missing.push('INFISICAL_ADMIN_ORG_ID');
+
+  if (missing.length > 0) {
+    console.error(`ERROR: missing env: ${missing.join(', ')}`);
+    console.error('Run `infisical bootstrap` on VPS first, then set env from output.');
+    console.error('See docs/stack/infisical.md → "Bootstrap admin identity".');
     process.exit(1);
   }
-  client.auth().accessToken(token);
+
+  return {
+    hostUrl: hostUrl!.replace(/\/$/, ''),
+    clientId: clientId!,
+    clientSecret: clientSecret!,
+    orgId: orgId!,
+  };
+}
+
+class Infisical {
+  constructor(
+    private readonly hostUrl: string,
+    private accessToken: string | null = null,
+  ) {}
+
+  async login(clientId: string, clientSecret: string): Promise<void> {
+    const res = await this.fetch('POST', '/api/v1/auth/universal-auth/login', {
+      clientId,
+      clientSecret,
+    });
+    this.accessToken = (res as { accessToken: string }).accessToken;
+    if (!this.accessToken) throw new Error('login: no accessToken in response');
+  }
+
+  async createProject(slug: string, orgId: string): Promise<string> {
+    const res = await this.fetch('POST', '/api/v2/workspace', {
+      projectName: `holygrail-${slug}`,
+      slug: `holygrail-${slug}`,
+      type: 'secret-manager',
+      projectDescription: `Holy Grail site: ${slug}`,
+      organizationId: orgId,
+    });
+    const projectId =
+      (res as { project?: { id?: string } }).project?.id ?? (res as { id?: string }).id;
+    if (!projectId) throw new Error('createProject: no project id in response');
+    return projectId;
+  }
+
+  async createEnvironment(
+    projectId: string,
+    env: { name: string; slug: string; position: number },
+  ): Promise<void> {
+    await this.fetch('POST', `/api/v1/workspace/${projectId}/environments`, env);
+  }
+
+  async createSecret(
+    projectId: string,
+    envSlug: string,
+    key: string,
+    value: string,
+    comment: string,
+  ): Promise<void> {
+    await this.fetch('POST', `/api/v3/secrets/raw/${encodeURIComponent(key)}`, {
+      workspaceId: projectId,
+      environment: envSlug,
+      secretValue: value,
+      secretComment: comment,
+      secretPath: '/',
+      type: 'shared',
+    });
+  }
+
+  async createIdentity(name: string, orgId: string): Promise<string> {
+    const res = await this.fetch('POST', '/api/v1/identities', {
+      name,
+      organizationId: orgId,
+      role: 'no-access',
+    });
+    const identityId =
+      (res as { identity?: { id?: string } }).identity?.id ?? (res as { id?: string }).id;
+    if (!identityId) throw new Error('createIdentity: no identity id in response');
+    return identityId;
+  }
+
+  async attachUniversalAuth(identityId: string): Promise<string> {
+    const res = await this.fetch('POST', `/api/v1/auth/universal-auth/identities/${identityId}`, {
+      accessTokenTTL: 2592000,
+      accessTokenMaxTTL: 2592000,
+      accessTokenNumUsesLimit: 0,
+      clientSecretTrustedIps: [{ ipAddress: '0.0.0.0/0' }],
+      accessTokenTrustedIps: [{ ipAddress: '0.0.0.0/0' }],
+    });
+    const clientId = (res as { identityUniversalAuth?: { clientId?: string } })
+      .identityUniversalAuth?.clientId;
+    if (!clientId) throw new Error('attachUniversalAuth: no clientId in response');
+    return clientId;
+  }
+
+  async createClientSecret(identityId: string, description: string): Promise<string> {
+    const res = await this.fetch(
+      'POST',
+      `/api/v1/auth/universal-auth/identities/${identityId}/client-secrets`,
+      { description, ttl: 0, numUsesLimit: 0 },
+    );
+    const clientSecret = (res as { clientSecret?: string }).clientSecret;
+    if (!clientSecret) throw new Error('createClientSecret: no clientSecret in response');
+    return clientSecret;
+  }
+
+  async addIdentityToProject(
+    projectId: string,
+    identityId: string,
+    role: 'viewer' | 'no-access' = 'no-access',
+  ): Promise<void> {
+    await this.fetch('POST', `/api/v2/workspace/${projectId}/identity-memberships/${identityId}`, {
+      role,
+    });
+  }
+
+  private async fetch(method: string, path: string, body?: unknown): Promise<unknown> {
+    const headers: Record<string, string> = { 'content-type': 'application/json' };
+    if (this.accessToken) headers['authorization'] = `Bearer ${this.accessToken}`;
+
+    const res = await globalThis.fetch(`${this.hostUrl}${path}`, {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`${method} ${path} → ${res.status} ${res.statusText}\n${text}`);
+    }
+
+    const ct = res.headers.get('content-type') ?? '';
+    if (ct.includes('application/json')) return res.json();
+    return res.text();
+  }
 }
 
 async function main(): Promise<void> {
   const args = parseArguments();
-  console.log(`\n  Holy Grail — Infisical setup для "${args.site}"\n`);
+  const env = readAdminEnv();
 
-  const client = new InfisicalSDK({ siteUrl: args.apiUrl });
-  await loginInteractive(client);
+  console.log(`\n  Holy Grail — Infisical setup для "${args.site}" (type: ${args.type})`);
+  console.log(`  Host: ${env.hostUrl}\n`);
 
-  const projectName = `holygrail-${args.site}`;
-  const projectSlug = projectName;
+  const inf = new Infisical(env.hostUrl);
 
-  // 1. Project
-  console.log(`→ createProject(${projectName})`);
-  const project = await client.projects().create({
-    projectName,
-    type: 'secret-manager',
-    projectDescription: `Holy Grail site: ${args.site}`,
-    slug: projectSlug,
-  });
-  const projectId = (project as { id?: string; project?: { id: string } }).id
-    ?? (project as { project?: { id: string } }).project?.id;
-  if (!projectId) throw new Error('createProject не вернул id');
+  console.log('→ login (admin UA)');
+  await inf.login(env.clientId, env.clientSecret);
+  console.log('  ✓ authenticated');
+
+  console.log(`→ createProject(holygrail-${args.site})`);
+  const projectId = await inf.createProject(args.site, env.orgId);
   console.log(`  ✓ project ${projectId}`);
 
-  // 2. Environments
-  const envs = [
-    { name: 'Development', slug: 'dev', position: 1 },
-    { name: 'Staging', slug: 'staging', position: 2 },
-    { name: 'Production', slug: 'prod', position: 3 },
-  ];
-  console.log(`→ createEnvironment × ${envs.length}`);
-  for (const env of envs) {
+  console.log(`→ createEnvironment × ${ENVIRONMENTS.length}`);
+  for (const e of ENVIRONMENTS) {
     try {
-      await client.environments().create({ ...env, projectId });
-      console.log(`  ✓ env "${env.slug}"`);
-    } catch (e) {
-      console.warn(`  ⚠ env "${env.slug}" уже существует или ошибка: ${(e as Error).message}`);
+      await inf.createEnvironment(projectId, e);
+      console.log(`  ✓ env "${e.slug}"`);
+    } catch (err) {
+      console.warn(`  ⚠ env "${e.slug}" skipped: ${(err as Error).message.split('\n')[0]}`);
     }
   }
 
-  // 3. Seed placeholder secrets во ВСЕ env
-  console.log(`→ seed placeholder secrets × ${STANDARD_SECRETS.length}`);
-  for (const env of envs) {
+  console.log(`→ seed placeholder secrets × ${STANDARD_SECRETS.length} × ${ENVIRONMENTS.length}`);
+  for (const e of ENVIRONMENTS) {
     for (const key of STANDARD_SECRETS) {
       try {
-        await client.secrets().createSecret(key, {
-          environment: env.slug,
+        await inf.createSecret(
           projectId,
-          secretValue: '',
-          secretComment: 'Заполни через Infisical UI или `infisical secrets set`',
-          secretPath: '/',
-        });
+          e.slug,
+          key,
+          '',
+          'Заполни через UI или `infisical secrets set`',
+        );
       } catch {
-        // Already exists or другая ошибка — skip
+        // existing secret or other — skip silently
       }
     }
   }
   console.log('  ✓ placeholders разложены');
 
-  // 4. .infisical.json — линк репо к проекту
+  const identityName = `${args.site}-prod-deploy`;
+  console.log(`→ createIdentity(${identityName})`);
+  const identityId = await inf.createIdentity(identityName, env.orgId);
+  console.log(`  ✓ identity ${identityId}`);
+
+  console.log('→ attachUniversalAuth');
+  const prodClientId = await inf.attachUniversalAuth(identityId);
+  console.log(`  ✓ clientId ${prodClientId}`);
+
+  console.log('→ createClientSecret');
+  const prodClientSecret = await inf.createClientSecret(identityId, `${args.site} prod-deploy`);
+  console.log('  ✓ clientSecret получен');
+
+  console.log('→ addIdentityToProject');
+  try {
+    await inf.addIdentityToProject(projectId, identityId, 'no-access');
+    console.log('  ✓ identity attached');
+  } catch (err) {
+    console.warn(`  ⚠ addIdentityToProject failed: ${(err as Error).message.split('\n')[0]}`);
+    console.warn('    → fallback: добавь identity к project вручную через UI:');
+    console.warn(
+      `    ${env.hostUrl}/project/${projectId}/access-management → Add Machine Identity → ${identityName}`,
+    );
+  }
+
   const infisicalJson = {
     workspaceId: projectId,
     defaultEnvironment: 'dev',
@@ -182,24 +335,30 @@ async function main(): Promise<void> {
   writeFileSync(outPath, JSON.stringify(infisicalJson, null, 2) + '\n');
   console.log(`  ✓ .infisical.json → ${outPath}`);
 
-  // 5. Hint про machine identity (SDK не всегда поддерживает createIdentity напрямую;
-  // в текущей версии надо завести через UI или Terraform-провайдер).
   console.log('\n──────────────────────────────────────────────');
-  console.log('Готово. Дальше — вручную через Infisical UI:');
-  console.log(`  1. Project "${projectName}" → Access Control → Machine Identities`);
-  console.log(`  2. Create identity "${args.site}-prod-deploy" с Universal Auth.`);
-  console.log('  3. Привязать identity к environment "prod" с правами Read.');
-  console.log('  4. Сгенерировать Client ID + Client Secret.');
-  console.log('  5. На VPS:');
-  console.log('     sudo install -d -m 700 -o deploy -g deploy /etc/infisical');
-  console.log('     echo "<client-id>" | sudo tee /etc/infisical/client-id > /dev/null');
-  console.log('     echo "<client-secret>" | sudo tee /etc/infisical/client-secret > /dev/null');
-  console.log('     sudo chmod 600 /etc/infisical/*');
-  console.log('     sudo chown deploy:deploy /etc/infisical/*');
+  console.log('PROD MACHINE IDENTITY CREATED:');
+  console.log(`  Client ID:     ${prodClientId}`);
+  console.log(`  Client Secret: ${prodClientSecret}`);
+  console.log('  (Client Secret показывается ОДИН раз — сохрани сейчас!)');
+  console.log('');
+  console.log('Положи на VPS:');
+  console.log('  sudo install -d -m 700 -o deploy -g deploy /etc/infisical');
+  console.log(`  echo "${prodClientId}" | sudo tee /etc/infisical/client-id > /dev/null`);
+  console.log(`  echo "${prodClientSecret}" | sudo tee /etc/infisical/client-secret > /dev/null`);
+  console.log('  sudo chmod 600 /etc/infisical/*');
+  console.log('  sudo chown deploy:deploy /etc/infisical/*');
+  console.log('');
+  console.log('Дальше:');
+  console.log('  1. Заполни секреты dev env: через UI или `infisical secrets set --env=dev`');
+  console.log('  2. ./dev-setup.sh   (поднимает MinIO + локальный стек)');
+  console.log('  3. ./dev.sh         (infisical run --env=dev --recursive -- pnpm dev)');
+  if (args.type === 'minimal') {
+    console.log('  4. После того как CMS поднялась: pnpm seed:minimal');
+  }
   console.log('──────────────────────────────────────────────\n');
 }
 
 main().catch((err) => {
-  console.error('FATAL:', err);
+  console.error('\nFATAL:', err instanceof Error ? err.message : err);
   process.exit(1);
 });
