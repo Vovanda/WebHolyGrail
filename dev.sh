@@ -5,7 +5,7 @@
 # там Infisical обязателен hard):
 #
 #   1. Infisical CLI + .infisical.json (любой инстанс):
-#      a) VPS shared instance (https://infisical.<canonical>.tld) — приоритет,
+#      a) VPS shared instance (https://infisical.sawking.tech) — приоритет,
 #         тот же state что у других разработчиков, prod-like
 #      b) local container на dev-машине (если поднят `docker compose` локально)
 #   2. .env.local — offline fallback (см. .env.local.example), когда:
