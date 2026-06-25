@@ -3,6 +3,8 @@
 > Provisional. We're locking the rule "split by who changes it, not by data type" at the start of the project. Time will tell if the trade-offs hold. Document open questions are at the end.
 >
 > **Infisical is treated as a general-purpose env-aware key-value config store, not as a secrets-only manager.** The "secret" framing in its UI is one mode of use; the underlying primitive — versioned, sharable, environment-scoped key-value with audit history — covers a wide range of needs (secrets, feature flags, rate limits, technical knobs). We don't bring in a separate feature-flag SaaS (LaunchDarkly, ConfigCat) because at our scale (1–10 flags per site, no percentage rollouts, no user-segment targeting, no compliance audit needs) the extra system pays for itself only in adoption pain.
+>
+> **Self-host single instance, project per site.** We run our own Infisical instance on a VPS (one container for all sites), and each Holy Grail site lives as a separate **project** inside it — getting native Infisical project-level RBAC isolation (separate members, separate audit log, separate service identities). We don't use Infisical Cloud — vendor lock-in is unacceptable, and the self-host edition does everything we need including `infisical bootstrap` for automated admin identity provisioning. Deployment + isolation details — [`docs/stack/infisical.md`](../stack/infisical.md).
 
 ## The rule
 
