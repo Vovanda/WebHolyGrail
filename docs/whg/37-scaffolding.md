@@ -6,16 +6,17 @@
 
 Holy Grail supports several project types. The type defines which collections, blocks, routes, and seed data are bootstrapped on top of the generic minimum:
 
-| Type | Status | What you get |
-|---|---|---|
-| `minimal` | ✅ available | Generic Pages/Media/Users/FormSubmissions/ReusableBlocks + initial admin user + empty home page. Build the rest in admin or extend `blocks/domain/` yourself. |
-| `business-card` | 🔜 roadmap | + Pages presets (home/about/contacts/services), ContactsBlock, ServicesGrid, working contact form |
-| `blog` | 🔜 roadmap | + active Posts/Comments, `/blog` routes, `blocks/domain/blog/` (PostCard/PostList/PostContent), RSS, sample post |
-| `portal` | 🔜 roadmap | + Customer Users (auth + roles separate from admin), `/login`/`/signup`/`/dashboard` routes, `blocks/domain/portal/`, email integration |
+| Type            | Status       | What you get                                                                                                                                                  |
+| --------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `minimal`       | ✅ available | Generic Pages/Media/Users/FormSubmissions/ReusableBlocks + initial admin user + empty home page. Build the rest in admin or extend `blocks/domain/` yourself. |
+| `business-card` | 🔜 roadmap   | + Pages presets (home/about/contacts/services), ContactsBlock, ServicesGrid, working contact form                                                             |
+| `blog`          | 🔜 roadmap   | + active Posts/Comments, `/blog` routes, `blocks/domain/blog/` (PostCard/PostList/PostContent), RSS, sample post                                              |
+| `portal`        | 🔜 roadmap   | + Customer Users (auth + roles separate from admin), `/login`/`/signup`/`/dashboard` routes, `blocks/domain/portal/`, email integration                       |
 
 Choose type at scaffold time (`--type <name>`). Default — `minimal`.
 
 Codebase is structured to accept the additional types without rewrites:
+
 - `scripts/seeds/<type>/index.ts` — type-specific seed pipeline (idempotent, Payload Local API).
 - `migrations/` files prefixed by type (`10000_business-card_*`, `11000_blog_*`, `20000_portal_*`) apply on demand.
 - `blocks/domain/<type>/` directories copied conditionally by scaffold.
@@ -59,15 +60,17 @@ Prerequisites (one-time per organisation, not per site):
 After that, every scaffold is fully automated through REST API — no more UI clicks.
 
 Bootstrap the project for this site:
+
 ```bash
 pnpm setup-infisical -- --site <slug> [--type minimal]
 ```
 
 What the script does (8 steps, fully automated via REST):
+
 1. Log in as the admin identity using the env credentials.
 2. Create Infisical project `holygrail-<slug>`.
 3. Create 3 environments: `dev`, `staging`, `prod`.
-4. Seed empty placeholder secrets (PAYLOAD_SECRET, DATABASE_URI, S3_*, NEXT_PUBLIC_*, VK_*).
+4. Seed empty placeholder secrets (PAYLOAD*SECRET, DATABASE_URI, S3*_, NEXT*PUBLIC*_, VK\_\*).
 5. Create service machine identity `<slug>-prod-deploy` (Universal Auth, scoped to prod).
 6. Attach Universal Auth config to the service identity.
 7. Generate Client Secret for the service identity — printed to console (one-time only, save it!).
@@ -107,7 +110,8 @@ If you really need to skip Docker / MinIO for a quick local test — set `S3_*` 
 ```
 
 You should see:
-- CMS  → http://localhost:3001 (Payload admin at `/admin`)
+
+- CMS → http://localhost:3001 (Payload admin at `/admin`)
 - Client → http://localhost:3000
 
 Open `http://localhost:3001/admin`, create the first user, log in.
@@ -117,6 +121,7 @@ Open `http://localhost:3001/admin`, create the first user, log in.
 In `src/cms/package.json` and `src/client/package.json`, keep `"name": "cms"` and `"name": "client"` — those are the workspace handles, they don't change.
 
 The site-specific identity (display name, brand palette) lives in:
+
 - Payload `SiteSettings` global → fill in via admin UI
 - `src/client/src/styles/tokens.css` → tweak palette
 - `src/client/public/branding/` → drop logo / favicon
@@ -126,6 +131,7 @@ There is **no** `site.config.ts` — the things that vary per site sit in the da
 ## Make domain blocks
 
 Site-specific entities (Dogs / Patients / Vehicles / MenuItems / …) go in:
+
 - `src/cms/src/collections/<Domain>.ts` — Payload collection
 - `contracts/src/<domain>.ts` — public type
 - `src/client/src/blocks/domain/<niche>/` — React blocks
@@ -135,9 +141,10 @@ This is the L4 layer (see [`32-structure.md`](32-structure.md)). The template ne
 
 ## Deploy
 
-See [`Deploy: checklist for first launch on Timeweb VPS`](../infra-journal.md#first-deploy) and `deploy/prod/README.md`.
+See `deploy/prod/README.md` for the first-launch checklist.
 
 Quick summary:
+
 - Push instance to GitHub.
 - VPS — install Docker + Infisical CLI + `/etc/infisical/{client-id,client-secret}` (chmod 600 deploy:deploy).
 - GitHub Actions deploy workflow — already wired in template (`.github/workflows/deploy.yml` if you ship one) or run `deploy/prod/deploy.sh <tag>` manually first time.
