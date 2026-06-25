@@ -9,9 +9,11 @@ Opinionated monorepo template for production small-business websites — Next.js
 
 ## What it is
 
-A monorepo template with one stack, one set of architectural rules (R1–R9, see [`docs/whg/30-philosophy.md`](docs/whg/30-philosophy.md)), and one deployment story. Sites are created from `packages/_template`, scaffolded by an LLM agent or by hand, and live under `sites/<site>/`.
+A GitHub template repo with one stack, one set of architectural rules (R0–R15, see [`docs/whg/30-philosophy.md`](docs/whg/30-philosophy.md)), and one deployment story. Click "Use this template" → you get a working Next 15 + Payload 3 skeleton at the **root** (no folder to unpack), with Infisical-based secrets and blue-green deploy wired in.
 
 Targets the gap between static one-pagers (no content editing) and plugin-based CMSes (data welded to presentation, hard to grow into a real backend).
+
+Generic code lives upstream in this template. Each instance you create stays in sync via [`sync-template.sh`](scripts/sync-template.sh) — picks up new primitives, fixes, and Payload upgrades without touching your domain blocks.
 
 ## Stack
 
@@ -31,41 +33,46 @@ Live examples of sites built on this template: [whg.sawking.tech](https://whg.sa
 ## Quick start
 
 ```bash
-# 1. "Use this template" on GitHub, or:
-gh repo create my-site --template <owner>/<repo> --private
-
-# 2. Bootstrap
+# 1. Create your instance from this template:
+gh repo create <owner>/my-site --template Vovanda/WebHolyGrail --private --clone
 cd my-site
+
+# 2. Install:
 corepack enable
 pnpm install
 
-# 3. Set up env for a site
-cd sites/<your-site>
-./dev-setup.sh
+# 3. Bootstrap secrets (Infisical Cloud):
+infisical login                                # one-time per machine
+pnpm setup-infisical -- --site my-site         # creates project + dev/staging/prod envs
 
-# 4. Run dev stack
-./dev.sh
+# 4. Run dev stack:
+./dev-setup.sh                                 # one-time per checkout
+./dev.sh                                       # starts CMS :3001 + Client :3000
 ```
 
-Then http://localhost:3000 (site) and http://localhost:3001/admin (Payload admin).
+Open http://localhost:3000 (site) and http://localhost:3001/admin (Payload admin).
+
+For the full scaffolding flow (machine identity for prod, deploy, sync) see [`docs/whg/37-scaffolding.md`](docs/whg/37-scaffolding.md).
 
 ## Project structure
 
 ```
-WebHolyGrail/
-├── packages/                  # shared core (grows out of sites/ — R9)
-│   ├── ui/  ·  tokens/  ·  contracts/
-│   └── _template/             # site scaffold
-├── sites/
-│   └── <site>/
-│       ├── contracts/         # type contracts (sits above src/)
-│       ├── src/client/        # Next.js front (own Dockerfile)
-│       ├── src/cms/           # Payload CMS (own Dockerfile)
-│       └── deploy/{local,prod}/   # docker-compose, blue-green deploy
-├── deploy/                    # platform-level nginx (multi-site host)
+.                              # ← root = your site (no folder to unpack)
+├── src/
+│   ├── client/                # Next.js 15 (App Router, own Dockerfile)
+│   │   └── src/{ui,blocks,layouts,lib,styles,app}/
+│   │       blocks/{primitives,layout,decor,system,domain}/
+│   └── cms/                   # Payload 3.x (own Dockerfile)
+├── contracts/                 # typed seam — client/cms → contracts (one-way)
+├── deploy/{local,prod,proxy-stack}/
+├── scripts/                   # setup-infisical, sync-template, migrate-veo55
 ├── docs/whg/                  # architecture docs
+├── .claude/skills/            # holygrail-* + payload* + infisical + template-sync
+├── dev.sh, dev-setup.sh       # Infisical-wrapped dev
 └── LICENSE                    # MIT
 ```
+
+The four component levels (L1–L4) — `ui/` atoms, `primitives/` molecules, `layout/`+`decor/` structural, `domain/` business niches — are explained in [`32-structure.md`](docs/whg/32-structure.md).
 
 ## Documentation
 
@@ -76,8 +83,9 @@ WebHolyGrail/
 | [`32-structure.md`](docs/whg/32-structure.md)           | Monorepo and per-site layout, three growth models                       |
 | [`35-frontend-stack.md`](docs/whg/35-frontend-stack.md) | Frontend stack and the block model                                      |
 | [`36-block-coverage.md`](docs/whg/36-block-coverage.md) | Block-model coverage: Payload out of the box vs. custom work            |
-| [`37-scaffolding.md`](docs/whg/37-scaffolding.md)       | How a new site is scaffolded (experimental)                             |
+| [`37-scaffolding.md`](docs/whg/37-scaffolding.md)       | How a new site is scaffolded (gh template → Infisical → dev)            |
 | [`38-invariants.md`](docs/whg/38-invariants.md)         | Invariant collections and blocks reused across sites                    |
+| [`40-versions.md`](docs/whg/40-versions.md)             | Stack versions, upgrade policy, breaking-change discipline              |
 
 ## License
 
