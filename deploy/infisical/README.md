@@ -34,7 +34,7 @@ cd /opt/infisical
 sed -i "s|^ENCRYPTION_KEY=.*|ENCRYPTION_KEY=$(openssl rand -hex 16)|"      .env
 sed -i "s|^AUTH_SECRET=.*|AUTH_SECRET=$(openssl rand -base64 32)|"          .env
 sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$(openssl rand -hex 24)|" .env
-sed -i "s|^SITE_URL=.*|SITE_URL=https://infisical.your-domain.tld|"         .env
+sed -i "s|^SITE_URL=.*|SITE_URL=https://infisical.example.com|"         .env
 chmod 600 .env
 
 # 4. Запуск
@@ -47,7 +47,7 @@ curl http://localhost:8080/api/status
 
 # 6. Bootstrap admin identity (один раз)
 docker exec infisical-api infisical bootstrap \
-  --email admin@your-domain.tld \
+  --email admin@example.com \
   --password "$(openssl rand -hex 32)" \
   --organization "Holy Grail Sites" \
   --output json > /opt/infisical/.bootstrap.json
@@ -64,7 +64,7 @@ Bootstrap output (JSON) содержит:
 Кладёшь в personal env (на твоей машине):
 
 ```
-INFISICAL_HOST_URL=https://infisical.your-domain.tld
+INFISICAL_HOST_URL=https://infisical.example.com
 INFISICAL_ADMIN_CLIENT_ID=<...>
 INFISICAL_ADMIN_CLIENT_SECRET=<...>
 INFISICAL_ADMIN_ORG_ID=<...>
@@ -79,10 +79,10 @@ INFISICAL_ADMIN_ORG_ID=<...>
 ```nginx
 server {
   listen 443 ssl http2;
-  server_name infisical.your-domain.tld;
+  server_name infisical.example.com;
 
-  ssl_certificate     /etc/letsencrypt/live/infisical.your-domain.tld/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/infisical.your-domain.tld/privkey.pem;
+  ssl_certificate     /etc/letsencrypt/live/infisical.example.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/infisical.example.com/privkey.pem;
 
   location / {
     proxy_pass http://127.0.0.1:8080;
@@ -97,7 +97,7 @@ server {
 }
 ```
 
-Сертификат: `sudo certbot --nginx -d infisical.your-domain.tld`.
+Сертификат: `sudo certbot --nginx -d infisical.example.com`.
 
 ## Бэкап
 

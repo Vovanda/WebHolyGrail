@@ -49,7 +49,7 @@ if ! command -v infisical >/dev/null 2>&1; then
   exit 1
 fi
 if [ -z "$INFISICAL_HOST_URL" ]; then
-  echo "ERROR: INFISICAL_HOST_URL env not set (e.g. https://infisical.your-domain.tld)." >&2
+  echo "ERROR: INFISICAL_HOST_URL env not set (e.g. https://infisical.example.com)." >&2
   exit 1
 fi
 if [ ! -r "$CREDS_DIR/client-id" ] || [ ! -r "$CREDS_DIR/client-secret" ]; then

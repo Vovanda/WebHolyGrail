@@ -1,3 +1,4 @@
+#!/usr/bin/env sh
 # Pre-push: incremental gitleaks scan over commits about to be pushed.
 # @{push}..HEAD => only commits ahead of upstream, not the whole branch history.
 

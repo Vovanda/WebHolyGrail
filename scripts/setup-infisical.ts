@@ -18,7 +18,7 @@
  *   pnpm setup-infisical -- --site <slug>
  *
  * Env (обязательно):
- *   INFISICAL_HOST_URL              — URL self-host instance (https://infisical.<your-domain>.tld)
+ *   INFISICAL_HOST_URL              — URL self-host instance (https://infisical.example.com)
  *   INFISICAL_ADMIN_CLIENT_ID       — admin UA client ID (из `infisical bootstrap`)
  *   INFISICAL_ADMIN_CLIENT_SECRET   — admin UA client secret
  *   INFISICAL_ADMIN_ORG_ID          — orgId (из `infisical bootstrap` output)
