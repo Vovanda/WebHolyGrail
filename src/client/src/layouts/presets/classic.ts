@@ -20,7 +20,20 @@ export const CLASSIC_SITE_LAYOUT: SiteLayoutConfig = {
     {
       id: 'header',
       slot: 'top',
-      content: { kind: 'block', node: { blockType: 'header', id: 'panel-header' } },
+      content: {
+        kind: 'block',
+        node: {
+          blockType: 'header',
+          id: 'panel-header',
+          data: {
+            githubUrl: 'https://github.com/Vovanda/WebHolyGrail',
+            primaryCta: {
+              label: 'Использовать шаблон',
+              href: 'https://github.com/Vovanda/WebHolyGrail/generate',
+            },
+          },
+        },
+      },
       visibility: 'always',
       meta: { title: 'Header' },
     },

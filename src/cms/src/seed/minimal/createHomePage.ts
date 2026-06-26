@@ -69,12 +69,17 @@ export async function createHomePage(payload: Payload): Promise<{ created: boole
           email: 'contact@webholygrail.dev',
         },
         mainNav: [
-          { href: '/', label: 'Главная' },
-          { href: '/docs', label: 'Документация' },
-          { href: 'https://github.com/Vovanda/WebHolyGrail', label: 'GitHub', external: true },
+          { href: '#features', label: 'Возможности' },
+          { href: '#growth', label: 'Рост' },
+          { href: '#stack', label: 'Стек' },
           {
-            href: 'https://github.com/Vovanda/WebHolyGrail/issues',
-            label: 'Issues',
+            href: 'https://github.com/Vovanda/WebHolyGrail/blob/main/docs/whg/30-philosophy.md',
+            label: 'Правила',
+            external: true,
+          },
+          {
+            href: 'https://github.com/Vovanda/WebHolyGrail/tree/main/docs',
+            label: 'Документация',
             external: true,
           },
         ],
@@ -116,8 +121,9 @@ export async function createHomePage(payload: Payload): Promise<{ created: boole
 }
 
 /**
- * Default home page — короткий лендинг через готовые блоки.
- * Hero + Carousel screenshots + Quick start + Что внутри + Layout note.
+ * Default home page — marketing landing v2 (#35).
+ * 10 секций: hero-split + install + stack + comparison + features + built-with +
+ * project-types + quote (dark manifesto) + block-showcase + cta-banner.
  * Полное описание продукта — `docs/whg/00-overview.md` (single source of truth).
  */
 function buildHomePageData(media: MediaMap) {
@@ -127,67 +133,220 @@ function buildHomePageData(media: MediaMap) {
     _status: 'published' as const,
     seo: {
       title: 'Web Holy Grail',
-      description: 'Готовый self-hosted сайт с CMS-админкой. Next.js 15 + Payload 3 + Docker. MIT.',
+      description:
+        'Self-hosted сайт с CMS и архитектурой, которая не заставит вас начинать заново через год. Next.js 15 + Payload 3 + Docker. MIT.',
       ogImage: media.ogImage.id,
     },
     blocks: [
+      // 1. Hero — двух-колоночный с GrowthPath card справа.
       {
-        blockType: 'hero' as const,
-        title: 'Сайт с {accent} на собственном домене',
-        titleAccent: 'админкой',
+        blockType: 'hero-split' as const,
+        heading: 'Начните с сайта. Вырастите во что угодно.',
         subtitle:
-          'Клонируете, деплоите — и сразу создаёте страницы через визуальную админку. Next.js 15 + Payload 3 + Docker.',
-        subtitleShort: 'Сайт с админкой на собственном домене.',
+          'Web Holy Grail — self-hosted сайт с CMS и архитектурой, которая не заставит вас начинать заново через год.',
+        ctaPrimary: {
+          label: 'Использовать шаблон',
+          href: 'https://github.com/Vovanda/WebHolyGrail/generate',
+        },
+        ctaSecondary: { label: 'Смотреть демо', href: '#built' },
+        badges: [
+          { label: 'Self-hosted' },
+          { label: 'MIT License' },
+          { label: 'Docker Ready' },
+          { label: 'TypeScript First' },
+        ],
+        rightTitle: 'Один фундамент — разные сценарии',
+        rightSteps: [
+          { icon: '🪪', label: 'Визитка', sub: 'Начните с простого сайта' },
+          { icon: '📝', label: 'Блог', sub: 'Добавьте контент и статьи' },
+          { icon: '👥', label: 'Портал', sub: 'Личный кабинет и пользователи' },
+          { icon: '🧩', label: 'Продукт', sub: 'Новые сервисы и интеграции' },
+        ],
+        rightCaption: 'Один фундамент. Без переписывания.',
       },
+
+      // 2. Install snippet — one-liner с copy-кнопкой.
       {
-        blockType: 'banner-slider' as const,
-        banners: [
-          { imageUrl: media.screenshotLanding.url, alt: 'Главная страница сайта' },
-          { imageUrl: media.screenshotAdmin.url, alt: 'Админка Payload: список страниц' },
-          {
-            imageUrl: media.screenshotBlockEditor.url,
-            alt: 'Редактор блока с превью в реальном времени',
-          },
-          { imageUrl: media.screenshotMedia.url, alt: 'Галерея медиа в S3' },
+        blockType: 'install-snippet' as const,
+        command: 'gh repo create my-site --template Vovanda/WebHolyGrail',
+        caption: 'Готовый стартовый репозиторий за минуту. Дальше ./dev.sh и пиши код.',
+      },
+
+      // 3. Stack transparency — ряд иконок технологий.
+      {
+        blockType: 'stack-transparency' as const,
+        heading: 'Что под капотом',
+        subtitle: 'Решения зафиксированы — фокусируйтесь на продукте.',
+        items: [
+          { icon: '⚡', label: 'Next.js 15' },
+          { icon: '📝', label: 'Payload 3' },
+          { icon: '⚛️', label: 'React 19' },
+          { icon: '🐳', label: 'Docker' },
+          { icon: '📘', label: 'TypeScript' },
+          { icon: '🎨', label: 'Tailwind 4' },
+          { icon: '🔐', label: 'Infisical' },
         ],
       },
+
+      // 4. Comparison — red ✗ vs green ✓.
       {
-        blockType: 'prose' as const,
-        variant: 'modern-sans' as const,
-        body:
-          'Запустить за 5 минут:\n\n' +
-          '```\n' +
-          'gh repo create my-site --template Vovanda/WebHolyGrail --private --clone\n' +
-          'cd my-site && corepack enable && pnpm install\n' +
-          'pnpm setup-infisical -- --site my-site\n' +
-          './dev-setup.sh && ./dev.sh\n' +
-          '```\n\n' +
-          'localhost:3000 — сайт. localhost:3001/admin — админка.',
-      },
-      {
-        blockType: 'certified-notice' as const,
-        title: 'Что внутри',
-        body: '',
-        criteriaTitle: '',
-        criteria: [
-          { text: 'UI: shadcn/ui + Tailwind + дизайн-токены под бренд через переменные.' },
-          {
-            text: 'CMS с админкой на русском: Payload 3, drag-and-drop блоков, типизированные поля.',
-          },
-          { text: 'БД за слоем доступа: SQLite на старте, Postgres одной строкой адаптера.' },
-          { text: 'Секреты в Infisical (self-host или cloud), `.env` не нужен.' },
-          { text: 'Медиа в S3: MinIO в dev, любой S3-совместимый провайдер в prod.' },
-          { text: 'Модульная архитектура: фронт / CMS / контракты — отдельные workspace.' },
-          { text: 'Blue-green deploy: Docker compose + nginx + Let’s Encrypt, zero-downtime.' },
-          { text: 'sync-template.sh подтягивает улучшения upstream, не трогая ваш доменный код.' },
+        blockType: 'comparison-table' as const,
+        heading: 'Большинство сайтов заканчиваются тупиком',
+        leftLabel: 'Обычный путь',
+        rightLabel: 'С Web Holy Grail',
+        leftItems: [
+          { text: 'Сайт на конструкторе — нужен блог → переезд на CMS' },
+          { text: 'Заказали кабинет — переписали с нуля' },
+          { text: 'Через год снова конструктор лучше подходит' },
+        ],
+        rightItems: [
+          { text: 'Начали с визитки на своём сервере' },
+          { text: 'Добавили блог — без переезда' },
+          { text: 'Растёт в портал и продукт — тот же фундамент' },
         ],
       },
+
+      // 5. Feature grid — что уже решено.
       {
-        blockType: 'prose' as const,
-        variant: 'modern-sans' as const,
-        body:
-          'Композиция страницы хранится в CMS как JSON. Где Header, Sidebar, Footer — конфиг в админке, не JSX. Шесть слотов (top / bottom / left / right / center / overlay), видимость блоков по брейкпоинтам — чекбокс в админке. Из коробки один пресет `classic-site`, новые добавляются по мере потребности.\n\n' +
-          'Документация и исходники — в GitHub-репозитории (ссылка в навигации).',
+        blockType: 'feature-grid' as const,
+        heading: 'Что уже решено за вас',
+        items: [
+          {
+            icon: '🌐',
+            title: 'Frontend',
+            subtitle: 'Next.js 15 + React 19',
+            description: 'SSR по умолчанию',
+          },
+          {
+            icon: '📝',
+            title: 'CMS',
+            subtitle: 'Payload 3',
+            description: 'Админка на русском',
+          },
+          {
+            icon: '🐳',
+            title: 'Deploy',
+            subtitle: 'Docker + blue-green',
+            description: 'Zero-downtime',
+          },
+          {
+            icon: '🗄️',
+            title: 'Storage',
+            subtitle: 'S3-совместимое',
+            description: 'MinIO в dev',
+          },
+          {
+            icon: '🔐',
+            title: 'Secrets',
+            subtitle: 'Infisical',
+            description: 'Никаких .env на проде',
+          },
+          {
+            icon: '💾',
+            title: 'Data',
+            subtitle: 'SQLite по умолчанию',
+            description: 'Postgres одной строкой',
+          },
+          {
+            icon: '🧩',
+            title: 'Architecture',
+            subtitle: 'Contracts boundary',
+            description: 'Изоляция фронта и бэка',
+          },
+        ],
+      },
+
+      // 6. Built with — реальные production-сайты на стеке.
+      {
+        blockType: 'built-with' as const,
+        heading: 'Сайты, которые уже работают',
+        subtitle: 'Реальные production-инстансы на этом стеке.',
+        items: [
+          { siteName: 'veo55.ru', url: 'https://veo55.ru', niche: 'Питомник немецких овчарок' },
+          { siteName: 'sawking.tech', url: 'https://sawking.tech', niche: 'Личный сайт + блог' },
+          { siteName: 'sng74.ru', url: 'https://sng74.ru', niche: 'Сервис в Челябинске' },
+          {
+            siteName: 'fitness-mafia.ru',
+            url: 'https://fitness-mafia.ru',
+            niche: 'Фитнес-клуб',
+          },
+        ],
+      },
+
+      // 7. Project types — WHG-specific 2×2 grid.
+      {
+        blockType: 'project-types-grid' as const,
+        heading: 'Одна архитектура. Несколько сценариев роста.',
+        subtitle:
+          'Выберите стартовую точку под ваш проект. Архитектура остаётся той же — меняется только стартовая конфигурация.',
+        items: [
+          {
+            icon: '🟦',
+            label: 'Minimal',
+            description: 'Пустой сайт и базовые страницы',
+            status: 'available' as const,
+          },
+          {
+            icon: '🟩',
+            label: 'Business Card',
+            description: 'Услуги, контакты, формы, отзывы',
+            status: 'roadmap' as const,
+          },
+          {
+            icon: '🟨',
+            label: 'Blog',
+            description: 'Блог, категории, комментарии',
+            status: 'roadmap' as const,
+          },
+          {
+            icon: '🟪',
+            label: 'Portal',
+            description: 'Пользователи, кабинет, роли',
+            status: 'roadmap' as const,
+          },
+        ],
+        caption: 'Тип проекта — это старт, не ограничение. Добавляйте возможности по мере роста.',
+      },
+
+      // 8. Quote — full-width-dark manifesto.
+      {
+        blockType: 'quote' as const,
+        variant: 'full-width-dark' as const,
+        body: 'Технологии уже позволяют дать малому бизнесу нормальный сайт с честной архитектурой — почти даром.',
+        author: 'Владимир Савкин',
+        role: 'архитектор Web Holy Grail',
+        authorHref: 'https://github.com/Vovanda',
+      },
+
+      // 9. Block showcase — карточки готовых блоков template'а.
+      {
+        blockType: 'block-showcase' as const,
+        heading: 'Современный UI из коробки',
+        subtitle: 'Готовые блоки на shadcn/ui + Tailwind + дизайн-токены.',
+        items: [
+          { label: 'Hero' },
+          { label: 'Карусель' },
+          { label: 'Цитата' },
+          { label: 'Таймлайн' },
+          { label: 'FAQ' },
+          { label: 'Форма' },
+        ],
+      },
+
+      // 10. CTA banner — финальный, blue solid.
+      {
+        blockType: 'cta-banner' as const,
+        heading: 'Готовы начать?',
+        subtitle:
+          'Клонируйте шаблон, разворачивайте локально через ./dev-setup.sh && ./dev.sh — и пишите код.',
+        ctaPrimary: {
+          label: 'Использовать шаблон на GitHub',
+          href: 'https://github.com/Vovanda/WebHolyGrail/generate',
+        },
+        ctaSecondary: {
+          label: 'Документация',
+          href: 'https://github.com/Vovanda/WebHolyGrail/tree/main/docs',
+        },
       },
     ],
   };
