@@ -2,6 +2,7 @@
   "name": "contracts",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Типы-разъём между client (Next) и cms (Payload). Однонаправленная зависимость: client/cms импортируют отсюда, обратной зависимости нет (R3).",
   "type": "module",
   "main": "./src/index.ts",

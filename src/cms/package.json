@@ -2,6 +2,7 @@
   "name": "cms",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Payload CMS for Holy Grail site",
   "type": "module",
   "scripts": {

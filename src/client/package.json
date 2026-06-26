@@ -2,6 +2,7 @@
   "name": "client",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Next.js client for Holy Grail site",
   "type": "module",
   "scripts": {
