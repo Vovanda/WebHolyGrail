@@ -1,18 +1,8 @@
-# Vision — почему именно этот стек
+# Stack rationale
 
-> Stack rationale. Каждый ключевой выбор — что взяли, что отвергли, и какой компромисс приняли. Читать после [`00-overview.md`](00-overview.md) и до [`30-philosophy.md`](30-philosophy.md).
+> Каждый ключевой выбор — что взяли, что отвергли, и какой компромисс приняли. Категория продукта и боль, которую он закрывает — в [`00-overview.md`](00-overview.md). R-rules — в [`30-philosophy.md`](30-philosophy.md).
 
-WHG — opinionated. Это значит каждый слой стека выбран с обоснованием, и альтернативы рассмотрены явно. Ниже — позиции по каждому решению.
-
-## Ниша, в которую целимся
-
-Между статичкой (Tilda/Tap-style) и plugin-CMS (WordPress/Strapi):
-
-- **Статичка** даёт скорость старта и красивые шаблоны, но контент захардкожен в дизайне, своей БД нет, расширения через JS-виджеты — потолок очень близкий.
-- **Plugin-CMS** даёт админку и расширения, но данные сваляны с презентацией (WP: контент в WYSIWYG-HTML; Strapi: схема ⨯ frontend = две системы которые drift'ят), плагины ломаются между релизами, миграция стека = переписать сайт.
-- **WHG** — для малого бизнеса который перерос Tilda но не хочет WP. Сайт начинается с визитки, дорастает до каталога + блога + ЛК — внутри одного репо, одного стека, через side-scaling (R4).
-
-Эта ниша определяет компромиссы: setup сложнее чем Tilda (своя инфра, секреты, deploy), но потолок роста выше и долгосрочное сопровождение дешевле.
+Каждый слой стека выбран с обоснованием, альтернативы рассмотрены явно. Ниже — позиции по каждому решению.
 
 ## Frontend: Next.js 15 (App Router)
 
@@ -111,17 +101,10 @@ WHG — opinionated. Это значит каждый слой стека выб
 
 **Компромисс приняли:** sync-template не versioned (нет semver), пользователь должен сам сверять что подтянул. Принимаем — пока downstream-инстансов мало, ручной control важнее автоматизации. Tag-policy (см. #21) частично закроет этот gap.
 
-## Что explicitly решили НЕ делать
-
-- **Visual page builder.** Композиция — в коде через блоки. Контент-менеджер собирает страницу из готовых блоков в админке, но новые блоки добавляет разработчик.
-- **Hosting platform.** Bring-your-own-server. Reference blue-green compose included, но мы не Vercel/Netlify.
-- **Plugin marketplace.** Расширение через side-scaling (новый workspace, новый блок), не через third-party plugins.
-- **E-commerce-first features.** Корзина / checkout / payments — не в core. Для них есть [Vercel Commerce](https://vercel.com/templates/next.js/nextjs-commerce). WHG-сайт может вырасти в e-commerce через `src/api/` + плагины Payload, но это не первичный use-case.
-- **Multi-tenant.** Один инстанс = один сайт. Multi-tenancy — это другая архитектура, заводится новый инстанс на новый бизнес.
-
 ## Где читать дальше
 
 - [`30-philosophy.md`](30-philosophy.md) — R-rules, которые делают эти выборы операционными
 - [`32-structure.md`](32-structure.md) — как monorepo разложен
 - [`45-data-location.md`](45-data-location.md) — что где живёт (БД / Infisical / код)
+- Что **не** делаем (visual builder, hosting platform, e-commerce-first, multi-tenant) — в [`00-overview.md`](00-overview.md) раздел «Что не покрывает»
 - Открытые vision-issues: [#27](https://github.com/Vovanda/WebHolyGrail/issues/27) (project types), [#26](https://github.com/Vovanda/WebHolyGrail/issues/26) (shadcn), [#25](https://github.com/Vovanda/WebHolyGrail/issues/25) (R-rules audit), [#28](https://github.com/Vovanda/WebHolyGrail/issues/28) (SQLite/Postgres)

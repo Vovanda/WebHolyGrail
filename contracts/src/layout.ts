@@ -107,7 +107,7 @@ export interface SiteLayoutConfig {
    * Когда понадобится нестандартная сетка — переключаем на `custom` и задаём grid вручную.
    */
   readonly grid?: {
-    readonly template?: 'classic-site' | 'app-shell' | 'sidebar' | 'dashboard' | 'custom';
+    readonly template?: 'classic-site' | 'custom';
     /** Только для `template: 'custom'` — сырые CSS grid-template-rows. */
     readonly rows?: string;
     readonly columns?: string;

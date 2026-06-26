@@ -1,52 +1,76 @@
 # Overview
 
-> Entry point. Read this first, then dive into [`30-philosophy.md`](30-philosophy.md) for the rules.
+> Master doc. Что такое Web Holy Grail, кому это нужно, что в коробке. Технические детали в соседних файлах: правила в [`30-philosophy.md`](30-philosophy.md), стек-обоснование в [`15-vision.md`](15-vision.md), структура репо в [`32-structure.md`](32-structure.md).
 
-## What WHG is
+## Категория
 
-**Web Holy Grail** is a framework-pack of MIT-licensed tools — the minimum needed to build a fast, maintainable website with sane architecture baked in from the start.
+**Готовый self-hosted сайт с CMS-админкой.** Клонируете репо, деплоите Docker compose — и получаете рабочий сайт с админкой на собственном домене. Контент редактируется визуально через Payload-админку, без правки кода.
 
-It is **not** a single library. It's a curated set of components that work well together (Next.js + Payload + Postgres/SQLite + Docker + a few others), wired with conventions for how they connect. The set is **opinionated but replaceable**: any one tool can be swapped without rewriting the rest, because everything talks through explicit boundaries instead of direct imports.
+Стек массовый: Next.js + Payload + Docker + Postgres/SQLite. Поддерживается любым разработчиком с рынка. Лицензия MIT.
 
-Over time the pack will evolve — some tools may become optional, others may be added or replaced. What stays constant is the **architecture it enforces**, not the specific brand names.
+## Зачем
 
-## What problem it solves
+Технологии уже позволяют дать малому бизнесу нормальный сайт с честной архитектурой — почти даром. Зрелый open-source, контейнеры, ИИ. Кирпичи бесплатны. Но рынок продаёт микробизнесу либо мёртвый HTML, либо болото плагинов с lock-in.
 
-Optimises for long-term maintainability rather than first-day setup speed:
+### Со стороны клиента
 
-- **Growth ≠ rewrite.** When the business adds a new sub-product, niche, blog, team page, or case-study section — it goes into the same site as another `blocks/domain/<niche>/` + collections + routes. The first site outlives the company's mental model of "what the website is for". No "we need a new website" project every time a business pivots. This is R4 (side-scaling) made explicit.
-- New capabilities (forms, dashboards, custom backend services) added by side-scaling, without rewriting the original site.
-- Project structure is conventional enough that a new contributor onboards in hours.
-- The CMS can be swapped or removed without migrating data — data sits in its own tables behind an access layer.
+- сайт часто недоступен по цене или настоящая стоимость всплывает потом сюрпризом;
+- покупает «вслепую»: своих технических людей нет, сравнить не с чем, тот же подрядчик советует свой устаревший стек;
+- расплачивается потом — подписка на разработчика, невозможность сменить подрядчика, переделка с нуля как только бизнес растёт.
 
-## Starts as the type you need
+### Со стороны разработчика
 
-A site is scaffolded with a **project type** — `minimal`, `business-card`, `blog`, `portal`. The type defines the starting set of collections, routes, blocks, and seed data; the rest of the architecture is identical across types. Currently `minimal` is the available type; the others are on the roadmap and codebase is structured to absorb them without refactor (`scripts/seeds/<type>/`, prefixed migrations, conditional `blocks/domain/<type>/`).
+«Сделать правильно» не вписывается в бюджет микробизнеса. Остаётся либо отказывать таким клиентам, либо отдавать недоделку с молчаливым согласием что это норма.
 
-The type is just the **starting configuration**. Real long-term growth happens through `blocks/domain/<niche>/` added on top, regardless of which type bootstrapped you. A site started as `minimal` and grown into a portal looks identical in code to one started as `portal` — the path doesn't matter, the destination does.
+WHG — попытка убрать эту развилку.
 
-## Three architectural separations it enforces
+## Что в коробке
 
-1. **Data is separate from UI.** Content lives in clean relational tables (Postgres or SQLite). The frontend never reads the database directly. There is always a layer between them — Payload's API or a custom backend — and that layer speaks through typed contracts.
-2. **Logic is separate from the database.** Business logic does not live in queries or in CMS hooks. When a custom backend is needed, it sits in its own workspace (`src/api/`) with repositories on top of the same tables. Swapping the database adapter (SQLite ↔ Postgres) requires no logic changes.
-3. **Modules are interchangeable.** Frontend, CMS, future backend — each is a self-contained workspace with its own Dockerfile. They communicate through `contracts/` (shared TypeScript types), never through cross-imports. Pull any one of them out, the others keep working.
+- **Современный UI.** shadcn/ui + Tailwind + дизайн-токены. Палитра и типографика настроены, доводятся под бренд через переменные.
+- **CMS с админкой.** Payload 3 на TypeScript. Drag-and-drop блоков, поля типизированы, интерфейс на русском.
+- **Изоляция БД.** Код общается с данными через слой доступа. SQLite на старте, Postgres одной строкой адаптера. Логика приложения не меняется.
+- **Хранилище секретов.** Infisical. Никаких `.env` на проде. Self-host или cloud.
+- **S3-совместимое хранилище медиа.** MinIO в dev, в prod любой провайдер.
+- **Модульная архитектура.** Фронт, CMS, контракты — отдельные workspace со своим Dockerfile. Между собой только через типизированные контракты.
+- **Blue-green deploy.** Docker compose + nginx + автоматический Let’s Encrypt. Zero-downtime обновления, откат за одну команду.
+- **Sync template.** Улучшения upstream подтягиваются скриптом, не трогая ваш доменный код.
 
-This gives a project a clear **growth path**: it can start as a single-CMS landing page and grow into a multi-service system, with the same data layer holding it all up.
+## Layout
 
-## What it isn't
+Композиция страницы (где Header, где Sidebar, где Footer) хранится в CMS как JSON, не в JSX. Шесть фиксированных слотов — `top`, `bottom`, `left`, `right`, `center`, `overlay` — покрывают все типовые композиции страницы. Поменять расположение элементов = поменять конфиг в админке. Без deploy.
 
-- **Not a visual page builder.** Page composition happens in code (block components); non-developer content edits go through Payload's admin UI.
-- **Not a hosting platform.** You bring your own server. Production deploy scripts (blue-green via Docker compose) are included as reference.
-- **Not a kitchen-sink CMS.** Payload handles content, media, simple forms, and invariant collections. Domain-specific business logic moves to `src/api/` when the site grows past that.
+Каждый блок объявляет видимость по брейкпоинтам (desktop / tablet / mobile) — контент-менеджер скрывает блок на мобиле чекбоксом в админке.
 
-## Abstraction follows experience (R9)
+Из коробки один layout-пресет — `classic-site` (визитка с контентной карточкой и боковыми drawer-панелями). Новые пресеты добавляются по мере потребности.
 
-Shared abstractions enter `packages/` after a pattern has appeared in two or more sites — not in advance. See R9 in [`30-philosophy.md`](30-philosophy.md).
+## Project types
 
-## Where to read next
+Сайт scaffold'ится с типом — стартовый набор коллекций / роутов / блоков / seed-данных. Архитектура одинаковая, отличается только стартовая конфигурация. Подробности — [`37-scaffolding.md`](37-scaffolding.md).
 
-- [`15-vision.md`](15-vision.md) — stack rationale: почему именно эти выборы и какие альтернативы отвергнуты.
-- [`30-philosophy.md`](30-philosophy.md) — architectural rules.
-- [`32-structure.md`](32-structure.md) — monorepo and per-site layout, growth models.
-- [`35-frontend-stack.md`](35-frontend-stack.md) — frontend stack and the block model.
-- [`45-data-location.md`](45-data-location.md) — что где живёт: БД / Infisical / код.
+## Roadmap
+
+**Визуальный конструктор страниц поверх того же стека.** UX-слой над текущей CMS-моделью:
+
+- **Разработчику** — собирать страницы из готовых блоков быстрее: canvas-режим вместо form-режима, live-preview, layout-builder для слот-композиции (сейчас в JSON, без UI).
+- **Владельцу бизнеса / контент-менеджеру** — компоновать страницы из существующих блоков без redeploy. Изменения через админку идут в прод сразу.
+
+Self-hosted, MIT. Конструктор будет частью того же шаблона.
+
+**Что и в будущем остаётся за разработчиком:** стек, deploy, новые типы блоков (компоненты), доменная логика, интеграции.
+
+## Что не покрывает
+
+- **Visual builder с произвольной вложенностью блоков в блоки на canvas.** Payload даёт flat-список секций и составные блоки с заданной разработчиком структурой — этого хватает на типовые сайты. Полный builder уровня Tilda/Webflow — отдельный продукт. См. [`36-block-coverage.md`](36-block-coverage.md).
+- **E-commerce-first.** Корзина / checkout / payments в core нет. Сайт может вырасти в e-commerce через `src/api/` + плагины Payload, но это не первичный use-case.
+- **Hosting platform.** Bring-your-own-server. Reference blue-green compose included, но мы не Vercel/Netlify.
+- **Multi-tenant.** Один инстанс = один сайт.
+
+## Где читать дальше
+
+- [`15-vision.md`](15-vision.md) — почему именно эти технологии, что отвергнуто и почему.
+- [`30-philosophy.md`](30-philosophy.md) — R-rules R1-R9 (правила соблюдаемые каждым разработчиком).
+- [`32-structure.md`](32-structure.md) — структура монорепо, 4 уровня компонентов, growth models.
+- [`35-frontend-stack.md`](35-frontend-stack.md) — фронт-стек и блочная модель.
+- [`36-block-coverage.md`](36-block-coverage.md) — что покрывает Payload-блочная модель, что нет.
+- [`37-scaffolding.md`](37-scaffolding.md) — workflow создания нового сайта.
+- [`45-data-location.md`](45-data-location.md) — где живут значения: Payload / Infisical / код.

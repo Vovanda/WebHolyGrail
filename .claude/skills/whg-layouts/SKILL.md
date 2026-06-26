@@ -56,7 +56,7 @@ description: Композиция сайта через Panel/Slot в SiteLayout
 
 Landing-сайт (R7) — контент стабилен, drawer выезжает overlay'ем. Упрощённый AVOX-паттерн.
 
-Если когда-то понадобится split-pane (admin/dashboard) — это **другой `grid.template`** в `SiteLayoutConfig` (например `'app-shell'`), а не правка `'classic-site'`.
+Если когда-то понадобится split-pane (не overlay drawer'ы, а реальное деление контентной области) — это **другой `grid.template`** в `SiteLayoutConfig`, а не правка `'classic-site'`.
 
 ## Drawer-канон
 

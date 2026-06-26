@@ -29,24 +29,32 @@ import type { Payload } from 'payload';
 const ASSETS_DIR = resolve(fileURLToPath(import.meta.url), '../assets');
 
 const ASSETS = {
-  logo: { filename: 'whg-logo.svg', alt: 'Web Holy Grail — logo placeholder' },
-  hero: { filename: 'whg-hero.svg', alt: 'Web Holy Grail — hero placeholder' },
+  logo: { filename: 'whg-logo.svg', alt: 'Web Holy Grail logo' },
+  hero: { filename: 'whg-hero.svg', alt: 'Hero background' },
   ogImage: { filename: 'og-placeholder.svg', alt: 'Web Holy Grail — social share image' },
-  stack: { filename: 'feature-stack.svg', alt: 'Opinionated stack icon' },
-  growth: { filename: 'feature-growth.svg', alt: 'Side-scaling growth icon' },
-  contracts: { filename: 'feature-contracts.svg', alt: 'Contracts seam icon' },
+  screenshotLanding: {
+    filename: 'screenshot-landing.svg',
+    alt: 'Screenshot: landing page',
+  },
+  screenshotAdmin: { filename: 'screenshot-admin.svg', alt: 'Screenshot: Payload admin' },
+  screenshotBlockEditor: {
+    filename: 'screenshot-block-editor.svg',
+    alt: 'Screenshot: block editor with live preview',
+  },
+  screenshotMedia: { filename: 'screenshot-media.svg', alt: 'Screenshot: media gallery' },
 } as const;
 
-type MediaIds = Record<keyof typeof ASSETS, number>;
+type MediaInfo = { id: number; url: string };
+type MediaMap = Record<keyof typeof ASSETS, MediaInfo>;
 
 export async function createHomePage(payload: Payload): Promise<{ created: boolean; id: string }> {
   // 1. Media uploads (idempotent: проверяем по filename перед create).
-  const mediaIds: MediaIds = {} as never;
+  const media: MediaMap = {} as never;
   for (const [key, asset] of Object.entries(ASSETS) as [
     keyof typeof ASSETS,
     (typeof ASSETS)[keyof typeof ASSETS],
   ][]) {
-    mediaIds[key] = await ensureMedia(payload, asset.filename, asset.alt);
+    media[key] = await ensureMedia(payload, asset.filename, asset.alt);
   }
 
   // 2. SiteSettings: только если siteName дефолтный (не перезаписываем downstream).
@@ -56,7 +64,7 @@ export async function createHomePage(payload: Payload): Promise<{ created: boole
       slug: 'site-settings',
       data: {
         siteName: 'Web Holy Grail',
-        logo: mediaIds.logo,
+        logo: media.logo.id,
         contacts: {
           email: 'contact@webholygrail.dev',
         },
@@ -85,139 +93,101 @@ export async function createHomePage(payload: Payload): Promise<{ created: boole
     const existingPage = existing.docs[0]!;
     const hasContent =
       Array.isArray(existingPage.blocks) && (existingPage.blocks as unknown[]).length > 0;
-    if (hasContent) {
+    // SEED_FORCE_HOME=1 — для итерации копирайта seed-default,
+    // перезатирает home page даже если в ней уже есть блоки.
+    const force = process.env['SEED_FORCE_HOME'] === '1';
+    if (hasContent && !force) {
       return { created: false, id: String(existingPage.id) };
     }
     const updated = await payload.update({
       collection: 'pages',
       id: existingPage.id,
-      data: buildHomePageData(mediaIds),
+      data: buildHomePageData(media),
     });
     return { created: true, id: String(updated.id) };
   }
 
   const page = await payload.create({
     collection: 'pages',
-    data: buildHomePageData(mediaIds),
+    data: buildHomePageData(media),
   });
 
   return { created: true, id: String(page.id) };
 }
 
 /**
- * Полный content draft главной страницы WHG-визитки.
- *
- * @remarks
- * Композиция через готовые блоки (R9 — никаких новых компонентов под лендинг):
- *  - Hero — большой заголовок + tagline
- *  - Prose (editorial-with-dropcap) — манифест 3 абзаца
- *  - WaveDivider — переход
- *  - AchievementBanner amber — «Между статичкой и plugin-CMS» с тезисами
- *  - CertifiedNotice — «Что вшито в коробке» как стек-список
- *  - WaveDivider flipped — переход
- *  - Quote minimal-modern — principle manifest
- *  - Timeline editorial-dots — 4 этапа роста сайта
+ * Default home page — короткий лендинг через готовые блоки.
+ * Hero + Carousel screenshots + Quick start + Что внутри + Layout note.
+ * Полное описание продукта — `docs/whg/00-overview.md` (single source of truth).
  */
-function buildHomePageData(mediaIds: MediaIds) {
+function buildHomePageData(media: MediaMap) {
   return {
     title: 'Главная',
     slug: 'home',
     _status: 'published' as const,
     seo: {
-      title: 'Web Holy Grail — opinionated template для production small-business сайтов',
-      description:
-        'Один сайт, который растёт вместе с бизнесом. Next.js 15 + Payload 3 + Docker + Infisical из коробки. Между статичкой и plugin-CMS.',
-      ogImage: mediaIds.ogImage,
+      title: 'Web Holy Grail',
+      description: 'Готовый self-hosted сайт с CMS-админкой. Next.js 15 + Payload 3 + Docker. MIT.',
+      ogImage: media.ogImage.id,
     },
     blocks: [
       {
         blockType: 'hero' as const,
-        title: 'Opinionated {accent} для производственных сайтов',
-        titleAccent: 'template',
+        title: 'Сайт с {accent} на собственном домене',
+        titleAccent: 'админкой',
         subtitle:
-          'Один сайт, который растёт вместе с бизнесом. Next.js 15 + Payload 3 + Docker — без сборки конструктора с нуля каждый раз.',
-        subtitleShort: 'Сайт, который растёт вместе с бизнесом.',
+          'Клонируете, деплоите — и сразу создаёте страницы через визуальную админку. Next.js 15 + Payload 3 + Docker.',
+        subtitleShort: 'Сайт с админкой на собственном домене.',
+      },
+      {
+        blockType: 'banner-slider' as const,
+        banners: [
+          { imageUrl: media.screenshotLanding.url, alt: 'Главная страница сайта' },
+          { imageUrl: media.screenshotAdmin.url, alt: 'Админка Payload: список страниц' },
+          {
+            imageUrl: media.screenshotBlockEditor.url,
+            alt: 'Редактор блока с превью в реальном времени',
+          },
+          { imageUrl: media.screenshotMedia.url, alt: 'Галерея медиа в S3' },
+        ],
       },
       {
         blockType: 'prose' as const,
-        variant: 'editorial-with-dropcap' as const,
+        variant: 'modern-sans' as const,
         body:
-          "Web Holy Grail — это не фреймворк и не библиотека. Это рабочий каркас сайта малого бизнеса, в котором архитектура задана с первого commit'а. Tilda не масштабируется, WordPress превращает контент в плагин-хаос. Между ними — пустота, и WHG занимает её.\n\n" +
-          'Здесь один стек, одно правило для границ между фронтом, контентом и бэком, один deploy-сценарий. Можно начать с визитки и через год дорасти до каталога с личным кабинетом — внутри того же репо, без миграции на «настоящий бэк».\n\n' +
-          'Если ты разработчик с одним заказчиком и нужен честный production-каркас за вечер, а не неделю на «выбрать стек» — этот template для тебя.',
-      },
-      {
-        blockType: 'wave-divider' as const,
-        flipped: false,
-      },
-      {
-        blockType: 'achievement-banner' as const,
-        icon: '🎯',
-        title: 'Между статичкой и plugin-CMS',
-        titleSuffix: '· уникальная ниша',
-        accent: 'amber' as const,
-        items: [
-          { text: 'Свой рендер, своя БД, своя админка — без vendor lock-in' },
-          { text: 'Контент редактируется через UI Payload, не правкой кода' },
-          { text: 'Sync с upstream шаблоном — обновления приходят сами' },
-          { text: 'SSR-default, без сюрпризов с гидрацией' },
-        ],
+          'Запустить за 5 минут:\n\n' +
+          '```\n' +
+          'gh repo create my-site --template Vovanda/WebHolyGrail --private --clone\n' +
+          'cd my-site && corepack enable && pnpm install\n' +
+          'pnpm setup-infisical -- --site my-site\n' +
+          './dev-setup.sh && ./dev.sh\n' +
+          '```\n\n' +
+          'localhost:3000 — сайт. localhost:3001/admin — админка.',
       },
       {
         blockType: 'certified-notice' as const,
-        kicker: 'ВЫ ПОЛУЧАЕТЕ В КОРОБКЕ',
-        title: 'Стек, который не нужно собирать',
-        body: 'Шесть компонентов уже соединены контрактами и Dockerfile. Точечно меняется любой слой — соседи не ломаются.',
-        criteriaTitle: 'Что вшито',
+        title: 'Что внутри',
+        body: '',
+        criteriaTitle: '',
         criteria: [
-          { text: 'Next.js 15 App Router (SSR + RSC, file-based routing)' },
-          { text: 'Payload 3.x — schema-first CMS на TypeScript' },
-          { text: 'shadcn/ui + Tailwind + CSS-токены (R2-only colors)' },
-          { text: 'SQLite по умолчанию, Postgres когда дорастёшь' },
-          { text: 'Docker compose blue-green deploy + nginx + certbot' },
-          { text: 'Infisical для секретов — без .env на проде' },
+          { text: 'UI: shadcn/ui + Tailwind + дизайн-токены под бренд через переменные.' },
+          {
+            text: 'CMS с админкой на русском: Payload 3, drag-and-drop блоков, типизированные поля.',
+          },
+          { text: 'БД за слоем доступа: SQLite на старте, Postgres одной строкой адаптера.' },
+          { text: 'Секреты в Infisical (self-host или cloud), `.env` не нужен.' },
+          { text: 'Медиа в S3: MinIO в dev, любой S3-совместимый провайдер в prod.' },
+          { text: 'Модульная архитектура: фронт / CMS / контракты — отдельные workspace.' },
+          { text: 'Blue-green deploy: Docker compose + nginx + Let’s Encrypt, zero-downtime.' },
+          { text: 'sync-template.sh подтягивает улучшения upstream, не трогая ваш доменный код.' },
         ],
       },
       {
-        blockType: 'wave-divider' as const,
-        flipped: true,
-      },
-      {
-        blockType: 'quote' as const,
-        heading: 'Принцип',
-        body: 'Скучный предсказуемый каркас сейчас — безграничное расширение потом. Side-scaling: новая фича не переписывает существующее, она добавляется сбоку.',
-        author: 'Web Holy Grail',
-        role: 'Architectural manifesto · R4',
-        variant: 'minimal-modern' as const,
-      },
-      {
-        blockType: 'timeline' as const,
-        heading: 'Путь сайта',
-        visibleCount: 4,
-        sort: 'manual' as const,
-        variant: 'editorial-dots' as const,
-        entries: [
-          {
-            year: 'День 1',
-            icon: '🌱',
-            body: 'gh repo create --template Vovanda/WebHolyGrail → pnpm install → pnpm setup-infisical → pnpm dev. Сайт-визитка с этой же страницей под крышей твоего домена.',
-          },
-          {
-            year: 'Месяц 1-3',
-            icon: '🏗️',
-            body: 'Добавляешь blocks/domain/<niche>/ под свой бизнес — карточки услуг, форма обратной связи, портфолио. Контракты типизируют семантику данных. Ядро шаблона не трогается.',
-          },
-          {
-            year: 'Год 1',
-            icon: '🚀',
-            body: 'Появляется каталог, блог, личный кабинет — каждое как новое поддерево внутри того же репо. Sync с upstream подтягивает свежие primitives без боли.',
-          },
-          {
-            year: 'Год 2+',
-            icon: '⚙️',
-            body: 'Когда нужен реальный бэк — рождается src/api/ рядом с cms/. Repositories поверх той же БД, без переписывания фронта. SQLite → Postgres одной строкой адаптера.',
-          },
-        ],
+        blockType: 'prose' as const,
+        variant: 'modern-sans' as const,
+        body:
+          'Композиция страницы хранится в CMS как JSON. Где Header, Sidebar, Footer — конфиг в админке, не JSX. Шесть слотов (top / bottom / left / right / center / overlay), видимость блоков по брейкпоинтам — чекбокс в админке. Из коробки один пресет `classic-site`, новые добавляются по мере потребности.\n\n' +
+          'Подробнее — [Overview](https://github.com/Vovanda/WebHolyGrail/blob/main/docs/whg/00-overview.md), [Stack rationale](https://github.com/Vovanda/WebHolyGrail/blob/main/docs/whg/15-vision.md), [R-rules](https://github.com/Vovanda/WebHolyGrail/blob/main/docs/whg/30-philosophy.md), [Структура](https://github.com/Vovanda/WebHolyGrail/blob/main/docs/whg/32-structure.md).',
       },
     ],
   };
@@ -228,14 +198,15 @@ function buildHomePageData(mediaIds: MediaIds) {
  * Payload автоматически прогоняет sharp + storage-s3 plugin → файл попадает
  * в S3 bucket (или MinIO в dev), URL вычисляется через bucketname/endpoint.
  */
-async function ensureMedia(payload: Payload, filename: string, alt: string): Promise<number> {
+async function ensureMedia(payload: Payload, filename: string, alt: string): Promise<MediaInfo> {
   const existing = await payload.find({
     collection: 'media',
     where: { filename: { equals: filename } },
     limit: 1,
   });
   if (existing.docs.length > 0) {
-    return Number(existing.docs[0]!.id);
+    const doc = existing.docs[0]!;
+    return { id: Number(doc.id), url: String(doc.url ?? '') };
   }
   const filePath = resolve(ASSETS_DIR, filename);
   const doc = await payload.create({
@@ -243,5 +214,5 @@ async function ensureMedia(payload: Payload, filename: string, alt: string): Pro
     data: { alt, prefix: 'placeholder' },
     filePath,
   });
-  return Number(doc.id);
+  return { id: Number(doc.id), url: String(doc.url ?? '') };
 }
