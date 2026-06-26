@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { Cormorant_Garamond, Inter, Caveat, Noto_Color_Emoji } from 'next/font/google';
+import { GeistSans } from 'geist/font/sans';
+import { GeistMono } from 'geist/font/mono';
 
 import { getSiteSettings } from '@/lib/api-client';
 import { ThemeBootstrap } from '@/lib/theme-bootstrap';
@@ -10,40 +11,17 @@ import { FALLBACK_SITE_SETTINGS } from '@/layouts/presets/fallback-site-settings
 import '@/styles/globals.css';
 
 /**
- * Шрифты — `next/font` (self-host + автопреload + zero CLS).
- * CSS-переменные цепляются на `<html className>`.
+ * Шрифты — Geist Sans + Geist Mono (Vercel font, OFL).
  *
- * Дефолтный набор: Cormorant Garamond (display) + Inter (body) + Caveat
- * (script-акценты). Переопределяется per-site через site.config.ts.
+ * @remarks
+ * Geist через `next/font` подключается локально (self-host + auto-preload + zero CLS).
+ * `GeistSans.variable` = `--font-geist-sans`, `GeistMono.variable` = `--font-geist-mono`.
+ * В `tokens.css` `--font-sans/display/mono` используют эти переменные первым звеном
+ * fallback-цепочки, так что компоненты остаются развязанными от конкретного шрифта.
+ *
+ * Downstream-сайты могут переопределить через свой собственный layout.tsx и подключить
+ * другие шрифты (Cormorant для editorial, Manrope для приятного и т.д.).
  */
-const fontDisplay = Cormorant_Garamond({
-  subsets: ['latin', 'cyrillic'],
-  weight: ['500', '600', '700'],
-  style: ['normal', 'italic'],
-  variable: '--font-display',
-  display: 'optional',
-});
-
-const fontBody = Inter({
-  subsets: ['latin', 'cyrillic'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-sans',
-  display: 'optional',
-});
-
-const fontScript = Caveat({
-  subsets: ['latin', 'cyrillic'],
-  weight: ['500', '600', '700'],
-  variable: '--font-script',
-  display: 'optional',
-});
-
-const fontEmoji = Noto_Color_Emoji({
-  subsets: ['emoji'],
-  weight: ['400'],
-  variable: '--font-emoji',
-  display: 'swap',
-});
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = (await getSiteSettings().catch(() => null)) ?? FALLBACK_SITE_SETTINGS;
@@ -65,10 +43,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const themeConfig = settings.theme ?? FALLBACK_SITE_SETTINGS.theme!;
 
   return (
-    <html
-      lang="ru"
-      className={`${fontDisplay.variable} ${fontBody.variable} ${fontScript.variable} ${fontEmoji.variable}`}
-    >
+    <html lang="ru" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <head>
         <ThemeBootstrap config={themeConfig} />
       </head>
