@@ -59,23 +59,19 @@ export function NavDrawer({
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         className={[
-          // top-3 (12px) — центр хедера (py-3 + h-11 ≈ 68px). body без
-          // padding-top → header.top=0. Размер/rounded совпадают с лого.
+          // top-2.5 (10px) — центр Header'а (py-3 + h-9 кнопка ≈ 60px).
+          // Размер 36×36 (h-9 w-9) совпадает с ThemeToggle/GitHub-icon в Header
+          // — единый ритм icon-кнопок, не выпирает.
           //
           // Горизонталь: позиционируем относительно контентной полосы
-          // `max-w-wide=1300px`, не viewport. На узких экранах ≤1300px = 24px
-          // (как лого с pl-6); на широких — 24px от **края контентного блока**,
-          // зеркально логотипу. Идиома `max(24px, calc((100vw-1300px)/2+24px))`.
-          'fixed top-3 z-50',
+          // `max-w-wide=1300px`. На узких — 16px от края (как Header px-4),
+          // на широких — 24px от края контентного блока.
+          'fixed top-2.5 z-50',
           isLeft
-            ? 'left-[max(24px,calc((100vw-1300px)/2+24px))]'
-            : 'right-[max(24px,calc((100vw-1300px)/2+24px))]',
-          'grid place-items-center h-11 w-11 md:h-12 md:w-12 rounded-lg',
-          'bg-surface text-ink shadow-sm border border-border',
-          // hover-фон #d1c69f — тёплый бежевый, мягче accent-янтарного,
-          // лучше читается с тёмной иконкой. Применяется ко всем icon-кнопкам
-          // (бургер, X лайтбокса, X drawer-модалки).
-          'hover:bg-[#d1c69f] hover:border-[#d1c69f] transition-colors',
+            ? 'left-[max(16px,calc((100vw-1300px)/2+24px))]'
+            : 'right-[max(16px,calc((100vw-1300px)/2+24px))]',
+          'inline-flex h-9 w-9 items-center justify-center rounded-md',
+          'text-muted hover:text-ink hover:bg-surface-hover transition-colors',
         ].join(' ')}
       >
         {open ? <IconX /> : <IconBurger />}
