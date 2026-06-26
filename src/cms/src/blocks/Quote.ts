@@ -45,7 +45,17 @@ export const QuoteBlock: Block = {
         { label: 'Card with accent stripe (with photo)', value: 'card-accent-left' },
         { label: 'Minimal (no photo, no card)', value: 'minimal-modern' },
         { label: 'Photo card (customer testimonial)', value: 'photo-card' },
+        { label: 'Full-width dark (marketing manifesto)', value: 'full-width-dark' },
       ],
+    },
+    {
+      name: 'authorHref',
+      label: 'Author link (optional)',
+      type: 'text',
+      admin: {
+        description:
+          'If set, author attribution becomes a link (e.g. GitHub profile, personal site).',
+      },
     },
   ],
 };
