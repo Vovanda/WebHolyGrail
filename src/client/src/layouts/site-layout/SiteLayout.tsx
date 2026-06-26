@@ -40,7 +40,7 @@ export function SiteLayout({
   // classic-site = веб-визитка: контент-карточка cream поверх пергамента body.
   // Карточка занимает max-w-wide и тянется через весь center-слот целиком,
   // чтобы все вложенные секции рисовались на одном непрерывном фоне.
-  // Тень + скруглённый нижний край — 1:1 из оригинала veo-ui.css:
+  // Тень + скруглённый нижний край — editorial-default:
   //   box-shadow: 0 0 34px rgba(43,34,26,.08); border-radius: 0 0 18px 18px;
   const isClassicSite = (config.grid?.template ?? 'classic-site') === 'classic-site';
   const centerContentClass = isClassicSite

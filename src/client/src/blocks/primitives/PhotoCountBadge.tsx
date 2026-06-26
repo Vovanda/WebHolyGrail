@@ -1,8 +1,8 @@
 import { cn } from '@/lib/utils';
 
 /**
- * PhotoCountBadge — бейдж «📸 N фото» в правом верхнем углу карточки. Стиль
- * 1:1 с legacy `.veo-pup-card__badge`: black pill, font-sans, не uppercase.
+ * PhotoCountBadge — бейдж «📸 N фото» в правом верхнем углу карточки.
+ * Стиль: black pill, font-sans, не uppercase.
  *
  * Показывается когда у группы > 1 фото, как индикатор «нажми чтоб открыть всё».
  * Родитель должен быть `relative` (позиционируется через `absolute`).

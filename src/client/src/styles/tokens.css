@@ -37,14 +37,7 @@
 
   --color-danger: #b54848;
 
-  /* State карточки щенка (`PuppyCard.StateBadge`) — 1:1 с legacy `.veo-pup-card`:
-   *  - reserved: мягкий синий, не кричит «куплено»
-   *  - available: золото бренда с пульсацией
-   *  - sold/taken: тёмный ink */
-  --color-puppy-reserved: #5ba8ff;
-  --color-puppy-available: #f0c84a;
-
-  /* Selection: тёмный фон + светлый текст, чтобы янтарь не сливался. */
+  /* Selection: тёмный фон + светлый текст, чтобы accent не сливался. */
   --color-selection-bg: #2b221a;
   --color-selection-fg: #faf8f2;
 

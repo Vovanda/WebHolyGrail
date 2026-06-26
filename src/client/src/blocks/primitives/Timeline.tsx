@@ -12,16 +12,15 @@ interface TimelineEntry {
 }
 
 /**
- * Timeline — «Наш путь». Стили 1:1 из `veo-ui.css` `.veo-tl`:
+ * Timeline — вертикальный список истории / «нашего пути».
  *
  *  - max-width 880, padding-left/right 40, border-left 2px stone
- *  - точка-маркер: 14×14, янтарь, трёхслойная (3px кант кремового + 2px stone-обвод)
+ *  - точка-маркер: 14×14, accent, трёхслойная (3px кант кремового + 2px stone-обвод)
  *  - год: Cormorant 28px font-weight 600 letter-spacing 0.5
  *  - расстояние между записями: padding-bottom 36
  *
  * Поведение: первые `visibleCount` записей видны всегда; остальные скрыты под
- * кнопкой «Показать всю историю ⌄» (см. оригинал main.html L737-744 + `.veo-more`).
- * Клик раскрывает остальное, кнопка исчезает.
+ * кнопкой «Показать всю историю ⌄». Клик раскрывает остальное, кнопка исчезает.
  */
 type SortMode = 'year-desc' | 'year-asc' | 'manual';
 
@@ -95,7 +94,7 @@ export function Timeline({
                   style={{ boxShadow: '0 0 0 2px var(--color-border)' }}
                 />
                 <div className="flex items-baseline gap-3">
-                  <span className="veo-emoji w-6 text-lg shrink-0" aria-hidden>
+                  <span className="emoji-fix w-6 text-lg shrink-0" aria-hidden>
                     {entry.icon ?? ''}
                   </span>
                   <h3 className="font-display text-[28px] font-semibold tracking-[0.5px] leading-tight text-ink mb-1">

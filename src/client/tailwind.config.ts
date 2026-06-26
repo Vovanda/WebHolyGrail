@@ -35,9 +35,6 @@ const config: Config = {
         'vk-hover': 'var(--color-vk-hover)',
 
         danger: 'var(--color-danger)',
-
-        'puppy-reserved': 'var(--color-puppy-reserved)',
-        'puppy-available': 'var(--color-puppy-available)',
       },
       borderRadius: {
         sm: 'var(--radius-sm)',

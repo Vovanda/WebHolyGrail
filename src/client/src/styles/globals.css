@@ -19,47 +19,12 @@
        основные шрифты для текстовых глифов, а для emoji-codepoint (где у
        Inter/Manrope нет глифа) автоматически берёт Noto. Это даёт одинаковые
        цветные emoji на всех платформах (Windows Segoe/Apple Color/etc раньше
-       рендерились по-разному). 1:1 с legacy `veo-ui.css → --font-emoji` chain. */
+       рендерились по-разному). */
     font-family: var(--font-sans), var(--font-emoji);
     font-size: var(--text-body);
     line-height: var(--line-height-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-  }
-  .hg-paw-trail {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 0;
-    overflow: hidden;
-  }
-  .hg-paw-trail > span {
-    position: absolute;
-    transform-origin: center;
-    background-repeat: no-repeat;
-    background-size: contain;
-    opacity: 0;
-    transform: translate(-50%, -50%) rotate(var(--hg-rot, 0deg)) scale(0.7) translateY(8px);
-    animation-name: hg-paw-step;
-    animation-duration: var(--hg-dur, 8s);
-    animation-delay: var(--hg-delay, 0s);
-    animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
-    will-change: opacity, transform;
-  }
-  @keyframes hg-paw-step {
-    /* Появляется со scale-overshoot, остаётся (forwards). */
-    0% {
-      opacity: 0;
-      transform: translate(-50%, -50%) rotate(var(--hg-rot, 0deg)) scale(0.7) translateY(8px);
-    }
-    60% {
-      opacity: var(--hg-op, 0.13);
-      transform: translate(-50%, -50%) rotate(var(--hg-rot, 0deg)) scale(1.02) translateY(0);
-    }
-    100% {
-      opacity: var(--hg-op, 0.13);
-      transform: translate(-50%, -50%) rotate(var(--hg-rot, 0deg)) scale(1) translateY(0);
-    }
   }
   h1,
   h2,
@@ -72,7 +37,7 @@
     letter-spacing: -0.5px;
     line-height: 1.15;
   }
-  /* Selection: тёмный фон + светлый текст — иначе янтарные ссылки сливаются. */
+  /* Selection: тёмный фон + светлый текст — иначе accent-ссылки сливаются. */
   ::selection {
     background: var(--color-selection-bg);
     color: var(--color-selection-fg);
@@ -88,8 +53,9 @@
 }
 
 @layer components {
-  /* Inline-emoji с фиксированным baseline-fix. Из veo-ui.css `.emoji`. */
-  .veo-emoji {
+  /* Inline-emoji с фиксированным baseline-fix (Noto Color Emoji в Cyrillic
+   * стеке плохо align'ится с буквами без явной vertical-align коррекции). */
+  .emoji-fix {
     font-family: var(--font-emoji);
     font-style: normal;
     font-weight: 400;
@@ -98,7 +64,7 @@
     vertical-align: -2px;
   }
 
-  /* Лозы по краям секции. 1:1 из оригинала veo-ui.css L21-49.
+  /* Декоративные виньетки (лозы) по краям секции.
    * `.hg-vine` — обе стороны, `.hg-vine-l` — слева, `.hg-vine-r` — справа.
    * --hg-vine-peek: на узких экранах лоза заходит в контент на 80px,
    * на ≥1280px — целиком в боковом воздухе. */
@@ -217,8 +183,8 @@
   }
 
   /* Линия-divider под H1/H2 — editorial-альтернатива fleurons.
-   * Использовать как: <h1 class="veo-heading-line">…</h1> или добавить элемент вручную. */
-  .veo-heading-line::after {
+   * Использовать как: <h1 class="heading-line">…</h1> или добавить элемент вручную. */
+  .heading-line::after {
     content: '';
     display: block;
     width: var(--decor-accent-line-w);
@@ -243,26 +209,7 @@
     }
   }
 
-  /* Пульсация статуса «Свободна» у PuppyCard — 1:1 с legacy `.veo-pup-card--available .veo-pup-card__status`. */
-  @keyframes veo-pup-status-pulse {
-    0%,
-    100% {
-      opacity: 1;
-      text-shadow: 0 0 0 transparent;
-    }
-    50% {
-      opacity: 0.85;
-      text-shadow: 0 0 18px rgba(240, 200, 74, 0.45);
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .puppy-status-pulse {
-      animation: none !important;
-    }
-  }
-
-  /* Drop-cap (буквица) для Prose variant editorial-with-dropcap.
-   * Стиль 1:1 из veo-ui.css `.veo-desc p:first-of-type::first-letter`. */
+  /* Drop-cap (буквица) для Prose variant editorial-with-dropcap. */
   .with-dropcap::first-letter {
     font-family: var(--font-display);
     font-weight: 600;
