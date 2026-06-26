@@ -148,7 +148,10 @@ function buildHomePageData(media: MediaMap) {
           label: 'Использовать шаблон',
           href: 'https://github.com/Vovanda/WebHolyGrail/generate',
         },
-        ctaSecondary: { label: 'Смотреть демо', href: '#built' },
+        ctaSecondary: {
+          label: 'Документация',
+          href: 'https://github.com/Vovanda/WebHolyGrail/tree/main/docs',
+        },
         badges: [
           { label: 'Self-hosted' },
           { label: 'MIT License' },
