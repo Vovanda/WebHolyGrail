@@ -13,8 +13,12 @@
     "./blocks": "./src/blocks.ts",
     "./globals": "./src/globals.ts",
     "./forms": "./src/forms.ts",
-    "./dogs": "./src/dogs.ts",
-    "./litters": "./src/litters.ts"
+    "./layout": "./src/layout.ts",
+    "./theme": "./src/theme.ts",
+    "./faq": "./src/faq.ts",
+    "./social": "./src/social.ts",
+    "./notices": "./src/notices.ts",
+    "./reusable": "./src/reusable.ts"
   },
   "scripts": {
     "lint": "tsc --noEmit",
