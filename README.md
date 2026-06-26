@@ -5,7 +5,7 @@ Opinionated monorepo template for production small-business websites — Next.js
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square&logo=opensourceinitiative&logoColor=white)](LICENSE)
 [![Stack](https://img.shields.io/badge/stack-Next.js%20·%20Payload%20·%20TypeScript-2E86AB?style=flat-square)](docs/whg/30-philosophy.md)
 
-[Docs](docs/whg/) · [README на русском](README.ru.md)
+[Docs](docs/whg/) · [README на русском](docs/README.ru.md)
 
 ## What it is
 
