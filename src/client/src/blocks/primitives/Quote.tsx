@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { cva, type VariantProps } from 'class-variance-authority';
 import type { BlockNode, SiteSettings } from 'contracts';
 
@@ -40,6 +41,7 @@ const quoteCard = cva('relative', {
         'bg-surface rounded-xl shadow-md',
         'p-6 font-sans text-ink text-base leading-relaxed',
       ],
+      'full-width-dark': ['bg-transparent border-0', 'font-display text-dark-block-fg'],
     },
   },
   defaultVariants: { variant: 'card-accent-left' },
@@ -89,6 +91,8 @@ export interface QuoteData {
   readonly body: string;
   readonly author: string;
   readonly role?: string | undefined;
+  /** Опциональная ссылка из атрибуции (GitHub профиль, личный сайт). */
+  readonly authorHref?: string | undefined;
   /** Одно фото (legacy). Если задан и photoUrls пустой — используется. */
   readonly photoUrl?: string | undefined;
   /** Карусель фото (новое). Перебивает photoUrl. */
@@ -119,9 +123,16 @@ export function Quote({
     body: node.data?.body ?? defaultBody,
     author: node.data?.author ?? 'Lorem Ipsum',
     role: node.data?.role ?? 'Lorem ipsum dolor',
+    authorHref: node.data?.authorHref,
     photoUrls,
     variant: node.data?.variant ?? 'card-accent-left',
   };
+
+  // full-width-dark — отдельная композиция: marketing-manifesto на тёмном fullwidth
+  // bg, без "О нас" heading, attribution с optional link.
+  if (data.variant === 'full-width-dark') {
+    return <FullWidthDarkQuote data={data} />;
+  }
 
   const showPhotoColumn = data.variant === 'card-accent-left' || data.variant === 'photo-card';
 
@@ -196,3 +207,38 @@ function PhotoFrame({
 // Generic placeholder — реальный текст приходит из Payload (поле `body`).
 const defaultBody =
   'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.';
+
+/**
+ * Full-width dark Quote — marketing manifesto на тёмном фоне в полную ширину.
+ * Центрированный большой текст + attribution (опционально как link).
+ */
+function FullWidthDarkQuote({ data }: { readonly data: QuoteData }) {
+  return (
+    <section className="bg-dark-block text-dark-block-fg py-20 md:py-28">
+      <div className="mx-auto max-w-content px-4 md:px-6 text-center">
+        <span aria-hidden className="font-display text-6xl text-dark-block-fg/30 leading-none">
+          {'“'}
+        </span>
+        <blockquote className="mt-3 font-display text-xl md:text-2xl lg:text-3xl font-medium italic leading-snug text-dark-block-fg">
+          {data.body}
+        </blockquote>
+        <div className="mt-8 text-sm md:text-base text-dark-block-fg/75">
+          {'— '}
+          {data.authorHref ? (
+            <Link
+              href={data.authorHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-dark-block-fg hover:text-accent transition-colors underline decoration-dark-block-fg/30 underline-offset-4"
+            >
+              {data.author}
+            </Link>
+          ) : (
+            <span className="font-semibold text-dark-block-fg">{data.author}</span>
+          )}
+          {data.role && <span>, {data.role}</span>}
+        </div>
+      </div>
+    </section>
+  );
+}

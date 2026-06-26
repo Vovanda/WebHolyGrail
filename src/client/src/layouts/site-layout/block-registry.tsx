@@ -6,6 +6,13 @@ import { Footer } from '@/blocks/layout/Footer';
 import { BannerSliderBlock } from '@/blocks/primitives/BannerSliderBlock';
 import { NavDrawer } from '@/blocks/layout/NavDrawer';
 import { Hero } from '@/blocks/primitives/Hero';
+import { HeroSplit } from '@/blocks/primitives/HeroSplit';
+import { InstallSnippet } from '@/blocks/primitives/InstallSnippet';
+import { StackTransparency } from '@/blocks/primitives/StackTransparency';
+import { ComparisonTable } from '@/blocks/primitives/ComparisonTable';
+import { FeatureGrid } from '@/blocks/primitives/FeatureGrid';
+import { BuiltWith } from '@/blocks/primitives/BuiltWith';
+import { CtaBanner } from '@/blocks/primitives/CtaBanner';
 import { Quote } from '@/blocks/primitives/Quote';
 import { Timeline } from '@/blocks/primitives/Timeline';
 import { Prose } from '@/blocks/primitives/Prose';
@@ -16,6 +23,9 @@ import { ReusableRef } from '@/blocks/primitives/ReusableRef';
 import { PageRef } from '@/blocks/primitives/PageRef';
 import { FaqAccordion } from '@/blocks/primitives/FaqAccordion';
 import { PageOutlet } from '@/blocks/system/PageOutlet';
+// WHG-specific landing blocks
+import { ProjectTypesGrid } from '@/blocks/domain/whg/ProjectTypesGrid';
+import { BlockShowcase } from '@/blocks/domain/whg/BlockShowcase';
 
 /**
  * Block registry — маппинг `blockType` строки на React-компонент.
@@ -33,6 +43,13 @@ const REGISTRY: Record<string, BlockRenderer> = {
   'banner-slider': (node, settings) => <BannerSliderBlock node={node} settings={settings} />,
   'nav-drawer': (node, settings) => <NavDrawer node={node} settings={settings} />,
   hero: (node, settings) => <Hero node={node} settings={settings} />,
+  'hero-split': (node, settings) => <HeroSplit node={node} settings={settings} />,
+  'install-snippet': (node, settings) => <InstallSnippet node={node} settings={settings} />,
+  'stack-transparency': (node, settings) => <StackTransparency node={node} settings={settings} />,
+  'comparison-table': (node, settings) => <ComparisonTable node={node} settings={settings} />,
+  'feature-grid': (node, settings) => <FeatureGrid node={node} settings={settings} />,
+  'built-with': (node, settings) => <BuiltWith node={node} settings={settings} />,
+  'cta-banner': (node, settings) => <CtaBanner node={node} settings={settings} />,
   quote: (node, settings) => <Quote node={node} settings={settings} />,
   timeline: (node, settings) => <Timeline node={node} settings={settings} />,
   prose: (node, settings) => <Prose node={node} settings={settings} />,
@@ -43,6 +60,9 @@ const REGISTRY: Record<string, BlockRenderer> = {
   'reusable-ref': (node, settings) => <ReusableRef node={node} settings={settings} />,
   'page-ref': (node, settings) => <PageRef node={node} settings={settings} />,
   'page-outlet': (_node, _settings, children) => <PageOutlet>{children}</PageOutlet>,
+  // WHG-specific landing blocks
+  'project-types-grid': (node, settings) => <ProjectTypesGrid node={node} settings={settings} />,
+  'block-showcase': (node, settings) => <BlockShowcase node={node} settings={settings} />,
 };
 
 /**
