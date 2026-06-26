@@ -39,11 +39,12 @@ export function QuoteCycle({
   node,
   settings,
 }: {
-  readonly node: BlockNode & { data?: QuoteCycleData };
+  readonly node: BlockNode & { data?: Partial<QuoteCycleData> };
   readonly settings: SiteSettings;
 }) {
-  const data = node.data ?? {};
-  const variants = data.variants && data.variants.length > 0 ? data.variants : DEFAULT_VARIANTS;
+  const data: Partial<QuoteCycleData> = node.data ?? {};
+  const variants: readonly Variant[] =
+    data.variants && data.variants.length > 0 ? data.variants : DEFAULT_VARIANTS;
   const interval = data.intervalMs ?? 5000;
 
   const [idx, setIdx] = useState(0);
@@ -55,10 +56,20 @@ export function QuoteCycle({
   }, [variants, interval]);
 
   // Building a sub-node with the current variant — Quote читает variant из data.
-  const subNode: BlockNode & { data?: QuoteData } = {
+  // Quote сам предоставит defaults для body/author если не заданы.
+  const subData: Partial<QuoteData> = {
+    heading: data.heading,
+    body: data.body ?? '',
+    author: data.author ?? '',
+    role: data.role,
+    authorHref: data.authorHref,
+    photoUrls: data.photoUrls,
+    variant: variants[idx]!,
+  };
+  const subNode: BlockNode & { data?: Partial<QuoteData> } = {
     ...node,
     blockType: 'quote',
-    data: { ...data, variant: variants[idx]! },
+    data: subData,
   };
 
   return <Quote node={subNode} settings={settings} />;

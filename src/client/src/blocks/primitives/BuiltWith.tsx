@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ArrowUpRight } from 'lucide-react';
-import type { BlockNode, SiteSettings, Media } from 'contracts';
+import type { BlockNode, SiteSettings, MediaDoc, MediaRef } from 'contracts';
 
 /**
  * BuiltWith — карточки реальных production-сайтов на стеке.
@@ -14,13 +14,13 @@ export interface BuiltWithData {
     readonly siteName: string;
     readonly url: string;
     readonly niche?: string;
-    readonly screenshot?: Media | number | null;
+    readonly screenshot?: MediaRef | null;
   }[];
 }
 
-function mediaUrl(m: Media | number | null | undefined): string | null {
+function mediaUrl(m: MediaRef | null | undefined): string | null {
   if (!m || typeof m !== 'object') return null;
-  return m.url ?? null;
+  return (m as MediaDoc).url ?? null;
 }
 
 export function BuiltWith({
