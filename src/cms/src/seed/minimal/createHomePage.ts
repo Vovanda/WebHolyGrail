@@ -187,7 +187,7 @@ function buildHomePageData(media: MediaMap) {
         variant: 'modern-sans' as const,
         body:
           'Композиция страницы хранится в CMS как JSON. Где Header, Sidebar, Footer — конфиг в админке, не JSX. Шесть слотов (top / bottom / left / right / center / overlay), видимость блоков по брейкпоинтам — чекбокс в админке. Из коробки один пресет `classic-site`, новые добавляются по мере потребности.\n\n' +
-          'Подробнее — [Overview](https://github.com/Vovanda/WebHolyGrail/blob/main/docs/whg/00-overview.md), [Stack rationale](https://github.com/Vovanda/WebHolyGrail/blob/main/docs/whg/15-vision.md), [R-rules](https://github.com/Vovanda/WebHolyGrail/blob/main/docs/whg/30-philosophy.md), [Структура](https://github.com/Vovanda/WebHolyGrail/blob/main/docs/whg/32-structure.md).',
+          'Документация и исходники — в GitHub-репозитории (ссылка в навигации).',
       },
     ],
   };
