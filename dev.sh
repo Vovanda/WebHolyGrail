@@ -34,18 +34,34 @@ if command -v infisical >/dev/null 2>&1 && [ -f .infisical.json ]; then
   fi
 fi
 
-echo ""
-echo "  dev stack"
-echo "  CMS    → http://localhost:3001"
-echo "  Admin  → http://localhost:3001/admin"
-echo "  Client → http://localhost:3000"
-echo ""
+# Подгружаем .env.local если есть (даже когда Infisical OK — оттуда могут идти
+# locally-overriden порты CMS_PORT/CLIENT_PORT). Shell env имеет приоритет над .env.local.
+if [ -f .env.local ]; then
+  ENV_CMS_PORT="$CMS_PORT"
+  ENV_CLIENT_PORT="$CLIENT_PORT"
+  set -a
+  # shellcheck disable=SC1091
+  . ./.env.local
+  set +a
+  # Восстанавливаем shell-уровень override если был
+  [ -n "$ENV_CMS_PORT" ] && CMS_PORT="$ENV_CMS_PORT"
+  [ -n "$ENV_CLIENT_PORT" ] && CLIENT_PORT="$ENV_CLIENT_PORT"
+fi
 
 CMS_PORT="${CMS_PORT:-3001}"
 CLIENT_PORT="${CLIENT_PORT:-3000}"
 
+echo ""
+echo "  dev stack"
+echo "  CMS    → http://localhost:$CMS_PORT"
+echo "  Admin  → http://localhost:$CMS_PORT/admin"
+echo "  Client → http://localhost:$CLIENT_PORT"
+echo ""
+echo "  Override ports: CMS_PORT=4011 CLIENT_PORT=4010 ./dev.sh (или в .env.local)"
+echo ""
+
 if [ "$INFISICAL_OK" = "1" ]; then
-  echo "  ✓ secrets: Infisical (env=dev), ports cms=$CMS_PORT client=$CLIENT_PORT"
+  echo "  ✓ secrets: Infisical (env=dev)"
   echo ""
   exec infisical run --env=dev --recursive -- \
     pnpm exec concurrently \
@@ -57,13 +73,6 @@ if [ "$INFISICAL_OK" = "1" ]; then
 elif [ -f .env.local ]; then
   echo "  ⚠ Infisical недоступен, fallback на .env.local (только для offline dev)"
   echo ""
-  set -a
-  # shellcheck disable=SC1091
-  . ./.env.local
-  set +a
-  CMS_PORT="${CMS_PORT:-3001}"
-  CLIENT_PORT="${CLIENT_PORT:-3000}"
-  echo "  ports: cms=$CMS_PORT client=$CLIENT_PORT"
   exec pnpm exec concurrently \
     --names "cms,client" \
     --prefix-colors "yellow,cyan" \
