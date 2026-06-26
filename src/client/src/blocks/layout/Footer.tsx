@@ -48,8 +48,10 @@ export function Footer({
   return (
     <footer className="border-t border-border bg-page-bg text-ink">
       <div
-        className="mx-auto max-w-wide px-4 md:px-6 py-12 md:py-16 grid gap-8 md:gap-12"
-        style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+        className={[
+          'mx-auto max-w-wide px-4 md:px-6 py-10 md:py-14 grid gap-8 md:gap-12 grid-cols-1 sm:grid-cols-2',
+          columns === 3 ? 'md:grid-cols-3' : columns === 2 ? 'md:grid-cols-2' : 'md:grid-cols-1',
+        ].join(' ')}
       >
         {/* Col 1 — wordmark + tagline */}
         <div>
