@@ -52,8 +52,8 @@ if [ "$INFISICAL_OK" = "1" ]; then
       --names "cms,client" \
       --prefix-colors "yellow,cyan" \
       --kill-others-on-fail \
-      "pnpm --filter cms exec next dev -p $CMS_PORT" \
-      "pnpm --filter client exec next dev -p $CLIENT_PORT"
+      "pnpm --dir src/cms exec cross-env NODE_OPTIONS=--no-deprecation PORT=$CMS_PORT next dev" \
+      "pnpm --dir src/client exec cross-env PORT=$CLIENT_PORT next dev"
 elif [ -f .env.local ]; then
   echo "  ⚠ Infisical недоступен, fallback на .env.local (только для offline dev)"
   echo ""
@@ -68,8 +68,8 @@ elif [ -f .env.local ]; then
     --names "cms,client" \
     --prefix-colors "yellow,cyan" \
     --kill-others-on-fail \
-    "pnpm --filter cms exec next dev -p $CMS_PORT" \
-    "pnpm --filter client exec next dev -p $CLIENT_PORT"
+    "pnpm --dir src/cms exec cross-env NODE_OPTIONS=--no-deprecation PORT=$CMS_PORT next dev" \
+    "pnpm --dir src/client exec cross-env PORT=$CLIENT_PORT next dev"
 else
   echo "  ERROR: нет ни Infisical, ни .env.local."
   echo ""

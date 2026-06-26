@@ -96,7 +96,10 @@ export default buildConfig({
     supportedLanguages: { ru, en },
     fallbackLanguage: 'ru',
   },
-  sharp,
+  // Payload типизирует sharp как SharpDependency, реальный экспорт типа `typeof sharp` —
+  // известный type mismatch в payload@3.85.x, runtime-совместим.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sharp: sharp as any,
   serverURL: process.env.PAYLOAD_PUBLIC_SERVER_URL ?? 'http://localhost:3001',
   cors: parseOrigins(
     process.env.PAYLOAD_ALLOWED_ORIGINS,
