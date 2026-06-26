@@ -281,6 +281,22 @@ class Infisical {
     });
   }
 
+  /**
+   * Меняет role у уже attached identity. POST attach hardcoded 'no-access' роль,
+   * PATCH её на 'viewer' — минимум прав для чтения secrets через `infisical run`.
+   * Без promote `infisical run --token=...` падает с
+   *   `403 You are not allowed to describeSecret on secrets`.
+   */
+  async promoteIdentityRole(
+    projectId: string,
+    identityId: string,
+    role: 'viewer' | 'no-access' | 'admin' | 'member',
+  ): Promise<void> {
+    await this.fetch('PATCH', `/api/v2/workspace/${projectId}/identity-memberships/${identityId}`, {
+      roles: [{ role, isTemporary: false }],
+    });
+  }
+
   private async fetch(method: string, path: string, body?: unknown): Promise<unknown> {
     const headers: Record<string, string> = { 'content-type': 'application/json' };
     if (this.accessToken) headers['authorization'] = `Bearer ${this.accessToken}`;
@@ -381,7 +397,7 @@ async function main(): Promise<void> {
     prodClientSecret = await inf.createClientSecret(identityId, `${args.site} prod-deploy`);
     console.log('  ✓ clientSecret получен');
 
-    console.log('→ addIdentityToProject');
+    console.log('→ addIdentityToProject (attach as no-access, then promote)');
     try {
       await inf.addIdentityToProject(projectId, identityId, 'no-access');
       console.log('  ✓ identity attached');
@@ -390,6 +406,18 @@ async function main(): Promise<void> {
       console.warn('    → fallback: добавь identity к project вручную через UI:');
       console.warn(
         `    ${env.hostUrl}/project/${projectId}/access-management → Add Machine Identity → ${identityName}`,
+      );
+    }
+
+    console.log('→ promoteIdentityRole(no-access → viewer)');
+    try {
+      await inf.promoteIdentityRole(projectId, identityId, 'viewer');
+      console.log('  ✓ role: viewer');
+    } catch (err) {
+      console.warn(`  ⚠ promoteIdentityRole failed: ${(err as Error).message.split('\n')[0]}`);
+      console.warn('    → fallback: PATCH role вручную:');
+      console.warn(
+        `    curl -X PATCH "${env.hostUrl}/api/v2/workspace/${projectId}/identity-memberships/${identityId}" -d '{"roles":[{"role":"viewer"}]}'`,
       );
     }
   }

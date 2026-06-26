@@ -175,9 +175,27 @@ POST /api/v1/auth/universal-auth/identities/<identityId>/client-secrets
 → { "clientSecret": "<clientSecret>", "clientSecretData": { ... } }
 ```
 
-### Шаг 6 — add identity to project with prod-env scope
+### Шаг 6 — add identity to project + promote role
 
-**TODO/verify:** точный endpoint для add identity to project membership ещё не зафиксирован. При первом scaffold пробую `POST /api/v2/workspace/{projectId}/identity-memberships/{identityId}` с body `{ role: "read", environment: "prod" }`. Если 404 — fallback на UI на этом единственном шаге. Скилл обновлю после первого реального scaffold.
+**Подтверждено 2026-06-26:**
+
+```
+POST /api/v2/workspace/{projectId}/identity-memberships/{identityId}
+{ "role": "no-access" }
+→ 200 OK
+```
+
+`setup-infisical.ts` сейчас hardcoded `role: "no-access"`. UA с этой ролью **может loginiться, но не читать secrets** — `infisical run` упадёт с `403 You are not allowed to describeSecret on secrets`.
+
+**Сразу после attach** — promote роль до `viewer` (минимум прав для чтения):
+
+```
+PATCH /api/v2/workspace/{projectId}/identity-memberships/{identityId}
+{ "roles": [{ "role": "viewer", "isTemporary": false }] }
+→ 200 OK
+```
+
+**TODO:** обновить `setup-infisical.ts` чтобы сразу создавал с `viewer`, а не `no-access` + promote двумя шагами.
 
 ### Шаг 6.5 — invite per-site admin user (RBAC)
 
@@ -213,8 +231,11 @@ PROD MACHINE IDENTITY CREATED:
     sudo install -d -m 700 -o deploy -g deploy /etc/infisical/<slug>
     echo "<clientId>"     | sudo tee /etc/infisical/<slug>/client-id     > /dev/null
     echo "<clientSecret>" | sudo tee /etc/infisical/<slug>/client-secret > /dev/null
+    echo "<projectId>"    | sudo tee /etc/infisical/<slug>/project-id    > /dev/null
     sudo chmod 600 /etc/infisical/<slug>/*
     sudo chown deploy:deploy /etc/infisical/<slug>/*
+
+**Важно — нужны ТРИ файла, не два.** Без `project-id` `infisical run --token=...` падает с `Project ID is required when using machine identity` — UA-токен сам по себе не знает к какому project он привязан. Должен быть передан явно через `--projectId` или через `.infisical.json` в cwd.
 ```
 
 **Идемпотентность:** при повторном запуске скрипта identity reused, client-secret НЕ пересоздаётся (показывается один раз, не повторяется). Если потерян — удалить identity через `DELETE /api/v1/identities/{id}` и перезапустить scaffold.
@@ -236,20 +257,67 @@ PROD MACHINE IDENTITY CREATED:
 
 - `/etc/infisical/<slug>/client-id` (chmod 600 deploy:deploy)
 - `/etc/infisical/<slug>/client-secret`
+- `/etc/infisical/<slug>/project-id` ← обязателен, без него `--projectId` для `infisical run` неоткуда взять
 - env `INFISICAL_ENV=prod` (default), `INFISICAL_HOST_URL`
+- `infisical` CLI установлен (см. ниже)
 
 Каждый `docker compose` обёрнут:
 
 ```bash
+PROJECT_ID=$(cat /etc/infisical/$SITE_SLUG/project-id)
 TOKEN=$(infisical login --method=universal-auth \
   --client-id=$(cat /etc/infisical/$SITE_SLUG/client-id) \
   --client-secret=$(cat /etc/infisical/$SITE_SLUG/client-secret) \
   --domain=$INFISICAL_HOST_URL \
   --plain --silent)
-infisical run --token=$TOKEN --env=prod -- docker compose -f compose.bluegreen.yml up -d
+INFISICAL_RUN=(infisical run --token=$TOKEN --domain=$INFISICAL_HOST_URL --projectId=$PROJECT_ID --env=prod --)
+"${INFISICAL_RUN[@]}" docker compose -f compose.bluegreen.yml up -d
 ```
 
-**TODO:** deploy/prod/deploy.sh ещё использует legacy `/etc/infisical/token` подход (single-site), нужно обновить под multi-site UA flow.
+Реализация: `deploy/prod/deploy.sh` в `Vovanda/veo55-site@df868e1` (canonical example).
+
+### Install CLI на VPS (без sudo, без apt)
+
+Sandbox/policy часто блочат `apt-get install` + `curl|bash` setup scripts. Самый безопасный путь — user-space binary из официальных GitHub releases:
+
+```bash
+ssh deploy@<vps> 'bash -s' <<'REMOTE'
+mkdir -p ~/.local/bin
+cd /tmp
+wget -q "https://github.com/Infisical/cli/releases/download/v0.43.98/cli_0.43.98_linux_amd64.tar.gz" -O inf.tgz
+tar -xzf inf.tgz infisical
+mv infisical ~/.local/bin/infisical
+chmod +x ~/.local/bin/infisical
+rm inf.tgz
+~/.local/bin/infisical --version
+REMOTE
+```
+
+⚠️ Asset называется `cli_X.Y.Z_linux_amd64.tar.gz`, **не** `infisical_X.Y.Z_linux_amd64.deb` (это deb-пакет, требует sudo).
+
+В `deploy.sh` либо `export PATH=~/.local/bin:$PATH`, либо вызывать `~/.local/bin/infisical` напрямую.
+
+### Required env vars must be non-empty in Infisical
+
+`compose.bluegreen.yml` использует `${VAR:?required}` для обязательных переменных. Если Infisical вернул **пустое значение** для такой переменной (типа `setup-infisical` seed только placeholder), `docker compose` упадёт с `required variable X is missing a value: required`.
+
+**Решение:** перед первым deploy.sh убедиться что все required-vars из `compose.bluegreen.yml` имеют непустые значения в Infisical. Список `:?required` смотреть так:
+
+```bash
+grep -E '\${[A-Z_]+:\?' deploy/prod/compose.bluegreen.yml
+```
+
+Если мигрируешь с `.env.production` на Infisical — extract существующие значения из live container до перехода:
+
+```bash
+docker exec <cms-container> env | grep -E '^(PAYLOAD_SECRET|VEO_VK_|ADMIN_INITIAL_|...)=' | \
+  while IFS='=' read -r KEY VAL; do
+    [ -z "$VAL" ] && continue
+    curl -X PATCH "$HOST/api/v3/secrets/raw/$KEY" \
+      -H "Authorization: Bearer $JWT" -H "Content-Type: application/json" \
+      -d "{\"workspaceId\":\"$WS\",\"environment\":\"prod\",\"secretValue\":\"$VAL\",\"type\":\"shared\"}"
+  done
+```
 
 ## Reverse proxy для UI — per-subdomain, не subpath
 
@@ -367,6 +435,90 @@ ssh deploy@vps "cd /opt/sites/<site> && bash deploy/prod/deploy.sh <sha>"
 - **Невозможно залогиниться через `INFISICAL_ADMIN_CLIENT_ID/SECRET`** — admin identity revoked или permission lost. Не «починить наугад» — посмотреть в UI.
 - **REST endpoint падает 401/403** на identity create — admin identity не имеет role `admin` в org. Поднять role через REST (или UI как fallback).
 - **REST endpoint падает 404** на identity-project-membership — endpoint URL устарел / изменён. Verify через docs или Discord, обновить skill.
+- **Забыт admin password в Web UI** — Infisical использует SRP-6a, нет CLI команды reset password. Forgot-password в UI требует SMTP (см. ниже). Если SMTP не настроен — единственный путь: **destroy/recreate workflow** (см. секцию ниже). Контрибьютить fix не пытаться — open feature request [Infisical#3162](https://github.com/Infisical/infisical/issues/3162), мейнтейнеры не решили.
+- **Bootstrap молча выходит** при попытке повторного `infisical bootstrap` — есть instance-flag `super_admin.initialized=true` в Postgres. Не reset'ится через `--ignore-if-bootstrapped` (только подавляет ошибку). Полный teardown единственный путь.
+
+## Destroy/recreate workflow (когда нужен полный reset)
+
+Триггеры: забыт admin password + нет SMTP / corrupted state / тестовый instance / смена root admin email.
+
+**1. Backup ALL secrets через REST** (encryption-at-rest pg_dump без `ENCRYPTION_KEY` бесполезен):
+
+```python
+# scripts/backup-infisical-secrets.py (примерный)
+import json, subprocess
+JWT = "<admin token>"
+HOST = "https://infisical.<your>.com"
+workspaces = json.loads(subprocess.run(["curl","-sS", f"{HOST}/api/v1/workspace", "-H", f"Authorization: Bearer {JWT}"], capture_output=True, text=True).stdout)["workspaces"]
+out = {"host": HOST, "projects": []}
+for w in workspaces:
+    proj = {"id": w["id"], "name": w["name"], "envs": {}}
+    for env in ("dev","staging","prod"):
+        url = f"{HOST}/api/v3/secrets/raw?workspaceId={w['id']}&environment={env}"
+        secs = json.loads(subprocess.run(["curl","-sS", url, "-H", f"Authorization: Bearer {JWT}"], capture_output=True, text=True).stdout).get("secrets", [])
+        if secs:
+            proj["envs"][env] = [{"key": s["secretKey"], "value": s["secretValue"]} for s in secs]
+    if proj["envs"]:
+        out["projects"].append(proj)
+with open("all-secrets.json", "w", encoding="utf-8") as f:
+    json.dump(out, f, indent=2, ensure_ascii=False)
+```
+
+Сохранить в MCP private memory (encrypted-at-rest у провайдера), удалить локальный JSON.
+
+**2. Teardown:**
+
+```bash
+ssh deploy@<vps> 'cd /opt/infisical && docker compose down'
+PG_VOL=$(ssh deploy@<vps> 'docker volume ls -q | grep -E "infisical.*postgres"')
+ssh deploy@<vps> "docker volume rm $PG_VOL"  # ⚠️ ENCRYPTION_KEY теряется → старые .env шифр-бэкапы не восстановимы
+```
+
+`docker compose down` НЕ удаляет volumes — нужен явный `docker volume rm`.
+
+**3. Recreate:**
+
+```bash
+ssh deploy@<vps> 'cd /opt/infisical && docker compose up -d'
+# wait for API ready
+until ssh deploy@<vps> 'curl -sf http://localhost:8080/api/status' >/dev/null; do sleep 2; done
+```
+
+**4. Fresh bootstrap** (новый admin email + сохранённый password):
+
+```bash
+NEWPASS=$(openssl rand -base64 24 | tr -d '=+/')Aa1!  # complexity для UI requirements
+ssh deploy@<vps> "~/.local/bin/infisical bootstrap \
+  --domain=http://localhost:8080 \
+  --email=<new-admin-email> \
+  --password='$NEWPASS' \
+  --organization=<org-name> \
+  --output=json"
+# СОХРАНИТЬ output: identity.credentials.token (admin JWT, TTL 90d) + user email/password
+```
+
+**5. Re-run `setup-infisical.ts` для каждого site** — создаёт projects и UA identities с теми же slugs (`holygrail-<slug>`) но новыми client-id/secret.
+
+**6. Promote UA role** (см. шаг 6 выше) — обязательно для каждого UA.
+
+**7. Update VPS `/etc/infisical/<slug>/`** — новые client-id, client-secret, project-id.
+
+**8. Restore secrets** из backup'а через PATCH/POST в новые project IDs.
+
+**9. Smoke deploy.sh latest** — проверить что новый chain работает.
+
+Время destroy+recreate без человека: ~10-15 минут. Веб-сайты continue работать (env уже injected в running containers, fail только на следующем deploy без update creds).
+
+## UI features требующие env config
+
+Эти не работают если не настроены в `/opt/infisical/.env` + `docker compose restart infisical-api`:
+
+| Feature                             | Env vars                                                                                                                                          | Где взять                                                                                                                                                           |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **OAuth Google login**              | `CLIENT_ID_GOOGLE_LOGIN`, `CLIENT_SECRET_GOOGLE_LOGIN`                                                                                            | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → OAuth client (web app), redirect URI: `https://infisical.<canonical>/api/v1/sso/google` |
+| **OAuth GitHub login**              | `CLIENT_ID_GITHUB_LOGIN`, `CLIENT_SECRET_GITHUB_LOGIN`                                                                                            | [GitHub OAuth Apps](https://github.com/settings/developers) → New OAuth App, redirect URI: `.../api/v1/sso/github`                                                  |
+| **Forgot password / invite emails** | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_ADDRESS`, `SMTP_FROM_NAME`, `SMTP_SECURE=true`                             | [Resend free 3000/мес](https://resend.com) (DKIM verify) или [VK WorkSpace free 5 mailboxes](https://workspace.vk.ru)                                               |
+| **UI русская локаль**               | — нет, Infisical поддерживает только `en/es/fr/ko/pt-BR/tr` ([locales](https://github.com/Infisical/infisical/tree/main/frontend/public/locales)) | См. WHG issue про DX                                                                                                                                                |
 
 ## Ссылки
 

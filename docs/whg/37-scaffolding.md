@@ -46,18 +46,37 @@ Installs `client`, `cms`, `contracts` workspaces.
 
 ## Bootstrap secrets via Infisical
 
-Holy Grail uses **Infisical Cloud** for all secrets — no `.env.production` files on the VPS, no committed `.env`. See [`whg-infisical` skill](../../.claude/skills/whg-infisical/SKILL.md) for the full workflow.
+Holy Grail uses **self-host Infisical** for all secrets — no `.env.production` files on the VPS, no committed `.env`. See [`whg-infisical` skill](../../.claude/skills/whg-infisical/SKILL.md) for the full workflow.
 
-Prerequisites (one-time per organisation, not per site):
+Prerequisites (one-time per Infisical instance, not per site):
 
-1. In Infisical UI: create a `claude-scaffold-admin` machine identity with org-admin role (Universal Auth) — see [`whg-infisical`](../../.claude/skills/whg-infisical/SKILL.md) for the one-time setup steps.
-2. Put its credentials in your shell env (`~/.zshrc`, `~/.bashrc`, or Windows env):
+1. **Self-host Infisical on VPS** — `deploy/infisical/docker-compose.yml` (Postgres + Redis + infisical-api on `127.0.0.1:8080`), reverse-proxy via nginx on `https://infisical.<canonical>`.
+2. **Bootstrap the instance** via CLI on VPS (no UI clicks):
    ```bash
-   export INFISICAL_ADMIN_CLIENT_ID=<...>
-   export INFISICAL_ADMIN_CLIENT_SECRET=<...>
+   ssh deploy@<vps> '~/.local/bin/infisical bootstrap \
+     --domain=http://localhost:8080 \
+     --email=<your-admin@email> \
+     --password="<save this>" \
+     --organization=<org-name> \
+     --output=json' > /tmp/infi-bootstrap.json
+   ```
+   Output gives you `identity.credentials.token` (admin JWT, TTL ~90d) + admin user email/password. **Save the password** — Infisical has no built-in admin password reset; losing it requires destroy/recreate of the instance.
+3. **Put admin JWT in your shell env** for scaffold scripts:
+   ```bash
+   export INFISICAL_HOST_URL=https://infisical.<canonical>
+   export INFISICAL_ADMIN_TOKEN=<JWT from bootstrap>
+   export INFISICAL_ADMIN_ORG_ID=<from bootstrap>
    ```
 
-After that, every scaffold is fully automated through REST API — no more UI clicks.
+After that, every per-site scaffold is fully automated through REST API — no more UI clicks.
+
+CLI install on VPS (without sudo/apt):
+
+```bash
+ssh deploy@<vps> 'mkdir -p ~/.local/bin && cd /tmp && \
+  wget -q "https://github.com/Infisical/cli/releases/download/v0.43.98/cli_0.43.98_linux_amd64.tar.gz" -O inf.tgz && \
+  tar -xzf inf.tgz infisical && mv infisical ~/.local/bin/ && chmod +x ~/.local/bin/infisical && rm inf.tgz'
+```
 
 Bootstrap the project for this site:
 
@@ -76,7 +95,15 @@ What the script does (8 steps, fully automated via REST):
 7. Generate Client Secret for the service identity — printed to console (one-time only, save it!).
 8. Write `.infisical.json` (workspace marker, `defaultEnvironment: dev`) — commit it.
 
-The printed Client ID and Client Secret are what you put on the production VPS for `deploy/prod/deploy.sh`. See deploy section below.
+**After the script** — promote the new UA identity role from `no-access` to `viewer` (script defaults to no-access; without viewer the deploy will fail with `403 You are not allowed to describeSecret`):
+
+```bash
+curl -X PATCH "$INFISICAL_HOST_URL/api/v2/workspace/<projectId>/identity-memberships/<identityId>" \
+  -H "Authorization: Bearer $INFISICAL_ADMIN_TOKEN" -H "Content-Type: application/json" \
+  -d '{"roles":[{"role":"viewer","isTemporary":false}]}'
+```
+
+The printed Client ID, Client Secret, and Project ID are what you put on the production VPS for `deploy/prod/deploy.sh`. See deploy section below.
 
 Migration path from old setup: if your instance was scaffolded before this REST automation existed, the manual UI steps still work (create service identity, get credentials by hand). Both paths land at the same outcome.
 
@@ -146,8 +173,14 @@ See `deploy/prod/README.md` for the first-launch checklist.
 Quick summary:
 
 - Push instance to GitHub.
-- VPS — install Docker + Infisical CLI + `/etc/infisical/{client-id,client-secret}` (chmod 600 deploy:deploy).
+- VPS — install Docker + Infisical CLI (user-space binary, see prereqs above) + `/etc/infisical/<slug>/{client-id,client-secret,project-id}` (chmod 600 deploy:deploy). **Three files**, not two — without `project-id`, `infisical run --token=...` fails with `Project ID is required when using machine identity`.
+- Before first deploy, ensure all `${VAR:?required}` from `deploy/prod/compose.bluegreen.yml` are **non-empty** in Infisical prod env (Infisical interpolation passes empty strings through, breaking compose). Override defaults from `setup-infisical.ts` seed via UI or REST.
 - GitHub Actions deploy workflow — already wired in template (`.github/workflows/deploy.yml` if you ship one) or run `deploy/prod/deploy.sh <tag>` manually first time.
+
+### Troubleshooting / disaster recovery
+
+- **Forgot admin UI password** + SMTP not configured → no recovery path through forgot-password. Workaround: full **destroy/recreate** workflow (backup secrets via REST → `docker compose down` + `docker volume rm` postgres → fresh bootstrap → re-run setup-infisical for each site → restore secrets). Detailed steps: [`whg-infisical` skill — Destroy/recreate workflow](../../.claude/skills/whg-infisical/SKILL.md#destroyrecreate-workflow-когда-нужен-полный-reset).
+- **OAuth / SMTP / forgot-password не работают** — Infisical не угадывает endpoints, требуется явная конфигурация. Список env vars: см. SKILL.md секция «UI features требующие env config».
 
 ## Stay in sync with template
 
