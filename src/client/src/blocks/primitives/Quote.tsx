@@ -88,6 +88,8 @@ type QuoteVariantProps = VariantProps<typeof quoteCard>;
  * `variant` приходит из CMS как string-литерал; компонент валидирует через CVA.
  */
 export interface QuoteData {
+  /** Опциональный заголовок секции над цитатой. По умолчанию пусто (нет заголовка). */
+  readonly heading?: string | undefined;
   readonly body: string;
   readonly author: string;
   readonly role?: string | undefined;
@@ -120,6 +122,7 @@ export function Quote({
         : [];
 
   const data: QuoteData = {
+    heading: node.data?.heading,
     body: node.data?.body ?? defaultBody,
     author: node.data?.author ?? 'Lorem Ipsum',
     role: node.data?.role ?? 'Lorem ipsum dolor',
@@ -152,10 +155,14 @@ export function Quote({
   return (
     <section className="bg-bg pt-10 md:pt-14 pb-8 md:pb-10">
       <ContentFrame side="none" className="px-6">
-        <h2 className="text-center font-display text-3xl md:text-h2 font-semibold text-ink">
-          О нас
-        </h2>
-        <div className="mx-auto mt-4 mb-8 h-[1.5px] w-16 bg-accent opacity-85 rounded-full" />
+        {data.heading && (
+          <>
+            <h2 className="text-center font-display text-3xl md:text-h2 font-semibold text-ink">
+              {data.heading}
+            </h2>
+            <div className="mx-auto mt-4 mb-8 h-[1.5px] w-16 bg-accent opacity-85 rounded-full" />
+          </>
+        )}
 
         {showPhotoColumn ? (
           <div className="grid gap-9 md:grid-cols-[3fr_2fr] items-center">
