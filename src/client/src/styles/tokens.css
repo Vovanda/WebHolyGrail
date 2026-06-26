@@ -1,167 +1,143 @@
 /*
  * Design tokens — единый источник правды для цвета/отступа/радиуса/типографики (R2).
  *
- * Стартовая палитра — тёплая editorial (cream + warm chocolate + amber accent).
- * Меняется через :root[data-theme='<name>'] override (R5+++).
+ * Дефолт — modern neutral (white/off-white + deep blue accent), две темы (light + dark)
+ * через `:root[data-theme='<name>']`. Шрифты — Geist Sans + Geist Mono.
  *
- * Шрифт-переменные (`--font-display`, `--font-sans`, `--font-script`) выставляются
+ * Шрифт-переменные (`--font-display`, `--font-sans`, `--font-mono`) выставляются
  * через next/font в `app/layout.tsx` — здесь только fallback-стек.
+ *
+ * Downstream-инстансы могут override любую переменную через свой собственный
+ * tokens-файл (просто переопределяя `:root` после импорта globals.css).
  */
 
 :root {
-  /* ── Цвет ───────────────────────────────────────── */
-  --color-page-bg: #fffafa; /* snow — фон body (под контент-карточкой) */
-  --color-bg: #faf8f2; /* тёплая кремовая контент-карточка над body */
-  --color-surface: #fbfaf6; /* paper-cream — плашка / внутренние карточки */
-  --color-surface-hover: #f0e8d6; /* soft — hover-фон */
-  --color-paper: #ffffff; /* белый «лист» — карточки/попапы (контраст к кремовому bg) */
-  --color-ink: #2b221a; /* тёплый шоколад — текст и заголовки */
-  --color-muted: #7a6f5f; /* warm taupe — мета */
-  --color-border: #e5dcc9; /* бежевый stone — бордер */
+  /* ── Цвет (light theme — default) ─────────────────── */
+  --color-page-bg: #fafafa; /* subtle off-white — фон body */
+  --color-bg: #ffffff; /* pure white — основной content background */
+  --color-surface: #f5f5f5; /* мягкий gray — карточки */
+  --color-surface-hover: #ebebeb;
+  --color-paper: #ffffff; /* контрастная плашка над surface */
+  --color-ink: #0a0a0a; /* near-black — основной текст */
+  --color-muted: #737373; /* mid gray — мета, subtitles */
+  --color-border: #e5e5e5; /* light gray — бордеры, separator'ы */
 
-  --color-accent: #d4a437; /* горчично-янтарный — CTA, акцент */
-  --color-accent-hover: #a8802a; /* hover */
-  --color-accent-soft: #fbefc9; /* бледный янтарь — бейджи */
+  /* Primary accent — deep blue (royal indigo). CTA-кнопки, ссылки. */
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-accent-soft: #dbeafe; /* очень бледный для бейджей/hover-state'ов */
 
-  --color-success: #1c8a3b;
-  --color-success-soft: #e8f6ec;
+  /* Semantic: success / danger. Используются в comparison + бейджах. */
+  --color-success: #16a34a;
+  --color-success-soft: #dcfce7;
 
-  /* VK — мягкий бренд-голубой `#5181B8` (тот же что legacy использует
-     для хэштегов в постах). Дружит с кремовой палитрой, не пережимает
-     янтарный CTA-акцент. Яркий `#0077FF` legacy ставил только в одной
-     CTA-кнопке /news — мы заменили на softer вариант чтобы не спорил
-     с brand-янтарём «Написать нам». */
+  --color-danger: #dc2626;
+  --color-danger-soft: #fee2e2;
+
+  /* Dark-block — для quote-секции, CTA banner. Тот же navy в обеих темах
+   * (в dark theme уже тёмный фон, navy остаётся контрастным). */
+  --color-dark-block: #1e293b; /* slate-800 */
+  --color-dark-block-fg: #f8fafc; /* near-white text on dark-block */
+
+  /* VK brand-color — сохраняется для downstream-сайтов которые могут
+   * показывать VK-интеграцию (актуально для RU-сегмента). */
   --color-vk: #5181b8;
   --color-vk-hover: #3d6991;
   --color-vk-soft: #e7eff7;
 
-  --color-danger: #b54848;
-
-  /* Selection: тёмный фон + светлый текст, чтобы accent не сливался. */
-  --color-selection-bg: #2b221a;
-  --color-selection-fg: #faf8f2;
+  /* Selection — accent-blue с белым текстом. */
+  --color-selection-bg: #2563eb;
+  --color-selection-fg: #ffffff;
 
   /* ── Радиусы ────────────────────────────────────── */
   --radius-sm: 4px;
   --radius-md: 8px;
-  --radius-lg: 14px;
-  --radius-xl: 24px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
   --radius-full: 9999px;
 
+  /* ── Тени ───────────────────────────────────────── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.08);
+
   /* ── Типографика ────────────────────────────────── */
-  /* Имена переменных --font-display/--font-sans/--font-script/--font-emoji
-   * ПЕРЕЗАПИСЫВАЮТСЯ в layout.tsx через next/font. Здесь — fallback-стек. */
-  --font-emoji:
-    'Noto Color Emoji', 'Apple Color Emoji', 'Segoe UI Emoji', 'Twemoji Mozilla', sans-serif;
-  --font-display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif, var(--font-emoji);
-  --font-sans:
-    'Inter', -apple-system, 'Segoe UI', Roboto, system-ui, 'Helvetica Neue', sans-serif,
-    var(--font-emoji);
-  --font-script: 'Caveat', 'Brush Script MT', cursive; /* только подпись Ольги */
+  /* `--font-display`, `--font-sans`, `--font-mono` ПЕРЕЗАПИСЫВАЮТСЯ в layout.tsx
+   * через next/font (Geist). Здесь — fallback-стек для случая когда next/font
+   * не успел подгрузиться (FOUC-protection). */
+  --font-display:
+    'Geist', -apple-system, 'Segoe UI', Roboto, system-ui, 'Helvetica Neue', sans-serif;
+  --font-sans: 'Geist', -apple-system, 'Segoe UI', Roboto, system-ui, 'Helvetica Neue', sans-serif;
+  --font-mono:
+    'Geist Mono', 'JetBrains Mono', 'Fira Code', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   /* ── Размеры заголовков ─────────────────────────── */
-  --text-h1: 52px;
-  --text-h2: 38px;
-  --text-h3: 26px;
+  --text-h1: 56px; /* hero H1 */
+  --text-h2: 40px; /* section heading */
+  --text-h3: 28px; /* sub-section */
+  --text-h4: 20px; /* card title */
   --text-body: 16px;
-  --line-height-body: 1.65;
+  --text-sm: 14px;
+  --text-xs: 12px;
+  --line-height-body: 1.6;
+  --line-height-tight: 1.2; /* для display headings */
 
   /* ── Контейнеры ─────────────────────────────────── */
-  /* Единая ширина «контентной полосы фрейминга» (через ContentFrame).
-   * На базовом viewport (≤1280) — 880px. Растёт после 1280px:
-   * 1600 → ~1040, 1920 → ~1100 cap. Дальше зафиксирована на 1100, чтобы
-   * на FullHD/2K оставались заметные симметричные поля по бокам.
-   * Верхний предел 1100 < `--container-wide` (1300) — между полосой и
-   * краем страничной подложки минимум 100px воздуха с каждой стороны. */
-  --container-content: clamp(880px, calc(880px + (100vw - 1280px) * 0.34), 1100px);
-  --container-wide: 1300px; /* подложка страницы — максимально широкий layout, см. SiteLayout panels */
-
-  /* ── Декор ──────────────────────────────────────── */
-  --decor-accent-line-w: 64px;
-  --decor-accent-line-h: 1.5px;
-  --decor-accent-line-opacity: 0.85;
-  --decor-vine-w: 110px;
-  --decor-vine-opacity: 0.18;
-
-  /* Generic Holy Grail-фрейм (`ContentFrame decor="lines"`): тонкие
-   * полупрозрачные вертикали слева/справа полосы. */
-  --decor-line-w: 1px;
-  --decor-line-color: rgba(
-    43,
-    34,
-    26,
-    0.12
-  ); /* warm ink @ 12% — нейтрально, не конкурирует с акцентом */
-  --decor-divider-h: 96px;
-
-  /* ── Соосность лоз с секциями (КРИТИЧЕСКОЕ) ─────── */
-  /* Лозы стоят в зигзаге двумя осями:
-   *  - Внешняя (нечётная Л/П): ось `--vine-axis-l` / `-r` от края секции.
-   *  - Внутренняя (чётная Л/П): сдвинута к центру на `--hg-vine-inset` (70px).
-   *  - Средняя линия (между внешней и внутренней) — для выравнивания
-   *    декоративных элементов которые должны попадать «в зигзаг».
-   * Карусели, сетки и любые декоры внутри секции должны выравниваться
-   * по одной из этих линий. */
-  --vine-axis-l: 210px; /* 150 + 60 — после сдвига к центру (peek base 90) */
-  --vine-axis-r: 230px; /* 170 + 60 */
-  --vine-axis-l-inner: 280px; /* 210 + 70 — внутренняя ось зигзага слева */
-  --vine-axis-r-inner: 300px; /* 230 + 70 — внутренняя ось справа */
-  --vine-axis-l-mid: 245px; /* (210 + 280) / 2 — средняя линия зигзага слева */
-  --vine-axis-r-mid: 265px; /* (230 + 300) / 2 — средняя линия справа */
+  --container-content: 880px; /* читабельный текст */
+  --container-wide: 1300px; /* основной landing-контейнер */
+  --container-full: 1536px; /* предел для full-width layouts */
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
- * Theme system — `[data-theme="<name>"]` на <html>.
+ * Dark theme — `:root[data-theme="dark"]`.
  *
- * Дефолт = light (значения в `:root` выше).
- * Темы переопределяют CSS-переменные, не Tailwind config / не компоненты.
- * Компонент видит `bg-bg text-ink` всегда — меняется только что эти токены значат.
+ * Активируется через ThemeBootstrap (см. `lib/theme-bootstrap.tsx`):
+ *  - inline script до first-paint (no FOUC)
+ *  - читает localStorage('hg-theme') если userToggle=true
+ *  - иначе SiteSettings.theme.mode (auto → prefers-color-scheme)
  *
- * Bootstrap:
- *   - ThemeBootstrap (в `app/layout.tsx`) инлайнит script в <head> до first paint.
- *   - Читает localStorage('hg-theme') → если есть, проставляет атрибут синхронно.
- *   - Иначе использует SiteSettings.theme.mode (приходит с SSR).
- *
- * Доступные темы: light (дефолт, выше) и dark (ниже, заготовка).
- * Конкретные цвета dark подбираем когда первый клиент захочет dark-режим (R9).
- * Сейчас здесь — структурный shell с inverted-палитрой по принципу, не точная подгонка.
- *
- * TODO (holygrail-themepalette): Шаг 6+ — переменные станут SSR-инжектируемыми
- * из Payload-глобала Tokens (color-picker'ы в админке). На сервере при рендере
- * добавляется <style id="hg-tokens">:root{--color-accent: <hex>;...}</style>
- * перед этим файлом → override без правки кода. Тогда админ меняет брендинг
- * прямо в CMS, без участия разработчика. См. reference/roadmap-tokens-editor.
+ * Принцип переопределения: меняем только цвет-переменные, всё остальное
+ * (радиусы, шрифты, размеры, контейнеры) остаётся как в light.
  * ──────────────────────────────────────────────────────────────────────────── */
 
 :root[data-theme='dark'] {
   color-scheme: dark;
 
-  --color-bg: #1a1612; /* тёмный шоколад (инвертированный cream) */
-  --color-surface: #221c17; /* приподнятая плашка */
-  --color-surface-hover: #2d251d;
-  --color-paper: #2a2218; /* приподнятый «лист» — карточки/попапы в dark */
-  --color-ink: #f5ebd9; /* светлый кремовый текст */
-  --color-muted: #a89d8b; /* приглушённый тёплый */
-  --color-border: #3a322a;
+  --color-page-bg: #0a0a0a;
+  --color-bg: #0f0f0f;
+  --color-surface: #171717;
+  --color-surface-hover: #1f1f1f;
+  --color-paper: #1a1a1a;
+  --color-ink: #fafafa;
+  --color-muted: #a3a3a3;
+  --color-border: #262626;
 
-  /* accent остаётся янтарным — он узнаваем и читается на тёмном */
-  --color-accent: #e4b54a;
-  --color-accent-hover: #c89a35;
-  --color-accent-soft: #4a3a1e; /* затемнённый янтарь для бейджей */
+  /* Accent — slightly lighter blue для контраста на тёмном. */
+  --color-accent: #3b82f6;
+  --color-accent-hover: #60a5fa;
+  --color-accent-soft: #1e3a8a; /* deep navy — для soft-backgrounds в dark */
 
-  --color-success: #5ab86d;
-  --color-success-soft: #1f3a26;
+  --color-success: #22c55e;
+  --color-success-soft: #14532d;
+
+  --color-danger: #ef4444;
+  --color-danger-soft: #7f1d1d;
+
+  /* Dark-block в dark theme: чуть светлее чем bg, чтобы оставалась видимая
+   * "приподнятость" (как surface, но другого оттенка). */
+  --color-dark-block: #1e293b;
+  --color-dark-block-fg: #f8fafc;
 
   --color-vk: #6d92b8;
   --color-vk-hover: #547596;
-  --color-vk-soft: #2a3a4b;
+  --color-vk-soft: #1e2a3a;
 
-  --color-danger: #d96a6a;
+  --color-selection-bg: #3b82f6;
+  --color-selection-fg: #fafafa;
 
-  --color-selection-bg: #f5ebd9;
-  --color-selection-fg: #1a1612;
+  /* Тени в dark — менее заметны, используем border-glow вместо solid shadow. */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
 }
-
-/* Auto-mode: если SiteSettings.theme.mode='auto' и юзер не переопределил —
- * проставляется data-theme="dark" через ThemeBootstrap по prefers-color-scheme.
- * Поэтому отдельный @media-блок не нужен — всё через атрибут. */

@@ -10,17 +10,15 @@
     scrollbar-gutter: stable;
     background-color: var(--color-page-bg);
   }
+  html[data-theme='dark'] {
+    color-scheme: dark;
+  }
   body {
     position: relative;
     min-height: 100vh;
     background: transparent;
     color: var(--color-ink);
-    /* `--font-emoji` (Noto Color Emoji) идёт fallback'ом — браузер пробует
-       основные шрифты для текстовых глифов, а для emoji-codepoint (где у
-       Inter/Manrope нет глифа) автоматически берёт Noto. Это даёт одинаковые
-       цветные emoji на всех платформах (Windows Segoe/Apple Color/etc раньше
-       рендерились по-разному). */
-    font-family: var(--font-sans), var(--font-emoji);
+    font-family: var(--font-sans);
     font-size: var(--text-body);
     line-height: var(--line-height-body);
     -webkit-font-smoothing: antialiased;
@@ -30,14 +28,12 @@
   h2,
   h3,
   h4 {
-    /* Тот же emoji fallback что и в body — заголовки часто содержат `🐾` / `🏆`. */
-    font-family: var(--font-display), var(--font-emoji);
+    font-family: var(--font-display);
     color: var(--color-ink);
     font-weight: 600;
-    letter-spacing: -0.5px;
-    line-height: 1.15;
+    letter-spacing: -0.02em;
+    line-height: var(--line-height-tight);
   }
-  /* Selection: тёмный фон + светлый текст — иначе accent-ссылки сливаются. */
   ::selection {
     background: var(--color-selection-bg);
     color: var(--color-selection-fg);
@@ -53,151 +49,9 @@
 }
 
 @layer components {
-  /* Inline-emoji с фиксированным baseline-fix (Noto Color Emoji в Cyrillic
-   * стеке плохо align'ится с буквами без явной vertical-align коррекции). */
-  .emoji-fix {
-    font-family: var(--font-emoji);
-    font-style: normal;
-    font-weight: 400;
-    line-height: 1;
-    display: inline-block;
-    vertical-align: -2px;
-  }
-
-  /* Декоративные виньетки (лозы) по краям секции.
-   * `.hg-vine` — обе стороны, `.hg-vine-l` — слева, `.hg-vine-r` — справа.
-   * --hg-vine-peek: на узких экранах лоза заходит в контент на 80px,
-   * на ≥1280px — целиком в боковом воздухе. */
-  .hg-vine,
-  .hg-vine-l,
-  .hg-vine-r {
-    position: relative;
-    /* Заход лозы внутрь секции. На широких peek=90 (центр на ~+35px внутри),
-     * на узких 170 (центр на +115). */
-    /* peek = насколько лоза заходит внутрь от края контейнера. Центр лозы
-     * лежит на `peek - half_width` (half_width = 55px, width = 110px).
-     * Фиксированный peek=115 — лоза всегда прилипает к краю рамки одинаково
-     * — лоза должна одинаково прилипать к краю рамки независимо от ширины
-     * экрана. Раньше peek рос на узких viewport, но это создаёт впечатление
-     * что лоза «сдвигается к центру»; теперь positionining константный:
-     * лоза = виртуальная граница, её положение от края рамки фиксировано. */
-    --hg-vine-peek: 115px;
-    --hg-vine-w: 110px;
-    /* Tile = 2 листика по высоте 110 = 220px. Offset L↔R = 110px (один листик). */
-    --hg-vine-tile: 220px;
-    /* Сдвиг чётных (вторых) лоз в каждом тропу X-внутрь, к центру секции. */
-    --hg-vine-inset: 70px;
-  }
-  .hg-vine > *,
-  .hg-vine-l > *,
-  .hg-vine-r > * {
-    position: relative;
-    z-index: 1;
-  }
-  /* Левая сторона: сверху-вниз L → R → L → R через два repeat-y слоя с offset. */
-  .hg-vine::before,
-  .hg-vine-l::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    right: calc(100% - var(--hg-vine-peek));
-    width: var(--hg-vine-w);
-    pointer-events: none;
-    z-index: 0;
-    opacity: var(--decor-vine-opacity);
-    transition: opacity 300ms ease-out;
-    background-image:
-      url('https://cdn.example.com/vines/vine-left.webp'),
-      url('https://cdn.example.com/vines/vine-right.webp');
-    background-repeat: repeat-y, repeat-y;
-    background-position:
-      right 0 top 55px,
-      right var(--hg-vine-inset) top calc(var(--hg-vine-tile) / 2 + 55px);
-    background-size:
-      var(--hg-vine-w) var(--hg-vine-tile),
-      var(--hg-vine-w) var(--hg-vine-tile);
-  }
-  /* Правая: на y=0 — vine-right, на y=tile/2 — vine-left. Противофаза с левой
-   * стороной (слева на тех же y стоят L, R соответственно). */
-  .hg-vine::after,
-  .hg-vine-r::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: calc(100% - var(--hg-vine-peek));
-    width: var(--hg-vine-w);
-    pointer-events: none;
-    z-index: 0;
-    opacity: var(--decor-vine-opacity);
-    transition: opacity 300ms ease-out;
-    background-image:
-      url('https://cdn.example.com/vines/vine-right.webp'),
-      url('https://cdn.example.com/vines/vine-left.webp');
-    background-repeat: repeat-y, repeat-y;
-    background-position:
-      left 0 top 0,
-      left var(--hg-vine-inset) top calc(var(--hg-vine-tile) / 2);
-    background-size:
-      var(--hg-vine-w) var(--hg-vine-tile),
-      var(--hg-vine-w) var(--hg-vine-tile);
-  }
-
-  /* Generic-фрейм границы (`ContentFrame decor="lines"`) — тонкие полупрозрачные
-   * вертикали слева/справа полосы. На любом сайте дают рамку из коробки.
-   * На niche-сайтах с собственными декоративными виньетками — заменяются на
-   * `decor="vines"`. */
-  .hg-line,
-  .hg-line-l,
-  .hg-line-r {
-    position: relative;
-  }
-  .hg-line > *,
-  .hg-line-l > *,
-  .hg-line-r > * {
-    position: relative;
-    z-index: 1;
-  }
-  .hg-line::before,
-  .hg-line-l::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: var(--decor-line-w);
-    background: var(--decor-line-color);
-    pointer-events: none;
-  }
-  .hg-line::after,
-  .hg-line-r::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    right: 0;
-    width: var(--decor-line-w);
-    background: var(--decor-line-color);
-    pointer-events: none;
-  }
-
-  /* Линия-divider под H1/H2 — editorial-альтернатива fleurons.
-   * Использовать как: <h1 class="heading-line">…</h1> или добавить элемент вручную. */
-  .heading-line::after {
-    content: '';
-    display: block;
-    width: var(--decor-accent-line-w);
-    height: var(--decor-accent-line-h);
-    background: var(--color-accent);
-    opacity: var(--decor-accent-line-opacity);
-    margin: 16px auto 0;
-    border-radius: 1px;
-  }
-
-  /* Появление элементов «снизу-вверх + opacity». Используется для Timeline-entries
-   * раскрываемых через «показать ещё»: без max-height разжатия — элементы
-   * появляются сразу полным размером и плавно проявляются. */
+  /* Fade-in keyframes — для появления элементов "снизу-вверх + opacity".
+   * Используется для disclosure-эффектов (раскрываемые списки, появление
+   * скрытых элементов). Generic — без editorial-специфики. */
   @keyframes hg-fade-in {
     from {
       opacity: 0;
@@ -207,17 +61,5 @@
       opacity: 1;
       transform: translateY(0);
     }
-  }
-
-  /* Drop-cap (буквица) для Prose variant editorial-with-dropcap. */
-  .with-dropcap::first-letter {
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-style: normal;
-    font-size: 64px;
-    float: left;
-    line-height: 0.9;
-    padding: 8px 12px 0 0;
-    color: var(--color-accent);
   }
 }
