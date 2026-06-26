@@ -1,88 +1,125 @@
 import Link from 'next/link';
+import { Github } from 'lucide-react';
 import type { BlockNode, SiteSettings } from 'contracts';
 
 /**
- * Footer — тёмный «нижний слой за сайтом». В обычном потоке после контента;
- * виден когда контент-карточка докручена до конца. Контент-карточка имеет
- * shadow-bottom, визуально приподнимается «шторкой» открывая footer.
+ * Footer — минималистичный нижний слой template'а.
+ *
+ * @remarks
+ * 3-колоночный grid (wordmark+desc / Документация / Проект) + bottom-bar
+ * с copy и license. Цвета через токены (адаптируется к light/dark).
+ *
+ * Опциональные поля из `node.data`:
+ *   - `githubUrl?: string` — ссылка на GitHub репо для иконки в bottom-bar
+ *   - `tagline?: string` — короткая строка под wordmark (1 предложение)
+ *   - `docsLinks?: { label, href }[]` — кастомные ссылки в колонку "Документация"
+ *   - `projectLinks?: { label, href }[]` — кастомные ссылки в колонку "Проект"
+ *
+ * Если data-поля не заданы — используются дефолты (GitHub-ссылка WHG repo,
+ * docs/issues/discussions/changelog).
  */
+
+export interface FooterData {
+  readonly githubUrl?: string;
+  readonly tagline?: string;
+  readonly docsLinks?: readonly { readonly label: string; readonly href: string }[];
+  readonly projectLinks?: readonly { readonly label: string; readonly href: string }[];
+}
+
 export function Footer({
+  node,
   settings,
 }: {
-  readonly node: BlockNode;
+  readonly node: BlockNode & { data?: FooterData };
   readonly settings: SiteSettings;
 }) {
-  const { siteName, contacts, footerNav, mainNav, social } = settings;
-  const nav = footerNav?.length ? footerNav : (mainNav ?? []);
+  const data = node.data ?? {};
+  const siteName = settings.siteName ?? 'Web Holy Grail';
+  const githubUrl = data.githubUrl;
+  const tagline = data.tagline;
+  const docs = data.docsLinks ?? [];
+  const project = data.projectLinks ?? [];
+  const year = new Date().getFullYear();
+
+  const hasDocs = docs.length > 0;
+  const hasProject = project.length > 0;
+  const columns = 1 + (hasDocs ? 1 : 0) + (hasProject ? 1 : 0);
 
   return (
-    <footer
-      className="relative w-full text-bg"
-      style={{
-        background: '#3d342a',
-        // 1) тонкая чёткая линия-граница сверху
-        // 2) inset-тень — «сайт сверху отбрасывает тень на footer»
-        boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 14px 22px -14px rgba(0,0,0,0.55)',
-        borderTop: '1px solid rgba(43,34,26,0.35)',
-      }}
-    >
-      <div className="mx-auto max-w-wide px-6 py-12 grid gap-8 md:grid-cols-3">
+    <footer className="border-t border-border bg-page-bg text-ink">
+      <div
+        className="mx-auto max-w-wide px-4 md:px-6 py-12 md:py-16 grid gap-8 md:gap-12"
+        style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      >
+        {/* Col 1 — wordmark + tagline */}
         <div>
-          <div className="font-display text-lg font-semibold">{siteName}</div>
-          {contacts?.address && <p className="mt-2 text-sm text-bg/70">{contacts.address}</p>}
-          {contacts?.hours && <p className="mt-1 text-sm text-bg/60">{contacts.hours}</p>}
+          <div className="font-display text-lg font-semibold text-ink">{siteName}</div>
+          {tagline && <p className="mt-3 text-sm text-muted leading-relaxed max-w-xs">{tagline}</p>}
+          {githubUrl && (
+            <a
+              href={githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${siteName} on GitHub`}
+              className="mt-4 inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-muted hover:text-ink hover:bg-surface transition-colors"
+            >
+              <Github size={16} />
+            </a>
+          )}
         </div>
 
-        <nav className="flex flex-col gap-2 text-sm">
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="text-bg/85 hover:text-accent transition-colors"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-
-        <div className="flex flex-col gap-2 text-sm">
-          {contacts?.phone && (
-            <a
-              href={`tel:${contacts.phone.replace(/[^+\d]/g, '')}`}
-              className="text-accent hover:text-accent-hover font-semibold"
-            >
-              {contacts.phone}
-            </a>
-          )}
-          {contacts?.email && (
-            <a
-              href={`mailto:${contacts.email}`}
-              className="text-bg/85 hover:text-accent transition-colors"
-            >
-              {contacts.email}
-            </a>
-          )}
-          {social?.length ? (
-            <div className="mt-2 flex gap-3">
-              {social.map((s) => (
-                <a
-                  key={s.url}
-                  href={s.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-bg/70 hover:text-accent capitalize text-sm transition-colors"
-                >
-                  {s.label ?? s.platform}
-                </a>
+        {/* Col 2 — Документация (если есть) */}
+        {hasDocs && (
+          <nav>
+            <div className="font-display font-semibold text-ink text-sm mb-3">Документация</div>
+            <ul className="space-y-2">
+              {docs.map((item) => (
+                <li key={item.href}>
+                  <FooterLink href={item.href} label={item.label} />
+                </li>
               ))}
-            </div>
-          ) : null}
-        </div>
+            </ul>
+          </nav>
+        )}
+
+        {/* Col 3 — Проект (если есть) */}
+        {hasProject && (
+          <nav>
+            <div className="font-display font-semibold text-ink text-sm mb-3">Проект</div>
+            <ul className="space-y-2">
+              {project.map((item) => (
+                <li key={item.href}>
+                  <FooterLink href={item.href} label={item.label} />
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
       </div>
 
-      <div className="border-t border-bg/10 py-4 text-center text-xs text-bg/50">
-        © {new Date().getFullYear()} {siteName} · built on Web Holy Grail
+      {/* Bottom bar */}
+      <div className="border-t border-border">
+        <div className="mx-auto max-w-wide px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
+          <div>
+            © {year} {siteName} · MIT License
+          </div>
+          <div>Built on Web Holy Grail</div>
+        </div>
       </div>
     </footer>
+  );
+}
+
+function FooterLink({ href, label }: { readonly href: string; readonly label: string }) {
+  const external = href.startsWith('http');
+  return (
+    <Link
+      href={href}
+      target={external ? '_blank' : undefined}
+      rel={external ? 'noopener noreferrer' : undefined}
+      className="text-sm text-muted hover:text-ink transition-colors"
+    >
+      {label}
+    </Link>
   );
 }

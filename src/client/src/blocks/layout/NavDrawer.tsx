@@ -52,7 +52,9 @@ export function NavDrawer({
   const isLeft = side === 'left';
 
   return (
-    <>
+    // lg:hidden — NavDrawer существует только на mobile/tablet. На desktop
+    // (≥1024px) nav живёт в Header'е, drawer-overlay и aside не нужны.
+    <div className="lg:hidden">
       <button
         type="button"
         aria-label={open ? 'Закрыть меню' : 'Открыть меню'}
@@ -61,16 +63,20 @@ export function NavDrawer({
         className={[
           // top-2.5 (10px) — центр Header'а (py-3 + h-9 кнопка ≈ 60px).
           // Размер 36×36 (h-9 w-9) совпадает с ThemeToggle/GitHub-icon в Header
-          // — единый ритм icon-кнопок, не выпирает.
+          // — единый ритм icon-кнопок.
           //
-          // Горизонталь: позиционируем относительно контентной полосы
-          // `max-w-wide=1300px`. На узких — 16px от края (как Header px-4),
-          // на широких — 24px от края контентного блока.
-          'fixed top-2.5 z-50',
+          // **lg:hidden** — на desktop (≥1024px) nav уже в самом Header'е,
+          // burger не нужен и наезжает на CTA-кнопку справа. Drawer
+          // активируется только на mobile/tablet.
+          //
+          // bg-page-bg/90 + backdrop-blur — непрозрачная подложка, иначе
+          // burger сливается с любым контентом под ним.
+          'lg:hidden fixed top-2.5 z-50',
           isLeft
             ? 'left-[max(16px,calc((100vw-1300px)/2+24px))]'
             : 'right-[max(16px,calc((100vw-1300px)/2+24px))]',
           'inline-flex h-9 w-9 items-center justify-center rounded-md',
+          'bg-page-bg/90 backdrop-blur-md border border-border',
           'text-muted hover:text-ink hover:bg-surface-hover transition-colors',
         ].join(' ')}
       >
@@ -191,7 +197,7 @@ export function NavDrawer({
           </div>
         )}
       </aside>
-    </>
+    </div>
   );
 }
 
