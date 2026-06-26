@@ -262,13 +262,25 @@ function buildHomePageData(media: MediaMap) {
         heading: 'Сайты, которые уже работают',
         subtitle: 'Реальные production-инстансы на этом стеке.',
         items: [
-          { siteName: 'veo55.ru', url: 'https://veo55.ru', niche: 'Питомник немецких овчарок' },
-          { siteName: 'sawking.tech', url: 'https://sawking.tech', niche: 'Личный сайт + блог' },
-          { siteName: 'sng74.ru', url: 'https://sng74.ru', niche: 'Сервис в Челябинске' },
+          {
+            siteName: 'veo55.ru',
+            url: 'https://veo55.ru',
+            niche: 'Питомник восточно-европейских овчарок «Омская Дружина»',
+          },
+          {
+            siteName: 'sawking.tech',
+            url: 'https://sawking.tech',
+            niche: 'Инженерия, архитектура, AI — личный блог',
+          },
+          {
+            siteName: 'sng74.ru',
+            url: 'https://sng74.ru',
+            niche: 'Чистые помещения для фармы — B2B стройка',
+          },
           {
             siteName: 'fitness-mafia.ru',
             url: 'https://fitness-mafia.ru',
-            niche: 'Фитнес-клуб',
+            niche: 'Персональные тренировки — личный бренд тренера',
           },
         ],
       },
