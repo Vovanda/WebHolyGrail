@@ -45,8 +45,8 @@ Shared abstractions enter `packages/` after a pattern has appeared in two or mor
 
 ## Where to read next
 
-- [`30-philosophy.md`](30-philosophy.md) — architectural rules R1–R9.
+- [`15-vision.md`](15-vision.md) — stack rationale: почему именно эти выборы и какие альтернативы отвергнуты.
+- [`30-philosophy.md`](30-philosophy.md) — architectural rules.
 - [`32-structure.md`](32-structure.md) — monorepo and per-site layout, growth models.
 - [`35-frontend-stack.md`](35-frontend-stack.md) — frontend stack and the block model.
-- [`70-backend-data.md`](70-backend-data.md) — backend and data choices.
-- [`90-architecture-diagram.md`](90-architecture-diagram.md) — high-level diagram.
+- [`45-data-location.md`](45-data-location.md) — что где живёт: БД / Infisical / код.
