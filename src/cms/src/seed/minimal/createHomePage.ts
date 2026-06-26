@@ -323,10 +323,13 @@ function buildHomePageData(media: MediaMap) {
         caption: 'Тип проекта — это старт, не ограничение. Добавляйте возможности по мере роста.',
       },
 
-      // 8. Quote — full-width-dark manifesto.
+      // 8. Quote — editorial card-accent-left (привычный Володе вариант,
+      // его дефолт для всех сайтов). После подключения QuoteCycle здесь
+      // будет ротация: card-accent-left → full-width-dark → minimal-modern.
       {
         blockType: 'quote' as const,
-        variant: 'full-width-dark' as const,
+        heading: 'Философия проекта',
+        variant: 'card-accent-left' as const,
         body: 'Технологии уже позволяют дать малому бизнесу нормальный сайт с честной архитектурой — почти даром.',
         author: 'Владимир Савкин',
         role: 'архитектор Web Holy Grail',
