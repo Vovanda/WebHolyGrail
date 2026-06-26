@@ -21,7 +21,7 @@ export const SiteSettings: GlobalConfig = {
       label: 'Имя сайта',
       type: 'text',
       required: true,
-      defaultValue: 'Питомник «Example Co.»',
+      defaultValue: 'Web Holy Grail',
     },
     {
       name: 'logo',
