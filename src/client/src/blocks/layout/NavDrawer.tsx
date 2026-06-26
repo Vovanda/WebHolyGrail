@@ -88,7 +88,9 @@ export function NavDrawer({
         aria-hidden={!open}
         onClick={() => setOpen(false)}
         className={[
-          'fixed inset-0 z-40 bg-ink/60 backdrop-blur-sm',
+          // lg:hidden — overlay/aside fixed, не наследуют lg:hidden у parent
+          // обёртки (fixed-children всегда видны), нужен на каждом элементе.
+          'lg:hidden fixed inset-0 z-40 bg-ink/60 backdrop-blur-sm',
           'transition-opacity duration-300 ease-out',
           open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
         ].join(' ')}
@@ -98,10 +100,13 @@ export function NavDrawer({
         aria-label="Главная навигация"
         aria-hidden={!open}
         className={[
-          'fixed top-0 bottom-0 z-50 flex flex-col text-ink',
+          // open=false → 'hidden' (display:none) для гарантированного скрытия.
+          // translate-x-full сам по себе не всегда работает в SSR + некоторых
+          // Tailwind JIT edge-cases (особенно с custom width через style).
+          'lg:hidden fixed top-0 bottom-0 z-50 flex-col text-ink',
           'shadow-2xl transition-transform duration-300 ease-out',
           isLeft ? 'left-0 border-r border-border' : 'right-0 border-l border-border',
-          open ? 'translate-x-0' : isLeft ? '-translate-x-full' : 'translate-x-full',
+          open ? 'flex translate-x-0' : 'hidden',
         ].join(' ')}
         style={{ width, background: 'var(--color-page-bg)' }}
       >
