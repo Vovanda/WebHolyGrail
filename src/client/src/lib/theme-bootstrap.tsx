@@ -60,6 +60,6 @@ export function setTheme(theme: string): void {
  */
 export const DEFAULT_THEME_CONFIG: ThemeConfig = {
   mode: 'light',
-  userToggle: false,
+  userToggle: true,
   availableThemes: ['light', 'dark'],
 };
