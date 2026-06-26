@@ -112,23 +112,39 @@ export function NavDrawer({
       >
         {/* Header drawer — той же высоты что Header сайта (py-3 + h-11/12).
             Лого по центру и кликабельно → главная. */}
-        <div className="flex items-center justify-center py-3 border-b border-border">
+        {/* Drawer header — wordmark (inline SVG mark + siteName), консистентно с Header */}
+        <div className="flex items-center gap-2 py-3 px-4 border-b border-border">
           <Link
             href="/"
             onClick={() => setOpen(false)}
             aria-label={settings.siteName ?? 'На главную'}
-            className="shrink-0 transition-transform hover:scale-105"
+            className="flex items-center gap-2 shrink-0"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={
-                typeof settings.logo === 'object'
-                  ? (settings.logo?.url ?? '/branding/logo.png')
-                  : '/branding/logo.png'
-              }
-              alt={settings.siteName ?? 'Питомник'}
-              className="h-11 w-11 md:h-12 md:w-12 rounded-lg object-cover shadow-sm border border-border"
-            />
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              className="text-accent"
+              aria-hidden="true"
+            >
+              <path
+                d="M12 2L3 6v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V6l-9-4z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M8 12l3 3 5-6"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span className="font-display font-semibold text-ink text-base">
+              {settings.siteName ?? 'Web Holy Grail'}
+            </span>
           </Link>
         </div>
 
