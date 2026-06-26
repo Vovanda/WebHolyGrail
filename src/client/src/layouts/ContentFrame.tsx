@@ -20,10 +20,10 @@ import { cn } from '@/lib/utils';
  *
  *  - `lines` (дефолт) — тонкие полупрозрачные вертикали. Generic для любого
  *    сайта (CSS-класс `.hg-line-*` в `globals.css`).
- *  - `vines` — декоративные лозы из изображений. **Специфика veo55** —
- *    реализация в `globals.css → .hg-vine-*` использует veo55-CDN текстуры.
- *    На другом сайте либо не использовать, либо переопределить URL в
- *    переменных `--decor-vine-*`.
+ *  - `vines` — декоративные лозы из изображений. **Niche-специфика** (текстуры
+ *    задаются переменными `--decor-vine-*` в `tokens.css`; в template они пустые
+ *    и `vines` выключены). Использовать на сайтах где бренд-система предусматривает
+ *    декоративные виньетки (заводчик, ремесленная мастерская, бутик-кафе).
  *
  *  - `side` — с какой стороны рисовать декор: `left | right | both | none`.
  *    `none` = только полоса без декора.
@@ -83,7 +83,7 @@ import { cn } from '@/lib/utils';
  *   <Quote ... />
  * </ContentFrame>
  *
- * // Generic сайт без veo55-лоз:
+ * // Generic сайт (без niche-виньеток):
  * <ContentFrame side="both" decor="lines">
  *   <ArticleBody ... />
  * </ContentFrame>
@@ -95,7 +95,7 @@ import { cn } from '@/lib/utils';
 export interface ContentFrameProps {
   /** С какой стороны рисовать декор. `none` — без декора, только полоса. */
   readonly side: 'left' | 'right' | 'both' | 'none';
-  /** Вариант декора границ. `lines` (generic) или `vines` (veo55). */
+  /** Вариант декора границ. `lines` (generic) или `vines` (niche-виньетка из изображений). */
   readonly decor?: 'lines' | 'vines';
   /**
    * Доп. классы. По умолчанию компонент центрирует контент `mx-auto` и

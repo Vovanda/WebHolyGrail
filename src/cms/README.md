@@ -1,4 +1,4 @@
-# <slug>-cms — Payload 3.x
+# cms — Payload 3.x
 
 Отдельное Next 15 приложение под Payload-админку и REST/GraphQL API. Не имеет публичных страниц — фронт сайта живёт в `../client`.
 
@@ -15,7 +15,7 @@
 
 ## Стек
 
-- **Payload 3.85.1** + `@payloadcms/db-sqlite` + `@payloadcms/richtext-lexical`
+- **Payload 3.x** + `@payloadcms/db-sqlite` + `@payloadcms/richtext-lexical`
 - **Next 15** + React 19 (требование Payload 3.x peerDep)
 - **sharp** для обработки картинок при upload в Media
 - **i18n: ru** (через `@payloadcms/translations`)
@@ -24,24 +24,24 @@
 
 ```bash
 # Из корня монорепо
-infisical run --env=dev -- pnpm --filter <slug>-cms dev
+pnpm --filter cms dev
 # → Payload админка: http://localhost:3001/admin
 # → API: http://localhost:3001/api
 ```
 
-При первом запуске Payload предложит создать первого admin-пользователя через UI.
+При первом запуске Payload предложит создать первого admin-пользователя через UI (или используется `ADMIN_INITIAL_EMAIL`/`ADMIN_INITIAL_PASSWORD` через seed).
 
 ## Переменные окружения
 
-Полный список — `../../.env.example`. Минимум для запуска:
+Полный список — `../../.env.local.example`. Минимум для запуска:
 
 - `PAYLOAD_SECRET` (≥32 символа)
-- `DATABASE_URI` (`file:./data/veo55.db` для локалки)
+- `DATABASE_URI` (`file:./data/${SITE_SLUG}.db` для локалки)
 - `PAYLOAD_PUBLIC_SERVER_URL`
 
 ## Принципы
 
 - **Не лезть в БД в обход Payload Local API** (R8) — Payload и есть слой доступа.
-- **`Pages.blocks` пуст** до Шага 4 — конкретные блоки регистрируются по мере появления (R9).
-- **Admin полностью на русском** — `i18n.fallbackLanguage: 'ru'`. Если где-то увидите английский — это либо имя поля без `label`, либо имя коллекции без `labels.singular/plural`. Чините.
+- **`Pages.blocks` пуст** до тех пор пока конкретные блоки не появятся (R9).
+- **Admin на русском** — `i18n.fallbackLanguage: 'ru'`. Если где-то увидите английский — это либо имя поля без `label`, либо имя коллекции без `labels.singular/plural`. Чините.
 - **Доступы** в коллекциях через функции `access` — не выключать. Публикация формы без авторизации (`create: () => true` для FormSubmissions) — единственное публичное действие.

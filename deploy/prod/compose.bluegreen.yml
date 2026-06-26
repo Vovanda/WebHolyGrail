@@ -1,23 +1,26 @@
-# Blue-green production stack для veo55.
+# Blue-green production stack.
 # Запускается per-color через separate compose projects:
 #   COLOR=blue  CMS_PORT=3001 CLIENT_PORT=3000 TAG=<sha> \
-#     docker compose -p veo55-blue --env-file .env.production -f compose.bluegreen.yml up -d
+#     docker compose -p ${SITE_SLUG}-blue --env-file .env.production -f compose.bluegreen.yml up -d
 #   COLOR=green CMS_PORT=3011 CLIENT_PORT=3010 TAG=<sha> \
-#     docker compose -p veo55-green --env-file .env.production -f compose.bluegreen.yml up -d
+#     docker compose -p ${SITE_SLUG}-green --env-file .env.production -f compose.bluegreen.yml up -d
 #
 # Управление — через scripts/deploy.sh (определяет active color, делает switch).
-# nginx upstream симлинк → /etc/nginx/snippets/veo55-upstream-active.conf.
+# nginx upstream симлинк → /etc/nginx/snippets/${SITE_SLUG}-upstream-active.conf.
 #
 # БД (SQLite) — bind-mount, общая для обоих цветов. Миграции — backward-compatible
 # (см. payload-migration skill, раздел "Blue-green safety").
+#
+# Внешняя сеть — общая для обоих цветов, создаётся заранее:
+#   docker network create ${SITE_SLUG}-net
 
 services:
   cms:
-    image: ghcr.io/${GHCR_OWNER:-vovanda}/<slug>-cms:${TAG:-latest}
-    container_name: <slug>-cms-${COLOR:?required}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_OWNER:?required}/${SITE_SLUG:?required}-cms:${TAG:-latest}
+    container_name: ${SITE_SLUG}-cms-${COLOR:?required}
     environment:
       PAYLOAD_SECRET: ${PAYLOAD_SECRET:?required}
-      DATABASE_URI: file:/data/veo55.db
+      DATABASE_URI: file:/data/${SITE_SLUG}.db
       PAYLOAD_PUBLIC_SERVER_URL: ${PAYLOAD_PUBLIC_SERVER_URL:?required}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?required}
       NODE_ENV: production
@@ -26,10 +29,6 @@ services:
       S3_ENDPOINT: ${S3_ENDPOINT:?required}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?required}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?required}
-      VEO_VK_GROUP_ID: ${VEO_VK_GROUP_ID:?required}
-      VEO_VK_APP_ID: ${VEO_VK_APP_ID:?required}
-      VEO_VK_SVC_TOKEN: ${VEO_VK_SVC_TOKEN:?required}
-      VEO_VK_API_VER: ${VEO_VK_API_VER:-5.131}
       ADMIN_INITIAL_EMAIL: ${ADMIN_INITIAL_EMAIL:?required}
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?required}
     volumes:
@@ -37,12 +36,12 @@ services:
     ports:
       - '127.0.0.1:${CMS_PORT:?required}:3001'
     networks:
-      - veo55-net
+      - site-net
     dns:
+      - 1.1.1.1
+      - 8.8.8.8
       - 77.88.8.8
       - 77.88.8.1
-      - 8.8.8.8
-      - 1.1.1.1
     healthcheck:
       test: ['CMD-SHELL', 'wget -q -O- http://localhost:3001/api/access || exit 1']
       interval: 10s
@@ -52,11 +51,11 @@ services:
     restart: unless-stopped
 
   client:
-    image: ghcr.io/${GHCR_OWNER:-vovanda}/<slug>-client:${TAG:-latest}
-    container_name: <slug>-client-${COLOR:?required}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_OWNER:?required}/${SITE_SLUG:?required}-client:${TAG:-latest}
+    container_name: ${SITE_SLUG}-client-${COLOR:?required}
     environment:
-      # SSR ходит к своему же cms по container_name внутри shared network veo55-net
-      NEXT_PUBLIC_CMS_URL: http://<slug>-cms-${COLOR}:3001
+      # SSR ходит к своему же cms по container_name внутри shared network ${SITE_SLUG}-net.
+      NEXT_PUBLIC_CMS_URL: http://${SITE_SLUG}-cms-${COLOR}:3001
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?required}
       NODE_ENV: production
       # Прокидываем COLOR в runtime для /api/health → debug какой цвет сейчас работает.
@@ -64,12 +63,12 @@ services:
     ports:
       - '127.0.0.1:${CLIENT_PORT:?required}:3000'
     networks:
-      - veo55-net
+      - site-net
     dns:
+      - 1.1.1.1
+      - 8.8.8.8
       - 77.88.8.8
       - 77.88.8.1
-      - 8.8.8.8
-      - 1.1.1.1
     depends_on:
       cms:
         condition: service_healthy
@@ -81,9 +80,7 @@ services:
       retries: 6
     restart: unless-stopped
 
-# Внешняя сеть — общая для обоих цветов, чтобы container_name резолвился.
-# Создаётся заранее: docker network create veo55-net
 networks:
-  veo55-net:
+  site-net:
     external: true
-    name: veo55-net
+    name: ${SITE_SLUG}-net

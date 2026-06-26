@@ -1,18 +1,20 @@
 # «lite» production stack — только cms + client, без своего nginx/certbot.
-# Используется когда у VPS уже есть host-nginx с Let's Encrypt (наш случай:
-# `example.com` уже терминирует TLS для `veo.example.com`).
+# Используется когда у VPS уже есть host-nginx с Let's Encrypt
+# (например root-домен уже терминирует TLS, поддомены идут через тот же nginx).
 #
 # Запуск (на сервере):
 #   docker compose --env-file deploy/prod/.env.production \
 #     -f deploy/prod/docker-compose.lite.yml up -d --build
 #
-# host-nginx (`/opt/SawkingTech/nginx/conf.d/veo.conf`) проксирует:
+# host-nginx должен проксировать (пример `conf.d/<site>.conf`):
 #   /admin /api /_payload /_next/data → 127.0.0.1:3001 (cms)
 #   /                                  → 127.0.0.1:3000 (client)
+#
+# Все имена параметризованы через ${SITE_SLUG} — обязательная переменная.
 
 services:
   cms:
-    container_name: <slug>-cms
+    container_name: ${SITE_SLUG:?required}-cms
     build:
       context: ../..
       dockerfile: src/cms/Dockerfile
@@ -20,7 +22,7 @@ services:
       network: host
     environment:
       PAYLOAD_SECRET: ${PAYLOAD_SECRET:?required}
-      DATABASE_URI: file:/data/veo55.db
+      DATABASE_URI: file:/data/${SITE_SLUG}.db
       PAYLOAD_PUBLIC_SERVER_URL: ${PAYLOAD_PUBLIC_SERVER_URL:?required}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?required}
       NODE_ENV: production
@@ -29,10 +31,6 @@ services:
       S3_ENDPOINT: ${S3_ENDPOINT:?required}
       S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?required}
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?required}
-      VEO_VK_GROUP_ID: ${VEO_VK_GROUP_ID:?required}
-      VEO_VK_APP_ID: ${VEO_VK_APP_ID:?required}
-      VEO_VK_SVC_TOKEN: ${VEO_VK_SVC_TOKEN:?required}
-      VEO_VK_API_VER: ${VEO_VK_API_VER:-5.131}
       ADMIN_INITIAL_EMAIL: ${ADMIN_INITIAL_EMAIL:?required}
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?required}
     volumes:
@@ -50,15 +48,15 @@ services:
       retries: 3
     restart: unless-stopped
     # Compose-created bridge не наследует daemon-level DNS; задаём явно для runtime.
-    # Yandex DNS первый — быстрее в РФ. Google + Cloudflare как fallback.
+    # Cloudflare + Google + Yandex — fallback в нужном порядке.
     dns:
+      - 1.1.1.1
+      - 8.8.8.8
       - 77.88.8.8
       - 77.88.8.1
-      - 8.8.8.8
-      - 1.1.1.1
 
   client:
-    container_name: <slug>-client
+    container_name: ${SITE_SLUG:?required}-client
     build:
       context: ../..
       dockerfile: src/client/Dockerfile
@@ -80,10 +78,8 @@ services:
       start_period: 60s
       retries: 3
     restart: unless-stopped
-    # Compose-created bridge не наследует daemon-level DNS; задаём явно для runtime.
-    # Yandex DNS первый — быстрее в РФ. Google + Cloudflare как fallback.
     dns:
+      - 1.1.1.1
+      - 8.8.8.8
       - 77.88.8.8
       - 77.88.8.1
-      - 8.8.8.8
-      - 1.1.1.1

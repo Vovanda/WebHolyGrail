@@ -21,11 +21,12 @@ test.describe('Web Holy Grail — smoke', () => {
     expect(response?.status(), 'GET / должен вернуть 200').toBe(200);
 
     // <title> приходит из SiteSettings.siteName (см. client/src/app/layout.tsx).
-    // Если CMS отвалилась — генерируется fallback «Питомник «Example Co.»».
-    await expect(page).toHaveTitle(/Питомник/);
+    // Если CMS отвалилась — генерируется fallback (см. siteSettingsFallback в lib).
+    const siteName = process.env.SMOKE_SITE_NAME ?? 'Site';
+    await expect(page).toHaveTitle(new RegExp(siteName));
 
     // H1 — тот же siteName из contracts, sanity-check что server-fetch отработал.
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Питомник');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(siteName);
   });
 
   test('админка Payload открывается, интерфейс на русском', async ({ page }) => {
@@ -33,7 +34,8 @@ test.describe('Web Holy Grail — smoke', () => {
     expect(response?.status(), 'GET /admin должен вернуть 200').toBe(200);
 
     // Title задаётся через payload.config.ts `admin.meta.titleSuffix`.
-    await expect(page).toHaveTitle(/Питомник veo55/);
+    const siteName = process.env.SMOKE_SITE_NAME ?? 'Site';
+    await expect(page).toHaveTitle(new RegExp(siteName));
 
     // Если уже есть admin (есть в локальной БД) — должна быть форма входа («Войти» / «Электронная почта»).
     // Если первый запуск (БД пустая) — будет «Создание первого пользователя».

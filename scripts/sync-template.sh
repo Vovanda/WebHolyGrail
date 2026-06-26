@@ -7,11 +7,11 @@
 #                                              [--dry-run]
 #
 # Examples:
-#   ./scripts/sync-template.sh ../veo55-site
-#   ./scripts/sync-template.sh ../veo55-site --ref develop
-#   ./scripts/sync-template.sh ../veo55-site --ref tag/v0.2.0
-#   ./scripts/sync-template.sh ../veo55-site --repo Vovanda/WebHolyGrail --ref main
-#   ./scripts/sync-template.sh ../veo55-site --dry-run
+#   ./scripts/sync-template.sh ../my-site
+#   ./scripts/sync-template.sh ../my-site --ref develop
+#   ./scripts/sync-template.sh ../my-site --ref tag/v0.2.0
+#   ./scripts/sync-template.sh ../my-site --repo Vovanda/WebHolyGrail --ref main
+#   ./scripts/sync-template.sh ../my-site --dry-run
 #
 # Что делает:
 #   1. Если --repo URL → temp clone --depth=1 -b <ref>; иначе локальный --repo path.

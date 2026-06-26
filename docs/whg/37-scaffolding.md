@@ -199,15 +199,3 @@ gh pr create
 ```
 
 `sync-template.sh` only touches the generic whitelist — your `blocks/domain/`, domain collections, migrations, and `site.config`-equivalent stay intact. Full details: [`whg-template-sync` skill](../../.claude/skills/whg-template-sync/SKILL.md).
-
-## Migrating a pre-template site
-
-If you have a site built on an older Holy Grail layout (e.g. `components/dog/`, `blocks/veo55/`, `lib/dog-profile/`), run the one-shot migration once:
-
-```bash
-../WebHolyGrail/scripts/migrate-veo55-to-domain.sh ./<instance-path>
-```
-
-It renames legacy `components/` and `blocks/veo55/` into `blocks/domain/<niche>/`, splits Carousel/Separator into directory patterns, moves ContentFrame to `layouts/`, fixes all import paths. After it runs, the regular `sync-template.sh` works as documented above.
-
-This script is **one-time** per migrated instance. New instances created from template don't need it.

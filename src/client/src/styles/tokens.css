@@ -1,8 +1,8 @@
 /*
  * Design tokens — единый источник правды для цвета/отступа/радиуса/типографики (R2).
  *
- * Значения взяты ИЗ ЖИВОГО veo55 (`veo55/src/assets/veo-ui.css:root`), не угаданы.
- * См. holy-grail/reference/veo55-visual-pasport в MCP для обоснования каждого.
+ * Стартовая палитра — тёплая editorial (cream + warm chocolate + amber accent).
+ * Меняется через :root[data-theme='<name>'] override (R5+++).
  *
  * Шрифт-переменные (`--font-display`, `--font-sans`, `--font-script`) выставляются
  * через next/font в `app/layout.tsx` — здесь только fallback-стек.
@@ -10,7 +10,7 @@
 
 :root {
   /* ── Цвет ───────────────────────────────────────── */
-  --color-page-bg: #fffafa; /* snow — фон body (под контент-карточкой), 1:1 из живого veo55 */
+  --color-page-bg: #fffafa; /* snow — фон body (под контент-карточкой) */
   --color-bg: #faf8f2; /* тёплая кремовая контент-карточка над body */
   --color-surface: #fbfaf6; /* paper-cream — плашка / внутренние карточки */
   --color-surface-hover: #f0e8d6; /* soft — hover-фон */

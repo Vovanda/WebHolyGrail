@@ -10,7 +10,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY src/client/package.json src/client/package.json
 COPY contracts/package.json contracts/package.json
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --filter veo55-client...
+    pnpm install --frozen-lockfile --filter client...
 
 FROM node:${NODE_VERSION}-alpine AS build
 RUN corepack enable && apk add --no-cache libc6-compat
@@ -19,10 +19,10 @@ COPY --from=deps /repo/node_modules ./node_modules
 COPY --from=deps /repo/src/client/node_modules ./src/client/node_modules
 COPY . .
 ENV NODE_ENV=production
-# IPv6 outbound недоступен на Timeweb VPS, заставляем Node резолвить IPv4 first
-# (актуально для next/font/google которые качают шрифты во время build).
+# Node fetch — IPv4 first (некоторые VPS-провайдеры не дают исходящий IPv6;
+# актуально для next/font/google которые качают шрифты во время build).
 ENV NODE_OPTIONS=--dns-result-order=ipv4first
-RUN pnpm --filter veo55-client run build
+RUN pnpm --filter client run build
 
 FROM node:${NODE_VERSION}-alpine AS runtime
 # corepack prepare кеширует pnpm в image

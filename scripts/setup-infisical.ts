@@ -92,7 +92,7 @@ function parseArguments(): Args {
     console.error(
       'Usage: pnpm setup-infisical -- --site <slug> [--type minimal|business-card|blog|portal]',
     );
-    console.error('  --site <slug>      site identifier (e.g. "sawking-tech")');
+    console.error('  --site <slug>      site identifier (e.g. "my-site")');
     console.error('  --type <preset>    project type preset (default: minimal)');
     console.error('  --out-dir <path>   where to write .infisical.json (default: .)');
     console.error('');

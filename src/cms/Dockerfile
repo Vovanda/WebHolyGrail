@@ -17,7 +17,7 @@ COPY src/cms/package.json src/cms/package.json
 COPY contracts/package.json contracts/package.json
 
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile --filter veo55-cms...
+    pnpm install --frozen-lockfile --filter cms...
 
 # ---------- build ----------
 FROM node:${NODE_VERSION}-alpine AS build
@@ -29,9 +29,9 @@ COPY --from=deps /repo/src/cms/node_modules ./src/cms/node_modules
 COPY . .
 
 ENV NODE_ENV=production
-# IPv6 outbound недоступен на Timeweb VPS, IPv4 first для Node fetch.
+# Node fetch — IPv4 first (некоторые VPS-провайдеры не дают исходящий IPv6).
 ENV NODE_OPTIONS=--dns-result-order=ipv4first
-RUN pnpm --filter veo55-cms run build
+RUN pnpm --filter cms run build
 
 # ---------- runtime ----------
 FROM node:${NODE_VERSION}-alpine AS runtime
@@ -59,7 +59,7 @@ COPY --from=build /repo/tsconfig.base.json /app/tsconfig.base.json
 
 WORKDIR /app/src/cms
 
-# /data/veo55.db — volume для SQLite (mountится из compose).
+# /data/<site>.db — volume для SQLite (mountится из compose, имя файла = ${SITE_SLUG}).
 VOLUME ["/data", "/app/src/cms/media"]
 
 EXPOSE 3001

@@ -1,7 +1,7 @@
 import type { Config } from 'tailwindcss';
 
 /**
- * Tailwind config for veo55 client.
+ * Tailwind config for client.
  *
  * @remarks
  * Цвет/отступ/радиус/шрифт — **только через CSS-переменные из tokens.css** (R2).
@@ -9,8 +9,7 @@ import type { Config } from 'tailwindcss';
  * Если в JSX встретится `bg-[#hex]` или `text-[12px]` — это нарушение R2,
  * блок должен использовать `bg-surface` / `text-base` / etc.
  *
- * Источник правды токенов — `src/styles/tokens.css`, выведено из живого
- * `veo55/src/assets/veo-ui.css`. См. `holy-grail/reference/veo55-visual-pasport`.
+ * Источник правды токенов — `src/styles/tokens.css`.
  */
 const config: Config = {
   content: ['./src/**/*.{ts,tsx}'],

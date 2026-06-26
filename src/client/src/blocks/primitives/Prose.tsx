@@ -10,8 +10,8 @@ import { ContentFrame } from '@/layouts/ContentFrame';
  *
  * @remarks
  * **Варианты дизайна (CVA):**
- *  - `editorial-with-dropcap` — veo55-стиль: Cormorant italic 22px, **янтарная
- *    буквица 64px на первом абзаце**. Из `.veo-desc` живого veo55.
+ *  - `editorial-with-dropcap` — editorial-стиль: Cormorant italic 22px, **акцентная
+ *    буквица 64px на первом абзаце**. Для крупных «О нас», манифестов.
  *  - `editorial-plain` — то же без буквицы. Для FAQ-ответов, secondary-секций.
  *  - `modern-sans` — Inter 16-18px, normal style. Для обычных текстовых блоков.
  *

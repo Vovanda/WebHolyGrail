@@ -13,11 +13,11 @@ interface BannerSliderProps {
  * BannerSlider — top-баннер сайта. Тонкий wrapper над общим `Carousel`.
  *
  * @remarks
- * Параметры из оригинала veo55 (`.veo-banner` в main.html):
- *  - `data-auto="7000"` → автоповорот 7 сек
+ * Параметры:
+ *  - `interval=7000` → автоповорот 7 сек
  *  - без стрелок-навигации
  *  - object-contain (не кропать) — баннер не должен кропаться
- *  - height auto — высота подстраивается под пропорции картинки (max-height 520 в оригинале)
+ *  - height auto — высота подстраивается под пропорции картинки
  *  - фон `#1d1612` под прозрачными участками
  */
 export function BannerSlider({ banners }: BannerSliderProps) {

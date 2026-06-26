@@ -28,11 +28,11 @@ export function Hero({
   readonly settings: SiteSettings;
 }) {
   const data = node.data ?? {};
-  // Defaults 1:1 из оригинала veo55/main.html L282-286.
-  const title = data.title ?? '{accent} с документами РКФ';
-  const titleAccent = data.titleAccent ?? 'Щенки ВЕО';
-  const subtitle = data.subtitle ?? 'Питомник example овчарки «Example Co.» · г. Омск';
-  const subtitleShort = data.subtitleShort ?? 'Питомник ВЕО «Example Co.» · г. Омск';
+  // Generic placeholders — реальные значения приходят из Payload (поля title/subtitle).
+  const title = data.title ?? 'Lorem ipsum {accent} dolor sit amet';
+  const titleAccent = data.titleAccent ?? 'consectetur';
+  const subtitle = data.subtitle ?? 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.';
+  const subtitleShort = data.subtitleShort ?? 'Lorem ipsum dolor sit amet.';
 
   const [titleHead, titleTail = ''] = title.split('{accent}');
 

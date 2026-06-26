@@ -63,7 +63,7 @@ export const TimelineBlock: Block = {
       type: 'select',
       defaultValue: 'editorial-dots',
       options: [
-        { label: 'Редакционный с точками (veo55-стиль)', value: 'editorial-dots' },
+        { label: 'Редакционный с точками', value: 'editorial-dots' },
         { label: 'Современный stepper', value: 'modern-stepped' },
         { label: 'Компактный список', value: 'compact' },
       ],

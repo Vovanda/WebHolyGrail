@@ -11,8 +11,7 @@ import type { BlockNode } from './blocks';
  * Один `<SiteLayout>` компонент рендерит любую конфигурацию. Когда придёт второй
  * клиент с другой раскладкой — меняется `SiteLayoutConfig`, страницы не трогаются.
  *
- * См. holy-grail/reference/veo55-visual-pasport (раздел Layout Engine) и
- * `.claude/rules/common.md` R11 для дисциплины применения.
+ * См. `docs/whg/30-philosophy.md` для дисциплины применения (R3, R4, R5).
  */
 
 /**

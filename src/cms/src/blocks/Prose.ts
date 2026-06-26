@@ -24,7 +24,7 @@ export const ProseBlock: Block = {
       type: 'select',
       defaultValue: 'editorial-with-dropcap',
       options: [
-        { label: 'Редакционный с буквицей (veo55-стиль)', value: 'editorial-with-dropcap' },
+        { label: 'Редакционный с буквицей', value: 'editorial-with-dropcap' },
         { label: 'Редакционный без буквицы', value: 'editorial-plain' },
         { label: 'Современный sans-serif', value: 'modern-sans' },
       ],

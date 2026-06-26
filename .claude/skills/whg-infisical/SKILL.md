@@ -274,7 +274,7 @@ INFISICAL_RUN=(infisical run --token=$TOKEN --domain=$INFISICAL_HOST_URL --proje
 "${INFISICAL_RUN[@]}" docker compose -f compose.bluegreen.yml up -d
 ```
 
-Реализация: `deploy/prod/deploy.sh` в `Vovanda/veo55-site@df868e1` (canonical example).
+Реализация: `deploy/prod/deploy.sh` (canonical example в downstream-инстансах после первого VPS deploy).
 
 ### Install CLI на VPS (без sudo, без apt)
 
