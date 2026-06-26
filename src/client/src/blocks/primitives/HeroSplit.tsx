@@ -46,8 +46,17 @@ export function HeroSplit({
   const rightCaption = data.rightCaption;
 
   return (
-    <section className="bg-page-bg py-16 md:py-24">
-      <div className="mx-auto max-w-wide px-4 md:px-6 grid md:grid-cols-[55fr_45fr] gap-10 md:gap-12 items-center">
+    <section className="relative bg-page-bg py-14 md:py-20 overflow-hidden">
+      {/* Subtle accent-radial gradient в правом верхнем углу — атмосфера hero */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-60"
+        aria-hidden="true"
+        style={{
+          background:
+            'radial-gradient(60% 80% at 90% 0%, color-mix(in srgb, var(--color-accent) 14%, transparent), transparent 60%)',
+        }}
+      />
+      <div className="relative mx-auto max-w-wide px-4 md:px-6 grid md:grid-cols-[55fr_45fr] gap-10 md:gap-12 items-center">
         {/* LEFT — text + CTA + badges */}
         <div>
           <h1 className="font-display text-4xl md:text-h1 font-semibold leading-tight tracking-tight text-ink">
@@ -87,7 +96,7 @@ export function HeroSplit({
 
         {/* RIGHT — vertical-steps card */}
         {rightSteps.length > 0 && (
-          <div className="rounded-2xl bg-bg border border-border shadow-md p-6 md:p-7">
+          <div className="rounded-2xl bg-bg border border-border shadow-lg p-6 md:p-7 backdrop-blur-sm">
             {rightTitle && (
               <h2 className="font-display text-h4 font-semibold text-ink mb-4">{rightTitle}</h2>
             )}

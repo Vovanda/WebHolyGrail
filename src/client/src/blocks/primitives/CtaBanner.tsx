@@ -27,7 +27,13 @@ export function CtaBanner({
   const ctaSecondary = data.ctaSecondary;
 
   return (
-    <section className="py-20 md:py-28 bg-accent text-white">
+    <section
+      className="relative py-16 md:py-22 text-white overflow-hidden"
+      style={{
+        background:
+          'linear-gradient(135deg, var(--color-accent) 0%, color-mix(in srgb, var(--color-accent) 80%, black) 100%)',
+      }}
+    >
       <div className="mx-auto max-w-content px-4 md:px-6 text-center">
         <h2 className="font-display text-h2 md:text-h1 font-semibold leading-tight tracking-tight">
           {heading}

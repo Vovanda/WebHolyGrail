@@ -39,7 +39,7 @@ export function ProjectTypesGrid({
   if (items.length === 0) return null;
 
   return (
-    <section className="py-16 md:py-24">
+    <section className="py-14 md:py-20">
       <div className="mx-auto max-w-wide px-4 md:px-6 grid md:grid-cols-2 gap-10 md:gap-12 items-start">
         {/* LEFT — heading + subtitle */}
         <div>

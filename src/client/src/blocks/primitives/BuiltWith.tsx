@@ -37,7 +37,7 @@ export function BuiltWith({
   if (items.length === 0) return null;
 
   return (
-    <section className="py-16 md:py-20 bg-surface/30">
+    <section className="py-14 md:py-18 bg-surface/30">
       <div className="mx-auto max-w-wide px-4 md:px-6">
         {heading && (
           <h2 className="text-center font-display text-h3 md:text-h2 font-semibold text-ink">
