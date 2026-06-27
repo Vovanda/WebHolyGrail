@@ -1,0 +1,26 @@
+{
+  "veo55": {
+    "url": "https://veo55.ru",
+    "title": "Питомник ВЕО «Омская Дружина»",
+    "screenshot": "veo55-screenshot.jpeg",
+    "favicon": "https://veo55.ru/branding/logo.png"
+  },
+  "sawking-tech": {
+    "url": "https://sawking.tech",
+    "title": "Доступные технологии",
+    "screenshot": "sawking-tech-screenshot.jpeg",
+    "favicon": "https://sawking.tech/content/images/size/w256h256/2025/12/logo6-7.png"
+  },
+  "sng74": {
+    "url": "https://sng74.ru",
+    "title": "ООО «СНГ 74»",
+    "screenshot": "sng74-screenshot.jpeg",
+    "favicon": "https://sng74.ru/templates/shaper_helixultimate/images/favicon.ico"
+  },
+  "fitness-mafia": {
+    "url": "https://fitness-mafia.ru",
+    "title": "Fitness Mafia",
+    "screenshot": "fitness-mafia-screenshot.jpeg",
+    "favicon": "https://fitness-mafia.ru/templates/shaper_helixultimate/images/favicon.ico"
+  }
+}
