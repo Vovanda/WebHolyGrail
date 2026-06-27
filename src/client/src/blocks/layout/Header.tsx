@@ -3,6 +3,7 @@ import { Github } from 'lucide-react';
 import type { BlockNode, SiteSettings } from 'contracts';
 
 import { ThemeToggle } from './ThemeToggle';
+import { BrandMark } from '@/blocks/primitives/BrandMark';
 
 /**
  * Header — sticky-шапка template'а под marketing landing.
@@ -50,7 +51,12 @@ export function Header({
           className="flex items-center gap-3 shrink-0 group"
           aria-label={settings.siteName ?? 'На главную'}
         >
-          <WordmarkMark className="text-accent group-hover:text-accent-hover transition-colors" />
+          <BrandMark
+            logo={settings.logo}
+            siteName={settings.siteName ?? 'Web Holy Grail'}
+            size={36}
+            className="group-hover:opacity-90 transition-opacity"
+          />
           <span className="font-display text-base md:text-lg font-semibold tracking-tight text-ink whitespace-nowrap">
             {settings.siteName ?? 'Web Holy Grail'}
           </span>
@@ -98,38 +104,5 @@ export function Header({
         </div>
       </div>
     </header>
-  );
-}
-
-/**
- * Inline SVG mark — простой geometric shield-like marker для WHG-wordmark.
- * Downstream может заменить через собственный layout-блок или подмену SiteSettings.logo.
- */
-function WordmarkMark({ className }: { readonly className?: string }) {
-  // h-9 w-9 (36×36) — единый ритм с burger / GitHub-icon / ThemeToggle.
-  return (
-    <svg
-      width="36"
-      height="36"
-      viewBox="0 0 36 36"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-      aria-hidden="true"
-    >
-      <rect width="36" height="36" rx="8" fill="currentColor" />
-      <text
-        x="18"
-        y="24"
-        textAnchor="middle"
-        fontFamily="var(--font-display, system-ui)"
-        fontSize="13"
-        fontWeight="700"
-        fill="white"
-        letterSpacing="0.5"
-      >
-        WHG
-      </text>
-    </svg>
   );
 }
