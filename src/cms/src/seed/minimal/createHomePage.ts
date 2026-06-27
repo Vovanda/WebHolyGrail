@@ -213,7 +213,7 @@ function buildHomePageData(media: MediaMap) {
       },
 
       // Separator: gradient fade-out перед comparison.
-      { blockType: 'wave-divider' as const, variant: 'gradient' as const },
+      { blockType: 'wave-divider' as const, variant: 'line' as const },
 
       // 4. Comparison — cycle of pain (failure + повторная стоимость) vs WHG growth.
       {
@@ -238,7 +238,7 @@ function buildHomePageData(media: MediaMap) {
       },
 
       // Separator: волна между Comparison и FeatureGrid.
-      { blockType: 'wave-divider' as const, variant: 'wave' as const },
+      { blockType: 'wave-divider' as const, variant: 'line' as const },
 
       // 5. Feature grid 2-3-2 шахматка — brand-logos где есть, generic
       //   emoji где simple-icons нет ниши (architecture).
@@ -309,7 +309,7 @@ function buildHomePageData(media: MediaMap) {
       },
 
       // Separator: gradient между FeatureGrid и BuiltWith.
-      { blockType: 'wave-divider' as const, variant: 'gradient' as const },
+      { blockType: 'wave-divider' as const, variant: 'line' as const },
 
       // 6. Built with — реальные production-сайты на стеке.
       {
@@ -385,7 +385,7 @@ function buildHomePageData(media: MediaMap) {
       },
 
       // Separator: wave (flipped) между ProjectTypes и Quote.
-      { blockType: 'wave-divider' as const, variant: 'wave' as const, flipped: true },
+      { blockType: 'wave-divider' as const, variant: 'line' as const },
 
       // 8. Quote — editorial card-accent-left (привычный Володе вариант,
       // его дефолт для всех сайтов). После подключения QuoteCycle здесь
@@ -422,7 +422,7 @@ function buildHomePageData(media: MediaMap) {
       },
 
       // Separator: gradient между BlockShowcase и CTA banner.
-      { blockType: 'wave-divider' as const, variant: 'gradient' as const },
+      { blockType: 'wave-divider' as const, variant: 'line' as const },
 
       // 10. CTA banner — финальный, blue solid.
       {

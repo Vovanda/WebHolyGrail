@@ -32,7 +32,7 @@ export function StackTransparency({
   if (items.length === 0) return null;
 
   return (
-    <section className="py-10 md:py-14 border-y border-border bg-surface/30">
+    <section className="py-10 md:py-14 bg-page-bg">
       <div className="mx-auto max-w-wide px-4 md:px-6 text-center">
         {heading && (
           <h2 className="font-display text-xl md:text-2xl font-semibold text-ink">{heading}</h2>

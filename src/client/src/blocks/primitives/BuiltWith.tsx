@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
-import Autoplay from 'embla-carousel-autoplay';
+import AutoScroll from 'embla-carousel-auto-scroll';
 import Link from 'next/link';
 import { ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { BlockNode, SiteSettings, MediaRef } from 'contracts';
@@ -41,8 +41,8 @@ export function BuiltWith({
   const subtitle = data.subtitle;
   const items = data.items ?? [];
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'start', dragFree: false }, [
-    Autoplay({ delay: 4500, stopOnInteraction: false, stopOnMouseEnter: true }),
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'start', dragFree: true }, [
+    AutoScroll({ speed: 0.8, stopOnInteraction: false, stopOnMouseEnter: true }),
   ]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [snapCount, setSnapCount] = useState(0);
@@ -65,7 +65,7 @@ export function BuiltWith({
   if (items.length === 0) return null;
 
   return (
-    <section className="py-14 md:py-18 bg-surface/30">
+    <section className="py-14 md:py-18 bg-page-bg">
       <div className="mx-auto max-w-wide px-4 sm:px-6">
         {heading && (
           <h2 className="text-center font-display text-h3 md:text-h2 font-semibold text-ink">
@@ -128,7 +128,7 @@ export function BuiltWith({
             type="button"
             onClick={scrollPrev}
             aria-label="Предыдущий"
-            className="hidden md:inline-flex absolute left-0 top-1/2 -translate-x-3 -translate-y-1/2 h-10 w-10 items-center justify-center rounded-full bg-bg border border-border text-muted hover:text-ink hover:shadow-md transition-all z-10"
+            className="inline-flex absolute left-0 top-1/2 -translate-x-3 -translate-y-1/2 h-10 w-10 items-center justify-center rounded-full bg-bg border border-border text-muted hover:text-ink hover:shadow-md transition-all z-10"
           >
             <ChevronLeft size={20} />
           </button>
@@ -136,7 +136,7 @@ export function BuiltWith({
             type="button"
             onClick={scrollNext}
             aria-label="Следующий"
-            className="hidden md:inline-flex absolute right-0 top-1/2 translate-x-3 -translate-y-1/2 h-10 w-10 items-center justify-center rounded-full bg-bg border border-border text-muted hover:text-ink hover:shadow-md transition-all z-10"
+            className="inline-flex absolute right-0 top-1/2 translate-x-3 -translate-y-1/2 h-10 w-10 items-center justify-center rounded-full bg-bg border border-border text-muted hover:text-ink hover:shadow-md transition-all z-10"
           >
             <ChevronRight size={20} />
           </button>
