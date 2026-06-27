@@ -1,0 +1,99 @@
+# <PRIMARY_DOMAIN> — production vhost для одного сайта.
+# Blue-green ready: upstream загружается через symlink {site_slug}-upstream-active.conf
+# (на blue/green snippet — переключается deploy.sh скриптом).
+#
+# Заменить плейсхолдеры при scaffold нового сайта:
+#   <PRIMARY_DOMAIN>     — основной домен сайта (например example.com)
+#   <SITE_SLUG>          — slug сайта, используется в именах upstreams/snippets
+# Скрипт deploy.sh делает это автоматически (envsubst или sed).
+
+include /etc/nginx/snippets/<SITE_SLUG>-upstream-active.conf;
+
+# HTTP — ACME challenge + redirect на HTTPS
+server {
+    listen 80;
+    listen [::]:80;
+    server_name <PRIMARY_DOMAIN> www.<PRIMARY_DOMAIN>;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        try_files $uri =404;
+    }
+
+    location / {
+        return 301 https://<PRIMARY_DOMAIN>$request_uri;
+    }
+}
+
+# HTTPS — TLS + HTTP/3, www → apex redirect
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    listen 443 quic reuseport;
+    listen [::]:443 quic reuseport;
+    http2 on;
+    server_name www.<PRIMARY_DOMAIN>;
+
+    add_header Alt-Svc 'h3=":443"; ma=86400' always;
+
+    ssl_certificate /etc/letsencrypt/live/<PRIMARY_DOMAIN>/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/<PRIMARY_DOMAIN>/privkey.pem;
+    include /etc/nginx/snippets/ssl-modern.conf;
+    include /etc/nginx/snippets/security-headers.conf;
+
+    return 301 https://<PRIMARY_DOMAIN>$request_uri;
+}
+
+# HTTPS — основной vhost
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name <PRIMARY_DOMAIN>;
+
+    add_header Alt-Svc 'h3=":443"; ma=86400' always;
+
+    ssl_certificate /etc/letsencrypt/live/<PRIMARY_DOMAIN>/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/<PRIMARY_DOMAIN>/privkey.pem;
+    include /etc/nginx/snippets/ssl-modern.conf;
+    include /etc/nginx/snippets/security-headers.conf;
+
+    if ($block_scanner) { return 444; }
+    if ($block_phpbot)  { return 444; }
+    client_max_body_size 100M;
+
+    # --- Payload (CMS) ---
+    location /admin {
+        include /etc/nginx/snippets/proxy-upstream.conf;
+        proxy_pass http://<SITE_SLUG>_cms;
+    }
+    location /api {
+        include /etc/nginx/snippets/proxy-upstream.conf;
+        limit_req zone=api burst=20 nodelay;
+        proxy_pass http://<SITE_SLUG>_cms;
+    }
+    location /_payload {
+        include /etc/nginx/snippets/proxy-upstream.conf;
+        proxy_pass http://<SITE_SLUG>_cms;
+    }
+    location /admin-resources {
+        include /etc/nginx/snippets/proxy-upstream.conf;
+        proxy_pass http://<SITE_SLUG>_cms;
+    }
+
+    # /_next/ — общий префикс admin (3001) и client (3000). Различаем по Referer.
+    location /_next/ {
+        include /etc/nginx/snippets/proxy-upstream.conf;
+        set $next_upstream http://<SITE_SLUG>_client;
+        if ($http_referer ~* "/admin") {
+            set $next_upstream http://<SITE_SLUG>_cms;
+        }
+        proxy_pass $next_upstream;
+    }
+
+    # --- Next client (публичный сайт) ---
+    location / {
+        include /etc/nginx/snippets/proxy-upstream.conf;
+        proxy_pass http://<SITE_SLUG>_client;
+    }
+}

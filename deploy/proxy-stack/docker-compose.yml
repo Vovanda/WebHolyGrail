@@ -1,0 +1,47 @@
+# Holy Grail proxy stack — host-nginx (TLS termination, HTTP/3) + certbot (LE).
+#
+# Per-site backends живут в своих compose-файлах (`/opt/sites/<site>/`),
+# биндят порты на 127.0.0.1:<port>. nginx работает в host network — видит
+# loopback хоста, проксирует туда.
+#
+# Старт:
+#   cd /opt/proxy && docker compose up -d
+#
+# Добавить vhost:
+#   cp deploy/prod/<domain>.conf nginx/conf.d/<domain>.conf
+#   docker compose exec nginx nginx -t && docker compose exec nginx nginx -s reload
+#
+# Выпустить cert (после vhost с ACME-stub):
+#   docker compose run --rm certbot certonly --webroot -w /var/www/certbot \
+#     --agree-tos --no-eff-email --email <admin>@<domain> -d <domain>
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: holygrail-nginx
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/snippets:/etc/nginx/snippets:ro
+      - ./nginx/webroot:/var/www/certbot:ro
+      - ./nginx/cache:/var/cache/nginx:rw
+      - ./certs:/etc/letsencrypt:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: holygrail-certbot
+    # Запускается через `docker compose run` для certonly / renew.
+    # Auto-renew крутится через cron на хосте (см. README).
+    entrypoint: ['certbot']
+    volumes:
+      - ./certs:/etc/letsencrypt
+      - ./nginx/webroot:/var/www/certbot
+    profiles:
+      - tools

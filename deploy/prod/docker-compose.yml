@@ -1,0 +1,129 @@
+# Production stack (полный — со своим nginx и certbot).
+#
+# Запуск (на сервере):
+#   # вариант A — Infisical (рекомендуется, секреты не в файле):
+#   infisical run --env=prod -- docker compose -f deploy/prod/docker-compose.yml up -d
+#
+#   # вариант B — .env.production файл (на сервере, в gitignore):
+#   docker compose --env-file deploy/prod/.env.production \
+#     -f deploy/prod/docker-compose.yml up -d
+#
+# Build context — корень монорепо (нам нужны pnpm-workspace + contracts).
+# Образы собираются на сервере при первом `up -d` или после `pull` (если есть
+# registry). В простом случае — local build, без registry.
+#
+# Все имена контейнеров/сетей/volumes параметризованы через ${SITE_SLUG} —
+# обязательная переменная окружения (см. .env.production.example).
+
+services:
+  cms:
+    container_name: ${SITE_SLUG:?required}-cms
+    build:
+      context: ../..
+      dockerfile: src/cms/Dockerfile
+    environment:
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET:?required}
+      DATABASE_URI: file:/data/${SITE_SLUG}.db
+      PAYLOAD_PUBLIC_SERVER_URL: ${PAYLOAD_PUBLIC_SERVER_URL:?required}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?required}
+      NODE_ENV: production
+      # S3-совместимое хранилище для Media.
+      S3_BUCKET: ${S3_BUCKET:?required}
+      S3_REGION: ${S3_REGION:?required}
+      S3_ENDPOINT: ${S3_ENDPOINT:?required}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:?required}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?required}
+      # Bootstrap admin создаётся seed только если коллекция users пуста
+      ADMIN_INITIAL_EMAIL: ${ADMIN_INITIAL_EMAIL:?required}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?required}
+    volumes:
+      # SQLite (если переедем на Postgres — заменить на сервис postgres + dsn)
+      - site_db:/data
+      # Media НЕ монтируется: s3Storage плагин выставляет disableLocalStorage:true,
+      # все аплоады идут напрямую в S3, локальной копии нет.
+    expose:
+      - '3001' # внутри сети, наружу только через nginx
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O- http://localhost:3001/api/access || exit 1']
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - site-net
+
+  client:
+    container_name: ${SITE_SLUG:?required}-client
+    build:
+      context: ../..
+      dockerfile: src/client/Dockerfile
+    environment:
+      NEXT_PUBLIC_CMS_URL: http://cms:3001
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?required}
+      NODE_ENV: production
+    expose:
+      - '3000'
+    depends_on:
+      cms:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O- http://localhost:3000/ || exit 1']
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - site-net
+
+  nginx:
+    container_name: ${SITE_SLUG:?required}-nginx
+    image: nginx:1.27-alpine
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot_www:/var/www/certbot:ro
+      - certbot_certs:/etc/letsencrypt:ro
+    depends_on:
+      client:
+        condition: service_healthy
+      cms:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - site-net
+
+  certbot:
+    container_name: ${SITE_SLUG:?required}-certbot
+    image: certbot/certbot:latest
+    # Run-once mode — после получения сертификата контейнер останавливается.
+    # Renew раз в 12 часов через cron (см. README).
+    entrypoint: /bin/sh -c
+    command:
+      - >-
+        trap exit TERM; while :; do
+          certbot renew --webroot -w /var/www/certbot --quiet;
+          sleep 12h & wait $${!};
+        done
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    networks:
+      - site-net
+
+volumes:
+  site_db:
+    name: ${SITE_SLUG}_db
+  certbot_www:
+    name: ${SITE_SLUG}_certbot_www
+  certbot_certs:
+    name: ${SITE_SLUG}_certbot_certs
+
+networks:
+  site-net:
+    name: ${SITE_SLUG}-net
+    driver: bridge

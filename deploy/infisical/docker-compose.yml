@@ -1,0 +1,92 @@
+# Self-host Infisical — VPS-shared instance, ОДИН на всю VPS.
+# Project per site (native RBAC изоляция). Не клонировать per-site.
+#
+# Подробнее: deploy/infisical/README.md + docs/stack/infisical.md.
+#
+# Запуск (на VPS):
+#   /opt/infisical/
+#     ├── docker-compose.yml   (этот файл)
+#     └── .env                 (см. .env.example — секреты, chmod 600)
+#   cd /opt/infisical && docker compose up -d
+#
+# Bootstrap admin identity (один раз после первого старта):
+#   docker exec infisical-api infisical bootstrap \
+#     --email admin@<your-domain> \
+#     --password "<strong-pass>" \
+#     --organization "Holy Grail Sites" \
+#     --output json > /opt/infisical/.bootstrap.json
+#   chmod 600 /opt/infisical/.bootstrap.json
+#
+# Внешний доступ — через host-nginx (см. deploy/proxy-stack/) +
+# certbot для TLS на https://infisical.<your-domain>/.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: infisical-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: infisical
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: infisical
+    volumes:
+      - infisical_postgres:/var/lib/postgresql/data
+    networks:
+      - infisical-net
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U infisical']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: infisical-redis
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - infisical_redis:/data
+    networks:
+      - infisical-net
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  infisical:
+    image: infisical/infisical:v0.161.8
+    container_name: infisical-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      AUTH_SECRET: ${AUTH_SECRET}
+      DB_CONNECTION_URI: postgres://infisical:${POSTGRES_PASSWORD}@postgres:5432/infisical
+      REDIS_URL: redis://redis:6379
+      SITE_URL: ${SITE_URL}
+      TELEMETRY_ENABLED: 'false'
+    ports:
+      # bind only на loopback — публичный доступ через host-nginx + TLS
+      - '127.0.0.1:8080:8080'
+    networks:
+      - infisical-net
+    healthcheck:
+      test:
+        ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8080/api/status']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  infisical_postgres:
+  infisical_redis:
+
+networks:
+  infisical-net:
+    driver: bridge

@@ -1,0 +1,3 @@
+# Green color upstream
+upstream <SITE_SLUG>_cms { server 127.0.0.1:3011; keepalive 32; }
+upstream <SITE_SLUG>_client { server 127.0.0.1:3010; keepalive 32; }
