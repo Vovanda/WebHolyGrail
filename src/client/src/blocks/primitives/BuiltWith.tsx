@@ -76,13 +76,15 @@ export function BuiltWith({
 
         <div className="relative mt-10">
           <div className="overflow-hidden" ref={emblaRef}>
-            <div className="flex gap-4 md:gap-5">
+            {/* -ml-4 на container компенсирует pl-4 у первого слайда, gap
+                одинаковый между всеми slides включая loop wrap-around. */}
+            <div className="flex -ml-4 md:-ml-5">
               {items.map((item, i) => {
                 const preview = mediaUrl(item.screenshot);
                 return (
                   <div
                     key={i}
-                    className="flex-[0_0_85%] sm:flex-[0_0_calc(50%-0.625rem)] lg:flex-[0_0_calc(33.333%-0.834rem)] xl:flex-[0_0_calc(25%-0.94rem)] min-w-0"
+                    className="flex-[0_0_85%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333%] xl:flex-[0_0_25%] min-w-0 pl-4 md:pl-5"
                   >
                     <Link
                       href={item.url}
