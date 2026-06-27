@@ -1,6 +1,6 @@
 import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-sqlite';
 
-export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
+export async function up({ db }: MigrateUpArgs): Promise<void> {
   await db.run(sql`PRAGMA foreign_keys=OFF;`);
   await db.run(sql`CREATE TABLE \`__new_pages_blocks_install_snippet\` (
   	\`_order\` integer NOT NULL,
@@ -135,7 +135,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
 }
 
-export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
+export async function down({ db }: MigrateDownArgs): Promise<void> {
   await db.run(sql`PRAGMA foreign_keys=OFF;`);
   await db.run(sql`CREATE TABLE \`__new_pages_blocks_install_snippet\` (
   	\`_order\` integer NOT NULL,

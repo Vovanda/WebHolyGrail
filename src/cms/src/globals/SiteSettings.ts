@@ -158,7 +158,190 @@ export const SiteSettings: GlobalConfig = {
             { label: 'Тёмная', value: 'dark' },
           ],
         },
+        {
+          name: 'palettePreset',
+          label: 'Готовая палитра (preset)',
+          type: 'select',
+          defaultValue: 'whg-default',
+          options: [
+            { label: 'Web Holy Grail (default)', value: 'whg-default' },
+            { label: 'Linear', value: 'linear' },
+            { label: 'Vercel', value: 'vercel' },
+            { label: 'GitHub', value: 'github' },
+            { label: 'Stripe', value: 'stripe' },
+            { label: 'Custom (только из полей ниже)', value: 'custom' },
+          ],
+          admin: {
+            description:
+              'Выбери готовый набор — он применится как база. Ручные цвета ниже (paletteLight / paletteDark) перебивают preset поверх.',
+          },
+        },
+        {
+          name: 'paletteLight',
+          label: 'Палитра — светлая тема',
+          type: 'group',
+          admin: {
+            description: '8 цветов в HEX. Пусто — используется выбранный preset.',
+          },
+          fields: [
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'primary',
+                  label: 'Primary',
+                  type: 'text',
+                  admin: { placeholder: '#2563eb', width: '50%' },
+                },
+                {
+                  name: 'primaryHover',
+                  label: 'Primary hover',
+                  type: 'text',
+                  admin: { placeholder: '#1d4ed8', width: '50%' },
+                },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'foreground',
+                  label: 'Foreground (текст)',
+                  type: 'text',
+                  admin: { placeholder: '#0a0a0a', width: '50%' },
+                },
+                {
+                  name: 'foregroundMuted',
+                  label: 'Foreground muted (мета)',
+                  type: 'text',
+                  admin: { placeholder: '#737373', width: '50%' },
+                },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'background',
+                  label: 'Background',
+                  type: 'text',
+                  admin: { placeholder: '#ffffff', width: '50%' },
+                },
+                {
+                  name: 'surface',
+                  label: 'Surface (карточки)',
+                  type: 'text',
+                  admin: { placeholder: '#f5f5f5', width: '50%' },
+                },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'success',
+                  label: 'Success (✓)',
+                  type: 'text',
+                  admin: { placeholder: '#16a34a', width: '50%' },
+                },
+                {
+                  name: 'danger',
+                  label: 'Danger (✗)',
+                  type: 'text',
+                  admin: { placeholder: '#dc2626', width: '50%' },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          name: 'paletteDark',
+          label: 'Палитра — тёмная тема',
+          type: 'group',
+          admin: { description: '8 цветов в HEX для dark theme. Пусто — preset.' },
+          fields: [
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'primary',
+                  label: 'Primary',
+                  type: 'text',
+                  admin: { placeholder: '#3b82f6', width: '50%' },
+                },
+                {
+                  name: 'primaryHover',
+                  label: 'Primary hover',
+                  type: 'text',
+                  admin: { placeholder: '#60a5fa', width: '50%' },
+                },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'foreground',
+                  label: 'Foreground',
+                  type: 'text',
+                  admin: { placeholder: '#fafafa', width: '50%' },
+                },
+                {
+                  name: 'foregroundMuted',
+                  label: 'Foreground muted',
+                  type: 'text',
+                  admin: { placeholder: '#a3a3a3', width: '50%' },
+                },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'background',
+                  label: 'Background',
+                  type: 'text',
+                  admin: { placeholder: '#0f0f0f', width: '50%' },
+                },
+                {
+                  name: 'surface',
+                  label: 'Surface',
+                  type: 'text',
+                  admin: { placeholder: '#171717', width: '50%' },
+                },
+              ],
+            },
+            {
+              type: 'row',
+              fields: [
+                {
+                  name: 'success',
+                  label: 'Success',
+                  type: 'text',
+                  admin: { placeholder: '#22c55e', width: '50%' },
+                },
+                {
+                  name: 'danger',
+                  label: 'Danger',
+                  type: 'text',
+                  admin: { placeholder: '#ef4444', width: '50%' },
+                },
+              ],
+            },
+          ],
+        },
       ],
+    },
+    {
+      name: 'layout',
+      label: 'Layout (композиция панелей)',
+      type: 'json',
+      admin: {
+        description:
+          'JSON-конфигурация панелей по слотам (top / bottom / left / right / center). ' +
+          'Пусто — используется дефолт из кода. Чтобы скрыть блок — удалить из массива panels ' +
+          'или поставить "visibility": "hidden".',
+      },
     },
   ],
   access: {

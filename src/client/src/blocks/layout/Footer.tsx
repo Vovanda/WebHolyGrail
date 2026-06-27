@@ -43,7 +43,6 @@ export function Footer({
   // используем SiteSettings.footerNav (или mainNav как fallback) — даёт
   // контент-менеджеру управление footer-nav через CMS без правки кода.
   const settingsNav = settings.footerNav?.length ? settings.footerNav : (settings.mainNav ?? []);
-  const social = settings.social ?? [];
   const year = new Date().getFullYear();
 
   const hasDocs = docs.length > 0;

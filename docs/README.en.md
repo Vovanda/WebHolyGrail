@@ -1,6 +1,8 @@
 # Web Holy Grail
 
-Ready-to-run self-hosted website with a CMS admin. Clone it, deploy it — and start creating pages through the visual admin right away. Stack: Next.js 15 + Payload 3 + Docker. MIT.
+**Start as a landing. Grow into anything.**
+
+An architectural foundation for self-hosted websites that grow. The stack, the project structure, and the rules of evolution are already decided. Websites rarely die from lack of technology — they die from being built as temporary solutions. WHG gives you a foundation to start small and grow without rewriting a year later.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](../LICENSE)
 

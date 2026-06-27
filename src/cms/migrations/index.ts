@@ -3,6 +3,7 @@ import * as migration_20260626_194947_add_landing_v2_blocks from './20260626_194
 import * as migration_20260627_052649_add_feature_grid_details from './20260627_052649_add_feature_grid_details';
 import * as migration_20260627_054720_add_jobs_config from './20260627_054720_add_jobs_config';
 import * as migration_20260627_055803_add_separator_variants from './20260627_055803_add_separator_variants';
+import * as migration_20260627_061449_add_palette_preset_and_layout from './20260627_061449_add_palette_preset_and_layout';
 
 export const migrations = [
   {
@@ -29,5 +30,10 @@ export const migrations = [
     up: migration_20260627_055803_add_separator_variants.up,
     down: migration_20260627_055803_add_separator_variants.down,
     name: '20260627_055803_add_separator_variants',
+  },
+  {
+    up: migration_20260627_061449_add_palette_preset_and_layout.up,
+    down: migration_20260627_061449_add_palette_preset_and_layout.down,
+    name: '20260627_061449_add_palette_preset_and_layout',
   },
 ];
