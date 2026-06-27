@@ -25,7 +25,9 @@ export async function getPageBySlug(slug: string): Promise<PageDoc | null> {
   const query = new URLSearchParams({
     'where[slug][equals]': slug,
     'where[_status][equals]': 'published',
-    depth: '1',
+    // depth=2 — populate media-uploads внутри array-полей блоков (например
+    // BuiltWith.items[].screenshot, BlockShowcase.items[].preview).
+    depth: '2',
     limit: '1',
   });
 
@@ -68,9 +70,7 @@ export async function getSiteSettings(): Promise<SiteSettings | null> {
 /**
  * Получить переиспользуемый блок-фрагмент по id (для `ReusableRef` блока).
  */
-export async function getReusableBlockById(
-  id: string | number,
-): Promise<ReusableBlockDoc | null> {
+export async function getReusableBlockById(id: string | number): Promise<ReusableBlockDoc | null> {
   const response = await fetch(`${CMS_URL}/api/reusable-blocks/${id}?depth=1`, {
     cache: 'no-store',
   });
