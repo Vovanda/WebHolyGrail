@@ -6,7 +6,7 @@
   "description": "Next.js client for Holy Grail site",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "tsc --noEmit",
