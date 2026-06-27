@@ -193,64 +193,73 @@ function buildHomePageData(media: MediaMap) {
           'Готовый стартовый репозиторий за минуту. Дальше ./dev.sh и создавай страницы или пиши код.',
       },
 
-      // 3. Stack transparency — ряд иконок технологий.
+      // 3. Stack transparency — brand-logos через simple-icons CDN (brand-colors).
       {
         blockType: 'stack-transparency' as const,
         heading: 'Что под капотом',
         subtitle: 'Решения зафиксированы — фокусируйтесь на продукте.',
         items: [
-          { icon: '⚡', label: 'Next.js 15' },
-          { icon: '📝', label: 'Payload 3' },
-          { icon: '⚛️', label: 'React 19' },
-          { icon: '🐳', label: 'Docker' },
-          { icon: '📘', label: 'TypeScript' },
-          { icon: '🎨', label: 'Tailwind 4' },
-          { icon: '🔐', label: 'Infisical' },
+          { icon: 'https://cdn.simpleicons.org/nextdotjs/000000', label: 'Next.js 15' },
+          { icon: 'https://cdn.simpleicons.org/payloadcms/000000', label: 'Payload 3' },
+          { icon: 'https://cdn.simpleicons.org/react/61DAFB', label: 'React 19' },
+          { icon: 'https://cdn.simpleicons.org/docker/2496ED', label: 'Docker' },
+          { icon: 'https://cdn.simpleicons.org/typescript/3178C6', label: 'TypeScript' },
+          { icon: 'https://cdn.simpleicons.org/tailwindcss/06B6D4', label: 'Tailwind 4' },
+          // Infisical brand-mark — символ бесконечности (Володя: "у Infisical
+          // значок бесконечности"). Unicode ∞ дешевле любого favicon-скачивания
+          // и точно соответствует brand identity.
+          { icon: '∞', label: 'Infisical' },
         ],
       },
 
-      // 4. Comparison — red ✗ vs green ✓.
+      // 4. Comparison — cycle of pain (failure + повторная стоимость) vs WHG growth.
       {
         blockType: 'comparison-table' as const,
         heading: 'Большинство сайтов заканчиваются тупиком',
-        leftLabel: 'Обычный путь',
+        leftLabel: 'Обычный путь — цикл боли',
         rightLabel: 'С Web Holy Grail',
         leftItems: [
-          { text: 'Сайт на конструкторе — нужен блог → переезд на CMS' },
-          { text: 'Заказали кабинет — переписали с нуля' },
-          { text: 'Через год снова конструктор лучше подходит' },
+          { text: 'Сайт-визитка на конструкторе' },
+          { text: '↻ Нужен блог — платим за миграцию на CMS, теряем SEO' },
+          { text: 'Заказали личный кабинет' },
+          { text: '↻ Переписали с нуля — ещё 3 месяца и +N₽' },
+          { text: 'Через год снова не то' },
+          { text: '↻ Новый редизайн с нуля — третий раз' },
         ],
         rightItems: [
           { text: 'Начали с визитки на своём сервере' },
           { text: 'Добавили блог — без переезда' },
-          { text: 'Растёт в портал и продукт — тот же фундамент' },
+          { text: 'Личный кабинет — тот же фундамент' },
+          { text: 'Через год — новые сервисы рядом, не вместо' },
         ],
       },
 
-      // 5. Feature grid — что уже решено.
+      // 5. Feature grid 2-3-2 шахматка — brand-logos где есть, generic
+      //   emoji где simple-icons нет ниши (architecture).
       {
         blockType: 'feature-grid' as const,
         heading: 'Что уже решено за вас',
         items: [
           {
-            icon: '🌐',
+            icon: 'https://cdn.simpleicons.org/nextdotjs/000000',
             title: 'Frontend',
             subtitle: 'Next.js 15 + React 19',
             description: 'SSR по умолчанию',
           },
           {
-            icon: '📝',
+            icon: 'https://cdn.simpleicons.org/payloadcms/000000',
             title: 'CMS',
             subtitle: 'Payload 3',
             description: 'Админка на русском',
           },
           {
-            icon: '🐳',
+            icon: 'https://cdn.simpleicons.org/docker/2496ED',
             title: 'Deploy',
             subtitle: 'Docker + blue-green',
             description: 'Zero-downtime',
           },
           {
+            // simple-icons не имеет S3 slug — emoji fallback (TODO local SVG).
             icon: '🗄️',
             title: 'Storage',
             subtitle: 'S3-совместимое',
@@ -263,7 +272,7 @@ function buildHomePageData(media: MediaMap) {
             description: 'Никаких .env на проде',
           },
           {
-            icon: '💾',
+            icon: 'https://cdn.simpleicons.org/sqlite/003B57',
             title: 'Data',
             subtitle: 'SQLite по умолчанию',
             description: 'Postgres одной строкой',
@@ -409,7 +418,23 @@ async function ensureMedia(payload: Payload, filename: string, alt: string): Pro
   });
   if (existing.docs.length > 0) {
     const doc = existing.docs[0]!;
-    return { id: Number(doc.id), url: String(doc.url ?? '') };
+    const currentUrl = String(doc.url ?? '');
+    // Если URL устарел (relative когда сейчас S3_PUBLIC_URL должен дать absolute) —
+    // re-trigger Payload's afterRead hooks через update без data: URL пересчитается
+    // через generateFileURL с актуальным env.
+    if (!/^https?:\/\//i.test(currentUrl)) {
+      try {
+        const updated = await payload.update({
+          collection: 'media',
+          id: doc.id,
+          data: { alt },
+        });
+        return { id: Number(updated.id), url: String(updated.url ?? '') };
+      } catch {
+        return { id: Number(doc.id), url: currentUrl };
+      }
+    }
+    return { id: Number(doc.id), url: currentUrl };
   }
   const filePath = resolve(ASSETS_DIR, filename);
   const doc = await payload.create({

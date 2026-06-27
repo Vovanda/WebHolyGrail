@@ -2,6 +2,48 @@ import Link from 'next/link';
 import type { BlockNode, SiteSettings } from 'contracts';
 
 /**
+ * BrandIcon — рендерит icon как <img> если это URL (например simple-icons CDN
+ * с правильными brand-цветами `https://cdn.simpleicons.org/<slug>`), иначе
+ * как text (emoji или просто символ).
+ *
+ * Перенесён сюда же чтобы FeatureGrid мог импортировать (R9 — выделим в
+ * shared helper когда понадобится 3-й use case).
+ */
+export function BrandIcon({
+  icon,
+  label,
+  size = 40,
+}: {
+  readonly icon: string;
+  readonly label: string;
+  readonly size?: number;
+}) {
+  const isUrl = /^https?:\/\//i.test(icon);
+  if (isUrl) {
+    return (
+      /* eslint-disable-next-line @next/next/no-img-element */
+      <img
+        src={icon}
+        alt={label}
+        width={size}
+        height={size}
+        className="object-contain"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+  return (
+    <span
+      className="grid place-items-center text-2xl text-ink/80"
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+    >
+      {icon}
+    </span>
+  );
+}
+
+/**
  * StackTransparency — лёгкая открытка стека: ряд иконок технологий.
  * Заменяет trust-bar (логотипы клиентов) когда клиентов ещё нет.
  */
@@ -39,12 +81,7 @@ export function StackTransparency({
         <ul className="mt-8 flex flex-wrap items-center justify-center gap-x-10 gap-y-6">
           {items.map((item, i) => (
             <li key={i} className="flex flex-col items-center gap-2 min-w-[80px]">
-              <span
-                className="grid h-10 w-10 place-items-center text-2xl text-ink/80"
-                aria-hidden="true"
-              >
-                {item.icon}
-              </span>
+              <BrandIcon icon={item.icon} label={item.label} />
               {item.href ? (
                 <Link
                   href={item.href}
