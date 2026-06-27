@@ -66,10 +66,13 @@ export function HeroSplit({
           backgroundSize: '24px 24px',
         }}
       />
-      <div className="relative mx-auto max-w-wide px-4 md:px-6 grid md:grid-cols-[55fr_45fr] gap-10 md:gap-12 items-center">
+      <div className="relative mx-auto max-w-wide px-4 sm:px-6 grid lg:grid-cols-[55fr_45fr] gap-8 sm:gap-10 lg:gap-12 items-center">
         {/* LEFT — text + CTA + badges */}
         <div>
-          <h1 className="font-display text-4xl md:text-h1 font-semibold leading-tight tracking-tight text-ink">
+          <h1
+            className="font-display font-semibold leading-tight tracking-tight text-ink"
+            style={{ fontSize: 'clamp(2rem, 5vw, var(--text-h1))' }}
+          >
             {heading}
           </h1>
           {subtitle && (

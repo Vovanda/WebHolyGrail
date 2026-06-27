@@ -62,7 +62,9 @@ const LayoutJsonField: JSONFieldClientComponent = ({ field, path }) => {
         style={{
           border: '1px solid var(--theme-elevation-150)',
           borderRadius: 4,
-          overflow: 'hidden',
+          overflow: 'auto',
+          maxHeight: 480,
+          minHeight: 240,
         }}
       >
         <CodeMirror
@@ -80,8 +82,6 @@ const LayoutJsonField: JSONFieldClientComponent = ({ field, path }) => {
             foldGutter: true,
             tabSize: 2,
           }}
-          minHeight="240px"
-          maxHeight="500px"
           placeholder="Пусто — CLASSIC_SITE_LAYOUT из кода. Нажми «Reset to default» чтобы загрузить шаблон."
         />
       </div>
@@ -140,10 +140,10 @@ const LayoutJsonField: JSONFieldClientComponent = ({ field, path }) => {
             <div
               style={{
                 flex: 1,
+                minHeight: 0,
                 border: '1px solid var(--theme-elevation-150)',
                 borderRadius: 4,
-                overflow: 'hidden',
-                minHeight: 500,
+                overflow: 'auto',
               }}
             >
               <CodeMirror
@@ -161,8 +161,6 @@ const LayoutJsonField: JSONFieldClientComponent = ({ field, path }) => {
                   foldGutter: true,
                   tabSize: 2,
                 }}
-                height="100%"
-                minHeight="500px"
               />
             </div>
             <div style={{ display: 'flex', gap: 8 }}>

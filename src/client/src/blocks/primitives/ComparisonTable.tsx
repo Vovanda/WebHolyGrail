@@ -36,7 +36,7 @@ export function ComparisonTable({
             {heading}
           </h2>
         )}
-        <div className="grid md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-6 items-stretch">
+        <div className="grid gap-4 lg:gap-6 items-stretch lg:grid-cols-[1fr_auto_1fr]">
           {/* LEFT — red tint */}
           <div className="rounded-xl bg-danger-soft border border-danger/20 p-6 md:p-8">
             <h3 className="font-display text-lg font-semibold text-danger mb-4">{leftLabel}</h3>
@@ -50,8 +50,8 @@ export function ComparisonTable({
             </ul>
           </div>
 
-          {/* VS — centered, only on desktop */}
-          <div className="hidden md:flex items-center justify-center text-muted font-display text-2xl font-light">
+          {/* VS — centered chip; на mobile inline между cards, на desktop column */}
+          <div className="flex items-center justify-center text-muted font-display text-xl lg:text-2xl font-light py-2 lg:py-0">
             VS
           </div>
 
