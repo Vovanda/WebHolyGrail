@@ -1,5 +1,7 @@
 import type { BlockNode, SiteSettings } from 'contracts';
 
+import { Icon } from '@/blocks/primitives/Icon';
+
 /**
  * ProjectTypesGrid (WHG-specific) — 2×2 grid типов проектов template'а.
  *
@@ -82,12 +84,16 @@ export function ProjectTypesGrid({
                       : 'border-border hover:shadow-md hover:border-accent/40'
                   }`}
                 >
-                  <span
-                    className="grid h-9 w-9 place-items-center rounded-md bg-accent-soft text-accent text-lg mb-3"
-                    aria-hidden="true"
-                  >
-                    {item.icon}
-                  </span>
+                  <div className="mb-3">
+                    <Icon
+                      icon={item.icon}
+                      label={item.label}
+                      size={36}
+                      background="accent-soft"
+                      rounded="md"
+                      innerScale={0.6}
+                    />
+                  </div>
                   <div className="font-display font-semibold text-ink text-base">
                     {item.label}
                     {isRoadmap && (

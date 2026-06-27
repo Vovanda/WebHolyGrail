@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { ArrowRight, Check, ChevronDown } from 'lucide-react';
 import type { BlockNode, SiteSettings } from 'contracts';
 
+import { Icon } from './Icon';
+
 /**
  * HeroSplit — двух-колоночный hero: текст+CTA слева, vertical-steps card справа.
  *
@@ -112,12 +114,14 @@ export function HeroSplit({
               {rightSteps.map((step, i) => (
                 <li key={i}>
                   <div className="flex items-start gap-3 py-2">
-                    <span
-                      className="grid h-10 w-10 place-items-center rounded-md bg-accent-soft text-accent text-lg shrink-0"
-                      aria-hidden="true"
-                    >
-                      {step.icon ?? '◆'}
-                    </span>
+                    <Icon
+                      icon={step.icon ?? '◆'}
+                      label={step.label}
+                      size={40}
+                      background="accent-soft"
+                      rounded="md"
+                      innerScale={0.6}
+                    />
                     <div className="min-w-0">
                       <div className="font-semibold text-ink text-base leading-tight">
                         {step.label}

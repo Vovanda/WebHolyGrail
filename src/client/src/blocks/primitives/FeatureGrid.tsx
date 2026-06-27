@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { BlockNode, SiteSettings } from 'contracts';
 
-import { BrandIcon } from './StackTransparency';
+import { Icon } from './Icon';
 
 /**
  * FeatureGrid — сетка карточек с иконкой/заголовком/описанием.
@@ -78,8 +78,14 @@ export function FeatureGrid({
 
             const cardBody = (
               <>
-                <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-accent-soft p-2">
-                  <BrandIcon icon={item.icon} label={item.title} size={28} />
+                <div className="mx-auto mb-3">
+                  <Icon
+                    icon={item.icon}
+                    label={item.title}
+                    size={48}
+                    background="accent-soft"
+                    innerScale={0.55}
+                  />
                 </div>
                 <div className="font-display font-semibold text-ink text-sm md:text-base">
                   {item.title}
@@ -158,8 +164,14 @@ function FeatureModal({
         >
           <X size={18} />
         </button>
-        <div className="mb-4 grid h-12 w-12 place-items-center rounded-full bg-accent-soft p-2">
-          <BrandIcon icon={item.icon} label={item.title} size={28} />
+        <div className="mb-4">
+          <Icon
+            icon={item.icon}
+            label={item.title}
+            size={48}
+            background="accent-soft"
+            innerScale={0.55}
+          />
         </div>
         <h3 id="feature-modal-title" className="font-display text-xl font-semibold text-ink">
           {item.title}

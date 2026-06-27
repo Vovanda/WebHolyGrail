@@ -273,7 +273,10 @@ function buildHomePageData(media: MediaMap) {
               'Любой S3-совместимый провайдер: AWS S3, Cloudflare R2, Backblaze B2 или self-host MinIO. Один env-переменный набор переключает между ними.\n\nВ dev — MinIO в docker рядом, нулевая настройка. Без локального диска — медиа сразу там же где будет на проде.',
           },
           {
-            icon: '∞',
+            // 🔒 (замочек) — Володя предложил для FeatureGrid "Secrets" (это
+            // про роль = защита секретов). Stack Transparency для Infisical
+            // как бренда — ∞ (их фирменный mark).
+            icon: '🔒',
             title: 'Secrets',
             subtitle: 'Infisical',
             description: 'Никаких .env на проде',
