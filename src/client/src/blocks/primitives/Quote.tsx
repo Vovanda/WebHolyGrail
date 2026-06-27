@@ -137,7 +137,12 @@ export function Quote({
     return <FullWidthDarkQuote data={data} />;
   }
 
-  const showPhotoColumn = data.variant === 'card-accent-left' || data.variant === 'photo-card';
+  // Photo column показываем только если фото реально загружены. card-accent-left
+  // и photo-card раньше всегда рендерили big placeholder "загрузим из CMS" —
+  // он занимал много пустого места на marketing-landing без фото.
+  const hasPhoto = photoUrls.length > 0;
+  const showPhotoColumn =
+    hasPhoto && (data.variant === 'card-accent-left' || data.variant === 'photo-card');
 
   const figureEl = (
     <figure className={cn(quoteCard({ variant: data.variant }), 'm-0')}>
