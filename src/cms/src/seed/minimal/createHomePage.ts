@@ -159,8 +159,8 @@ function buildHomePageData(media: MediaMap) {
       {
         blockType: 'hero-split' as const,
         heading: 'Начните с landing-сайта. Вырастите во что угодно.',
-        subtitle:
-          'Web Holy Grail — self-hosted сайт с CMS и архитектурой, которая не заставит вас начинать заново через год.',
+        headingAccent: 'Вырастите во что угодно.',
+        subtitle: 'Web Holy Grail — self-hosted сайт с CMS и продуманной архитектурой.',
         ctaPrimary: {
           label: 'Использовать шаблон',
           href: 'https://github.com/Vovanda/WebHolyGrail/generate',
@@ -391,7 +391,7 @@ function buildHomePageData(media: MediaMap) {
         blockType: 'quote' as const,
         heading: 'Философия проекта',
         variant: 'card-accent-left' as const,
-        body: 'Технологии уже позволяют дать малому бизнесу нормальный сайт с честной архитектурой — почти даром.',
+        body: 'Технологии уже позволяют дать малому бизнесу нормальный сайт с честной архитектурой — без переплат. И люди этого достойны.',
         author: 'Владимир Савкин',
         role: 'архитектор Web Holy Grail',
         authorHref: 'https://github.com/Vovanda',
