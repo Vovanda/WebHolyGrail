@@ -344,8 +344,8 @@ function buildHomePageData(media: MediaMap) {
         ],
       },
 
-      // Separator: dots между BuiltWith и ProjectTypes.
-      { blockType: 'wave-divider' as const, variant: 'dots' as const },
+      // Separator: line между BuiltWith и ProjectTypes.
+      { blockType: 'wave-divider' as const, variant: 'line' as const },
 
       // 7. Project types — WHG-specific 2×2 grid.
       // Heading на 2 строки с \n — последняя строка рендерится accent-цветом
@@ -421,8 +421,8 @@ function buildHomePageData(media: MediaMap) {
         ],
       },
 
-      // Separator: dots между BlockShowcase и CTA banner.
-      { blockType: 'wave-divider' as const, variant: 'dots' as const },
+      // Separator: gradient между BlockShowcase и CTA banner.
+      { blockType: 'wave-divider' as const, variant: 'gradient' as const },
 
       // 10. CTA banner — финальный, blue solid.
       {
