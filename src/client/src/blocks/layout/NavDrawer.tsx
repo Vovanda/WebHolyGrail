@@ -106,8 +106,9 @@ export function NavDrawer({
       >
         {/* Header drawer — той же высоты что Header сайта (py-3 + h-11/12).
             Лого по центру и кликабельно → главная. */}
-        {/* Drawer header — wordmark (inline SVG mark + siteName), консистентно с Header */}
-        <div className="flex items-center gap-2 py-3 px-4 border-b border-border">
+        {/* Drawer header — высота и отступы как у sticky-Header сайта
+            (py-3 + h-9 monogram = 60px, pl-4 md:pl-6) для visual continuity. */}
+        <div className="flex items-center gap-2 py-3 pl-4 md:pl-6 pr-4 border-b border-border">
           <Link
             href="/"
             onClick={() => setOpen(false)}
@@ -115,20 +116,20 @@ export function NavDrawer({
             className="flex items-center gap-3 shrink-0"
           >
             <svg
-              width="24"
-              height="24"
-              viewBox="0 0 28 28"
+              width="36"
+              height="36"
+              viewBox="0 0 36 36"
               fill="none"
               className="text-accent"
               aria-hidden="true"
             >
-              <rect width="28" height="28" rx="6" fill="currentColor" />
+              <rect width="36" height="36" rx="8" fill="currentColor" />
               <text
-                x="14"
-                y="19"
+                x="18"
+                y="24"
                 textAnchor="middle"
                 fontFamily="var(--font-display, system-ui)"
-                fontSize="11"
+                fontSize="13"
                 fontWeight="700"
                 fill="white"
                 letterSpacing="0.5"
