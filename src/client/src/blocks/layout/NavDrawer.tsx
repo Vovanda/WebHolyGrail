@@ -52,9 +52,9 @@ export function NavDrawer({
   const isLeft = side === 'left';
 
   return (
-    // lg:hidden — NavDrawer существует только на mobile/tablet. На desktop
-    // (≥1024px) nav живёт в Header'е, drawer-overlay и aside не нужны.
-    <div className="lg:hidden">
+    // Бургер видим на всех viewport. На desktop drawer дополняет header-nav
+    // (соцсети, контакты, дополнительные ссылки).
+    <div>
       <button
         type="button"
         aria-label={open ? 'Закрыть меню' : 'Открыть меню'}
@@ -65,13 +65,9 @@ export function NavDrawer({
           // Размер 36×36 (h-9 w-9) совпадает с ThemeToggle/GitHub-icon в Header
           // — единый ритм icon-кнопок.
           //
-          // **lg:hidden** — на desktop (≥1024px) nav уже в самом Header'е,
-          // burger не нужен и наезжает на CTA-кнопку справа. Drawer
-          // активируется только на mobile/tablet.
-          //
           // bg-page-bg/90 + backdrop-blur — непрозрачная подложка, иначе
           // burger сливается с любым контентом под ним.
-          'lg:hidden fixed top-2.5 z-50',
+          'fixed top-2.5 z-50',
           isLeft
             ? 'left-[max(16px,calc((100vw-1300px)/2+24px))]'
             : 'right-[max(16px,calc((100vw-1300px)/2+24px))]',
@@ -88,9 +84,7 @@ export function NavDrawer({
         aria-hidden={!open}
         onClick={() => setOpen(false)}
         className={[
-          // lg:hidden — overlay/aside fixed, не наследуют lg:hidden у parent
-          // обёртки (fixed-children всегда видны), нужен на каждом элементе.
-          'lg:hidden fixed inset-0 z-40 bg-ink/60 backdrop-blur-sm',
+          'fixed inset-0 z-40 bg-ink/60 backdrop-blur-sm',
           'transition-opacity duration-300 ease-out',
           open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
         ].join(' ')}
@@ -103,7 +97,7 @@ export function NavDrawer({
           // open=false → 'hidden' (display:none) для гарантированного скрытия.
           // translate-x-full сам по себе не всегда работает в SSR + некоторых
           // Tailwind JIT edge-cases (особенно с custom width через style).
-          'lg:hidden fixed top-0 bottom-0 z-50 flex-col text-ink',
+          'fixed top-0 bottom-0 z-50 flex-col text-ink',
           'shadow-2xl transition-transform duration-300 ease-out',
           isLeft ? 'left-0 border-r border-border' : 'right-0 border-l border-border',
           open ? 'flex translate-x-0' : 'hidden',

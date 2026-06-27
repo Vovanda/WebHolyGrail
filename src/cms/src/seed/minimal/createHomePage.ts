@@ -205,9 +205,8 @@ function buildHomePageData(media: MediaMap) {
           { icon: 'https://cdn.simpleicons.org/docker/2496ED', label: 'Docker' },
           { icon: 'https://cdn.simpleicons.org/typescript/3178C6', label: 'TypeScript' },
           { icon: 'https://cdn.simpleicons.org/tailwindcss/06B6D4', label: 'Tailwind 4' },
-          // Infisical brand-mark — символ бесконечности (Володя: "у Infisical
-          // значок бесконечности"). Unicode ∞ дешевле любого favicon-скачивания
-          // и точно соответствует brand identity.
+          // Infisical brand-mark — символ бесконечности (∞), точно
+          // соответствует brand identity. Unicode дешевле favicon-скачивания.
           { icon: '∞', label: 'Infisical' },
         ],
       },
@@ -279,9 +278,8 @@ function buildHomePageData(media: MediaMap) {
               'Любой S3-совместимый провайдер: AWS S3, Cloudflare R2, Backblaze B2 или self-host MinIO. Один env-переменный набор переключает между ними.\n\nВ dev — MinIO в docker рядом, нулевая настройка. Без локального диска — медиа сразу там же где будет на проде.',
           },
           {
-            // 🔒 (замочек) — Володя предложил для FeatureGrid "Secrets" (это
-            // про роль = защита секретов). Stack Transparency для Infisical
-            // как бренда — ∞ (их фирменный mark).
+            // 🔒 для Secrets-feature (роль = защита). Stack Transparency для
+            // Infisical как бренда — ∞ (их фирменный mark).
             icon: '🔒',
             title: 'Secrets',
             subtitle: 'Infisical',
@@ -387,13 +385,10 @@ function buildHomePageData(media: MediaMap) {
       // Separator: wave (flipped) между ProjectTypes и Quote.
       { blockType: 'wave-divider' as const, variant: 'line' as const },
 
-      // 8. Quote — editorial card-accent-left (привычный Володе вариант,
-      // его дефолт для всех сайтов). После подключения QuoteCycle здесь
-      // будет ротация: card-accent-left → full-width-dark → minimal-modern.
-      // authorHref намеренно НЕ задан (Володя: "цитата без ссылки на мой
-      // гитхаб в имени... а это поле вообще-то важное в контроле"). Поле
-      // остаётся в Quote-блоке для других use-cases (testimonials с link
-      // на site автора и т.д.).
+      // 8. Quote — editorial card-accent-left (дефолт). После подключения
+      // QuoteCycle будет ротация: card-accent-left → full-width-dark →
+      // minimal-modern. Поле authorHref доступно в админке для testimonials
+      // с link на site автора — на текущем landing намеренно пустое.
       {
         blockType: 'quote' as const,
         heading: 'Философия проекта',

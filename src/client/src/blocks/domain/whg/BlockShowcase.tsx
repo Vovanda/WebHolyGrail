@@ -148,7 +148,7 @@ export function BlockShowcase({
 
 /**
  * SVG-плейсхолдер preview готового блока — абстрактная геометрия передающая
- * характер блока. Володя заменит на реальные screenshots через Media-upload.
+ * характер блока. Заменяется реальными screenshots через Media-upload в админке.
  */
 function BlockPreviewPlaceholder({
   label,

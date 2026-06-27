@@ -43,7 +43,7 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-30 bg-page-bg/80 backdrop-blur-md border-b border-border">
-      <div className="mx-auto flex max-w-wide items-center gap-4 md:gap-6 px-4 md:px-6 py-3">
+      <div className="mx-auto flex max-w-wide items-center gap-3 md:gap-4 pl-4 md:pl-6 pr-16 md:pr-20 py-3">
         {/* Wordmark — inline SVG mark + siteName */}
         <Link
           href="/"
@@ -79,7 +79,7 @@ export function Header({
               target="_blank"
               rel="noopener noreferrer"
               aria-label="GitHub repository"
-              className="hidden sm:inline-flex h-9 w-9 items-center justify-center rounded-md text-muted hover:text-ink hover:bg-surface-hover transition-colors"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted hover:text-ink hover:bg-surface-hover transition-colors"
             >
               <Github size={18} />
             </a>
@@ -90,7 +90,7 @@ export function Header({
               href={cta.href}
               target={cta.href.startsWith('http') ? '_blank' : undefined}
               rel={cta.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-              className="hidden sm:inline-flex items-center px-4 py-2 rounded-md bg-accent text-white text-sm font-medium hover:bg-accent-hover transition-colors whitespace-nowrap"
+              className="inline-flex items-center px-4 py-2 rounded-md bg-accent text-white text-sm font-medium hover:bg-accent-hover transition-colors whitespace-nowrap"
             >
               {cta.label}
             </Link>
