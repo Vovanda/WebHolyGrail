@@ -51,7 +51,7 @@ export function HeroSplit({
   const rightCaption = data.rightCaption;
 
   return (
-    <section className="relative bg-page-bg py-14 md:py-20 overflow-hidden">
+    <section className="relative bg-page-bg pt-20 md:pt-28 pb-14 md:pb-20 overflow-hidden">
       {/* Атмосферный градиент hero — radial accent справа сверху + dot-grid pattern */}
       <div
         className="absolute inset-0 pointer-events-none"
