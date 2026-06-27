@@ -1,0 +1,31 @@
+name: Feature
+description: Новая фича или улучшение в template
+labels: ['feat']
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: Что добавить
+      description: Один-два предложения. Сфокусироваться на ценности для пользователей template'а.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Зачем
+      description: Какую проблему решает / какой use case закрывает
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      placeholder: |
+        - [ ] Команда `pnpm X` работает
+        - [ ] Документация в docs/whg/ обновлена
+        - [ ] Тесты покрывают новый flow
+  - type: textarea
+    id: findings
+    attributes:
+      label: Design / refs
+      description: Design notes, дискуссии, ссылки на skills / docs
