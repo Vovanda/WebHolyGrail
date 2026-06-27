@@ -158,7 +158,7 @@ function buildHomePageData(media: MediaMap) {
       // 1. Hero — двух-колоночный с GrowthPath card справа.
       {
         blockType: 'hero-split' as const,
-        heading: 'Начните с сайта. Вырастите во что угодно.',
+        heading: 'Начните с landing-сайта. Вырастите во что угодно.',
         subtitle:
           'Web Holy Grail — self-hosted сайт с CMS и архитектурой, которая не заставит вас начинать заново через год.',
         ctaPrimary: {
@@ -387,8 +387,7 @@ function buildHomePageData(media: MediaMap) {
 
       // 8. Quote — editorial card-accent-left (дефолт). После подключения
       // QuoteCycle будет ротация: card-accent-left → full-width-dark →
-      // minimal-modern. Поле authorHref доступно в админке для testimonials
-      // с link на site автора — на текущем landing намеренно пустое.
+      // minimal-modern.
       {
         blockType: 'quote' as const,
         heading: 'Философия проекта',
@@ -396,6 +395,7 @@ function buildHomePageData(media: MediaMap) {
         body: 'Технологии уже позволяют дать малому бизнесу нормальный сайт с честной архитектурой — почти даром.',
         author: 'Владимир Савкин',
         role: 'архитектор Web Holy Grail',
+        authorHref: 'https://github.com/Vovanda',
       },
 
       // Separator: line между Quote и BlockShowcase.
