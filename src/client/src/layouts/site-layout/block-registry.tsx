@@ -1,0 +1,127 @@
+import type { ReactNode } from 'react';
+import type { BlockNode, SiteSettings } from 'contracts';
+
+import { Header } from '@/blocks/layout/Header';
+import { Footer } from '@/blocks/layout/Footer';
+import { BannerSliderBlock } from '@/blocks/primitives/BannerSliderBlock';
+import { NavDrawer } from '@/blocks/layout/NavDrawer';
+import { Hero } from '@/blocks/primitives/Hero';
+import { HeroSplit } from '@/blocks/primitives/HeroSplit';
+import { InstallSnippet } from '@/blocks/primitives/InstallSnippet';
+import { StackTransparency } from '@/blocks/primitives/StackTransparency';
+import { ComparisonTable } from '@/blocks/primitives/ComparisonTable';
+import { FeatureGrid } from '@/blocks/primitives/FeatureGrid';
+import { BuiltWith } from '@/blocks/primitives/BuiltWith';
+import { CtaBanner } from '@/blocks/primitives/CtaBanner';
+import { Quote } from '@/blocks/primitives/Quote';
+import { Timeline } from '@/blocks/primitives/Timeline';
+import { Prose } from '@/blocks/primitives/Prose';
+import { WaveDivider } from '@/blocks/primitives/Separator/WaveDivider';
+import { AchievementBanner } from '@/blocks/primitives/AchievementBanner';
+import { CertifiedNotice } from '@/blocks/primitives/CertifiedNotice';
+import { ReusableRef } from '@/blocks/primitives/ReusableRef';
+import { PageRef } from '@/blocks/primitives/PageRef';
+import { FaqAccordion } from '@/blocks/primitives/FaqAccordion';
+import { PageOutlet } from '@/blocks/system/PageOutlet';
+// WHG-specific landing blocks
+import { ProjectTypesGrid } from '@/blocks/domain/whg/ProjectTypesGrid';
+import { BlockShowcase } from '@/blocks/domain/whg/BlockShowcase';
+
+/**
+ * Block registry — маппинг `blockType` строки на React-компонент.
+ *
+ * @remarks
+ * Регистр маленький намеренно — пополняется по мере появления первого
+ * use-case-а конкретного блока (R9). PageOutlet — спец-блок, в него layout
+ * пробрасывает `children` страничного маршрута (то что отдаёт `app/(site)/page.tsx`).
+ */
+type BlockRenderer = (node: BlockNode, settings: SiteSettings, children?: ReactNode) => ReactNode;
+
+const REGISTRY: Record<string, BlockRenderer> = {
+  header: (node, settings) => <Header node={node} settings={settings} />,
+  footer: (node, settings) => <Footer node={node} settings={settings} />,
+  'banner-slider': (node, settings) => <BannerSliderBlock node={node} settings={settings} />,
+  'nav-drawer': (node, settings) => <NavDrawer node={node} settings={settings} />,
+  hero: (node, settings) => <Hero node={node} settings={settings} />,
+  'hero-split': (node, settings) => <HeroSplit node={node} settings={settings} />,
+  'install-snippet': (node, settings) => <InstallSnippet node={node} settings={settings} />,
+  'stack-transparency': (node, settings) => <StackTransparency node={node} settings={settings} />,
+  'comparison-table': (node, settings) => <ComparisonTable node={node} settings={settings} />,
+  'feature-grid': (node, settings) => <FeatureGrid node={node} settings={settings} />,
+  'built-with': (node, settings) => <BuiltWith node={node} settings={settings} />,
+  'cta-banner': (node, settings) => <CtaBanner node={node} settings={settings} />,
+  quote: (node, settings) => <Quote node={node} settings={settings} />,
+  timeline: (node, settings) => <Timeline node={node} settings={settings} />,
+  prose: (node, settings) => <Prose node={node} settings={settings} />,
+  'wave-divider': (node, settings) => <WaveDivider node={node} settings={settings} />,
+  'achievement-banner': (node, settings) => <AchievementBanner node={node} settings={settings} />,
+  'certified-notice': (node, settings) => <CertifiedNotice node={node} settings={settings} />,
+  'faq-accordion': (node, settings) => <FaqAccordion node={node} settings={settings} />,
+  'reusable-ref': (node, settings) => <ReusableRef node={node} settings={settings} />,
+  'page-ref': (node, settings) => <PageRef node={node} settings={settings} />,
+  'page-outlet': (_node, _settings, children) => <PageOutlet>{children}</PageOutlet>,
+  // WHG-specific landing blocks
+  'project-types-grid': (node, settings) => <ProjectTypesGrid node={node} settings={settings} />,
+  'block-showcase': (node, settings) => <BlockShowcase node={node} settings={settings} />,
+};
+
+/**
+ * CSS-классы скрытия блока на брейкпоинтах согласно `data.visibility`.
+ *
+ * @remarks
+ * Дефолт всех `*` — `true` (видно везде), чтобы существующие записи без
+ * `visibility` не пропали. Возвращает пустую строку если все три true
+ * (нет смысла лепить классы).
+ *
+ * Breakpoints (Tailwind default):
+ *  - mobile:  < 768px       (`max-md:`)
+ *  - tablet:  768–1023px    (`md:max-lg:`)
+ *  - desktop: ≥ 1024px      (`lg:`)
+ */
+function visibilityClass(node: BlockNode): string {
+  const v = (
+    node.data as
+      | { visibility?: { desktop?: boolean; tablet?: boolean; mobile?: boolean } }
+      | undefined
+  )?.visibility;
+  if (!v) return '';
+  const desktop = v.desktop ?? true;
+  const tablet = v.tablet ?? true;
+  const mobile = v.mobile ?? true;
+  if (desktop && tablet && mobile) return '';
+  const classes: string[] = [];
+  if (!mobile) classes.push('max-md:hidden');
+  if (!tablet) classes.push('md:max-lg:hidden');
+  if (!desktop) classes.push('lg:hidden');
+  return classes.join(' ');
+}
+
+/**
+ * Рендерит один BlockNode. Неизвестный тип логируется и игнорируется (graceful) —
+ * чтобы новый блок в Payload-конфиге не положил весь сайт пока его React-имплементация
+ * не доехала.
+ *
+ * Применяет visibility (если в `data.visibility` отключён один или несколько
+ * брейкпоинтов — оборачивает в `<div>` с media-query классами).
+ */
+export function renderBlockNode(
+  node: BlockNode,
+  settings: SiteSettings,
+  children?: ReactNode,
+): ReactNode {
+  const renderer = REGISTRY[node.blockType];
+  if (!renderer) {
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[block-registry] blockType="${node.blockType}" (id=${node.id}) не зарегистрирован. ` +
+          `Добавь компонент в blocks/ и регистрируй здесь. Пока пропускаю.`,
+      );
+    }
+    return null;
+  }
+  const rendered = renderer(node, settings, children);
+  const vClass = visibilityClass(node);
+  if (!vClass) return rendered;
+  return <div className={vClass}>{rendered}</div>;
+}
