@@ -1,0 +1,394 @@
+# Infisical
+
+> Env-aware versioned key-value config storage. **Self-host single instance** на VPS — тот же web UI / API / SDK что у Cloud (OSS = open-source версия cloud edition). Каждый Holy Grail сайт = отдельный **project** в этом instance (native Infisical RBAC изоляция). Cloud SaaS не используем — vendor lock-in недопустим.
+>
+> В Holy Grail используется как **general-purpose config store** — секреты + env-dependent runtime + feature flags + rate limits. Не только для секретов. Подробнее — [`45-data-location.md`](../whg/45-data-location.md).
+
+## Архитектура
+
+```
+VPS (под Holy Grail инстансы)
+└── docker контейнер: infisical-server (+ Postgres) — один на всю VPS
+    ├── project "holygrail-<your-slug>"
+    │   ├── env=dev, env=staging, env=prod
+    │   ├── secrets, service identities, audit log
+    │   └── RBAC: только members с scope этого project
+    ├── project "holygrail-<your-slug-2>"
+    │   └── (тот же шаблон, изолирован)
+    └── project "holygrail-<next-site>"
+        └── ...
+```
+
+**Изоляция между проектами** — native Infisical project-level RBAC:
+
+- Member со scope=`project-X` не видит `project-Y` (даже на одном instance, тот же UI)
+- Audit log per project
+- Сompromised member одного project'а не утекает другие
+- **Instance admin** (root admin) видит всё — для scaffold / апгрейдов / бэкапов
+- **Per-site admin** (приглашённый user/identity) — видит ТОЛЬКО тот project куда его invited. Логинится через любой alias instance'а, но в UI workspace-list отфильтрован RBAC до его memberships
+- **Prod deploy identity** — отдельная UA machine identity per project (см. `setup-infisical.ts`), scope=prod env, никаких других прав
+
+**Когда хватит одного instance:** до десятков проектов один Infisical справляется. Free / OSS edition покрывает наш use case.
+
+## Канонический путь использования (наш workflow)
+
+> Этот раздел — **источник правды** про то как мы используем Infisical в WHG. Если есть несовпадение с практикой — править эту секцию + код, не наоборот.
+
+1. **One self-host instance на VPS** — `/opt/infisical/docker-compose.yml`, поднят раз навсегда. Не клонируется per-site.
+2. **One canonical hostname** — `infisical.example.com` (домен команды infrastructure, не привязан к конкретному сайту-клиенту). Магические ссылки / OAuth редиректят сюда. Хост задаётся через env `INFISICAL_HOST_URL` при scaffold.
+3. **Дополнительные subdomain-aliases на каждый сайт** — `infisical.<site-host>` для каждого инстанса. Все nginx server-блоки `proxy_pass http://127.0.0.1:8080`, один backend. Subpath (`example.com/infisical/`) НЕ работает — см. подсекцию ниже.
+4. **Project per site** — `holygrail-<slug>`, создаётся автоматически через `pnpm setup-infisical --site <slug>` (REST API, идемпотентно). Каждый — изолированный workspace.
+5. **Per-site admin invited** — для каждого сайта приглашается user-admin, которому виден **только этот project**. Через REST: `POST /api/v3/users/signup-invite` + `POST /api/v2/workspace/{id}/memberships`. Авторизуется через любой `infisical.<site-host>` alias → видит только свой workspace.
+6. **Per-site machine identity (UA)** — для prod deploy. Creds в `/etc/infisical/<slug>/{client-id,client-secret}` на VPS (chmod 600 deploy:deploy). `deploy.sh` через `infisical login --method=universal-auth ...`.
+7. **Local dev secrets chain** (приоритет по факту что доступно):
+   - **a) VPS shared Infisical** — если есть сеть до `$INFISICAL_HOST_URL` И валидный admin token / project membership. Тот же state что у других разработчиков, prod-like.
+   - **b) Local Infisical container на dev-машине** — если поднят (`docker compose` через `scripts/setup-local-infisical.sh` или ручной). Полностью offline-prod-like, изолированный state per dev. `.infisical.json` указывает на `localhost:8080`.
+   - **c) `.env.local` файл** — minimal fallback без infrastructure. Никакой централизованной ротации, никакого audit, всё руками. Подходит когда не нужен Infisical state (новый проект, локальные эксперименты, оффлайн).
+   - **d) fail-fast** — нет ни одного из (a-c).
+
+   `dev.sh` пробует по порядку, выбирает первый рабочий. Чем выше — тем ближе к prod-like среде.
+
+8. **Содержимое БД Infisical**: секреты + env-dependent runtime + feature flags + rate limits — всё что меняется devops без relays code. См. `docs/whg/45-data-location.md`.
+
+## Текущие версии
+
+| Компонент                   | Версия              | Проверка                          |
+| --------------------------- | ------------------- | --------------------------------- |
+| Infisical server            | latest stable (OSS) | в docker compose tag              |
+| CLI                         | latest stable       | `infisical --version`             |
+| Node SDK `@infisical/sdk`   | `^3.0.0`            | в `package.json`                  |
+| MCP server `@infisical/mcp` | latest              | `npx -y @infisical/mcp --version` |
+| Postgres (для Infisical)    | `14`                | в docker compose tag              |
+
+Релизы tracking:
+
+- [Main server releases](https://github.com/Infisical/infisical/releases) — для self-host docker image
+- [CLI releases](https://github.com/Infisical/cli/releases)
+- [SDK releases](https://github.com/Infisical/node-sdk-v2/releases)
+- [MCP server releases](https://github.com/Infisical/infisical-mcp-server/releases)
+
+## Что мы используем
+
+- **Self-host** (один instance на VPS, OSS edition) — текущий выбор. Без vendor lock-in.
+- **Cloud** (`app.infisical.com`) — **не используем**. Бесплатный для эксперимента, но создаёт зависимость.
+- **Auth method** — **Universal Auth** machine identities (legacy service tokens deprecated).
+- **Isolation pattern** — **project per site**, не folder per site. Используем native RBAC.
+- **Local dev** — может подключаться к **тому же self-host instance** на VPS (через VPN / SSH tunnel), либо к отдельной локальной инсталляции для completely offline dev.
+- **Prod** — `deploy/prod/deploy.sh` обёрнут `infisical run --env=prod`, контейнеры получают env при старте через UA service identity того project.
+
+## Deployment self-host instance
+
+### Setup на VPS (один раз навсегда)
+
+`deploy/infisical/docker-compose.yml` (VPS-shared, один на всю VPS — рядом с `deploy/proxy-stack/`):
+
+```yaml
+services:
+  infisical-db:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: infisical
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: infisical
+    volumes:
+      - infisical_db:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  infisical:
+    image: infisical/infisical:latest
+    depends_on: [infisical-db]
+    environment:
+      DB_CONNECTION_URI: postgres://infisical:${POSTGRES_PASSWORD}@infisical-db/infisical
+      ENCRYPTION_KEY: ${INFISICAL_ENCRYPTION_KEY} # 32-byte hex
+      AUTH_SECRET: ${INFISICAL_AUTH_SECRET} # 32-byte hex
+      SITE_URL: https://infisical.example.com
+    ports:
+      - '8080:8080'
+    restart: unless-stopped
+
+volumes:
+  infisical_db:
+```
+
+После старта — `infisical bootstrap` команда создаёт admin user + org + admin machine identity автоматически:
+
+```bash
+docker exec infisical infisical bootstrap \
+  --email admin@example.com \
+  --password <strong-pass> \
+  --organization "Holy Grail Sites" \
+  --output k8-secret  # или просто текст в stdout
+```
+
+Возвращает Client ID + Client Secret для root admin identity. Сохраняешь в personal env + в любое безопасное хранилище.
+
+### Backup стратегия
+
+Один Postgres → один pg_dump per день в `/backups/infisical/`. Не забывать ENCRYPTION_KEY (без него БД нечитаема даже с дампом).
+
+### Reverse proxy + TLS
+
+**Решение: per-subdomain на каждый сайт** (`infisical.<site-host>`), не subpath.
+
+```nginx
+server {
+  listen 443 ssl http2;
+  server_name infisical.example.com;
+
+  ssl_certificate     /etc/letsencrypt/live/infisical.example.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/infisical.example.com/privkey.pem;
+  include /etc/nginx/snippets/ssl-modern.conf;
+
+  location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+  }
+}
+```
+
+`certbot --nginx -d infisical.<site-host>` — отдельный cert на каждый сайт.
+
+#### Почему не subpath (`example.com/infisical/`) — пруф эксперимента 2026-06-25
+
+Пробовали через `location /infisical/ { proxy_pass http://127.0.0.1:8080/; ... }` + `X-Forwarded-Prefix`. Не работает из коробки:
+
+```
+$ curl -sI https://example.com/infisical/
+HTTP/2 308
+location: /infisical                         # ← Infisical Next.js редиректит на /infisical БЕЗ slash
+
+$ curl -sI https://example.com/infisical
+HTTP/1.1 404 Not Found                       # ← без slash не матчит nginx location /infisical/,
+                                             #   ловит catch-all `/` → site client 404
+$ curl -sL https://example.com/infisical/login
+<!DOCTYPE html>...                           # ← это HTML 404-страница сайта, не Infisical:
+... NEXT_HTTP_ERROR_FALLBACK;404 ...         #   Infisical UI ходит по абсолютным /_next/, /static/,
+                                             #   /api/, которые promelают мимо location /infisical/
+```
+
+Корневая причина: Infisical UI = Next.js приложение, hard-coded под root URL. Нет env-флага `BASE_PATH` / `PATH_PREFIX`. Frontend генерирует абсолютные пути (`/static/...`, `/_next/...`, `/api/...`) без префикса subpath.
+
+Костыль через nginx `sub_filter` (rewrite response body) теоретически возможен, но:
+
+- ломается при включённом gzip
+- ломается при `Accept-Encoding: br` (brotli)
+- регулярно ломается при обновлении Infisical (новые пути в UI)
+- не покрывает WebSocket subscription paths
+- не покрывает JSON API responses с absolute URLs
+
+**Решение** — отдельный subdomain на каждый сайт. Cert через `certbot --nginx` стандартно.
+
+### Backup стратегия
+
+Один Postgres → один pg_dump per день в `/backups/infisical/`. Не забывать ENCRYPTION_KEY (без него БД нечитаема даже с дампом).
+
+## Scaffold нового сайта на self-host
+
+После того как Infisical instance работает на VPS:
+
+1. `pnpm setup-infisical -- --site <slug>` — скрипт:
+   - Логинится через admin UA credentials (`INFISICAL_ADMIN_CLIENT_ID/SECRET` env)
+   - Создаёт **project** `holygrail-<slug>` (REST `POST /api/v2/workspace`)
+   - Создаёт environments dev/staging/prod
+   - Seed placeholders для STANDARD_SECRETS
+   - Создаёт service identity `<slug>-prod-deploy` (UA) с scope=`prod env` of этого project
+   - Пишет `.infisical.json` (`workspaceId` + `defaultEnvironment: dev`)
+2. Service Client Secret выводится в console — кладёшь на VPS в `/etc/infisical/<slug>/client-secret` (chmod 600 deploy:deploy)
+3. `./dev-setup.sh` — local dev подключается к self-host через `INFISICAL_HOST_URL=https://infisical.example.com`
+
+## Установка CLI (одноразово per машина)
+
+| OS      | Команда                                                             |
+| ------- | ------------------------------------------------------------------- |
+| macOS   | `brew install infisical/get-cli/infisical`                          |
+| Windows | `winget install Infisical.CLI`                                      |
+| Linux   | `curl -1sLf 'https://artifacts-cli.infisical.com/install.sh' \| sh` |
+
+Для self-host: `infisical login --domain https://infisical.example.com` (browser-flow на свой instance, не Cloud).
+
+## Инструменты для меня (Claude в этом репо)
+
+Два разных режима работы — два разных инструмента:
+
+### Build-time (scaffold-скрипты, deploy.sh, jobs)
+
+**CLI + Node SDK** — в коде, версионируется git'ом, повторяемо.
+
+- `scripts/setup-infisical.ts` использует `@infisical/sdk` + прямой REST для admin ops
+- `deploy.sh` и `dev.sh` используют `infisical run --token=...` CLI
+- Identity provisioning (REST endpoints) — fetch из Node, не интерактивно
+
+MCP server здесь **избыточен** — в коде уже есть всё что нужно.
+
+### Run-time (ad-hoc ops в чате через меня)
+
+**MCP server** `@infisical/mcp` — нативные tools в Claude Code. Без него мне Bash + `infisical run --token=$(cat ...)` + JSON parsing для каждой операции. С MCP — одна tool-call.
+
+Use cases где MCP помогает:
+
+- «Покажи все секреты в `holygrail-<your-slug>` dev env»
+- «Set `FEATURE_NEW_DASHBOARD=true` в `holygrail-cafe-x` prod env»
+- «Создай environment `preview` в `holygrail-<your-slug>`»
+- «Покажи кто member в этом project'е»
+
+### Установка MCP в Claude Code
+
+```bash
+claude mcp add infisical -- npx -y @infisical/mcp
+```
+
+В `~/.claude/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "infisical": {
+      "command": "npx",
+      "args": ["-y", "@infisical/mcp"],
+      "env": {
+        "INFISICAL_UNIVERSAL_AUTH_CLIENT_ID": "<UA-client-id>",
+        "INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET": "<UA-client-secret>",
+        "INFISICAL_HOST_URL": "https://infisical.example.com"
+      }
+    }
+  }
+}
+```
+
+`INFISICAL_HOST_URL` обязателен для self-host (default `app.infisical.com` = Cloud).
+
+UA credentials — admin identity bootstrap'нутая через `infisical bootstrap` команду.
+
+### Tools MCP-сервера
+
+✅ Покрывает: `create-secret`, `update-secret`, `delete-secret`, `list-secrets`, `get-secret`, `create-project`, `list-projects`, `create-environment`, `create-folder`, `invite-members-to-project`
+
+❌ Не покрывает: identity management (`create-identity`, `attach-universal-auth`, `create-client-secret`, `add-identity-to-project`). Для этого — прямой REST из скрипта (build-time, не run-time).
+
+## AI Skills repo (для агента)
+
+`Infisical/ai-skills` — **7 официальных skills** (GitHub-based, не npm package):
+
+| Skill                       | Что покрывает                                                                                 |
+| --------------------------- | --------------------------------------------------------------------------------------------- |
+| `infisical-setup`           | Setup-гайд: CLI, SDK, Docker, K8s, 12 методов auth                                            |
+| `infisical-self-host`       | **Self-host deployment** — Docker/K8s, Postgres, env vars, обновления, backup. Прямо для нас. |
+| `infisical-secret-syncs`    | Sync секретов в 38+ внешних сервисов                                                          |
+| `infisical-dynamic-secrets` | Короткоживущие creds (DB, IAM, SSH)                                                           |
+| `infisical-agent`           | Daemon agent — YAML config, auth, deploy                                                      |
+| `infisical-terraform`       | Terraform Provider                                                                            |
+| `infisical-api`             | REST API reference                                                                            |
+
+Установка (одна из трёх опций):
+
+```bash
+# 1. Universal CLI (пуллит из GitHub, не npm-package):
+npx skills add Infisical/ai-skills
+
+# 2. Claude Code plugin marketplace:
+/plugin marketplace add Infisical/ai-skills
+
+# 3. Manual — copy folders из skills/ в .claude/skills/ репо:
+git clone https://github.com/Infisical/ai-skills /tmp/inf-skills
+cp -r /tmp/inf-skills/skills/infisical-self-host .claude/skills/
+```
+
+Также есть **docs-only MCP без auth** (только публичные docs Infisical для search в чате):
+
+```bash
+claude mcp add --transport http infisical-docs https://infisical.com/docs/mcp
+```
+
+## Self-host обходит chicken-egg
+
+`infisical bootstrap` команда создаёт admin user + org + admin machine identity автоматически при первой инициализации — **обходит UI clicks для первичного setup'а**:
+
+```bash
+TOKEN=$(docker exec infisical infisical bootstrap \
+  --email admin@example.com \
+  --password $(openssl rand -hex 32) \
+  --organization "Holy Grail Sites" \
+  | jq -r '.identity.credentials.token')
+```
+
+После bootstrap у нас:
+
+- Admin user + пароль (для входа в web UI через браузер)
+- Admin machine identity + Client ID + Client Secret (для programmatic admin REST)
+
+## Web UI — есть, полноценный
+
+Self-host edition Infisical — **тот же web UI** что Cloud (это open-source версия cloud edition, одна кодовая база). После запуска docker-контейнера UI доступен на `https://infisical.example.com/` (через свой `deploy/proxy-stack/nginx` с TLS).
+
+Через UI можно:
+
+- Управлять secrets вручную (set / view / rotate)
+- Просматривать audit log per project
+- Создавать / редактировать / удалять projects
+- Управлять members и их scope'ом (RBAC)
+- Создавать / ротировать machine identities
+- Настраивать access policies (folder-path-based, role-based)
+- Импорт/экспорт secrets (CSV, JSON, .env)
+
+**UI и programmatic API/CLI/MCP работают параллельно** — никакого выбора "или/или". Instance admin пользуется тем что удобно в моменте: код / скрипт когда автоматизирует, UI когда хочется визуально посмотреть или быстро рукой подправить.
+
+## REST endpoints что я использую
+
+| Operation               | Endpoint                                                          | Auth            |
+| ----------------------- | ----------------------------------------------------------------- | --------------- |
+| Login machine identity  | `POST /api/v1/auth/universal-auth/login`                          | clientId/secret |
+| Create project          | `POST /api/v2/workspace`                                          | Bearer          |
+| Create environment      | `POST /api/v1/workspace/{projectId}/environments`                 | Bearer          |
+| Create / update secret  | `POST/PATCH /api/v3/secrets/raw/{key}`                            | Bearer          |
+| Create identity         | `POST /api/v1/identities`                                         | Bearer (admin)  |
+| Attach Universal Auth   | `POST /api/v1/auth/universal-auth/identities/{id}`                | Bearer (admin)  |
+| Create client secret    | `POST /api/v1/auth/universal-auth/identities/{id}/client-secrets` | Bearer (admin)  |
+| Add identity to project | TODO — verify endpoint при первом scaffold                        | Bearer (admin)  |
+
+Все вызовы делаются на `https://infisical.example.com/api/...`, не на `app.infisical.com`.
+
+## Когда апдейтить
+
+| Что                             | Когда                                                  |
+| ------------------------------- | ------------------------------------------------------ |
+| Infisical server (docker image) | quarterly review changelog, не часто (stable releases) |
+| CLI / SDK                       | continuous через caret-range / `brew upgrade`          |
+| MCP server                      | `npx -y @infisical/mcp` берёт latest автоматически     |
+| AI skills                       | `npx skills add` периодически (новые skills)           |
+
+При major upgrade Infisical server — backup Postgres БД перед `docker compose up -d` с новым tag'ом.
+
+## Известные ограничения и watch list
+
+- Postgres обязателен (SQLite не поддерживается). Бэкап-стратегия обязательна (без `ENCRYPTION_KEY` БД мертва).
+- SDK не имеет identity management методов (только secrets) — admin ops через REST.
+- CLI не печатает session JWT в stdout — keychain непрозрачен для скриптов. Программный доступ — UA machine identity, не user токен.
+- При полной потере VPS — нужны бэкапы. Без них всё пересоздавать заново.
+- `INFISICAL_HOST_URL` нужно во всех конфигах (CLI, SDK, deploy.sh) — не забудь при добавлении новой интеграции.
+- Если VPS забьётся (много сайтов / тяжёлые workloads) — Infisical + его Postgres переносятся на отдельную machine без сложностей: backup → restore на новой машине → меняем `INFISICAL_HOST_URL`. Не оптимизируем под этот сценарий заранее.
+
+## Ссылки
+
+- [Сайт](https://infisical.com/)
+- [Docs index](https://infisical.com/docs)
+- [Self-host install guide](https://infisical.com/docs/self-hosting/overview)
+- [REST API reference](https://infisical.com/docs/api-reference/overview/introduction)
+- [llms.txt (для AI агентов)](https://infisical.com/docs/llms.txt)
+- [GitHub: главный сервер](https://github.com/Infisical/infisical)
+- [GitHub: CLI](https://github.com/Infisical/cli)
+- [GitHub: Node SDK](https://github.com/Infisical/node-sdk-v2)
+- [GitHub: MCP server](https://github.com/Infisical/infisical-mcp-server)
+- [GitHub: AI skills](https://github.com/Infisical/ai-skills)
+- [Discord community](https://infisical.com/slack)
+
+## Связанные
+
+- [`45-data-location.md`](../whg/45-data-location.md) — где живут какие значения
+- [`whg-infisical` skill](../../.claude/skills/whg-infisical/SKILL.md) — workflow для агента
+- [`37-scaffolding.md`](../whg/37-scaffolding.md) — scaffolding нового сайта
