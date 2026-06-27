@@ -29,7 +29,11 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const themeConfig = settings.theme ?? FALLBACK_SITE_SETTINGS.theme!;
 
   return (
-    <html lang="ru" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html
+      lang="ru"
+      suppressHydrationWarning
+      className={`${GeistSans.variable} ${GeistMono.variable}`}
+    >
       <head>
         <ThemeBootstrap config={themeConfig} />
         <PaletteOverride config={themeConfig} />
