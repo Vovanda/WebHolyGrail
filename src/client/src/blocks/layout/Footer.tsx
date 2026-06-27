@@ -129,7 +129,17 @@ export function Footer({
           <div>
             © {year} {siteName} · MIT License
           </div>
-          <div>Built on Web Holy Grail</div>
+          <div>
+            Built on{' '}
+            <a
+              href="https://github.com/Vovanda/WebHolyGrail"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-ink transition-colors underline-offset-2 hover:underline"
+            >
+              Web Holy Grail
+            </a>
+          </div>
         </div>
       </div>
     </footer>

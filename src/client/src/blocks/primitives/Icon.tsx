@@ -1,20 +1,22 @@
 import { cn } from '@/lib/utils';
+import { COLOR_EMOJI_TOKEN, ICON_MAP } from '@/lib/icon-map';
 
 /**
  * Icon — универсальный primitive для рендера любого icon-source:
  *  - URL → `<img>` (simple-icons CDN, favicons, локальные SVG)
- *  - Unicode-символ / emoji / короткий текст → `<span>` с центрированным шрифтом
+ *  - Emoji в ICON_MAP → современная Lucide-иконка (см. lib/icon-map.ts)
+ *  - Emoji вне маппинга → fallback на сам emoji через `<span>` с шрифтом
  *
- * Гарантирует точное центрирование контента в фиксированном квадрате
- * независимо от типа: для `<img>` — `object-contain` + явный size в 60% от
- * box, для текста — `leading: 1` + `display: flex`.
+ * Контент-менеджер в Payload вводит привычное emoji («📝», «💼»), на фронте
+ * автоматически подменяется на чистый SVG. Маппинг расширяется по мере
+ * появления новых emoji в контенте — `lib/icon-map.ts`.
  *
  * Опционально оборачивает в круглый/скруглённый фон (для feature-cards,
  * stack-rows, badges).
  *
- * R5 чистая функция, R14 SSR (без 'use client'). R9 универсальный primitive
- * — используется в FeatureGrid, StackTransparency и любом другом блоке где
- * нужна consistent icon-семантика.
+ * R5 чистая функция. R9 универсальный primitive — используется в FeatureGrid,
+ * StackTransparency, ProjectTypesGrid, FaqAccordion и любом блоке где нужна
+ * consistent icon-семантика.
  */
 export function Icon({
   icon,
@@ -41,6 +43,8 @@ export function Icon({
 }) {
   const isUrl = /^https?:\/\//i.test(icon);
   const innerSize = Math.round(size * innerScale);
+  const LucideIcon = !isUrl ? ICON_MAP[icon] : undefined;
+  const colorClass = !isUrl ? COLOR_EMOJI_TOKEN[icon] : undefined;
 
   const bgClass = {
     transparent: '',
@@ -78,6 +82,13 @@ export function Icon({
           alt=""
           className="block object-contain"
           style={{ width: innerSize, height: innerSize }}
+        />
+      ) : LucideIcon ? (
+        <LucideIcon
+          aria-hidden
+          className={cn('text-ink/85', colorClass)}
+          size={innerSize}
+          strokeWidth={1.75}
         />
       ) : (
         <span
