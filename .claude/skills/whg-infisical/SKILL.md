@@ -1,0 +1,535 @@
+---
+name: whg-infisical
+description: Workflow секретов в Holy Grail сайтах — self-host Infisical + Universal Auth machine identities, project per site (native RBAC изоляция). Идемпотентный bootstrap через `pnpm setup-infisical --site <slug>` (REST API: upsert project + ensure envs + upsert identity). Admin identity — `infisical bootstrap` на VPS, без UI-кликов. Local dev через `.infisical.json`+`dev.sh` (с fallback на `.env.local` если Infisical недоступен — только локально); prod multi-site через `/etc/infisical/<slug>/{client-id,client-secret}`. Триггерить при создании нового сайта, ротации секрета, debug "secret not found", добавлении новой env-переменной, миграции существующего сайта с .env на Infisical.
+---
+
+# Skill: whg-infisical
+
+> Секреты на любом Holy Grail сайте — self-host Infisical + Universal Auth machine identities. Никаких .env.production на диске, никаких legacy service tokens, никакого Terraform для 1-2 сайтов. Прямой REST API + полностью автоматизированный scaffold.
+
+## Канонический путь (наш workflow — источник правды)
+
+1. **One self-host Infisical instance на VPS** (`/opt/infisical/`), shared между всеми сайтами. Не клонировать per-site.
+2. **Canonical hostname** — `infisical.example.com` (домен infrastructure-команды, не сайта-клиента). Magic links / OAuth редиректят сюда. Задаётся env `INFISICAL_HOST_URL` при scaffold.
+3. **Subdomain-aliases на каждый сайт** — `infisical.<site-host>` для каждого инстанса. Все nginx server-блоки `proxy_pass http://127.0.0.1:8080`, один backend. **НЕ subpath** — Infisical UI hard-coded под root (см. пруф в секции «Reverse proxy» ниже).
+4. **Project per site** — `holygrail-<slug>`, авто через `pnpm setup-infisical --site <slug>`. Идемпотентно: reuse existing.
+5. **Per-site admin** — приглашённый user видит ТОЛЬКО свой project. Авторизуется через любой alias (даже canonical), но workspace-list фильтруется RBAC.
+6. **Per-site machine identity (UA)** для prod deploy — creds в `/etc/infisical/<slug>/{client-id,client-secret}` (chmod 600 deploy:deploy).
+7. **Local dev secrets chain** (приоритет): (a) VPS Infisical online → (b) local Infisical контейнер на dev-машине → (c) `.env.local` файлы (offline, без контейнера). `dev.sh` пробует по порядку.
+8. **Что хранится** — секреты + env-runtime + feature flags + rate limits. См. `docs/whg/45-data-location.md`.
+
+Если несовпадение этого канона с практикой — править этот раздел + код, не наоборот.
+
+## Когда триггерить
+
+- Создаёшь новый сайт — нужны Infisical project, environments, identity.
+- Ротируешь production secret.
+- Debug «secret not found» / `process.env.X is undefined` на dev или prod.
+- Добавляешь новую env-переменную — где её ввести (dev/staging/prod каждое отдельно).
+- Мигрируешь существующий сайт с `.env.production` на VPS → Infisical.
+- Передаёшь сайт другому разработчику.
+
+## Архитектура
+
+```
+Developer (local)
+  │
+  │  ./dev.sh
+  │     ↓
+  │  infisical run --env=dev --recursive --
+  │     ↓                              (использует .infisical.json + локальный keychain token)
+  │  pnpm dev (cms + client)
+  │     ↓
+  │  process.env.* заполнен из Infisical dev environment
+
+CI / Prod (VPS)
+  │
+  │  GH Actions → ssh deploy@vps → bash deploy.sh <slug>
+  │     ↓
+  │  /etc/infisical/<slug>/{client-id,client-secret}  (chmod 600 deploy:deploy)
+  │     ↓
+  │  infisical run --token=$(infisical login --method=universal-auth --domain=$INFISICAL_HOST_URL …) --env=prod -- docker compose up -d
+  │     ↓
+  │  Контейнеры получают env переменные при старте — НЕ записывается в файл
+
+Scaffold (новый сайт)
+  │
+  │  pnpm setup-infisical -- --site <slug>
+  │     ↓
+  │  Использует admin identity (INFISICAL_ADMIN_TOKEN или CLIENT_ID/SECRET — env)
+  │     ↓
+  │  REST API → upsert project + ensure envs + upsert service identity + client secret
+  │     ↓
+  │  Print Client ID + Secret + .infisical.json (идемпотентно)
+```
+
+## Bootstrap admin identity (без UI — self-host)
+
+Self-host edition даёт CLI-команду `infisical bootstrap` — инициализирует пустой instance и **автоматически создаёт** admin user + organization + admin machine identity. UI-кликов нет.
+
+После того как `deploy/infisical/docker-compose.yml` поднят на VPS:
+
+```bash
+ssh deploy@<vps> 'docker exec infisical infisical bootstrap \
+  --email admin@example.com \
+  --password "'$(openssl rand -hex 32)'" \
+  --organization "Holy Grail Sites" \
+  --output json' > /tmp/infisical-bootstrap.json
+```
+
+Output (JSON) содержит:
+
+- `identity.credentials.clientId` — admin UA client ID
+- `identity.credentials.clientSecret` — admin UA client secret
+- `identity.organization.id` — orgId (нужен для `POST /api/v1/identities`)
+- `user.email` / `user.password` — для входа в Web UI браузером, если понадобится
+
+Положить в **personal env** (через `~/.zshrc` / Windows env / personal MCP raw):
+
+```
+INFISICAL_HOST_URL=https://infisical.example.com
+INFISICAL_ADMIN_CLIENT_ID=<clientId из bootstrap>
+INFISICAL_ADMIN_CLIENT_SECRET=<clientSecret из bootstrap>
+INFISICAL_ADMIN_ORG_ID=<orgId из bootstrap>
+```
+
+После этого **все scaffold-операции автоматизированы** через REST. Никаких ручных шагов в UI ни сейчас, ни в будущем. UI остаётся для визуального осмотра / ручной правки секретов content-менеджером.
+
+## Автоматизированный bootstrap (pnpm setup-infisical)
+
+`scripts/setup-infisical.ts` через REST API:
+
+### Шаг 1 — auth
+
+Две формы аутентификации:
+
+**A) Pre-issued admin token (`infisical bootstrap` output)** — bypass login:
+
+```
+Authorization: Bearer $INFISICAL_ADMIN_TOKEN
+```
+
+Это путь который сейчас используется (bootstrap даёт identity access token JWT напрямую, TTL ~90 дней).
+
+**B) Universal Auth login** (если есть отдельный admin UA identity):
+
+```
+POST $INFISICAL_HOST_URL/api/v1/auth/universal-auth/login
+{ "clientId": "...", "clientSecret": "..." }
+→ { "accessToken": "<JWT>" }
+```
+
+Все следующие запросы — с заголовком `Authorization: Bearer <token>`.
+
+### Шаг 2 — create project
+
+```
+POST /api/v2/workspace
+{ "projectName": "holygrail-<slug>", "type": "secret-manager", "slug": "holygrail-<slug>" }
+→ { "project": { "id": "<projectId>", ... } }
+```
+
+### Шаг 3 — ensure environments dev / staging / prod
+
+**Важно:** Infisical (новые версии) **авто-создаёт** default `dev/staging/prod` при создании проекта. Поэтому скрипт сначала делает GET и создаёт только отсутствующие.
+
+```
+GET /api/v1/workspace/{projectId}
+→ { workspace: { environments: [{ slug: "dev", ... }, ...] } }
+
+# Для отсутствующих:
+POST /api/v1/workspace/{projectId}/environments
+{ "name": "Staging", "slug": "staging", "position": 2 }
+```
+
+### Шаг 4 — seed placeholder secrets
+
+Для каждого env (dev/staging/prod) × каждого STANDARD*SECRET (PAYLOAD_SECRET / DATABASE_URI / S3*_ / NEXT*PUBLIC*_ / VK\_\*):
+
+```
+POST /api/v3/secrets/raw/<KEY>
+{ "workspaceId": projectId, "environment": "dev", "secretValue": "", "secretComment": "Заполни через UI или infisical secrets set" }
+```
+
+### Шаг 5 — create service identity для prod-деплоя
+
+```
+POST /api/v1/identities
+{ "name": "<slug>-prod-deploy", "organizationId": <orgId>, "role": "no-access" }
+→ { "identity": { "id": "<identityId>", "orgId": "<orgId>" } }
+```
+
+Attach Universal Auth:
+
+```
+POST /api/v1/auth/universal-auth/identities/<identityId>
+{ "accessTokenTTL": 2592000, "accessTokenMaxTTL": 2592000, ... }
+→ { "identityUniversalAuth": { "clientId": "<clientId>", ... } }
+```
+
+Create client secret:
+
+```
+POST /api/v1/auth/universal-auth/identities/<identityId>/client-secrets
+{ "description": "<slug> prod-deploy", "ttl": 0 }
+→ { "clientSecret": "<clientSecret>", "clientSecretData": { ... } }
+```
+
+### Шаг 6 — add identity to project + promote role
+
+**Подтверждено 2026-06-26:**
+
+```
+POST /api/v2/workspace/{projectId}/identity-memberships/{identityId}
+{ "role": "no-access" }
+→ 200 OK
+```
+
+`setup-infisical.ts` сейчас hardcoded `role: "no-access"`. UA с этой ролью **может loginiться, но не читать secrets** — `infisical run` упадёт с `403 You are not allowed to describeSecret on secrets`.
+
+**Сразу после attach** — promote роль до `viewer` (минимум прав для чтения):
+
+```
+PATCH /api/v2/workspace/{projectId}/identity-memberships/{identityId}
+{ "roles": [{ "role": "viewer", "isTemporary": false }] }
+→ 200 OK
+```
+
+**TODO:** обновить `setup-infisical.ts` чтобы сразу создавал с `viewer`, а не `no-access` + promote двумя шагами.
+
+### Шаг 6.5 — invite per-site admin user (RBAC)
+
+Чтобы у каждого сайта был свой «человеческий» админ (отдельно от instance root admin и от prod-deploy machine identity), приглашаем user в project с правами `admin` только на этот workspace.
+
+```
+POST /api/v3/users/signup-invite
+{ "email": "<admin-email>", "organizationId": "<orgId>" }
+→ { "completeInviteLink": "$INFISICAL_HOST_URL/signupinvite?token=..." }
+
+POST /api/v2/workspace/{projectId}/memberships
+{ "emails": ["<admin-email>"], "roles": ["admin"] }
+```
+
+Invited user логинится через любой `infisical.<site-host>` alias → видит ТОЛЬКО `holygrail-<slug>` (если ему дан membership ровно к одному project). Изоляция через native Infisical project membership filter. `completeInviteLink` высылается приглашённому, он завершает signup → password reset → login.
+
+Когда не нужно — пропустить (для test/internal сайтов).
+
+### Шаг 7 — write `.infisical.json`
+
+```json
+{ "workspaceId": "<projectId>", "defaultEnvironment": "dev" }
+```
+
+### Шаг 8 — print credentials для VPS (multi-site структура)
+
+```
+PROD MACHINE IDENTITY CREATED:
+  Client ID:     <clientId>
+  Client Secret: <clientSecret>  (показывается ОДИН раз — сохрани сейчас!)
+
+  Положи на VPS (per-site, чтобы несколько сайтов на одной VPS не конфликтовали):
+    sudo install -d -m 700 -o deploy -g deploy /etc/infisical/<slug>
+    echo "<clientId>"     | sudo tee /etc/infisical/<slug>/client-id     > /dev/null
+    echo "<clientSecret>" | sudo tee /etc/infisical/<slug>/client-secret > /dev/null
+    echo "<projectId>"    | sudo tee /etc/infisical/<slug>/project-id    > /dev/null
+    sudo chmod 600 /etc/infisical/<slug>/*
+    sudo chown deploy:deploy /etc/infisical/<slug>/*
+
+**Важно — нужны ТРИ файла, не два.** Без `project-id` `infisical run --token=...` падает с `Project ID is required when using machine identity` — UA-токен сам по себе не знает к какому project он привязан. Должен быть передан явно через `--projectId` или через `.infisical.json` в cwd.
+```
+
+**Идемпотентность:** при повторном запуске скрипта identity reused, client-secret НЕ пересоздаётся (показывается один раз, не повторяется). Если потерян — удалить identity через `DELETE /api/v1/identities/{id}` и перезапустить scaffold.
+
+## Local dev
+
+После setup-infisical:
+
+```bash
+./dev-setup.sh    # поднимает MinIO + сетит дефолты в Infisical dev env
+./dev.sh          # infisical run --env=dev --recursive -- pnpm dev
+```
+
+`--recursive` важен для monorepo — без него child workspaces не получают env.
+
+## Prod deploy
+
+`deploy/prod/deploy.sh` ожидает (per-site multi-tenant):
+
+- `/etc/infisical/<slug>/client-id` (chmod 600 deploy:deploy)
+- `/etc/infisical/<slug>/client-secret`
+- `/etc/infisical/<slug>/project-id` ← обязателен, без него `--projectId` для `infisical run` неоткуда взять
+- env `INFISICAL_ENV=prod` (default), `INFISICAL_HOST_URL`
+- `infisical` CLI установлен (см. ниже)
+
+Каждый `docker compose` обёрнут:
+
+```bash
+PROJECT_ID=$(cat /etc/infisical/$SITE_SLUG/project-id)
+TOKEN=$(infisical login --method=universal-auth \
+  --client-id=$(cat /etc/infisical/$SITE_SLUG/client-id) \
+  --client-secret=$(cat /etc/infisical/$SITE_SLUG/client-secret) \
+  --domain=$INFISICAL_HOST_URL \
+  --plain --silent)
+INFISICAL_RUN=(infisical run --token=$TOKEN --domain=$INFISICAL_HOST_URL --projectId=$PROJECT_ID --env=prod --)
+"${INFISICAL_RUN[@]}" docker compose -f compose.bluegreen.yml up -d
+```
+
+Реализация: `deploy/prod/deploy.sh` (canonical example в downstream-инстансах после первого VPS deploy).
+
+### Install CLI на VPS (без sudo, без apt)
+
+Sandbox/policy часто блочат `apt-get install` + `curl|bash` setup scripts. Самый безопасный путь — user-space binary из официальных GitHub releases:
+
+```bash
+ssh deploy@<vps> 'bash -s' <<'REMOTE'
+mkdir -p ~/.local/bin
+cd /tmp
+wget -q "https://github.com/Infisical/cli/releases/download/v0.43.98/cli_0.43.98_linux_amd64.tar.gz" -O inf.tgz
+tar -xzf inf.tgz infisical
+mv infisical ~/.local/bin/infisical
+chmod +x ~/.local/bin/infisical
+rm inf.tgz
+~/.local/bin/infisical --version
+REMOTE
+```
+
+⚠️ Asset называется `cli_X.Y.Z_linux_amd64.tar.gz`, **не** `infisical_X.Y.Z_linux_amd64.deb` (это deb-пакет, требует sudo).
+
+В `deploy.sh` либо `export PATH=~/.local/bin:$PATH`, либо вызывать `~/.local/bin/infisical` напрямую.
+
+### Required env vars must be non-empty in Infisical
+
+`compose.bluegreen.yml` использует `${VAR:?required}` для обязательных переменных. Если Infisical вернул **пустое значение** для такой переменной (типа `setup-infisical` seed только placeholder), `docker compose` упадёт с `required variable X is missing a value: required`.
+
+**Решение:** перед первым deploy.sh убедиться что все required-vars из `compose.bluegreen.yml` имеют непустые значения в Infisical. Список `:?required` смотреть так:
+
+```bash
+grep -E '\${[A-Z_]+:\?' deploy/prod/compose.bluegreen.yml
+```
+
+Если мигрируешь с `.env.production` на Infisical — extract существующие значения из live container до перехода:
+
+```bash
+docker exec <cms-container> env | grep -E '^(PAYLOAD_SECRET|VEO_VK_|ADMIN_INITIAL_|...)=' | \
+  while IFS='=' read -r KEY VAL; do
+    [ -z "$VAL" ] && continue
+    curl -X PATCH "$HOST/api/v3/secrets/raw/$KEY" \
+      -H "Authorization: Bearer $JWT" -H "Content-Type: application/json" \
+      -d "{\"workspaceId\":\"$WS\",\"environment\":\"prod\",\"secretValue\":\"$VAL\",\"type\":\"shared\"}"
+  done
+```
+
+## Reverse proxy для UI — per-subdomain, не subpath
+
+**Канон:** на каждом Holy Grail сайте создаём отдельный subdomain `infisical.<site-host>`, который проксирует на shared `localhost:8080`. Всех сайтов VPS-shared один Infisical instance — изоляция через project RBAC, не network.
+
+### Почему НЕ subpath (`example.com/infisical/`) — пруф 2026-06-25
+
+Пробовали subpath через `location /infisical/ { proxy_pass http://127.0.0.1:8080/; X-Forwarded-Prefix: /infisical; }`. Сломалось:
+
+```
+$ curl -sI https://example.com/infisical/
+HTTP/2 308
+location: /infisical          # ← Infisical Next.js редирект на /infisical БЕЗ slash
+
+$ curl -sI https://example.com/infisical
+HTTP/1.1 404 Not Found        # ← без slash не матчит location /infisical/, ловит catch-all `/`,
+                              #   попадает в site client который 404 на /infisical
+```
+
+При запросе `/infisical/login` UI Infisical отдаёт HTML с абсолютными `<script src="/_next/...">`, `<link href="/static/...">`, `fetch('/api/...')`. Эти пути промахиваются мимо `location /infisical/`, ловят `/` → site client → 404.
+
+Root cause: Infisical UI = Next.js, hard-coded под root URL. Нет env-флага `BASE_PATH`/`PATH_PREFIX`. Нет официальной поддержки subpath.
+
+Костыль через nginx `sub_filter` (response body rewrite `/static/` → `/infisical/static/`) теоретически возможен, но:
+
+- ломается на gzip / brotli
+- ломается при апгрейде Infisical (новые пути в UI)
+- не покрывает WebSocket subscription paths
+- не покрывает JSON API responses с absolute URLs
+
+### Канонический nginx server-block
+
+`/opt/proxy/nginx/conf.d/infisical.<site-host>.conf` (через `certbot --nginx -d infisical.<site-host>` авто-генерируется):
+
+```nginx
+server {
+  listen 80;
+  server_name infisical.<site-host>;
+  location /.well-known/acme-challenge/ { root /var/www/certbot; try_files $uri =404; }
+  location / { return 301 https://$host$request_uri; }
+}
+
+server {
+  listen 443 ssl http2;
+  server_name infisical.<site-host>;
+
+  ssl_certificate     /etc/letsencrypt/live/infisical.<site-host>/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/infisical.<site-host>/privkey.pem;
+  include /etc/nginx/snippets/ssl-modern.conf;
+
+  location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+  }
+}
+```
+
+DNS: `infisical.<site-host> A <your-vps-ip>` (через регистратора сайта).
+
+Infisical `SITE_URL` env — один canonical (например `https://infisical.example.com` если основной admin сайт). Другие subdomain доступны как proxy-аliases — magic links/OAuth редиректят на canonical, но т.к. UI используется редко (только админ), это не блокер.
+
+## Ротация секрета
+
+```bash
+infisical secrets set --env=prod KEY=newvalue
+# или через UI
+
+# Прод подхватит на следующем deploy / restart контейнера
+ssh deploy@vps "cd /opt/sites/<site> && bash deploy/prod/deploy.sh <sha>"
+```
+
+## Triple path (UI / AI / Shell)
+
+Согласно `feedback_triple_path_no_ai_lockin.md`:
+
+### UI path (для человека через браузер)
+
+1. `https://infisical.<site-host>/` (per-site subdomain, см. секцию выше) → Create Project → Add Environments → Add Secrets → Add Machine Identity → Get Client Secret → Add to Project → Copy credentials.
+2. Документация: см. README + `docs/whg/37-scaffolding.md`.
+3. Время: 5-10 минут.
+
+### AI path (Claude автономно через эту сессию)
+
+1. `pnpm setup-infisical -- --site <slug>` — делает всё через REST.
+2. Skill использует `INFISICAL_ADMIN_CLIENT_ID/SECRET` из env (один раз настроены).
+3. Время: 30 секунд.
+
+### Shell path (CI / cron / debug)
+
+1. Те же REST endpoints через `curl` либо `setup-infisical.ts` через `tsx scripts/...`.
+2. В CI: `INFISICAL_ADMIN_CLIENT_ID/SECRET` через `gh secret` или подобное.
+3. Время: 30 секунд.
+
+Все три пути дают идентичный результат — Infisical project готов, credentials выданы.
+
+## Подводные камни
+
+- **`.infisical.json` коммитится.** Внутри `workspaceId` (UUID) + `defaultEnvironment`. Секретов нет.
+- **`--recursive` обязателен** для monorepo. Без него child pnpm filter'ы не получают env.
+- **Universal Auth vs Service Token.** UA — современный (token обновляется, scope per-env, audit). Service tokens — deprecated.
+- **Rotation client-secret** — если admin client-secret утёк → пересоздать в UI, обновить env. Service identity client-secret rotation — пересоздать через REST (`DELETE /api/v1/auth/universal-auth/identities/{id}/client-secrets/{secretId}` + `POST .../client-secrets`).
+- **Org context** — все REST admin вызовы используют orgId из JWT (admin identity scope'нут к org). Не нужно явно передавать `--org-id`.
+- **Drift dev vs prod** — Infisical UI показывает diff между environments. Перед prod-deploy полезно сверить.
+- **Add identity to project endpoint** — точный URL ещё не зафиксирован в моих заметках. При первом scaffold нужно verify через trial-error или Infisical Discord. После — обновить skill.
+
+## Stop-conditions (зову instance admin)
+
+- **Утёк admin client-secret** — destructive rotation: rerun `infisical bootstrap` нельзя (он только для пустого instance). Создать новую admin identity через REST через старый client-secret пока работает; если уже revoked — через Web UI вручную (стандартный fallback).
+- **Невозможно залогиниться через `INFISICAL_ADMIN_CLIENT_ID/SECRET`** — admin identity revoked или permission lost. Не «починить наугад» — посмотреть в UI.
+- **REST endpoint падает 401/403** на identity create — admin identity не имеет role `admin` в org. Поднять role через REST (или UI как fallback).
+- **REST endpoint падает 404** на identity-project-membership — endpoint URL устарел / изменён. Verify через docs или Discord, обновить skill.
+- **Забыт admin password в Web UI** — Infisical использует SRP-6a, нет CLI команды reset password. Forgot-password в UI требует SMTP (см. ниже). Если SMTP не настроен — единственный путь: **destroy/recreate workflow** (см. секцию ниже). Контрибьютить fix не пытаться — open feature request [Infisical#3162](https://github.com/Infisical/infisical/issues/3162), мейнтейнеры не решили.
+- **Bootstrap молча выходит** при попытке повторного `infisical bootstrap` — есть instance-flag `super_admin.initialized=true` в Postgres. Не reset'ится через `--ignore-if-bootstrapped` (только подавляет ошибку). Полный teardown единственный путь.
+
+## Destroy/recreate workflow (когда нужен полный reset)
+
+Триггеры: забыт admin password + нет SMTP / corrupted state / тестовый instance / смена root admin email.
+
+**1. Backup ALL secrets через REST** (encryption-at-rest pg_dump без `ENCRYPTION_KEY` бесполезен):
+
+```python
+# scripts/backup-infisical-secrets.py (примерный)
+import json, subprocess
+JWT = "<admin token>"
+HOST = "https://infisical.<your>.com"
+workspaces = json.loads(subprocess.run(["curl","-sS", f"{HOST}/api/v1/workspace", "-H", f"Authorization: Bearer {JWT}"], capture_output=True, text=True).stdout)["workspaces"]
+out = {"host": HOST, "projects": []}
+for w in workspaces:
+    proj = {"id": w["id"], "name": w["name"], "envs": {}}
+    for env in ("dev","staging","prod"):
+        url = f"{HOST}/api/v3/secrets/raw?workspaceId={w['id']}&environment={env}"
+        secs = json.loads(subprocess.run(["curl","-sS", url, "-H", f"Authorization: Bearer {JWT}"], capture_output=True, text=True).stdout).get("secrets", [])
+        if secs:
+            proj["envs"][env] = [{"key": s["secretKey"], "value": s["secretValue"]} for s in secs]
+    if proj["envs"]:
+        out["projects"].append(proj)
+with open("all-secrets.json", "w", encoding="utf-8") as f:
+    json.dump(out, f, indent=2, ensure_ascii=False)
+```
+
+Сохранить в MCP private memory (encrypted-at-rest у провайдера), удалить локальный JSON.
+
+**2. Teardown:**
+
+```bash
+ssh deploy@<vps> 'cd /opt/infisical && docker compose down'
+PG_VOL=$(ssh deploy@<vps> 'docker volume ls -q | grep -E "infisical.*postgres"')
+ssh deploy@<vps> "docker volume rm $PG_VOL"  # ⚠️ ENCRYPTION_KEY теряется → старые .env шифр-бэкапы не восстановимы
+```
+
+`docker compose down` НЕ удаляет volumes — нужен явный `docker volume rm`.
+
+**3. Recreate:**
+
+```bash
+ssh deploy@<vps> 'cd /opt/infisical && docker compose up -d'
+# wait for API ready
+until ssh deploy@<vps> 'curl -sf http://localhost:8080/api/status' >/dev/null; do sleep 2; done
+```
+
+**4. Fresh bootstrap** (новый admin email + сохранённый password):
+
+```bash
+NEWPASS=$(openssl rand -base64 24 | tr -d '=+/')Aa1!  # complexity для UI requirements
+ssh deploy@<vps> "~/.local/bin/infisical bootstrap \
+  --domain=http://localhost:8080 \
+  --email=<new-admin-email> \
+  --password='$NEWPASS' \
+  --organization=<org-name> \
+  --output=json"
+# СОХРАНИТЬ output: identity.credentials.token (admin JWT, TTL 90d) + user email/password
+```
+
+**5. Re-run `setup-infisical.ts` для каждого site** — создаёт projects и UA identities с теми же slugs (`holygrail-<slug>`) но новыми client-id/secret.
+
+**6. Promote UA role** (см. шаг 6 выше) — обязательно для каждого UA.
+
+**7. Update VPS `/etc/infisical/<slug>/`** — новые client-id, client-secret, project-id.
+
+**8. Restore secrets** из backup'а через PATCH/POST в новые project IDs.
+
+**9. Smoke deploy.sh latest** — проверить что новый chain работает.
+
+Время destroy+recreate без человека: ~10-15 минут. Веб-сайты continue работать (env уже injected в running containers, fail только на следующем deploy без update creds).
+
+## UI features требующие env config
+
+Эти не работают если не настроены в `/opt/infisical/.env` + `docker compose restart infisical-api`:
+
+| Feature                             | Env vars                                                                                                                                          | Где взять                                                                                                                                                           |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **OAuth Google login**              | `CLIENT_ID_GOOGLE_LOGIN`, `CLIENT_SECRET_GOOGLE_LOGIN`                                                                                            | [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → OAuth client (web app), redirect URI: `https://infisical.<canonical>/api/v1/sso/google` |
+| **OAuth GitHub login**              | `CLIENT_ID_GITHUB_LOGIN`, `CLIENT_SECRET_GITHUB_LOGIN`                                                                                            | [GitHub OAuth Apps](https://github.com/settings/developers) → New OAuth App, redirect URI: `.../api/v1/sso/github`                                                  |
+| **Forgot password / invite emails** | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_ADDRESS`, `SMTP_FROM_NAME`, `SMTP_SECURE=true`                             | [Resend free 3000/мес](https://resend.com) (DKIM verify) или [VK WorkSpace free 5 mailboxes](https://workspace.vk.ru)                                               |
+| **UI русская локаль**               | — нет, Infisical поддерживает только `en/es/fr/ko/pt-BR/tr` ([locales](https://github.com/Infisical/infisical/tree/main/frontend/public/locales)) | См. WHG issue про DX                                                                                                                                                |
+
+## Ссылки
+
+- [Infisical REST: create identity](https://infisical.com/docs/api-reference/endpoints/identities/create)
+- [Infisical REST: attach universal auth](https://infisical.com/docs/api-reference/endpoints/universal-auth/attach)
+- [Infisical REST: create client secret](https://infisical.com/docs/api-reference/endpoints/universal-auth/create-client-secret)
+- [Infisical: Machine Identities guide](https://infisical.com/blog/introducing-machine-identities)
+- [Infisical CLI login](https://infisical.com/docs/cli/commands/login)
+
+## Human-readable версия
+
+[`docs/whg/37-scaffolding.md`](../../../docs/whg/37-scaffolding.md) — то же самое для пользователя без агента. Source of truth — там; этот skill = его проекция для агента.
+
+При апдейте: правь оба синхронно.

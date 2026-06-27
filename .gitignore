@@ -37,6 +37,8 @@ next-env.d.ts
 *.sqlite-journal
 *.db
 data/
+!src/cms/data/
+!src/cms/data/.gitkeep
 backups/
 
 # --- Тестовые артефакты ---
