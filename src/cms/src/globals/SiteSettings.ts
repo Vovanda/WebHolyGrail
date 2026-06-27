@@ -103,6 +103,7 @@ export const SiteSettings: GlobalConfig = {
             { label: 'Дзен', value: 'dzen' },
             { label: 'Rutube', value: 'rutube' },
             { label: 'Pinterest', value: 'pinterest' },
+            { label: 'GitHub', value: 'github' },
             { label: 'Другое', value: 'other' },
           ],
         },

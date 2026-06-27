@@ -1,18 +1,35 @@
 import type { BlockNode, SiteSettings } from 'contracts';
 
 /**
- * WaveDivider — волнистый разделитель секций. SVG 72px высоты.
- * `flipped: true` → зеркально по вертикали (для чередования между секциями).
+ * WaveDivider — декоративный разделитель секций. Поддерживает 4 variants:
+ *  - 'wave' (default): двойная SVG-волна (border-color thin lines), 72px высоты
+ *  - 'line': прямая accent-полоса с центральным dot
+ *  - 'dots': ряд geometric dots (3 крупных accent + small border-dots по бокам)
+ *  - 'gradient': fade-out полоса от border к transparent через accent
+ *
+ * `flipped: true` — зеркало по вертикали (для wave-variant'a).
  */
+
+type Variant = 'wave' | 'line' | 'dots' | 'gradient';
+
 export function WaveDivider({
   node,
 }: {
-  readonly node: BlockNode & { data?: { flipped?: boolean } };
+  readonly node: BlockNode & { data?: { variant?: string; flipped?: boolean } };
   readonly settings: SiteSettings;
 }) {
+  const variant = (node.data?.variant ?? 'wave') as Variant;
   const flipped = node.data?.flipped === true;
+
+  if (variant === 'line') return <LineSep />;
+  if (variant === 'dots') return <DotsSep />;
+  if (variant === 'gradient') return <GradientSep />;
+  return <WaveSep flipped={flipped} />;
+}
+
+function WaveSep({ flipped }: { readonly flipped: boolean }) {
   return (
-    <div aria-hidden className="h-[72px] -my-8 md:-my-10 w-full leading-none">
+    <div aria-hidden className="h-[72px] w-full leading-none">
       <svg
         viewBox="0 0 1200 96"
         preserveAspectRatio="none"
@@ -35,6 +52,44 @@ export function WaveDivider({
           opacity="0.6"
         />
       </svg>
+    </div>
+  );
+}
+
+function LineSep() {
+  return (
+    <div aria-hidden className="py-8 md:py-10 w-full flex items-center justify-center gap-3">
+      <span className="h-px flex-1 max-w-[280px] bg-border" />
+      <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+      <span className="h-px flex-1 max-w-[280px] bg-border" />
+    </div>
+  );
+}
+
+function DotsSep() {
+  return (
+    <div aria-hidden className="py-8 md:py-10 w-full flex items-center justify-center gap-2">
+      <span className="h-1 w-1 rounded-full bg-border" />
+      <span className="h-1.5 w-1.5 rounded-full bg-border" />
+      <span className="h-2 w-2 rounded-full bg-accent" />
+      <span className="h-2.5 w-2.5 rounded-full bg-accent" />
+      <span className="h-2 w-2 rounded-full bg-accent" />
+      <span className="h-1.5 w-1.5 rounded-full bg-border" />
+      <span className="h-1 w-1 rounded-full bg-border" />
+    </div>
+  );
+}
+
+function GradientSep() {
+  return (
+    <div aria-hidden className="py-6 md:py-8 w-full">
+      <div
+        className="h-px w-full"
+        style={{
+          background:
+            'linear-gradient(90deg, transparent 0%, var(--color-border) 30%, var(--color-accent) 50%, var(--color-border) 70%, transparent 100%)',
+        }}
+      />
     </div>
   );
 }

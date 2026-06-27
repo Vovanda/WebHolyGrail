@@ -212,6 +212,9 @@ function buildHomePageData(media: MediaMap) {
         ],
       },
 
+      // Separator: gradient fade-out перед comparison.
+      { blockType: 'wave-divider' as const, variant: 'gradient' },
+
       // 4. Comparison — cycle of pain (failure + повторная стоимость) vs WHG growth.
       {
         blockType: 'comparison-table' as const,
@@ -233,6 +236,9 @@ function buildHomePageData(media: MediaMap) {
           { text: 'Через год — новые сервисы рядом, не вместо' },
         ],
       },
+
+      // Separator: волна между Comparison и FeatureGrid.
+      { blockType: 'wave-divider' as const, variant: 'wave' },
 
       // 5. Feature grid 2-3-2 шахматка — brand-logos где есть, generic
       //   emoji где simple-icons нет ниши (architecture).
@@ -335,6 +341,9 @@ function buildHomePageData(media: MediaMap) {
         ],
       },
 
+      // Separator: dots между BuiltWith и ProjectTypes.
+      { blockType: 'wave-divider' as const, variant: 'dots' },
+
       // 7. Project types — WHG-specific 2×2 grid.
       // Heading на 2 строки с \n — последняя строка рендерится accent-цветом
       // (паттерн Supabase/Resend "Build in a weekend / Scale to millions").
@@ -387,6 +396,9 @@ function buildHomePageData(media: MediaMap) {
         author: 'Владимир Савкин',
         role: 'архитектор Web Holy Grail',
       },
+
+      // Separator: line между Quote и BlockShowcase.
+      { blockType: 'wave-divider' as const, variant: 'line' },
 
       // 9. Block showcase — карточки готовых блоков template'а.
       {
