@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import type { BlockNode, SiteSettings, MediaDoc, MediaRef } from 'contracts';
+import type { BlockNode, SiteSettings, MediaRef } from 'contracts';
+
+import { resolveMediaUrl } from '@/lib/media';
 
 /**
  * BlockShowcase (WHG-specific) — живая embla-карусель превью блоков template'а.
@@ -25,8 +27,7 @@ export interface BlockShowcaseData {
 }
 
 function mediaUrl(m: MediaRef | null | undefined): string | null {
-  if (!m || typeof m !== 'object') return null;
-  return (m as MediaDoc).url ?? null;
+  return resolveMediaUrl(m);
 }
 
 export function BlockShowcase({

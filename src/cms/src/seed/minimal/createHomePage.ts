@@ -42,6 +42,23 @@ const ASSETS = {
     alt: 'Screenshot: block editor with live preview',
   },
   screenshotMedia: { filename: 'screenshot-media.svg', alt: 'Screenshot: media gallery' },
+  // BuiltWith preview screenshots — реальные production-сайты на стеке.
+  siteVeo55: {
+    filename: 'sites/veo55-screenshot.jpeg',
+    alt: 'veo55.ru — главная страница',
+  },
+  siteSawkingTech: {
+    filename: 'sites/sawking-tech-screenshot.jpeg',
+    alt: 'sawking.tech — главная страница',
+  },
+  siteSng74: {
+    filename: 'sites/sng74-screenshot.jpeg',
+    alt: 'sng74.ru — главная страница',
+  },
+  siteFitnessMafia: {
+    filename: 'sites/fitness-mafia-screenshot.jpeg',
+    alt: 'fitness-mafia.ru — главная страница',
+  },
 } as const;
 
 type MediaInfo = { id: number; url: string };
@@ -270,21 +287,25 @@ function buildHomePageData(media: MediaMap) {
             siteName: 'veo55.ru',
             url: 'https://veo55.ru',
             niche: 'Питомник восточно-европейских овчарок «Омская Дружина»',
+            screenshot: media.siteVeo55.id,
           },
           {
             siteName: 'sawking.tech',
             url: 'https://sawking.tech',
             niche: 'Инженерия, архитектура, AI — личный блог',
+            screenshot: media.siteSawkingTech.id,
           },
           {
             siteName: 'sng74.ru',
             url: 'https://sng74.ru',
             niche: 'Чистые помещения для фармы — B2B стройка',
+            screenshot: media.siteSng74.id,
           },
           {
             siteName: 'fitness-mafia.ru',
             url: 'https://fitness-mafia.ru',
             niche: 'Персональные тренировки — личный бренд тренера',
+            screenshot: media.siteFitnessMafia.id,
           },
         ],
       },
@@ -377,9 +398,13 @@ function buildHomePageData(media: MediaMap) {
  * в S3 bucket (или MinIO в dev), URL вычисляется через bucketname/endpoint.
  */
 async function ensureMedia(payload: Payload, filename: string, alt: string): Promise<MediaInfo> {
+  // Payload хранит filename как basename (без subdirs). filename в ASSETS может
+  // содержать подкаталог (например 'sites/veo55-screenshot.jpeg') — для search
+  // используем basename, для filePath — полный путь от ASSETS_DIR.
+  const basename = filename.split('/').pop() ?? filename;
   const existing = await payload.find({
     collection: 'media',
-    where: { filename: { equals: filename } },
+    where: { filename: { equals: basename } },
     limit: 1,
   });
   if (existing.docs.length > 0) {
