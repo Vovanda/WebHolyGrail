@@ -144,21 +144,6 @@ export const SiteSettings: GlobalConfig = {
           },
         },
         {
-          name: 'availableThemes',
-          label: 'Доступные темы для переключения',
-          type: 'select',
-          hasMany: true,
-          defaultValue: ['light', 'dark'],
-          admin: {
-            description: 'Список тем которые юзер может выбирать (если включён переключатель).',
-            condition: (_, siblingData) => siblingData?.userToggle === true,
-          },
-          options: [
-            { label: 'Светлая', value: 'light' },
-            { label: 'Тёмная', value: 'dark' },
-          ],
-        },
-        {
           name: 'palettePreset',
           label: 'Готовая палитра (preset)',
           type: 'select',
@@ -418,9 +403,12 @@ export const SiteSettings: GlobalConfig = {
       type: 'json',
       admin: {
         description:
-          'JSON-конфигурация панелей по слотам (top / bottom / left / right / center). ' +
-          'Пусто — используется дефолт из кода. Чтобы скрыть блок — удалить из массива panels ' +
-          'или поставить "visibility": "hidden".',
+          'JSON-конфигурация панелей по слотам. Пусто — используется дефолт из кода. ' +
+          'Чтобы скрыть блок — удалить из массива panels или поставить "visibility": "hidden". ' +
+          'Кнопка «Reset to default» копирует CLASSIC_SITE_LAYOUT в поле.',
+        components: {
+          Field: '/admin/components/LayoutJsonField',
+        },
       },
     },
   ],
