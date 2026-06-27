@@ -47,13 +47,8 @@ export function BuiltWith({
         )}
         {subtitle && <p className="text-center text-muted mt-3">{subtitle}</p>}
         <div
-          className={`mt-10 grid gap-5 md:gap-6 ${
-            items.length >= 4
-              ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
-              : items.length === 3
-                ? 'grid-cols-1 sm:grid-cols-3'
-                : 'grid-cols-1 sm:grid-cols-2'
-          }`}
+          className="mt-10 grid gap-5 md:gap-6"
+          style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}
         >
           {items.map((item, i) => {
             const preview = mediaUrl(item.screenshot);

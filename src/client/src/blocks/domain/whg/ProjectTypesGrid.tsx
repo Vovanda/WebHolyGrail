@@ -50,7 +50,7 @@ export function ProjectTypesGrid({
 
   return (
     <section className="py-14 md:py-20">
-      <div className="mx-auto max-w-wide px-4 md:px-6 grid md:grid-cols-2 gap-10 md:gap-12 items-start">
+      <div className="mx-auto max-w-wide px-4 sm:px-6 grid lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-12 items-start">
         {/* LEFT — heading + subtitle */}
         <div>
           <h2 className="font-display text-h3 md:text-h2 font-semibold leading-tight text-ink">
