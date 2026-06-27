@@ -16,14 +16,15 @@ export const InstallSnippetBlock: Block = {
       label: 'Команда',
       type: 'text',
       required: true,
-      defaultValue: 'gh repo create my-site --template Vovanda/WebHolyGrail',
+      defaultValue: 'gh repo create my-site --template Vovanda/WebHolyGrail --private --clone',
       admin: { description: 'Одна строка. Будет показана в monospace с copy-кнопкой.' },
     },
     {
       name: 'caption',
       label: 'Подпись под командой',
       type: 'text',
-      defaultValue: 'Готовый стартовый репозиторий за минуту. Дальше ./dev.sh и пиши код.',
+      defaultValue:
+        'Готовый стартовый репозиторий за минуту. Дальше ./dev.sh и создавай страницы или пиши код.',
     },
   ],
 };

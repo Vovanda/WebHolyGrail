@@ -171,8 +171,9 @@ function buildHomePageData(media: MediaMap) {
       // 2. Install snippet — one-liner с copy-кнопкой.
       {
         blockType: 'install-snippet' as const,
-        command: 'gh repo create my-site --template Vovanda/WebHolyGrail',
-        caption: 'Готовый стартовый репозиторий за минуту. Дальше ./dev.sh и пиши код.',
+        command: 'gh repo create my-site --template Vovanda/WebHolyGrail --private --clone',
+        caption:
+          'Готовый стартовый репозиторий за минуту. Дальше ./dev.sh и создавай страницы или пиши код.',
       },
 
       // 3. Stack transparency — ряд иконок технологий.

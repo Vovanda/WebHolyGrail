@@ -126,8 +126,11 @@ export function HeroSplit({
                     </div>
                   </div>
                   {i < rightSteps.length - 1 && (
-                    <div className="ml-5 text-border" aria-hidden="true">
-                      <ChevronDown size={16} />
+                    <div
+                      className="flex h-10 w-10 items-center justify-center text-muted"
+                      aria-hidden="true"
+                    >
+                      <ChevronDown size={18} strokeWidth={2.5} />
                     </div>
                   )}
                 </li>
