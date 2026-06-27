@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+# Pre-push: incremental gitleaks scan over commits about to be pushed.
+# @{push}..HEAD => only commits ahead of upstream, not the whole branch history.
+
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "warn: gitleaks not installed, skipping pre-push secret scan"
+  echo "      install via: winget install Gitleaks.Gitleaks"
+  exit 0
+fi
+
+# If no upstream set, fall back to scanning last 50 commits.
+if git rev-parse --abbrev-ref --symbolic-full-name @{upstream} >/dev/null 2>&1; then
+  RANGE='@{push}..HEAD'
+else
+  RANGE='HEAD~50..HEAD'
+fi
+
+gitleaks detect --log-opts="$RANGE" --redact --config .gitleaks.toml --no-banner
