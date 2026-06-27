@@ -218,21 +218,19 @@ function buildHomePageData(media: MediaMap) {
       {
         blockType: 'comparison-table' as const,
         heading: 'Большинство сайтов заканчиваются тупиком',
-        leftLabel: 'Обычный путь — цикл боли',
+        leftLabel: 'Обычный путь — переделки и потери',
         rightLabel: 'С Web Holy Grail',
         leftItems: [
           { text: 'Сайт-визитка на конструкторе' },
-          { text: '↻ Нужен блог — платим за миграцию на CMS, теряем SEO' },
-          { text: 'Заказали личный кабинет' },
-          { text: '↻ Переписали с нуля — ещё 3 месяца и +N₽' },
-          { text: 'Через год снова не то' },
-          { text: '↻ Новый редизайн с нуля — третий раз' },
+          { text: 'Нужен блог — миграция на CMS, теряем SEO' },
+          { text: 'Заказали кабинет — переписали с нуля' },
+          { text: 'Через год снова не то — редизайн' },
         ],
         rightItems: [
-          { text: 'Начали с визитки на своём сервере' },
+          { text: 'Визитка на своём сервере' },
           { text: 'Добавили блог — без переезда' },
-          { text: 'Личный кабинет — тот же фундамент' },
-          { text: 'Через год — новые сервисы рядом, не вместо' },
+          { text: 'Кабинет — тот же фундамент' },
+          { text: 'Новые сервисы рядом, не вместо' },
         ],
       },
 
@@ -243,7 +241,7 @@ function buildHomePageData(media: MediaMap) {
       //   emoji где simple-icons нет ниши (architecture).
       {
         blockType: 'feature-grid' as const,
-        heading: 'Что уже решено за вас',
+        heading: 'Что вам не придётся решать',
         items: [
           {
             icon: 'https://cdn.simpleicons.org/nextdotjs/000000',
@@ -350,7 +348,8 @@ function buildHomePageData(media: MediaMap) {
       // (паттерн Supabase/Resend "Build in a weekend / Scale to millions").
       {
         blockType: 'project-types-grid' as const,
-        heading: 'Одна архитектура.\nНесколько сценариев роста.',
+        heading: 'Одна архитектура. Несколько сценариев роста.',
+        headingAccent: 'Несколько сценариев роста.',
         subtitle:
           'Выберите стартовую точку под ваш проект. Архитектура остаётся той же — меняется только стартовая конфигурация.',
         items: [

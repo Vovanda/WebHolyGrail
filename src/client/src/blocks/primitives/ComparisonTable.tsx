@@ -37,8 +37,8 @@ export function ComparisonTable({
           </h2>
         )}
         <div className="grid gap-4 lg:gap-6 items-stretch lg:grid-cols-[1fr_auto_1fr]">
-          {/* LEFT — red tint */}
-          <div className="rounded-xl bg-danger-soft border border-danger/20 p-6 md:p-8">
+          {/* LEFT — soft red tint */}
+          <div className="rounded-xl bg-danger-soft/50 border border-danger/20 p-6 md:p-8">
             <h3 className="font-display text-lg font-semibold text-danger mb-4">{leftLabel}</h3>
             <ul className="space-y-3">
               {leftItems.map((item, i) => (
@@ -55,8 +55,8 @@ export function ComparisonTable({
             VS
           </div>
 
-          {/* RIGHT — green tint */}
-          <div className="rounded-xl bg-success-soft border border-success/20 p-6 md:p-8">
+          {/* RIGHT — soft pastel green tint */}
+          <div className="rounded-xl bg-success-soft/50 border border-success/20 p-6 md:p-8">
             <h3 className="font-display text-lg font-semibold text-success mb-4">{rightLabel}</h3>
             <ul className="space-y-3">
               {rightItems.map((item, i) => (
