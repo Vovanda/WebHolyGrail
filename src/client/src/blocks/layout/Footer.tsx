@@ -39,11 +39,17 @@ export function Footer({
   const tagline = data.tagline;
   const docs = data.docsLinks ?? [];
   const project = data.projectLinks ?? [];
+  // settings-based fallback: если в node.data нет docsLinks/projectLinks,
+  // используем SiteSettings.footerNav (или mainNav как fallback) — даёт
+  // контент-менеджеру управление footer-nav через CMS без правки кода.
+  const settingsNav = settings.footerNav?.length ? settings.footerNav : (settings.mainNav ?? []);
+  const social = settings.social ?? [];
   const year = new Date().getFullYear();
 
   const hasDocs = docs.length > 0;
   const hasProject = project.length > 0;
-  const columns = 1 + (hasDocs ? 1 : 0) + (hasProject ? 1 : 0);
+  const hasSettingsNav = !hasDocs && !hasProject && settingsNav.length > 0;
+  const columns = 1 + (hasDocs ? 1 : 0) + (hasProject ? 1 : 0) + (hasSettingsNav ? 1 : 0);
 
   return (
     <footer className="border-t border-border bg-page-bg text-ink">
@@ -94,6 +100,21 @@ export function Footer({
             <div className="font-display font-semibold text-ink text-sm mb-3">Проект</div>
             <ul className="space-y-2">
               {project.map((item) => (
+                <li key={item.href}>
+                  <FooterLink href={item.href} label={item.label} />
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )}
+
+        {/* Fallback: если node.data не задал docsLinks/projectLinks — показываем
+            SiteSettings.footerNav (или mainNav) единой колонкой "Навигация". */}
+        {hasSettingsNav && (
+          <nav>
+            <div className="font-display font-semibold text-ink text-sm mb-3">Навигация</div>
+            <ul className="space-y-2">
+              {settingsNav.map((item) => (
                 <li key={item.href}>
                   <FooterLink href={item.href} label={item.label} />
                 </li>
