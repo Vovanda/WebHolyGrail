@@ -58,10 +58,10 @@ function WaveSep({ flipped }: { readonly flipped: boolean }) {
 
 function LineSep() {
   return (
-    <div aria-hidden className="py-8 md:py-10 w-full flex items-center justify-center gap-3">
-      <span className="h-px flex-1 max-w-[280px] bg-border" />
-      <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-      <span className="h-px flex-1 max-w-[280px] bg-border" />
+    <div aria-hidden className="py-8 md:py-10 w-full">
+      <div className="mx-auto max-w-wide px-4 sm:px-6">
+        <div className="h-px w-full bg-border" />
+      </div>
     </div>
   );
 }
