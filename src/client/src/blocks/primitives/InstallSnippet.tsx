@@ -39,7 +39,7 @@ export function InstallSnippet({
   return (
     <section className="bg-page-bg pt-6 md:pt-10 pb-10 md:pb-14">
       <div className="mx-auto max-w-content px-4 md:px-6">
-        <div className="group relative rounded-lg bg-dark-block px-6 md:px-7 py-5 md:py-6 shadow-md">
+        <div className="group relative rounded-lg bg-dark-block px-6 md:px-7 py-5 md:py-6 shadow-lg border border-white/10 ring-1 ring-accent/20">
           <code className="block font-mono text-sm md:text-base text-dark-block-fg pr-12 overflow-x-auto leading-relaxed">
             <span className="text-muted select-none">$ </span>
             {command}
