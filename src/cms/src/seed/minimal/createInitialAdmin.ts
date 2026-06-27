@@ -17,7 +17,17 @@ export async function createInitialAdmin(
   });
 
   if (existing.docs.length > 0) {
-    return { created: false, id: String(existing.docs[0]!.id) };
+    const doc = existing.docs[0]!;
+    // SEED_FORCE_ADMIN_PASSWORD=1 — force-update password существующего admin
+    // (для случая когда первый seed дал случайный password, а нужен предсказуемый).
+    if (process.env['SEED_FORCE_ADMIN_PASSWORD'] === '1') {
+      await payload.update({
+        collection: 'users',
+        id: doc.id,
+        data: { password: input.password },
+      });
+    }
+    return { created: false, id: String(doc.id) };
   }
 
   const user = await payload.create({

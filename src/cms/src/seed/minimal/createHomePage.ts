@@ -432,32 +432,38 @@ async function ensureMedia(payload: Payload, filename: string, alt: string): Pro
   // содержать подкаталог (например 'sites/veo55-screenshot.jpeg') — для search
   // используем basename, для filePath — полный путь от ASSETS_DIR.
   const basename = filename.split('/').pop() ?? filename;
+  const filePath = resolve(ASSETS_DIR, filename);
+
   const existing = await payload.find({
     collection: 'media',
     where: { filename: { equals: basename } },
     limit: 1,
   });
+
+  // Если media уже есть И URL absolute — используем как есть.
+  // Если URL relative (legacy seed без S3_PUBLIC_URL) — delete + create заново,
+  // чтобы upload re-trigger'нул generateFileURL с актуальным env-state.
+  // Page пересоздаётся в seed с force-flag → новый media-id подтянется.
   if (existing.docs.length > 0) {
     const doc = existing.docs[0]!;
     const currentUrl = String(doc.url ?? '');
-    // Если URL устарел (relative когда сейчас S3_PUBLIC_URL должен дать absolute) —
-    // re-trigger Payload's afterRead hooks через update без data: URL пересчитается
-    // через generateFileURL с актуальным env.
-    if (!/^https?:\/\//i.test(currentUrl)) {
-      try {
-        const updated = await payload.update({
-          collection: 'media',
-          id: doc.id,
-          data: { alt },
-        });
-        return { id: Number(updated.id), url: String(updated.url ?? '') };
-      } catch {
-        return { id: Number(doc.id), url: currentUrl };
-      }
+    if (/^https?:\/\//i.test(currentUrl)) {
+      return { id: Number(doc.id), url: currentUrl };
     }
-    return { id: Number(doc.id), url: currentUrl };
+    // Legacy URL — force-recreate.
+    try {
+      await payload.delete({ collection: 'media', id: doc.id });
+    } catch {
+      // если delete fails (например cascade FK) — fall through к update попытке
+      const updated = await payload.update({
+        collection: 'media',
+        id: doc.id,
+        data: { alt },
+      });
+      return { id: Number(updated.id), url: String(updated.url ?? '') };
+    }
   }
-  const filePath = resolve(ASSETS_DIR, filename);
+
   const doc = await payload.create({
     collection: 'media',
     data: { alt, prefix: 'placeholder' },

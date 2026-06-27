@@ -1,13 +1,27 @@
 #!/usr/bin/env tsx
 /**
- * Seed: minimal — первый admin + пустая home Page.
+ * Seed: minimal — стартовый контент (home Page + Media + SiteSettings).
  *
- * Идемпотентно: повторный запуск не дублирует, существующие записи остаются.
+ * @remarks
+ * **Admin creation — через UI**, не через seed. Когда нет ни одного пользователя
+ * с ролью admin, Payload автоматически показывает на /admin first-user wizard
+ * (email + password + подтверждение). Это правильный flow для template:
+ * downstream-разработчик клонирует, поднимает dev, открывает /admin, создаёт
+ * себе админа с известным ему паролем — без передачи дефолт-кредов.
+ *
+ * Опционально admin можно создать через seed (для CI / автотестов где UI
+ * недоступен): задать SEED_ADMIN_PASSWORD env. SEED_FORCE_ADMIN_PASSWORD=1 —
+ * пересоздать пароль существующего admin (рекомендуется только в dev).
  *
  * Env:
- *   SEED_ADMIN_EMAIL     (default: admin@example.com)
- *   SEED_ADMIN_PASSWORD  (required при первом запуске; для существующего admin игнорируется)
- *   SEED_ADMIN_NAME      (default: Admin)
+ *   SEED_ADMIN_EMAIL              (default: admin@example.com)
+ *   SEED_ADMIN_PASSWORD           (если не задан — admin не создаётся, юзер
+ *                                   получит first-user wizard в /admin)
+ *   SEED_ADMIN_NAME               (default: Admin)
+ *   SEED_FORCE_ADMIN_PASSWORD=1   (force-update password существующего admin)
+ *   SEED_FORCE_HOME=1             (force-update home page даже если контент есть)
+ *
+ * Идемпотентно: повторный запуск не дублирует, существующие записи остаются.
  *
  * Запуск (через корневой wrapper):
  *   pnpm seed:minimal
@@ -27,22 +41,23 @@ async function main(): Promise<void> {
   const password = process.env['SEED_ADMIN_PASSWORD'];
   const name = process.env['SEED_ADMIN_NAME'] ?? 'Admin';
 
-  if (!password) {
-    console.error('ERROR: SEED_ADMIN_PASSWORD env required');
-    console.error('  example: SEED_ADMIN_PASSWORD="$(openssl rand -hex 16)" pnpm seed:minimal');
-    process.exit(1);
-  }
-
   console.log('→ booting Payload...');
   const payload = await getPayload({ config });
 
-  console.log(`→ createInitialAdmin(${email})`);
-  const admin = await createInitialAdmin(payload, { email, password, name });
-  console.log(
-    admin.created
-      ? `  ✓ admin created (id ${admin.id})`
-      : `  · admin already exists (id ${admin.id})`,
-  );
+  if (password) {
+    console.log(`→ createInitialAdmin(${email})`);
+    const admin = await createInitialAdmin(payload, { email, password, name });
+    if (admin.created) {
+      console.log(`  ✓ admin created (id ${admin.id})`);
+    } else if (process.env['SEED_FORCE_ADMIN_PASSWORD'] === '1') {
+      console.log(`  ✓ admin password updated (id ${admin.id})`);
+    } else {
+      console.log(`  · admin already exists (id ${admin.id}), password not changed`);
+    }
+  } else {
+    console.log('→ skip admin creation (no SEED_ADMIN_PASSWORD)');
+    console.log('  Open /admin — Payload покажет first-user wizard если admin ещё нет.');
+  }
 
   console.log('→ createHomePage(slug=home)');
   const home = await createHomePage(payload);
@@ -53,7 +68,11 @@ async function main(): Promise<void> {
   );
 
   console.log('\nDone. CMS: http://localhost:3001/admin');
-  console.log('Login: ' + email);
+  if (password) {
+    console.log('Login: ' + email);
+  } else {
+    console.log('First-user wizard ждёт на /admin (создай админа через UI).');
+  }
   process.exit(0);
 }
 
