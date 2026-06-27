@@ -1,6 +1,7 @@
 import type { BlockNode, SiteSettings } from 'contracts';
 
 import { Icon } from '@/blocks/primitives/Icon';
+import { renderAccentHeading } from '@/lib/heading-accent';
 
 /**
  * ProjectTypesGrid (WHG-specific) — 2×2 grid типов проектов template'а.
@@ -16,6 +17,7 @@ import { Icon } from '@/blocks/primitives/Icon';
 
 export interface ProjectTypesGridData {
   readonly heading?: string;
+  readonly headingAccent?: string;
   readonly subtitle?: string;
   readonly items?: readonly {
     readonly icon: string;
@@ -33,18 +35,11 @@ export function ProjectTypesGrid({
   readonly settings: SiteSettings;
 }) {
   const data = node.data ?? {};
-  const headingRaw = data.heading ?? 'Одна архитектура.\nНесколько сценариев роста.';
+  const heading = data.heading ?? 'Одна архитектура. Несколько сценариев роста.';
+  const headingAccent = data.headingAccent;
   const subtitle = data.subtitle;
   const items = data.items ?? [];
   const caption = data.caption;
-
-  // Heading может содержать перенос строк (\n) — split на lines. Если строк
-  // больше 1 — последняя рендерится с accent-цветом (выделение акцента,
-  // паттерн в духе Supabase / Resend "Build in a weekend / Scale to millions").
-  const headingLines = headingRaw
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean);
 
   if (items.length === 0) return null;
 
@@ -54,18 +49,7 @@ export function ProjectTypesGrid({
         {/* LEFT — heading + subtitle */}
         <div>
           <h2 className="font-display text-h3 md:text-h2 font-semibold leading-tight text-ink">
-            {headingLines.map((line, i) => (
-              <span
-                key={i}
-                className={
-                  i === headingLines.length - 1 && headingLines.length > 1
-                    ? 'text-accent block'
-                    : 'block'
-                }
-              >
-                {line}
-              </span>
-            ))}
+            {renderAccentHeading(heading, headingAccent)}
           </h2>
           {subtitle && <p className="mt-5 text-muted leading-relaxed max-w-md">{subtitle}</p>}
         </div>

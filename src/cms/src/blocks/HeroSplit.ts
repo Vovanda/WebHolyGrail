@@ -15,11 +15,27 @@ export const HeroSplitBlock: Block = {
   labels: { singular: 'Hero split (2-колоночный)', plural: 'Hero split (2-колоночные)' },
   fields: [
     {
-      name: 'heading',
-      label: 'Заголовок (H1)',
-      type: 'text',
-      required: true,
-      defaultValue: 'Начните с сайта. Вырастите во что угодно.',
+      type: 'row',
+      fields: [
+        {
+          name: 'heading',
+          label: 'Заголовок (H1)',
+          type: 'text',
+          required: true,
+          defaultValue: 'Начните с landing-сайта. Вырастите во что угодно.',
+          admin: { width: '60%' },
+        },
+        {
+          name: 'headingAccent',
+          label: 'Слова для акцента (case-sensitive)',
+          type: 'text',
+          admin: {
+            width: '40%',
+            description:
+              'Подстрока из heading которая будет подсвечена акцентным цветом. Пусто — без акцента.',
+          },
+        },
+      ],
     },
     {
       name: 'subtitle',

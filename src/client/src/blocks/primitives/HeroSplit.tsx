@@ -3,6 +3,7 @@ import { ArrowRight, Check, ChevronDown } from 'lucide-react';
 import type { BlockNode, SiteSettings } from 'contracts';
 
 import { Icon } from './Icon';
+import { renderAccentHeading } from '@/lib/heading-accent';
 
 /**
  * HeroSplit — двух-колоночный hero: текст+CTA слева, vertical-steps card справа.
@@ -18,6 +19,7 @@ import { Icon } from './Icon';
 
 export interface HeroSplitData {
   readonly heading?: string;
+  readonly headingAccent?: string;
   readonly subtitle?: string;
   readonly ctaPrimary?: { readonly label: string; readonly href: string };
   readonly ctaSecondary?: { readonly label: string; readonly href: string };
@@ -38,7 +40,8 @@ export function HeroSplit({
   readonly settings: SiteSettings;
 }) {
   const data = node.data ?? {};
-  const heading = data.heading ?? 'Начните с сайта. Вырастите во что угодно.';
+  const heading = data.heading ?? 'Начните с landing-сайта. Вырастите во что угодно.';
+  const headingAccent = data.headingAccent;
   const subtitle = data.subtitle ?? '';
   const ctaPrimary = data.ctaPrimary;
   const ctaSecondary = data.ctaSecondary;
@@ -73,7 +76,7 @@ export function HeroSplit({
             className="font-display font-semibold leading-tight tracking-tight text-ink"
             style={{ fontSize: 'clamp(2rem, 5vw, var(--text-h1))' }}
           >
-            {heading}
+            {renderAccentHeading(heading, headingAccent)}
           </h1>
           {subtitle && (
             <p className="mt-5 text-base md:text-lg text-muted leading-relaxed max-w-[560px]">

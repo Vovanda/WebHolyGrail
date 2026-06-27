@@ -12,10 +12,25 @@ export const ProjectTypesGridBlock: Block = {
   labels: { singular: 'Сетка типов проектов (WHG)', plural: 'Сетки типов проектов' },
   fields: [
     {
-      name: 'heading',
-      label: 'Заголовок секции',
-      type: 'text',
-      defaultValue: 'Одна архитектура. Несколько сценариев роста.',
+      type: 'row',
+      fields: [
+        {
+          name: 'heading',
+          label: 'Заголовок секции',
+          type: 'text',
+          defaultValue: 'Одна архитектура. Несколько сценариев роста.',
+          admin: { width: '60%' },
+        },
+        {
+          name: 'headingAccent',
+          label: 'Слова для акцента (case-sensitive)',
+          type: 'text',
+          admin: {
+            width: '40%',
+            description: 'Подстрока из heading которая будет подсвечена акцентным цветом.',
+          },
+        },
+      ],
     },
     {
       name: 'subtitle',
