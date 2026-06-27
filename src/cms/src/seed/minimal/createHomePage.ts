@@ -308,6 +308,9 @@ function buildHomePageData(media: MediaMap) {
         ],
       },
 
+      // Separator: gradient между FeatureGrid и BuiltWith.
+      { blockType: 'wave-divider' as const, variant: 'gradient' as const },
+
       // 6. Built with — реальные production-сайты на стеке.
       {
         blockType: 'built-with' as const,
@@ -381,6 +384,9 @@ function buildHomePageData(media: MediaMap) {
         caption: 'Тип проекта — это старт, не ограничение. Добавляйте возможности по мере роста.',
       },
 
+      // Separator: wave (flipped) между ProjectTypes и Quote.
+      { blockType: 'wave-divider' as const, variant: 'wave' as const, flipped: true },
+
       // 8. Quote — editorial card-accent-left (привычный Володе вариант,
       // его дефолт для всех сайтов). После подключения QuoteCycle здесь
       // будет ротация: card-accent-left → full-width-dark → minimal-modern.
@@ -414,6 +420,9 @@ function buildHomePageData(media: MediaMap) {
           { label: 'Форма' },
         ],
       },
+
+      // Separator: dots между BlockShowcase и CTA banner.
+      { blockType: 'wave-divider' as const, variant: 'dots' as const },
 
       // 10. CTA banner — финальный, blue solid.
       {
