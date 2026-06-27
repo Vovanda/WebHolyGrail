@@ -32,6 +32,15 @@ export const FeatureGridBlock: Block = {
         { name: 'title', label: 'Заголовок карточки', type: 'text', required: true },
         { name: 'subtitle', label: 'Подзаголовок (1 строка)', type: 'text' },
         { name: 'description', label: 'Описание (1 строка)', type: 'text' },
+        {
+          name: 'details',
+          label: 'Детальное описание (открывается в модалке по клику)',
+          type: 'textarea',
+          admin: {
+            description:
+              'Несколько фраз почему это решение хорошо. Если пусто — карточка не кликабельна.',
+          },
+        },
       ],
     },
   ],

@@ -245,43 +245,56 @@ function buildHomePageData(media: MediaMap) {
             title: 'Frontend',
             subtitle: 'Next.js 15 + React 19',
             description: 'SSR по умолчанию',
+            details:
+              'App Router + React Server Components: страницы рендерятся на сервере, в браузер уходит готовый HTML — быстро на первом экране, хорошо для SEO.\n\nИнтерактивные островки помечаются «use client» — bundle минимальный. Универсальный SiteLayout с panel-композицией: header, footer, drawer, sidebar собираются из JSON, не из JSX.',
           },
           {
             icon: 'https://cdn.simpleicons.org/payloadcms/000000',
             title: 'CMS',
             subtitle: 'Payload 3',
             description: 'Админка на русском',
+            details:
+              'Block-editor с drag-and-drop, типизированные коллекции, role-based доступ, версионирование и черновики из коробки.\n\nLocal API напрямую из server-кода — не нужен REST для seed/cron/migrations. UI на русском с возможностью переключения языка.',
           },
           {
             icon: 'https://cdn.simpleicons.org/docker/2496ED',
             title: 'Deploy',
             subtitle: 'Docker + blue-green',
             description: 'Zero-downtime',
+            details:
+              'docker compose с двумя цветами (blue/green), nginx переключает upstream после healthcheck нового — zero-downtime деплой.\n\nМиграции применяются автоматически перед switch. Если новая версия упала — откат не нужен, старый цвет работает.',
           },
           {
-            // simple-icons не имеет S3 slug — emoji fallback (TODO local SVG).
             icon: '🗄️',
             title: 'Storage',
             subtitle: 'S3-совместимое',
             description: 'MinIO в dev',
+            details:
+              'Любой S3-совместимый провайдер: AWS S3, Cloudflare R2, Backblaze B2 или self-host MinIO. Один env-переменный набор переключает между ними.\n\nВ dev — MinIO в docker рядом, нулевая настройка. Без локального диска — медиа сразу там же где будет на проде.',
           },
           {
-            icon: '🔐',
+            icon: '∞',
             title: 'Secrets',
             subtitle: 'Infisical',
             description: 'Никаких .env на проде',
+            details:
+              'Все секреты живут в Infisical (cloud или self-host). На VPS — только client-id + secret для machine identity, дальше всё через API.\n\nРотация без передеплоя, audit-trail, разные значения для dev/staging/prod без копирования файлов.',
           },
           {
             icon: 'https://cdn.simpleicons.org/sqlite/003B57',
             title: 'Data',
             subtitle: 'SQLite по умолчанию',
             description: 'Postgres одной строкой',
+            details:
+              'SQLite через libsql — нет внешней БД на старте, файл рядом с кодом. Подходит для визитки / блога / небольшого портала.\n\nPostgres — замена одной строкой в payload.config (через @payloadcms/db-postgres), миграции drizzle переносятся как есть.',
           },
           {
             icon: '🧩',
             title: 'Architecture',
             subtitle: 'Contracts boundary',
             description: 'Изоляция фронта и бэка',
+            details:
+              'Workspace contracts/ — единственная общая зависимость client и cms. Это TypeScript-интерфейсы блоков, страниц, SiteSettings.\n\nClient не знает про Payload (никаких прямых импортов из cms/), CMS не знает про React. Можно подменить любую сторону без переписки другой — frontend на Astro, CMS на Strapi.',
           },
         ],
       },
