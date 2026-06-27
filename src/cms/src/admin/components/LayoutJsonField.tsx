@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import CodeMirror from '@uiw/react-codemirror';
+import { json } from '@codemirror/lang-json';
+import { oneDark } from '@codemirror/theme-one-dark';
 import { useField } from '@payloadcms/ui';
 import type { JSONFieldClientComponent } from 'payload';
 
@@ -55,25 +58,33 @@ const LayoutJsonField: JSONFieldClientComponent = ({ field, path }) => {
       <label style={{ fontSize: 13, color: 'var(--theme-elevation-700)' }}>
         {field.label as string}
       </label>
-      <textarea
-        value={text}
-        onChange={(e) => commit(e.target.value)}
-        rows={10}
-        spellCheck={false}
+      <div
         style={{
-          padding: '10px 12px',
           border: '1px solid var(--theme-elevation-150)',
           borderRadius: 4,
-          fontFamily: 'var(--font-mono, ui-monospace, monospace)',
-          fontSize: 13,
-          lineHeight: 1.5,
-          background: 'var(--theme-input-bg)',
-          color: 'var(--theme-text)',
-          resize: 'vertical',
-          minHeight: 200,
+          overflow: 'hidden',
         }}
-        placeholder="Пусто — используется CLASSIC_SITE_LAYOUT из кода. Нажми «Reset to default» чтобы скопировать его сюда."
-      />
+      >
+        <CodeMirror
+          value={text}
+          onChange={(v) => commit(v)}
+          theme={oneDark}
+          extensions={[json()]}
+          basicSetup={{
+            lineNumbers: true,
+            highlightActiveLine: true,
+            highlightActiveLineGutter: true,
+            bracketMatching: true,
+            closeBrackets: true,
+            indentOnInput: true,
+            foldGutter: true,
+            tabSize: 2,
+          }}
+          minHeight="240px"
+          maxHeight="500px"
+          placeholder="Пусто — CLASSIC_SITE_LAYOUT из кода. Нажми «Reset to default» чтобы загрузить шаблон."
+        />
+      </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button type="button" onClick={() => setModalOpen(true)} style={btnSecondary}>
           Открыть в большом редакторе
@@ -126,24 +137,34 @@ const LayoutJsonField: JSONFieldClientComponent = ({ field, path }) => {
                 Закрыть
               </button>
             </div>
-            <textarea
-              value={text}
-              onChange={(e) => commit(e.target.value)}
-              spellCheck={false}
+            <div
               style={{
                 flex: 1,
-                padding: '12px 16px',
                 border: '1px solid var(--theme-elevation-150)',
                 borderRadius: 4,
-                fontFamily: 'var(--font-mono, ui-monospace, monospace)',
-                fontSize: 13,
-                lineHeight: 1.55,
-                background: 'var(--theme-input-bg)',
-                color: 'var(--theme-text)',
-                resize: 'none',
+                overflow: 'hidden',
                 minHeight: 500,
               }}
-            />
+            >
+              <CodeMirror
+                value={text}
+                onChange={(v) => commit(v)}
+                theme={oneDark}
+                extensions={[json()]}
+                basicSetup={{
+                  lineNumbers: true,
+                  highlightActiveLine: true,
+                  highlightActiveLineGutter: true,
+                  bracketMatching: true,
+                  closeBrackets: true,
+                  indentOnInput: true,
+                  foldGutter: true,
+                  tabSize: 2,
+                }}
+                height="100%"
+                minHeight="500px"
+              />
+            </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="button" onClick={resetToDefault} style={btnSecondary}>
                 Reset to default
