@@ -54,14 +54,21 @@ export function FeatureGrid({
           }
         >
           {items.map((item, i) => {
-            // 2-3-2 placement: items 0,1 → col-span-3 (row 1, 2×3 = 6 cells)
-            //                  items 2,3,4 → col-span-2 (row 2, 3×2 = 6 cells)
-            //                  items 5,6 → col-span-3 (row 3, 2×3 = 6 cells)
-            const spanClass = isSevenCheckerboard
+            const isLast = i === items.length - 1;
+            // На mobile (grid-cols-2) если items.length нечётный — последняя
+            // карточка hangs alone в новой строке. Растягиваем на full-width.
+            // То же для sm (grid-cols-3) если items.length % 3 === 1.
+            const hangingMobile = isLast && items.length % 2 === 1 ? 'col-span-2' : '';
+            const hangingSm = isLast && items.length % 3 === 1 ? 'sm:col-span-3' : '';
+            // 2-3-2 placement (lg): items 0,1 → col-span-3 (row 1, 2×3 = 6)
+            //                       items 2,3,4 → col-span-2 (row 2, 3×2 = 6)
+            //                       items 5,6 → col-span-3 (row 3, 2×3 = 6)
+            const lgSpan = isSevenCheckerboard
               ? i < 2 || i > 4
                 ? 'lg:col-span-3'
                 : 'lg:col-span-2'
               : '';
+            const spanClass = [hangingMobile, hangingSm, lgSpan].filter(Boolean).join(' ');
             return (
               <div
                 key={i}
