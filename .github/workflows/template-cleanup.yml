@@ -1,0 +1,75 @@
+name: template-cleanup
+
+# Срабатывает один раз в новом репо, склонированном из template Vovanda/WebHolyGrail.
+# Если README.md ещё template-овый (первая строка `# Web Holy Grail`) — переписывает
+# на minimal-форму под имя нового репо. Если разработчик уже правил README — не трогает.
+# В обоих случаях удаляет сам себя, чтобы больше никогда не сработать.
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  cleanup:
+    # Не запускаться в самом template-репо.
+    if: github.repository != 'Vovanda/WebHolyGrail'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          # Нужен токен с write — дефолтный GITHUB_TOKEN с permissions.contents:write подходит.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Rewrite README if untouched
+        id: rewrite
+        run: |
+          set -e
+          REPO_NAME="${GITHUB_REPOSITORY##*/}"
+
+          if [ -f README.md ] && head -n 1 README.md | grep -qx '# Web Holy Grail'; then
+            cat > README.md <<EOF
+          # ${REPO_NAME}
+
+          Built on [Web Holy Grail](https://github.com/Vovanda/WebHolyGrail) — self-hosted фундамент Next 15 + Payload 3.
+
+          ## Dev
+
+          \`\`\`bash
+          corepack enable && pnpm install
+          ./dev-setup.sh   # один раз: Infisical + MinIO
+          ./dev.sh         # сайт :3000, админка :3001/admin
+          \`\`\`
+
+          Полная инструкция scaffolding / Infisical / deploy — [WHG docs](https://github.com/Vovanda/WebHolyGrail/tree/main/docs/whg).
+          EOF
+            echo "rewrote=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "rewrote=0" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Remove self
+        run: rm -f .github/workflows/template-cleanup.yml
+
+      - name: Commit and push
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+            exit 0
+          fi
+
+          if [ "${{ steps.rewrite.outputs.rewrote }}" = "1" ]; then
+            MSG="chore: initial README for ${GITHUB_REPOSITORY##*/} + remove template-cleanup workflow"
+          else
+            MSG="chore: remove template-cleanup workflow (README already customized)"
+          fi
+          git commit -m "$MSG"
+          git push
