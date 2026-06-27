@@ -26,6 +26,10 @@ export const FaqGroups: CollectionConfig = {
     group: 'Контент',
     description:
       'Группы вопросов на странице «Ответы на вопросы». Порядок — поле order (меньше = выше). Drag-and-drop вопросов внутри группы — стрелками или копированием.',
+    // hidden: true — коллекция скрыта в админке. FAQ переезжает на inline-items
+    // в FaqAccordion-блоке + отдельная /faq страница (см. issue #39).
+    // Удалим коллекцию полностью когда #39 будет готов (нужна миграция DROP TABLE).
+    hidden: true,
   },
   defaultSort: 'order',
   versions: { drafts: true },

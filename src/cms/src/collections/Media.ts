@@ -16,11 +16,11 @@ import type { CollectionConfig } from 'payload';
  */
 export const Media: CollectionConfig = {
   slug: 'media',
-  labels: { singular: 'File', plural: 'Media' },
+  labels: { singular: 'Медиафайл', plural: 'Медиа' },
   admin: {
     useAsTitle: 'filename',
     defaultColumns: ['filename', 'alt', 'mimeType', 'filesize'],
-    group: 'Content',
+    group: 'Контент',
   },
   upload: {
     mimeTypes: ['image/*', 'application/pdf'],

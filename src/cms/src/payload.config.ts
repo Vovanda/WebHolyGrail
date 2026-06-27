@@ -78,6 +78,31 @@ export default buildConfig({
   },
   collections: [Users, Media, Pages, FormSubmissions, ReusableBlocks, Posts, Comments, FaqGroups],
   globals: [SiteSettings],
+  /**
+   * Jobs Queue — admin UI на /admin/collections/payload-jobs. Template поставляет
+   * пустой набор tasks/workflows — downstream добавляет свои задачи (sync
+   * соц-сетей, генерация отчётов, периодические синки). Воркер запускается через
+   * `pnpm payload jobs:run` или встроенный autoRun (см. whg-payload-jobs skill).
+   *
+   * jobsCollectionOverrides — кастомизация admin UI коллекции payload-jobs:
+   * русские labels + group 'Администрирование', чтобы downstream видел "Задачи"
+   * рядом с "Редакторы" вместо скрытой технической collection.
+   */
+  jobs: {
+    tasks: [],
+    workflows: [],
+    jobsCollectionOverrides: ({ defaultJobsCollection }) => ({
+      ...defaultJobsCollection,
+      labels: { singular: 'Задача (job)', plural: 'Задачи (jobs)' },
+      admin: {
+        ...defaultJobsCollection.admin,
+        hidden: false,
+        group: 'Администрирование',
+        description:
+          'Фоновые задачи. Template не поставляет tasks из коробки — downstream добавляет свои в payload.config.jobs.tasks. См. whg-payload-jobs skill.',
+      },
+    }),
+  },
   editor: lexicalEditor(),
   secret: process.env.PAYLOAD_SECRET ?? '',
   typescript: {
