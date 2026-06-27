@@ -1,0 +1,65 @@
+@import './tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: light;
+    scrollbar-gutter: stable;
+    background-color: var(--color-page-bg);
+  }
+  html[data-theme='dark'] {
+    color-scheme: dark;
+  }
+  body {
+    position: relative;
+    min-height: 100vh;
+    background: transparent;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
+    line-height: var(--line-height-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    color: var(--color-ink);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: var(--line-height-tight);
+  }
+  ::selection {
+    background: var(--color-selection-bg);
+    color: var(--color-selection-fg);
+  }
+  ::-moz-selection {
+    background: var(--color-selection-bg);
+    color: var(--color-selection-fg);
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+@layer components {
+  /* Fade-in keyframes — для появления элементов "снизу-вверх + opacity".
+   * Используется для disclosure-эффектов (раскрываемые списки, появление
+   * скрытых элементов). Generic — без editorial-специфики. */
+  @keyframes hg-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
