@@ -238,7 +238,7 @@ bash deploy/prod/deploy.sh <git-sha>
 - **whg-infisical** — детали Infisical setup, ротация секретов, debug "secret not found"
 - **whg-template-sync** — sync обновлений из upstream WHG в инстанс
 - **payload-migration** — миграции схемы Payload при изменении collections
-- **whg-rules** — R0-R15 архитектурные правила
+- **whg-rules** — R1-R9 архитектурные правила
 - **whg-layouts** — SiteSettings.layout config (panels/slots)
 
 ## Human-readable версия

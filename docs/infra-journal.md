@@ -113,7 +113,7 @@ git push --no-verify
 
 ## Что НЕ здесь
 
-- **Архитектурные правила R0-R15** — в [`docs/whg/30-philosophy.md`](whg/30-philosophy.md).
+- **Архитектурные правила R1-R9** — в [`docs/whg/30-philosophy.md`](whg/30-philosophy.md).
 - **Decision rationale для project types** — в [`docs/whg/32-structure.md`](whg/32-structure.md) + issue #27 DISCUSS.
 - **Конкретные VPS / IP / project IDs** — в `<instance-repo>/docs/infra-journal.md` (не в template — template generic).
 - **Скриншоты / Hugo docs site** — отдельная история, не часть инфры.

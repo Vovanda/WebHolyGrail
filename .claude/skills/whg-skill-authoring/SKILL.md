@@ -40,7 +40,7 @@ Skill описывает **процесс/правило/паттерн кото
 
 Примеры:
 
-- `whg-rules` — R0-R15 — это наш rule-set, нигде нет.
+- `whg-rules` — R1-R9 — это наш rule-set, нигде нет.
 - `whg-layouts` — наша Panel/Slot/SiteLayout архитектура.
 - `whg-modals` — наш канон detail-модалок с hash-routing.
 - `whg-scaffold` — наш scaffolding flow (gh repo create → setup-infisical → ./dev.sh).
