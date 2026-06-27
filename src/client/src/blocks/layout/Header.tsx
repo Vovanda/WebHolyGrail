@@ -47,7 +47,7 @@ export function Header({
         {/* Wordmark — inline SVG mark + siteName */}
         <Link
           href="/"
-          className="flex items-center gap-2 shrink-0 group"
+          className="flex items-center gap-3 shrink-0 group"
           aria-label={settings.siteName ?? 'На главную'}
         >
           <WordmarkMark className="text-accent group-hover:text-accent-hover transition-colors" />
@@ -106,29 +106,30 @@ export function Header({
  * Downstream может заменить через собственный layout-блок или подмену SiteSettings.logo.
  */
 function WordmarkMark({ className }: { readonly className?: string }) {
+  // h-9 w-9 (36×36) — единый ритм с burger / GitHub-icon / ThemeToggle.
   return (
     <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
+      width="36"
+      height="36"
+      viewBox="0 0 36 36"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-hidden="true"
     >
-      <path
-        d="M12 2L3 6v5c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V6l-9-4z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M8 12l3 3 5-6"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <rect width="36" height="36" rx="8" fill="currentColor" />
+      <text
+        x="18"
+        y="24"
+        textAnchor="middle"
+        fontFamily="var(--font-display, system-ui)"
+        fontSize="13"
+        fontWeight="700"
+        fill="white"
+        letterSpacing="0.5"
+      >
+        WHG
+      </text>
     </svg>
   );
 }
