@@ -49,12 +49,16 @@ export function Footer({
     <footer className="border-t border-border bg-page-bg text-ink">
       <div
         className={[
-          'mx-auto max-w-wide px-4 md:px-6 py-10 md:py-14 grid gap-8 md:gap-12 grid-cols-1 sm:grid-cols-2',
+          // mobile = 2 cols (wordmark занимает full-width через col-span-2 ниже);
+          // sm+ = 2 cols (wordmark тоже full-width на узких sm-tablets);
+          // md+ = равные 1/2/3 cols
+          'mx-auto max-w-wide px-4 md:px-6 py-10 md:py-14 grid gap-6 md:gap-12 grid-cols-2',
           columns === 3 ? 'md:grid-cols-3' : columns === 2 ? 'md:grid-cols-2' : 'md:grid-cols-1',
         ].join(' ')}
       >
-        {/* Col 1 — wordmark + tagline */}
-        <div>
+        {/* Col 1 — wordmark + tagline. Full-width на mobile/sm (col-span-2),
+            на md+ занимает свою равную колонку. */}
+        <div className="col-span-2 md:col-span-1">
           <div className="font-display text-lg font-semibold text-ink">{siteName}</div>
           {tagline && <p className="mt-3 text-sm text-muted leading-relaxed max-w-xs">{tagline}</p>}
           {githubUrl && (

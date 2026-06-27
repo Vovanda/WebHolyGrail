@@ -359,6 +359,10 @@ function buildHomePageData(media: MediaMap) {
       // 8. Quote — editorial card-accent-left (привычный Володе вариант,
       // его дефолт для всех сайтов). После подключения QuoteCycle здесь
       // будет ротация: card-accent-left → full-width-dark → minimal-modern.
+      // authorHref намеренно НЕ задан (Володя: "цитата без ссылки на мой
+      // гитхаб в имени... а это поле вообще-то важное в контроле"). Поле
+      // остаётся в Quote-блоке для других use-cases (testimonials с link
+      // на site автора и т.д.).
       {
         blockType: 'quote' as const,
         heading: 'Философия проекта',
@@ -366,7 +370,6 @@ function buildHomePageData(media: MediaMap) {
         body: 'Технологии уже позволяют дать малому бизнесу нормальный сайт с честной архитектурой — почти даром.',
         author: 'Владимир Савкин',
         role: 'архитектор Web Holy Grail',
-        authorHref: 'https://github.com/Vovanda',
       },
 
       // 9. Block showcase — карточки готовых блоков template'а.
