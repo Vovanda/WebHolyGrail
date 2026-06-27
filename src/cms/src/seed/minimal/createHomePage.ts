@@ -85,6 +85,11 @@ export async function createHomePage(payload: Payload): Promise<{ created: boole
         contacts: {
           email: 'contact@webholygrail.dev',
         },
+        theme: {
+          mode: 'light',
+          userToggle: true,
+          palettePreset: 'whg-default',
+        },
         mainNav: [
           { href: '#features', label: 'Возможности' },
           { href: '#growth', label: 'Рост' },
@@ -95,7 +100,7 @@ export async function createHomePage(payload: Payload): Promise<{ created: boole
             external: true,
           },
           {
-            href: 'https://github.com/Vovanda/WebHolyGrail/tree/main/docs',
+            href: 'https://github.com/Vovanda/WebHolyGrail/blob/main/docs/whg/00-overview.md',
             label: 'Документация',
             external: true,
           },
@@ -224,7 +229,7 @@ function buildHomePageData(media: MediaMap) {
           { text: 'Сайт-визитка на конструкторе' },
           { text: 'Нужен блог — миграция на CMS, теряем SEO' },
           { text: 'Заказали кабинет — переписали с нуля' },
-          { text: 'Через год — зоопарк несовместимых сервисов' },
+          { text: 'Через год — зоопарк несовместимых и устаревших технологий' },
         ],
         rightItems: [
           { text: 'Визитка на своём сервере' },

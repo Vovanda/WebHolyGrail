@@ -1,5 +1,5 @@
 import type { Payload } from 'payload';
-import { FAQ_GROUPS, type FaqGroupSeed } from './groups.js';
+import { FAQ_GROUPS, type FaqGroupSeed } from './faqGroups.js';
 
 /**
  * Создаёт/обновляет FAQ-группы по slug. Идемпотентно.

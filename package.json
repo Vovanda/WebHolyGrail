@@ -25,7 +25,6 @@
     "minio:logs": "docker compose -f deploy/local/docker-compose.yml logs -f minio",
     "setup-infisical": "tsx scripts/setup-infisical.ts",
     "seed:minimal": "infisical run --env=dev -- pnpm --filter cms run seed:minimal",
-    "seed:faq": "infisical run --env=dev -- pnpm --filter cms run seed:faq",
     "prepare": "husky"
   },
   "devDependencies": {

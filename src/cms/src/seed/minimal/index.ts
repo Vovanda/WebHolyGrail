@@ -35,6 +35,9 @@ import config from '../../payload.config.js';
 
 import { createInitialAdmin } from './createInitialAdmin.js';
 import { createHomePage } from './createHomePage.js';
+import { createFaqGroups } from './createFaqGroups.js';
+import { createFaqPage } from './createFaqPage.js';
+import { addFaqToMainNav } from './addFaqToMainNav.js';
 
 async function main(): Promise<void> {
   const email = process.env['SEED_ADMIN_EMAIL'] ?? 'admin@example.com';
@@ -65,6 +68,28 @@ async function main(): Promise<void> {
     home.created
       ? `  ✓ home page created (id ${home.id})`
       : `  · home page already exists (id ${home.id})`,
+  );
+
+  console.log('→ createFaqGroups()');
+  const groups = await createFaqGroups(payload);
+  console.log(
+    `  ✓ faq groups: created=${groups.created}, updated=${groups.updated}, skipped=${groups.skipped}`,
+  );
+
+  console.log('→ createFaqPage(slug=faq)');
+  const faqPage = await createFaqPage(payload, groups.ids);
+  console.log(
+    faqPage.created
+      ? `  ✓ /faq created/updated (id ${faqPage.id})`
+      : `  · /faq already populated (id ${faqPage.id})`,
+  );
+
+  console.log('→ addFaqToMainNav()');
+  const nav = await addFaqToMainNav(payload);
+  console.log(
+    nav.added
+      ? `  ✓ /faq added to mainNav (total: ${nav.total})`
+      : `  · /faq already in mainNav (total: ${nav.total})`,
   );
 
   console.log('\nDone. CMS: http://localhost:3001/admin');

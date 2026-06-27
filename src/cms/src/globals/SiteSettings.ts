@@ -137,7 +137,7 @@ export const SiteSettings: GlobalConfig = {
           name: 'userToggle',
           label: 'Показывать кнопку переключения юзеру',
           type: 'checkbox',
-          defaultValue: false,
+          defaultValue: true,
           admin: {
             description:
               'Если включено — посетитель может сам переключить тему, выбор запоминается в браузере.',
