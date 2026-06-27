@@ -43,17 +43,14 @@ const LABELS: Record<Mode, string> = {
 };
 
 export function ThemeToggle({ className }: { readonly className?: string }) {
-  const [mode, setMode] = useState<Mode | null>(null);
+  // Default 'auto' при SSR — кнопка видима сразу без skeleton-задержки.
+  // После hydration useEffect перечитывает реальное состояние из localStorage,
+  // если оно отличается — icon сменится (один кадр flash, не критично).
+  const [mode, setMode] = useState<Mode>('auto');
 
   useEffect(() => {
     setMode(readCurrentMode());
   }, []);
-
-  if (mode === null) {
-    return (
-      <span aria-hidden="true" className={`inline-block h-9 w-9 rounded-md ${className ?? ''}`} />
-    );
-  }
 
   const next = nextMode(mode);
   const Icon = mode === 'dark' ? Moon : mode === 'light' ? Sun : Monitor;

@@ -158,9 +158,9 @@ function buildHomePageData(media: MediaMap) {
       // 1. Hero — двух-колоночный с GrowthPath card справа.
       {
         blockType: 'hero-split' as const,
-        heading: 'Начните с landing-сайта. Вырастите во что угодно.',
+        heading: 'Начните с landing-сайта. Вырастите во что угодно.',
         subtitle:
-          'Web Holy Grail — self-hosted сайт с CMS и архитектурой, которая не заставит вас начинать заново через год.',
+          'Web Holy Grail — self-hosted сайт с CMS и архитектурой, которая не заставит вас начинать заново через год.',
         ctaPrimary: {
           label: 'Использовать шаблон',
           href: 'https://github.com/Vovanda/WebHolyGrail/generate',
@@ -171,16 +171,16 @@ function buildHomePageData(media: MediaMap) {
         },
         badges: [
           { label: 'Self-hosted' },
-          { label: 'MIT License' },
-          { label: 'Docker Ready' },
-          { label: 'TypeScript First' },
+          { label: 'MIT License' },
+          { label: 'Docker Ready' },
+          { label: 'TypeScript First' },
         ],
-        rightTitle: 'Один фундамент — разные сценарии',
+        rightTitle: 'Один фундамент — разные сценарии',
         rightSteps: [
-          { icon: '🪪', label: 'Визитка', sub: 'Начните с простого сайта' },
-          { icon: '📝', label: 'Блог', sub: 'Добавьте контент и статьи' },
-          { icon: '👥', label: 'Портал', sub: 'Личный кабинет и пользователи' },
-          { icon: '🧩', label: 'Продукт', sub: 'Новые сервисы и интеграции' },
+          { icon: '🪪', label: 'Визитка', sub: 'Начните с простого сайта' },
+          { icon: '📝', label: 'Блог', sub: 'Добавьте контент и статьи' },
+          { icon: '👥', label: 'Портал', sub: 'Личный кабинет и пользователи' },
+          { icon: '🧩', label: 'Продукт', sub: 'Новые сервисы и интеграции' },
         ],
         rightCaption: 'Один фундамент. Без переписывания.',
       },

@@ -90,7 +90,7 @@ export function Header({
               href={cta.href}
               target={cta.href.startsWith('http') ? '_blank' : undefined}
               rel={cta.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-              className="inline-flex items-center px-4 py-2 rounded-md bg-accent text-white text-sm font-medium hover:bg-accent-hover transition-colors whitespace-nowrap"
+              className="hidden md:inline-flex items-center px-4 py-2 rounded-md bg-accent text-white text-sm font-medium hover:bg-accent-hover transition-colors whitespace-nowrap"
             >
               {cta.label}
             </Link>
