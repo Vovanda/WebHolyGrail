@@ -40,8 +40,24 @@ export function ThemeBootstrap({ config }: { config: ThemeConfig }) {
  * Клиентский helper для переключения темы юзером (когда `userToggle: true`).
  * Сохраняет выбор в localStorage и проставляет атрибут на `<html>`.
  */
-export function setTheme(theme: string): void {
+export function setTheme(theme: 'light' | 'dark' | 'auto'): void {
   if (typeof window === 'undefined') return;
+  if (theme === 'auto') {
+    // Удаляем localStorage override → следующий load берёт mode из SiteSettings.
+    // Сразу применяем prefers-color-scheme для немедленного эффекта.
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if (prefersDark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // localStorage может быть недоступен (private mode / CSP) — молча игнорируем.
+    }
+    return;
+  }
   if (theme === 'light') {
     document.documentElement.removeAttribute('data-theme');
   } else {

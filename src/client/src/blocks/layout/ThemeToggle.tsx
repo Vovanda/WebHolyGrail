@@ -1,58 +1,79 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Moon, Sun } from 'lucide-react';
+import { Monitor, Moon, Sun } from 'lucide-react';
 
 import { setTheme } from '@/lib/theme-bootstrap';
 
 /**
- * ThemeToggle — переключатель light ↔ dark.
+ * ThemeToggle — циклический переключатель light → dark → auto → light.
  *
  * @remarks
- * Бутстрап темы (no-FOUC inline-script) уже отработал в `<head>` и проставил
- * `data-theme` на `<html>`. Здесь только UI-обёртка которая читает текущее
- * состояние при hydration и переключает через `setTheme()` helper.
+ * При mount читает state из localStorage('hg-theme'):
+ *  - 'light' / 'dark' — explicit override от юзера
+ *  - отсутствует / 'auto' — auto mode (следует prefers-color-scheme)
  *
- * Перед hydration рендерим невидимую заглушку (одинаковая высота-ширина),
- * чтобы layout не прыгнул когда React смонтируется.
- *
- * Активность тоггла контролируется в SiteSettings.theme.userToggle — если
- * false, эту кнопку в Header не показываем. Здесь сам компонент всегда работает.
+ * Click cycle: light → dark → auto → light → ...
+ * Иконка отражает текущее значение: Sun / Moon / Monitor.
  */
+
+const STORAGE_KEY = 'hg-theme';
+type Mode = 'light' | 'dark' | 'auto';
+
+function readCurrentMode(): Mode {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved === 'dark' || saved === 'light') return saved;
+  } catch {
+    // private mode / CSP
+  }
+  return 'auto';
+}
+
+function nextMode(current: Mode): Mode {
+  if (current === 'light') return 'dark';
+  if (current === 'dark') return 'auto';
+  return 'light';
+}
+
+const LABELS: Record<Mode, string> = {
+  light: 'Светлая тема',
+  dark: 'Тёмная тема',
+  auto: 'Авто (по системе)',
+};
+
 export function ThemeToggle({ className }: { readonly className?: string }) {
-  const [theme, setLocalTheme] = useState<'light' | 'dark' | null>(null);
+  const [mode, setMode] = useState<Mode | null>(null);
 
   useEffect(() => {
-    const current = document.documentElement.dataset['theme'] === 'dark' ? 'dark' : 'light';
-    setLocalTheme(current);
+    setMode(readCurrentMode());
   }, []);
 
-  if (theme === null) {
-    // Skeleton до hydration — той же геометрии что и реальная кнопка.
+  if (mode === null) {
     return (
       <span aria-hidden="true" className={`inline-block h-9 w-9 rounded-md ${className ?? ''}`} />
     );
   }
 
-  const next = theme === 'dark' ? 'light' : 'dark';
-  const label = next === 'dark' ? 'Включить тёмную тему' : 'Включить светлую тему';
+  const next = nextMode(mode);
+  const Icon = mode === 'dark' ? Moon : mode === 'light' ? Sun : Monitor;
 
   return (
     <button
       type="button"
       onClick={() => {
         setTheme(next);
-        setLocalTheme(next);
+        setMode(next);
       }}
-      aria-label={label}
-      title={label}
+      aria-label={`Текущая: ${LABELS[mode]}. Click → ${LABELS[next]}`}
+      title={`${LABELS[mode]} → ${LABELS[next]}`}
       className={
         'inline-flex h-9 w-9 items-center justify-center rounded-md text-muted ' +
         'hover:text-ink hover:bg-surface-hover transition-colors ' +
         (className ?? '')
       }
     >
-      {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+      <Icon size={18} />
     </button>
   );
 }

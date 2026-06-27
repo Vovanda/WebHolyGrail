@@ -41,7 +41,14 @@ export function StackTransparency({
         <ul className="mt-8 flex flex-wrap items-center justify-center gap-x-10 gap-y-6">
           {items.map((item, i) => (
             <li key={i} className="flex flex-col items-center gap-2 min-w-[80px]">
-              <Icon icon={item.icon} label={item.label} size={40} innerScale={0.85} />
+              <Icon
+                icon={item.icon}
+                label={item.label}
+                size={48}
+                rounded="md"
+                innerScale={0.7}
+                className="!bg-white border border-border shadow-sm"
+              />
               {item.href ? (
                 <Link
                   href={item.href}
