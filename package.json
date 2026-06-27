@@ -1,0 +1,42 @@
+{
+  "name": "web-holy-grail-site",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Site built on Web Holy Grail framework — Next 15 + Payload 3 + SQLite/Postgres + Docker",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@11.8.0",
+  "engines": {
+    "node": ">=20.11.0",
+    "pnpm": ">=9.0.0"
+  },
+  "scripts": {
+    "dev": "./dev.sh",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test",
+    "typecheck": "pnpm -r run typecheck",
+    "smoke": "pnpm --filter client run smoke",
+    "compose:up": "infisical run -- docker compose -f deploy/local/docker-compose.yml up -d",
+    "compose:down": "docker compose -f deploy/local/docker-compose.yml down",
+    "compose:logs": "docker compose -f deploy/local/docker-compose.yml logs -f",
+    "minio:up": "docker compose --profile minio -f deploy/local/docker-compose.yml up -d minio minio-init",
+    "minio:down": "docker compose --profile minio -f deploy/local/docker-compose.yml stop minio minio-init",
+    "minio:logs": "docker compose -f deploy/local/docker-compose.yml logs -f minio",
+    "setup-infisical": "tsx scripts/setup-infisical.ts",
+    "seed:minimal": "infisical run --env=dev -- pnpm --filter cms run seed:minimal",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
+    "@types/node": "^22.10.0",
+    "concurrently": "^10.0.3",
+    "cross-env": "^7.0.3",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.7",
+    "prettier": "^3.8.4",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.3"
+  }
+}

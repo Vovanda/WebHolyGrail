@@ -1,0 +1,74 @@
+# --- Секреты (NEVER commit) ---
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.ppk
+# Любой файл/папка с "secret" в имени блокируется (ловит и secret, и secrets).
+# Исключение — docs/secrets/ (там README про устройство, без реальных значений).
+*secret*
+!docs/secrets/
+!docs/secrets/**
+.infisical.json
+
+# --- Node / pnpm ---
+node_modules/
+.pnpm-store/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Сборки / артефакты ---
+.next/
+out/
+dist/
+build/
+.turbo/
+.vercel/
+.cache/
+*.tsbuildinfo
+next-env.d.ts
+
+# --- БД и медиа ---
+*.sqlite
+*.sqlite-journal
+*.db
+data/
+backups/
+
+# --- Тестовые артефакты ---
+coverage/
+.nyc_output/
+playwright-report/
+playwright/.cache/
+test-results/
+
+# --- IDE / OS ---
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.shared.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Claude session ---
+.claude/session-context/
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
+.playwright-mcp/
+.tmp/
+
+# --- Локальные скриншоты/референсы (для меня, не для репы) ---
+/*.png
+/*.jpeg
+/*.jpg
+/check-users.mjs
+
+# Claude Code worktrees
+.claude/worktrees/
