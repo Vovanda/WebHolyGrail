@@ -31,10 +31,18 @@ export function ProjectTypesGrid({
   readonly settings: SiteSettings;
 }) {
   const data = node.data ?? {};
-  const heading = data.heading ?? 'Одна архитектура. Несколько сценариев роста.';
+  const headingRaw = data.heading ?? 'Одна архитектура.\nНесколько сценариев роста.';
   const subtitle = data.subtitle;
   const items = data.items ?? [];
   const caption = data.caption;
+
+  // Heading может содержать перенос строк (\n) — split на lines. Если строк
+  // больше 1 — последняя рендерится с accent-цветом (выделение акцента,
+  // паттерн в духе Supabase / Resend "Build in a weekend / Scale to millions").
+  const headingLines = headingRaw
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
 
   if (items.length === 0) return null;
 
@@ -44,7 +52,18 @@ export function ProjectTypesGrid({
         {/* LEFT — heading + subtitle */}
         <div>
           <h2 className="font-display text-h3 md:text-h2 font-semibold leading-tight text-ink">
-            {heading}
+            {headingLines.map((line, i) => (
+              <span
+                key={i}
+                className={
+                  i === headingLines.length - 1 && headingLines.length > 1
+                    ? 'text-accent block'
+                    : 'block'
+                }
+              >
+                {line}
+              </span>
+            ))}
           </h2>
           {subtitle && <p className="mt-5 text-muted leading-relaxed max-w-md">{subtitle}</p>}
         </div>

@@ -320,9 +320,11 @@ function buildHomePageData(media: MediaMap) {
       },
 
       // 7. Project types — WHG-specific 2×2 grid.
+      // Heading на 2 строки с \n — последняя строка рендерится accent-цветом
+      // (паттерн Supabase/Resend "Build in a weekend / Scale to millions").
       {
         blockType: 'project-types-grid' as const,
-        heading: 'Одна архитектура. Несколько сценариев роста.',
+        heading: 'Одна архитектура.\nНесколько сценариев роста.',
         subtitle:
           'Выберите стартовую точку под ваш проект. Архитектура остаётся той же — меняется только стартовая конфигурация.',
         items: [
