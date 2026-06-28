@@ -27,6 +27,23 @@
 
 set -euo pipefail
 
+# rsync — единственная нестандартная зависимость. Git Bash for Windows by default
+# его не несёт; печатаем понятный error с инструкцией вместо cryptic exit 127.
+if ! command -v rsync >/dev/null 2>&1; then
+  cat >&2 <<'EOM'
+ERROR: rsync not found in PATH.
+
+Install:
+  Linux:    apt install rsync  (или) pacman -S rsync
+  macOS:    встроен или  brew install rsync
+  Windows:
+    A) scoop install rsync
+    B) MSYS2:  pacman -S rsync  и добавить C:\msys64\usr\bin в PATH
+    C) WSL2 — запускать sync-template.sh внутри Ubuntu/Debian
+EOM
+  exit 1
+fi
+
 INSTANCE=""
 REF="main"
 REPO=""
