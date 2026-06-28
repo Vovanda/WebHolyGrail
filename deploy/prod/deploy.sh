@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Blue-green deploy для site-site на VPS.
+# Blue-green deploy для Holy Grail site на VPS.
 # Запускается локально на VPS (вызывается из GitHub Actions через SSH).
 #
 # Использование:
@@ -83,7 +83,7 @@ else
 fi
 
 echo "═══════════════════════════════════════════════════════"
-echo " Deploy site-site"
+echo " Deploy $SITE_SLUG"
 echo "   active   : $ACTIVE"
 echo "   inactive : $INACTIVE (cms=$INACTIVE_CMS_PORT, client=$INACTIVE_CLIENT_PORT)"
 echo "   image tag: $TAG"
@@ -109,26 +109,28 @@ fi
 
 cd "$SCRIPT_DIR"
 
-# Убедимся что external network существует
-docker network inspect holygrail-net >/dev/null 2>&1 || docker network create holygrail-net
+# Убедимся что external network существует (per-site, согласно compose.bluegreen.yml)
+docker network inspect "$SITE_SLUG-net" >/dev/null 2>&1 || docker network create "$SITE_SLUG-net"
 
 # 1. Pull новых images
 echo
 echo "→ Pulling images (tag=$TAG)..."
+SITE_SLUG=$SITE_SLUG \
 COLOR=$INACTIVE \
 CMS_PORT=$INACTIVE_CMS_PORT \
 CLIENT_PORT=$INACTIVE_CLIENT_PORT \
 TAG=$TAG \
-  "${INFISICAL_RUN[@]}" docker compose -p site-$INACTIVE -f "$COMPOSE_FILE" pull
+  "${INFISICAL_RUN[@]}" docker compose -p "$SITE_SLUG-$INACTIVE" -f "$COMPOSE_FILE" pull
 
 # 2. Up inactive
 echo
 echo "→ Starting $INACTIVE..."
+SITE_SLUG=$SITE_SLUG \
 COLOR=$INACTIVE \
 CMS_PORT=$INACTIVE_CMS_PORT \
 CLIENT_PORT=$INACTIVE_CLIENT_PORT \
 TAG=$TAG \
-  "${INFISICAL_RUN[@]}" docker compose -p site-$INACTIVE -f "$COMPOSE_FILE" up -d
+  "${INFISICAL_RUN[@]}" docker compose -p "$SITE_SLUG-$INACTIVE" -f "$COMPOSE_FILE" up -d
 
 # 3. Healthcheck loop — 60 секунд total (30 итераций × 2 сек)
 echo
@@ -148,12 +150,13 @@ if [ "$HEALTHY" != true ]; then
   echo
   echo "   ✗ $INACTIVE failed healthcheck after 60s — rolling back"
   echo "   cms logs (last 30):"
-  docker logs --tail 30 "cms-$INACTIVE" 2>&1 | sed 's/^/     /'
+  docker logs --tail 30 "$SITE_SLUG-cms-$INACTIVE" 2>&1 | sed 's/^/     /'
+  SITE_SLUG=$SITE_SLUG \
   COLOR=$INACTIVE \
   CMS_PORT=$INACTIVE_CMS_PORT \
   CLIENT_PORT=$INACTIVE_CLIENT_PORT \
   TAG=$TAG \
-    "${INFISICAL_RUN[@]}" docker compose -p site-$INACTIVE -f "$COMPOSE_FILE" down
+    "${INFISICAL_RUN[@]}" docker compose -p "$SITE_SLUG-$INACTIVE" -f "$COMPOSE_FILE" down
   exit 1
 fi
 
@@ -165,22 +168,25 @@ fi
 # (~5-10 сек до switch). Это редкий path, помечать `// @needs-maintenance`.
 echo
 echo "→ Applying migrations (pnpm migrate)..."
-if ! docker exec "cms-$INACTIVE" pnpm --filter cms migrate 2>&1 | tail -10; then
+if ! docker exec "$SITE_SLUG-cms-$INACTIVE" pnpm --filter cms migrate 2>&1 | tail -10; then
   echo "   ✗ migrate failed — rolling back"
-  docker logs --tail 30 "cms-$INACTIVE" 2>&1 | sed 's/^/     /'
+  docker logs --tail 30 "$SITE_SLUG-cms-$INACTIVE" 2>&1 | sed 's/^/     /'
+  SITE_SLUG=$SITE_SLUG \
   COLOR=$INACTIVE \
   CMS_PORT=$INACTIVE_CMS_PORT \
   CLIENT_PORT=$INACTIVE_CLIENT_PORT \
   TAG=$TAG \
-    "${INFISICAL_RUN[@]}" docker compose -p site-$INACTIVE -f "$COMPOSE_FILE" down
+    "${INFISICAL_RUN[@]}" docker compose -p "$SITE_SLUG-$INACTIVE" -f "$COMPOSE_FILE" down
   exit 1
 fi
 echo "   ✓ migrations applied"
 
-# 4. Switch nginx upstream symlink (хост путь = bind-mount в nginx container)
+# 4. Switch nginx upstream symlink (хост путь = bind-mount в nginx container).
+# Snippets именованы per-site чтобы несколько Holy Grail сайтов могли стоять
+# рядом на одной VPS без конфликтов имён.
 echo
 echo "→ Switching nginx upstream → $INACTIVE..."
-ln -sf "site-upstream-$INACTIVE.conf" /opt/proxy/nginx/snippets/site-upstream-active.conf
+ln -sf "$SITE_SLUG-upstream-$INACTIVE.conf" "/opt/proxy/nginx/snippets/$SITE_SLUG-upstream-active.conf"
 docker exec holygrail-nginx nginx -t
 docker exec holygrail-nginx nginx -s reload
 echo "   ✓ nginx reloaded"
@@ -189,7 +195,7 @@ echo "   ✓ nginx reloaded"
 echo "$INACTIVE" > "$STATE_FILE"
 
 # 6. Wait + stop old color (если был ranee active)
-if [ "$ACTIVE" != "$INACTIVE" ] && docker ps --format '{{.Names}}' | grep -q "cms-$ACTIVE"; then
+if [ "$ACTIVE" != "$INACTIVE" ] && docker ps --format '{{.Names}}' | grep -q "$SITE_SLUG-cms-$ACTIVE"; then
   echo
   echo "→ Draining old $ACTIVE (5s grace)..."
   sleep 5
@@ -198,11 +204,12 @@ if [ "$ACTIVE" != "$INACTIVE" ] && docker ps --format '{{.Names}}' | grep -q "cm
   else
     OLD_CMS_PORT=3011; OLD_CLIENT_PORT=3010
   fi
+  SITE_SLUG=$SITE_SLUG \
   COLOR=$ACTIVE \
   CMS_PORT=$OLD_CMS_PORT \
   CLIENT_PORT=$OLD_CLIENT_PORT \
   TAG=$TAG \
-    "${INFISICAL_RUN[@]}" docker compose -p site-$ACTIVE -f "$COMPOSE_FILE" down
+    "${INFISICAL_RUN[@]}" docker compose -p "$SITE_SLUG-$ACTIVE" -f "$COMPOSE_FILE" down
   echo "   ✓ $ACTIVE stopped"
 fi
 
