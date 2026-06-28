@@ -34,7 +34,7 @@ pnpm setup-infisical -- --site my-site
 | Containers | Docker compose + blue-green в проде                |
 | Storage    | S3-совместимое (MinIO, B2, R2, AWS S3, Yandex)     |
 | Secrets    | Infisical (self-host или cloud)                    |
-| Tests      | Vitest + Playwright                                |
+| Tests      | Vitest + Playwright (scaffolded; coverage WIP)     |
 
 Обоснование выбора каждого слоя — [`docs/whg/15-vision.md`](docs/whg/15-vision.md).
 

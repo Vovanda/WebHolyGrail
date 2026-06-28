@@ -22,17 +22,17 @@ Open http://localhost:3000 (site), http://localhost:3001/admin (CMS).
 
 ## Stack
 
-| Layer      | Choice                                        |
-| ---------- | --------------------------------------------- |
-| Frontend   | Next.js 15 (App Router) + React 19            |
-| UI         | shadcn/ui + Tailwind + CSS tokens             |
-| CMS        | Payload 3.x (TypeScript, Russian admin UI)    |
-| Database   | SQLite / Postgres (one-line adapter swap)     |
-| Contracts  | `contracts/` workspace (one-way seam)         |
-| Containers | Docker compose + blue-green in prod           |
-| Storage    | S3-compatible (MinIO, B2, R2, AWS S3, Yandex) |
-| Secrets    | Infisical (self-host or cloud)                |
-| Tests      | Vitest + Playwright                           |
+| Layer      | Choice                                         |
+| ---------- | ---------------------------------------------- |
+| Frontend   | Next.js 15 (App Router) + React 19             |
+| UI         | shadcn/ui + Tailwind + CSS tokens              |
+| CMS        | Payload 3.x (TypeScript, Russian admin UI)     |
+| Database   | SQLite / Postgres (one-line adapter swap)      |
+| Contracts  | `contracts/` workspace (one-way seam)          |
+| Containers | Docker compose + blue-green in prod            |
+| Storage    | S3-compatible (MinIO, B2, R2, AWS S3, Yandex)  |
+| Secrets    | Infisical (self-host or cloud)                 |
+| Tests      | Vitest + Playwright (scaffolded; coverage WIP) |
 
 Rationale for each layer — [`whg/15-vision.md`](whg/15-vision.md).
 
