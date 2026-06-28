@@ -51,6 +51,25 @@ fi
 CMS_PORT="${CMS_PORT:-3001}"
 CLIENT_PORT="${CLIENT_PORT:-3000}"
 
+# Payload importMap — сгенерён только при build. После fresh clone отсутствует,
+# и /admin падает с "Module not found: '../importMap.js'". Генерим при первом
+# запуске. Файл в .gitignore, не коммитим.
+IMPORTMAP="src/cms/src/app/(payload)/admin/importMap.js"
+if [ ! -f "$IMPORTMAP" ]; then
+  echo "  → importMap.js отсутствует, генерирую..."
+  if [ "$INFISICAL_OK" = "1" ]; then
+    infisical run --env=dev -- pnpm --dir src/cms exec payload generate:importmap >/dev/null 2>&1 || {
+      echo "  ⚠ generate:importmap упал. /admin может вернуть 500 — запусти вручную:"
+      echo "      pnpm --filter cms generate:importmap"
+    }
+  else
+    pnpm --dir src/cms exec payload generate:importmap >/dev/null 2>&1 || {
+      echo "  ⚠ generate:importmap упал. /admin может вернуть 500 — запусти вручную:"
+      echo "      pnpm --filter cms generate:importmap"
+    }
+  fi
+fi
+
 echo ""
 echo "  dev stack"
 echo "  CMS    → http://localhost:$CMS_PORT"
