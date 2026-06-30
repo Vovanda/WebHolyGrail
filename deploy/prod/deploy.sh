@@ -112,6 +112,111 @@ cd "$SCRIPT_DIR"
 # Убедимся что external network существует (per-site, согласно compose.bluegreen.yml)
 docker network inspect "$SITE_SLUG-net" >/dev/null 2>&1 || docker network create "$SITE_SLUG-net"
 
+# ── Pre-flight: ensure-site-infra ────────────────────────────────────────
+# Идемпотентно (no-op если всё уже на месте). Делает то, что забыли вручную при
+# первом деплое нового сайта: MinIO bucket, nginx site-conf, LE-cert. Без этого
+# первый деплой выходит с 502 / 404 на media / placeholder без серта.
+#
+# Требует на VPS:
+#   - PRIMARY_DOMAIN env (или $1, или из ${SITE_SLUG}.conf если уже есть)
+#   - admin email для certbot — $CERTBOT_EMAIL env (fallback noreply@$PRIMARY_DOMAIN)
+#   - shared host-nginx container `holygrail-nginx` (host-network mode)
+#   - MinIO container `minio` доступен на 127.0.0.1:9100
+PRIMARY_DOMAIN="${PRIMARY_DOMAIN:-}"
+NGINX_CONFD="/opt/proxy/nginx/conf.d"
+NGINX_SNIPPETS="/opt/proxy/nginx/snippets"
+CERTS_ROOT="/opt/proxy/certs"
+WEBROOT="/opt/proxy/nginx/webroot"
+
+if [ -z "$PRIMARY_DOMAIN" ] && [ -f "$NGINX_CONFD/${SITE_SLUG}.conf" ]; then
+  PRIMARY_DOMAIN="$(awk '/server_name/ && !/www\./ {print $2; exit}' "$NGINX_CONFD/${SITE_SLUG}.conf" | tr -d ';')"
+fi
+if [ -z "$PRIMARY_DOMAIN" ]; then
+  echo "ERROR: PRIMARY_DOMAIN env not set and не удалось вывести из nginx-conf." >&2
+  echo "Set: PRIMARY_DOMAIN=<your-domain> $0 $TAG" >&2
+  exit 1
+fi
+CERTBOT_EMAIL="${CERTBOT_EMAIL:-noreply@${PRIMARY_DOMAIN}}"
+
+echo
+echo "→ Pre-flight ensure-site-infra (domain=$PRIMARY_DOMAIN)"
+
+# 1. MinIO bucket для media (same-origin proxy через /media/).
+BUCKET="${SITE_SLUG}-media"
+if ! docker exec minio mc ls "local/${BUCKET}" >/dev/null 2>&1; then
+  echo "   • create MinIO bucket: $BUCKET"
+  docker exec minio mc mb "local/${BUCKET}" >/dev/null
+fi
+docker exec minio mc anonymous set download "local/${BUCKET}" >/dev/null 2>&1 || true
+
+# 2. nginx upstream snippets per-color (blue=3000/3001, green=3010/3011).
+TEMPLATE_DIR="$(cd "$SCRIPT_DIR/../proxy-stack/nginx" && pwd)"
+for color in blue green; do
+  snip="$NGINX_SNIPPETS/${SITE_SLUG}-upstream-${color}.conf"
+  if [ ! -f "$snip" ]; then
+    sed "s/<SITE_SLUG>/${SITE_SLUG}/g" \
+      "$TEMPLATE_DIR/snippets/site-upstream-${color}.conf.template" \
+      | sudo tee "$snip" >/dev/null
+    echo "   • generated $snip"
+  fi
+done
+# active symlink (blue по умолчанию для первого деплоя — deploy.sh ниже переключит).
+if [ ! -L "$NGINX_SNIPPETS/${SITE_SLUG}-upstream-active.conf" ]; then
+  sudo ln -sf "${SITE_SLUG}-upstream-blue.conf" "$NGINX_SNIPPETS/${SITE_SLUG}-upstream-active.conf"
+fi
+
+# 3. nginx site vhost из template (если ещё нет).
+vhost="$NGINX_CONFD/${SITE_SLUG}.conf"
+if [ ! -f "$vhost" ]; then
+  sed -e "s/<PRIMARY_DOMAIN>/${PRIMARY_DOMAIN}/g" \
+      -e "s/<SITE_SLUG>/${SITE_SLUG}/g" \
+      "$TEMPLATE_DIR/conf.d/site.conf.template" \
+      | sudo tee "$vhost" >/dev/null
+  echo "   • generated $vhost"
+
+  # На самом первом старте серта ещё нет — nginx упадёт. Кладём временный
+  # HTTP-only vhost (только ACME-challenge + redirect), выпускаем серт,
+  # затем переставляем full TLS-vhost.
+  tmp_vhost="$NGINX_CONFD/${SITE_SLUG}.conf.tmp"
+  sudo mv "$vhost" "$tmp_vhost"
+  sudo tee "$vhost" >/dev/null <<EOF
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${PRIMARY_DOMAIN};
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        try_files \$uri =404;
+    }
+    location / { return 503 'cert pending'; }
+}
+EOF
+  docker exec holygrail-nginx nginx -s reload >/dev/null 2>&1 || true
+fi
+
+# 4. LE-cert через certbot/certbot docker (webroot challenge).
+if [ ! -f "$CERTS_ROOT/live/${PRIMARY_DOMAIN}/fullchain.pem" ]; then
+  echo "   • issuing LE cert for $PRIMARY_DOMAIN"
+  sudo docker run --rm \
+    -v "$CERTS_ROOT:/etc/letsencrypt" \
+    -v "$WEBROOT:/var/www/certbot" \
+    certbot/certbot:latest certonly \
+    --webroot --webroot-path=/var/www/certbot \
+    -d "$PRIMARY_DOMAIN" \
+    --email "$CERTBOT_EMAIL" --agree-tos --no-eff-email --non-interactive \
+    --keep-until-expiring
+
+  # Серт получен — поставить full TLS vhost (если выше клали tmp HTTP-only).
+  if [ -f "$NGINX_CONFD/${SITE_SLUG}.conf.tmp" ]; then
+    sudo mv "$NGINX_CONFD/${SITE_SLUG}.conf.tmp" "$vhost"
+  fi
+fi
+
+# 5. Reload nginx чтобы подцепить vhost / новый серт (idempotent).
+docker exec holygrail-nginx nginx -t >/dev/null 2>&1 && \
+  docker exec holygrail-nginx nginx -s reload >/dev/null 2>&1 || true
+echo "   ✓ infra ready"
+
 # 1. Pull новых images
 echo
 echo "→ Pulling images (tag=$TAG)..."

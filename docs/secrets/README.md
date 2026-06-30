@@ -29,16 +29,7 @@ infisical run --env=dev -- pnpm dev     # подтягивает dev-секре�
 
 Universal Auth machine identity (client-id + client-secret) лежит в `/etc/infisical/<slug>/`:
 
-```bash
-# Запуск deploy с подтягиванием prod-секретов
-infisical run --env=prod \
-  --domain=$INFISICAL_HOST_URL \
-  --client-id=$(cat /etc/infisical/<slug>/client-id) \
-  --client-secret=$(cat /etc/infisical/<slug>/client-secret) \
-  -- docker compose -f deploy/prod/docker-compose.yml up -d
-```
-
-`deploy.sh` оборачивает это в одну команду.
+Этим занимается `deploy/prod/deploy.sh` — login через UA → JWT → каждый `docker compose ...` оборачивается в `infisical run --token=$JWT --env=prod`, секреты летят в env контейнеров без записи на диск. См. `deploy/prod/README.md`.
 
 ## Правила работы
 

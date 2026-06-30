@@ -1,21 +1,26 @@
 name: Build & blue-green deploy
 
 # ────────────────────────────────────────────────────────────────────────────
-# Generic Holy Grail blue-green deploy workflow.
+# Universal Holy Grail blue-green deploy workflow — один для template repo
+# (whg.sawking.tech) и для downstream-инстансов. Конкретику задают GH vars/secrets.
 #
-# Required GitHub Actions secrets (Settings → Secrets and variables → Actions):
-#   VPS_HOST              IP или hostname production VPS (например 1.2.3.4)
-#   VPS_SSH_KEY           SSH private key для deploy user
+# Required GitHub Actions secrets:
+#   VPS_HOST              IP или hostname production VPS
+#   VPS_SSH_KEY           SSH private key для deploy user (см. whg-infisical skill)
 #
-# Required GitHub Actions variables (Settings → Secrets and variables → Actions):
-#   VPS_USER              SSH user на VPS (default deploy)
-#   VPS_PATH              путь установки сайта на VPS (например /opt/sites/<repo>)
-#   PUBLIC_URL            production URL для verify health-check (например https://example.com)
-#   GHCR_OWNER            владелец GHCR (обычно ${{ github.repository_owner }} в lowercase)
-#
-# Image names собираются автоматически из github.repository (например
-# vovanda/<repo>-cms). Если используется отдельный namespace в GHCR — переопределяй
-# через GHCR_OWNER variable.
+# Required GitHub Actions variables:
+#   VPS_USER              default 'deploy'
+#   VPS_PATH              /opt/sites/<slug>
+#   PUBLIC_URL            https://<your-domain>
+#   PRIMARY_DOMAIN        <your-domain> — для pre-flight (nginx-conf + LE-cert)
+#   INFISICAL_HOST_URL    https://infisical.<your-host> — shared self-host instance
+#                         для всех WHG-сайтов на VPS (deploy.sh login через UA-creds
+#                         в /etc/infisical/<slug>/).
+#   IMAGE_NAME_PREFIX     (optional) override базы имени образов. Например для
+#                         Vovanda/WebHolyGrail задай `whg` чтобы получилось
+#                         ghcr.io/vovanda/whg-cms (не webholygrail-cms).
+#                         Default = github.event.repository.name (lowercased).
+#   GHCR_OWNER            (optional) default = github.repository_owner
 # ────────────────────────────────────────────────────────────────────────────
 
 on:
@@ -33,7 +38,10 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  REPO_NAME: ${{ github.event.repository.name }}
+  # IMAGE_NAME_PREFIX позволяет переопределить базу имени образов (например для
+  # template-repo с короткими именами `whg-cms/whg-client` вместо `WebHolyGrail-cms`).
+  # По умолчанию берётся из github.event.repository.name (lowercased в meta-step).
+  IMAGE_NAME_PREFIX: ${{ vars.IMAGE_NAME_PREFIX || github.event.repository.name }}
   GHCR_OWNER: ${{ vars.GHCR_OWNER || github.repository_owner }}
 
 jobs:
@@ -51,11 +59,13 @@ jobs:
 
       - id: meta
         run: |
+          # GHCR требует lowercase для owner И repo. Делаем сами, не полагаемся на caller.
           OWNER_LC=$(echo "${{ env.GHCR_OWNER }}" | tr '[:upper:]' '[:lower:]')
+          PREFIX_LC=$(echo "${{ env.IMAGE_NAME_PREFIX }}" | tr '[:upper:]' '[:lower:]')
           echo "tag=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_OUTPUT
           echo "build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
-          echo "cms_image=${{ env.REGISTRY }}/$OWNER_LC/${{ env.REPO_NAME }}-cms" >> $GITHUB_OUTPUT
-          echo "client_image=${{ env.REGISTRY }}/$OWNER_LC/${{ env.REPO_NAME }}-client" >> $GITHUB_OUTPUT
+          echo "cms_image=${{ env.REGISTRY }}/$OWNER_LC/$PREFIX_LC-cms" >> $GITHUB_OUTPUT
+          echo "client_image=${{ env.REGISTRY }}/$OWNER_LC/$PREFIX_LC-client" >> $GITHUB_OUTPUT
 
       - uses: docker/setup-buildx-action@v3
 
@@ -118,10 +128,16 @@ jobs:
       - name: Blue-green deploy
         env:
           GHCR_OWNER_LC: ${{ env.GHCR_OWNER }}
+          PRIMARY_DOMAIN: ${{ vars.PRIMARY_DOMAIN }}
+          INFISICAL_HOST_URL: ${{ vars.INFISICAL_HOST_URL }}
         run: |
           OWNER_LC=$(echo "$GHCR_OWNER_LC" | tr '[:upper:]' '[:lower:]')
+          # PRIMARY_DOMAIN нужен deploy.sh для pre-flight (nginx-conf + cert)
+          # на первом деплое. На последующих deploy.sh выведет домен из существующего
+          # nginx-conf, переменная становится optional.
+          # INFISICAL_HOST_URL — shared self-host instance для всех WHG-инстансов на VPS.
           ssh "$VPS_USER@$VPS_HOST" \
-            "GHCR_OWNER=$OWNER_LC $VPS_PATH/deploy/prod/deploy.sh ${{ needs.build.outputs.tag }}"
+            "GHCR_OWNER=$OWNER_LC PRIMARY_DOMAIN=$PRIMARY_DOMAIN INFISICAL_HOST_URL=$INFISICAL_HOST_URL $VPS_PATH/deploy/prod/deploy.sh ${{ needs.build.outputs.tag }}"
 
       - name: Verify deployed SHA
         run: |

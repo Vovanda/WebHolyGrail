@@ -1,140 +1,98 @@
-# Production deployment
+# Production deployment — blue-green via GH Actions
 
-Stack: Payload CMS (3001) + Next 15 client (3000) + host nginx reverse-proxy + certbot.
-DB: SQLite (named volume) by default, swap to Postgres when needed.
-Media: S3-compatible storage (any provider — AWS S3, Backblaze B2, Cloudflare R2, MinIO, etc.).
+Один путь: **push → GH Actions → build images → GHCR → SSH deploy.sh → blue-green switch**. Никаких локальных билдов, никакого rsync с dev-машины, никаких ручных nginx-конфигов после первого scaffold.
 
-## First deploy
+Stack: Payload CMS + Next 15 client, blue-green за shared host-nginx (`/opt/proxy`), self-host Infisical для секретов, MinIO для media (same-origin `/media/` proxy).
 
-### 0. Prepare the VPS
+## Что есть в этой папке
 
-```bash
-# Any Ubuntu 22.04+ / Debian 12 with at least 2 GB RAM, 20 GB SSD.
-apt update && apt install -y curl ca-certificates rsync
+| Файл                    | Зачем                                                                                                    |
+| ----------------------- | -------------------------------------------------------------------------------------------------------- |
+| `compose.bluegreen.yml` | Per-color compose (blue=3000/3001, green=3010/3011). Запускается через `deploy.sh`, напрямую не дёргать. |
+| `deploy.sh`             | Скрипт деплоя на VPS. Вызывается через SSH из GH Actions с `TAG=<sha>`. Идемпотентный pre-flight внутри. |
+| `README.md`             | Этот файл.                                                                                               |
 
-# Docker + compose plugin
-curl -fsSL https://get.docker.com | sh
-systemctl enable --now docker
+## VPS prerequisites (один раз)
 
-# Infisical CLI (for secrets)
-curl -fsSL https://artifacts-cli.infisical.com/install.sh | sh
+1. **Шаред-инфра уже работает** — `holygrail-nginx` контейнер на host-network, certbot via `certbot/certbot:latest`, MinIO на `127.0.0.1:9100`, self-host Infisical. См. `deploy/proxy-stack/` и `deploy/infisical/`.
 
-# DNS: A record @ and www → VPS IP (wait for provider TTL, 5–60 min)
-dig +short <your-domain>
-```
+2. **Per-site setup** — для нового сайта `<slug>` на VPS:
 
-### 1. Initial sync
+   ```bash
+   # 2.1 Infisical project + Universal Auth identity (генерит /etc/infisical/<slug>/{client-id,client-secret})
+   pnpm setup-infisical -- --site <slug>
 
-From the local machine:
+   # 2.2 Папка сайта на VPS — git clone из своего instance-репо
+   sudo install -d -o deploy -g deploy /opt/sites/<slug>
+   sudo -u deploy git clone https://github.com/<owner>/<repo>.git /opt/sites/<slug>
 
-```bash
-# rsync the code (no node_modules, no data)
-VPS_HOST=root@<your-domain> ./deploy/prod/deploy.sh
-```
+   # 2.3 DNS A record <your-domain> → VPS IP (вне репо — у регистратора)
+   ```
 
-### 2. Setup Infisical (on the server)
+3. **GitHub Actions config** — Settings → Secrets and variables → Actions:
 
-```bash
-ssh root@<your-domain>
-cd /srv/<site-slug>
+   | Тип    | Имя                 | Значение                                                                      |
+   | ------ | ------------------- | ----------------------------------------------------------------------------- |
+   | secret | `VPS_HOST`          | IP VPS                                                                        |
+   | secret | `VPS_SSH_KEY`       | private key для deploy user (хранится в Infisical; см. `whg-infisical` skill) |
+   | var    | `VPS_USER`          | `deploy` (optional, default)                                                  |
+   | var    | `VPS_PATH`          | `/opt/sites/<slug>`                                                           |
+   | var    | `PUBLIC_URL`        | `https://<your-domain>`                                                       |
+   | var    | `PRIMARY_DOMAIN`    | `<your-domain>` — для pre-flight (nginx-conf + LE-cert на первом деплое)      |
+   | var    | `IMAGE_NAME_PREFIX` | optional — override базы имени образов (например `whg` для template repo).    |
+   |        |                     | Default = repo name lowercased.                                               |
+   | var    | `GHCR_OWNER`        | optional, default `github.repository_owner`                                   |
 
-# Log in to Infisical Cloud (opens a browser on the dev machine)
-infisical login
+4. `.github/workflows/deploy.yml` уже active в template — никаких rename'ов не нужно. Downstream получит его как есть.
 
-# Link to the project
-infisical init   # select your workspace
-
-# Fill secrets (one-time)
-infisical secrets set PAYLOAD_SECRET=$(openssl rand -hex 32) --env=prod
-infisical secrets set S3_ACCESS_KEY_ID=... --env=prod
-# … the rest
-```
-
-**Alternative** — without Infisical, via `.env.production`:
+## Первый деплой
 
 ```bash
-cp deploy/prod/.env.production.example \
-   deploy/prod/.env.production
-nano deploy/prod/.env.production   # fill all values
+git push origin main
 ```
 
-### 3. Obtain TLS certificates (certbot)
+Всё. Дальше:
 
-TLS termination is handled by the host nginx in `deploy/proxy-stack/`. See that directory's docs for the certbot webroot flow. Per-site vhost goes into `deploy/proxy-stack/nginx/conf.d/<your-domain>.conf` (use `site.conf.template` as a starting point).
-
-### 4. Start the full stack
-
-```bash
-# Option A — via Infisical (recommended):
-cd /srv/<site-slug>
-infisical run --env=prod -- docker compose \
-  -f deploy/prod/docker-compose.yml up -d --build
-
-# Option B — via .env.production file:
-docker compose --env-file deploy/prod/.env.production \
-  -f deploy/prod/docker-compose.yml up -d --build
-
-# Apply DB migrations
-docker exec ${SITE_SLUG}-cms pnpm --filter cms migrate
-
-# Smoke
-curl -I https://<your-domain>/
-curl -I https://<your-domain>/admin
-```
-
-### 5. Bootstrap admin user
-
-On first start Payload creates the first admin user if the `users` collection is empty — using `ADMIN_INITIAL_EMAIL` and `ADMIN_INITIAL_PASSWORD` from env. Change the password in `/admin/account` after the first login.
+1. GH Actions билдит cms+client images → push в `ghcr.io/<owner>/<repo>-{cms,client}:<sha>`.
+2. SSH на VPS вызывает `deploy.sh <sha>` с env'ом.
+3. `deploy.sh` pre-flight: создаёт MinIO bucket `<slug>-media`, генерирует nginx-conf из template (с `/media/` location), выпускает LE-cert через certbot, поднимает inactive color, гоняет healthcheck, прогоняет миграции, переключает nginx upstream symlink.
+4. Verify шаг проверяет `$PUBLIC_URL/api/health` отдаёт ожидаемый SHA.
 
 ## Regular deploys
 
-Use blue-green: see `compose.bluegreen.yml` and `deploy.sh`. The script:
-
-1. `rsync` fresh code
-2. `docker compose up -d --build` (new images)
-3. `pnpm migrate` (apply new migrations)
-4. Smoke check `/`, `/admin`, `/api/health`
-5. Swap nginx upstream from old colour to new
+То же самое — `git push`. Pre-flight шаги pre-flight идемпотентны (bucket уже есть, nginx-conf уже есть, cert валиден → skip).
 
 ## Rollback
 
 ```bash
-ssh root@<your-domain>
-cd /srv/<site-slug>
-
-# Content lives in DB and S3, untouched by rsync.
-# Code — git history.
-git log --oneline -5
-git checkout <commit-sha>
-
-# Re-apply migrations if needed
-docker compose -f deploy/prod/docker-compose.yml restart cms
-docker exec ${SITE_SLUG}-cms pnpm --filter cms migrate
+# Re-deploy предыдущий SHA через workflow_dispatch с input tag:
+gh workflow run deploy.yml -f tag=<previous-sha>
 ```
 
-## Backup DB and Media
+Или ручной:
 
 ```bash
-# SQLite — a single file
-ssh root@<your-domain> "docker run --rm -v ${SITE_SLUG}_db:/data alpine \
-  tar czf - /data" > backup-$(date +%Y%m%d).tar.gz
-
-# Media is in S3 — your provider handles redundancy; for extra safety:
-# rclone sync s3://<bucket> ./backup/media/
+ssh deploy@<vps> "TAG=<previous-sha> GHCR_OWNER=<owner> /opt/sites/<slug>/deploy/prod/deploy.sh <previous-sha>"
 ```
+
+## Backup
+
+- **DB (SQLite)** — bind-mount `/opt/sites/<slug>/src/cms/data`. Backup через `cp` или `sqlite3 .backup`.
+- **Media** — в MinIO bucket `<slug>-media`. Через `mc mirror local/<slug>-media s3://offsite-backup/` (offsite TODO).
+- **Secrets** — в Infisical, project per site. Export через `infisical secrets export`.
 
 ## Troubleshooting
 
-| Symptom                                       | Cause                      | Fix                                                                     |
-| --------------------------------------------- | -------------------------- | ----------------------------------------------------------------------- |
-| `502 Bad Gateway` from nginx                  | client / cms did not start | `docker compose logs cms client`                                        |
-| `cms` crashes on start — `no such table: ...` | migrations not applied     | `docker exec ${SITE_SLUG}-cms pnpm --filter cms migrate`                |
-| Certificate expired                           | certbot did not renew      | check `docker logs certbot`, manual `docker exec certbot certbot renew` |
+| Symptom                                            | Причина                                                 | Fix                                                                                       |
+| -------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| GH Actions падает на `Sync site directory` step    | На VPS `/opt/sites/<slug>` не clone'ан или mismatch     | `ssh deploy@<vps> "cd /opt/sites/<slug> && git remote -v"` — проверить                    |
+| `pre-flight ... ERROR: PRIMARY_DOMAIN env not set` | GH variable не задана                                   | Settings → variables → `PRIMARY_DOMAIN=<your-domain>`                                     |
+| Картинки 404 на `/media/...`                       | Bucket пуст или nginx-conf без `/media/` location       | `docker exec minio mc ls local/<slug>-media`, перепроверь `site.conf.template`            |
+| `cms healthcheck failed`                           | Миграции не накатились или env-переменные не подцеплены | `docker logs <slug>-cms-<color>` + `infisical secrets list --env=prod --domain=$HOST_URL` |
 
-## TODO before fully prod-ready
+## TODO (post-v0.1.0)
 
-- [ ] Swap SQLite → Postgres when traffic grows
-- [ ] Off-site backup (rclone / object-storage replication)
-- [ ] Monitoring (Prometheus + Grafana or Uptime Kuma at minimum)
-- [ ] Logs shipping (Loki / Datadog)
-- [ ] CI/CD GitHub Actions: build → push registry → SSH deploy (instead of local rsync + build)
+- [ ] Off-site backup (rclone S3-mirror)
+- [ ] Monitoring (Uptime Kuma minimum)
+- [ ] SQLite → Postgres swap path
+- [ ] Multi-stage GH workflow (preview env на PR)
