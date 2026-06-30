@@ -17,6 +17,10 @@ import { ReusableBlocks } from './collections/ReusableBlocks';
 import { SocialPosts } from './collections/SocialPosts';
 import { Comments } from './collections/Comments';
 import { FaqGroups } from './collections/FaqGroups';
+import { Articles } from './collections/Articles';
+import { Threads } from './collections/Threads';
+import { Tags } from './collections/Tags';
+import { Authors } from './collections/Authors';
 import { SiteSettings } from './globals/SiteSettings';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -85,6 +89,14 @@ export default buildConfig({
     SocialPosts,
     Comments,
     FaqGroups,
+    // Блог (#43): Articles, Threads, Tags, Authors. Имя `Articles` теперь
+    // постоянное — слот `posts` свободен (после #49), можно использовать
+    // если хотим единый naming с Ghost/Substack, но `articles` более
+    // конкретно отражает функцию.
+    Articles,
+    Threads,
+    Tags,
+    Authors,
   ],
   globals: [SiteSettings],
   /**
