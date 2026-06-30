@@ -1,4 +1,13 @@
-import type { FaqGroupDoc, PageDoc, ReusableBlockDoc, SiteSettings } from 'contracts';
+import type {
+  BlogArticle,
+  BlogAuthor,
+  BlogTag,
+  BlogThread,
+  FaqGroupDoc,
+  PageDoc,
+  ReusableBlockDoc,
+  SiteSettings,
+} from 'contracts';
 
 /**
  * Минимальный generic-клиент к Payload CMS REST API для template-уровневых
@@ -93,5 +102,108 @@ export async function listFaqGroups(slugs: readonly string[] = []): Promise<FaqG
   });
   if (!response.ok) return [];
   const data = (await response.json()) as { docs: FaqGroupDoc[] };
+  return data.docs;
+}
+
+// ─── Blog (#43 epic) ───────────────────────────────────────────────────
+
+export interface ListArticlesParams {
+  readonly limit?: number;
+  readonly page?: number;
+  readonly tagSlug?: string;
+  readonly threadSlug?: string;
+  readonly authorSlug?: string;
+  readonly sort?: 'newest' | 'oldest';
+}
+
+export interface ListArticlesResult {
+  readonly docs: ReadonlyArray<BlogArticle>;
+  readonly totalDocs: number;
+  readonly totalPages: number;
+  readonly page: number;
+  readonly hasNextPage: boolean;
+  readonly hasPrevPage: boolean;
+}
+
+/**
+ * Список опубликованных Articles с pagination + optional filters.
+ * Filters: tagSlug / threadSlug / authorSlug (выполняются через nested where).
+ */
+export async function listArticles(params: ListArticlesParams = {}): Promise<ListArticlesResult> {
+  const query = new URLSearchParams({
+    'where[status][equals]': 'published',
+    depth: '2',
+    limit: String(params.limit ?? 10),
+    page: String(params.page ?? 1),
+    sort: params.sort === 'oldest' ? 'publishedAt' : '-publishedAt',
+  });
+  if (params.tagSlug) query.append('where[tags.slug][equals]', params.tagSlug);
+  if (params.threadSlug) query.append('where[thread.slug][equals]', params.threadSlug);
+  if (params.authorSlug) query.append('where[author.slug][equals]', params.authorSlug);
+  const response = await fetch(`${CMS_URL}/api/articles?${query.toString()}`, {
+    cache: 'no-store',
+  });
+  if (!response.ok)
+    return {
+      docs: [],
+      totalDocs: 0,
+      totalPages: 0,
+      page: 1,
+      hasNextPage: false,
+      hasPrevPage: false,
+    };
+  return (await response.json()) as ListArticlesResult;
+}
+
+export async function getArticleBySlug(slug: string): Promise<BlogArticle | null> {
+  const query = new URLSearchParams({
+    'where[slug][equals]': slug,
+    'where[status][equals]': 'published',
+    depth: '2',
+    limit: '1',
+  });
+  const response = await fetch(`${CMS_URL}/api/articles?${query.toString()}`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) return null;
+  const data = (await response.json()) as { docs: BlogArticle[] };
+  return data.docs[0] ?? null;
+}
+
+export async function getThreadBySlug(slug: string): Promise<BlogThread | null> {
+  const query = new URLSearchParams({
+    'where[slug][equals]': slug,
+    'where[status][equals]': 'published',
+    depth: '1',
+    limit: '1',
+  });
+  const response = await fetch(`${CMS_URL}/api/threads?${query.toString()}`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) return null;
+  const data = (await response.json()) as { docs: BlogThread[] };
+  return data.docs[0] ?? null;
+}
+
+export async function getTagBySlug(slug: string): Promise<BlogTag | null> {
+  const query = new URLSearchParams({ 'where[slug][equals]': slug, depth: '0', limit: '1' });
+  const response = await fetch(`${CMS_URL}/api/tags?${query.toString()}`, { cache: 'no-store' });
+  if (!response.ok) return null;
+  const data = (await response.json()) as { docs: BlogTag[] };
+  return data.docs[0] ?? null;
+}
+
+export async function getAuthorBySlug(slug: string): Promise<BlogAuthor | null> {
+  const query = new URLSearchParams({ 'where[slug][equals]': slug, depth: '1', limit: '1' });
+  const response = await fetch(`${CMS_URL}/api/authors?${query.toString()}`, { cache: 'no-store' });
+  if (!response.ok) return null;
+  const data = (await response.json()) as { docs: BlogAuthor[] };
+  return data.docs[0] ?? null;
+}
+
+export async function listAllTags(): Promise<ReadonlyArray<BlogTag>> {
+  const response = await fetch(`${CMS_URL}/api/tags?limit=100&depth=0`, { cache: 'no-store' });
+  if (!response.ok) return [];
+  const data = (await response.json()) as { docs: BlogTag[] };
   return data.docs;
 }
