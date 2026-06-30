@@ -411,6 +411,49 @@ export const SiteSettings: GlobalConfig = {
         },
       },
     },
+    {
+      name: 'blog',
+      label: 'Блог',
+      type: 'group',
+      admin: {
+        description:
+          'Глобальные настройки блога. Per-article override доступен через Article.displayOverrides.',
+      },
+      fields: [
+        { name: 'showAuthor', label: 'Показывать автора', type: 'checkbox', defaultValue: true },
+        {
+          name: 'showDate',
+          label: 'Показывать дату публикации',
+          type: 'checkbox',
+          defaultValue: true,
+        },
+        {
+          name: 'showReadingTime',
+          label: 'Показывать время чтения',
+          type: 'checkbox',
+          defaultValue: true,
+        },
+        { name: 'showTags', label: 'Показывать теги', type: 'checkbox', defaultValue: true },
+        {
+          name: 'postsPerPage',
+          label: 'Постов на странице',
+          type: 'number',
+          defaultValue: 10,
+          min: 1,
+          max: 100,
+        },
+        {
+          name: 'defaultSort',
+          label: 'Сортировка по умолчанию',
+          type: 'select',
+          options: [
+            { label: 'Сначала новые', value: 'newest' },
+            { label: 'Сначала старые', value: 'oldest' },
+          ],
+          defaultValue: 'newest',
+        },
+      ],
+    },
   ],
   access: {
     read: () => true, // публичные настройки сайта читаются всеми.
