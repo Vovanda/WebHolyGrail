@@ -16,7 +16,7 @@
 
 services:
   cms:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_OWNER:?required}/${SITE_SLUG:?required}-cms:${TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${GHCR_OWNER:?required}/${SITE_SLUG:?required}-cms:${TAG:-latest}
     container_name: ${SITE_SLUG}-cms-${COLOR:?required}
     environment:
       PAYLOAD_SECRET: ${PAYLOAD_SECRET:?required}
@@ -51,7 +51,7 @@ services:
     restart: unless-stopped
 
   client:
-    image: ${IMAGE_REGISTRY:-ghcr.io}/${IMAGE_OWNER:?required}/${SITE_SLUG:?required}-client:${TAG:-latest}
+    image: ${IMAGE_REGISTRY:-ghcr.io}/${GHCR_OWNER:?required}/${SITE_SLUG:?required}-client:${TAG:-latest}
     container_name: ${SITE_SLUG}-client-${COLOR:?required}
     environment:
       # SSR ходит к своему же cms по container_name внутри shared network ${SITE_SLUG}-net.
