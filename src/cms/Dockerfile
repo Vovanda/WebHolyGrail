@@ -31,6 +31,23 @@ COPY . .
 ENV NODE_ENV=production
 # Node fetch — IPv4 first (некоторые VPS-провайдеры не дают исходящий IPv6).
 ENV NODE_OPTIONS=--dns-result-order=ipv4first
+
+# Build-time dummy env для payload.config.ts → requireEnv() — реальные значения
+# инжектятся в runtime через docker-compose. На build-этапе Payload только
+# загружает конфиг (нет connect к S3/DB), dummy значения проходят валидацию.
+ENV PAYLOAD_SECRET=build-time-dummy-not-used-at-runtime \
+    DATABASE_URI=file:/tmp/build.db \
+    PAYLOAD_PUBLIC_SERVER_URL=https://build.invalid \
+    PAYLOAD_ALLOWED_ORIGINS=https://build.invalid \
+    NEXT_PUBLIC_SITE_URL=https://build.invalid \
+    S3_BUCKET=build-dummy \
+    S3_REGION=us-east-1 \
+    S3_ENDPOINT=https://build.invalid \
+    S3_ACCESS_KEY_ID=build-dummy \
+    S3_SECRET_ACCESS_KEY=build-dummy \
+    ADMIN_INITIAL_EMAIL=build@build.invalid \
+    ADMIN_INITIAL_PASSWORD=build-dummy
+
 RUN pnpm --filter cms run build
 
 # ---------- runtime ----------
