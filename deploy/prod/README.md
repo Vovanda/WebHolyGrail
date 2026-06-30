@@ -16,18 +16,25 @@ Stack: Payload CMS + Next 15 client, blue-green за shared host-nginx (`/opt/pr
 
 1. **Шаред-инфра уже работает** — `holygrail-nginx` контейнер на host-network, certbot via `certbot/certbot:latest`, MinIO на `127.0.0.1:9100`, self-host Infisical. См. `deploy/proxy-stack/` и `deploy/infisical/`.
 
-2. **Per-site setup** — для нового сайта `<slug>` на VPS:
+2. **Per-site setup** — один-shot bootstrap скрипт через SSH (идемпотентный):
 
    ```bash
-   # 2.1 Infisical project + Universal Auth identity (генерит /etc/infisical/<slug>/{client-id,client-secret})
-   pnpm setup-infisical -- --site <slug>
+   # Локально:
+   scp scripts/bootstrap-site-on-vps.sh deploy@<vps>:/tmp/
 
-   # 2.2 Папка сайта на VPS — git clone из своего instance-репо
-   sudo install -d -o deploy -g deploy /opt/sites/<slug>
-   sudo -u deploy git clone https://github.com/<owner>/<repo>.git /opt/sites/<slug>
-
-   # 2.3 DNS A record <your-domain> → VPS IP (вне репо — у регистратора)
+   ssh deploy@<vps> "SLUG=<slug> \
+     REPO=https://github.com/<owner>/<repo>.git \
+     INFISICAL_HOST_URL=https://infisical.<your-host> \
+     INFISICAL_ADMIN_TOKEN=<admin JWT> \
+     INFISICAL_ADMIN_ORG_ID=<org uuid> \
+     /tmp/bootstrap-site-on-vps.sh"
    ```
+
+   Скрипт делает: git clone в `/opt/sites/<slug>`, создаёт Infisical project `holygrail-<slug>` + UA machine identity, кладёт client-id/secret в `/etc/infisical/<slug>/`. Идемпотентный — повторный запуск ничего не ломает.
+
+   После него:
+   - **DNS A record** `<your-domain> → VPS IP` (у регистратора, вне репо)
+   - **Заполнить prod-секреты** в Infisical project через Web UI / CLI (PAYLOAD*SECRET, DATABASE_URI, S3*\*, NEXT_PUBLIC_SITE_URL, …)
 
 3. **GitHub Actions config** — Settings → Secrets and variables → Actions:
 
