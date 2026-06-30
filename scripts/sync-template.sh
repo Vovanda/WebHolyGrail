@@ -135,7 +135,7 @@ WHITELIST=(
   "src/cms/src/collections/Users.ts"
   "src/cms/src/collections/FormSubmissions.ts"
   "src/cms/src/collections/ReusableBlocks.ts"
-  "src/cms/src/collections/Posts.ts"
+  "src/cms/src/collections/SocialPosts.ts"
   "src/cms/src/collections/Comments.ts"
   "src/cms/src/collections/FaqGroups.ts"
   "src/cms/src/globals/SiteSettings.ts"

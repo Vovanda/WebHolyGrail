@@ -14,7 +14,7 @@ import { Media } from './collections/Media';
 import { Pages } from './collections/Pages';
 import { FormSubmissions } from './collections/FormSubmissions';
 import { ReusableBlocks } from './collections/ReusableBlocks';
-import { Posts } from './collections/Posts';
+import { SocialPosts } from './collections/SocialPosts';
 import { Comments } from './collections/Comments';
 import { FaqGroups } from './collections/FaqGroups';
 import { SiteSettings } from './globals/SiteSettings';
@@ -63,7 +63,7 @@ function parseOrigins(csv: string | undefined, fallback: string): string[] {
  * - S3-storage — generic adapter (VK Cloud / Yandex / S3 / R2 — endpoint в env).
  *
  * Доменные коллекции (Dogs/Patients/Vehicles/Menu/...) добавляйте здесь же.
- * Generic CMS-фичи (Posts/Comments) включены по дефолту — удалите если
+ * Generic CMS-фичи (SocialPosts/Comments) включены по дефолту — удалите если
  * не нужны для конкретного сайта.
  */
 export default buildConfig({
@@ -76,7 +76,16 @@ export default buildConfig({
       baseDir: dirname,
     },
   },
-  collections: [Users, Media, Pages, FormSubmissions, ReusableBlocks, Posts, Comments, FaqGroups],
+  collections: [
+    Users,
+    Media,
+    Pages,
+    FormSubmissions,
+    ReusableBlocks,
+    SocialPosts,
+    Comments,
+    FaqGroups,
+  ],
   globals: [SiteSettings],
   /**
    * Jobs Queue — admin UI на /admin/collections/payload-jobs. Template поставляет

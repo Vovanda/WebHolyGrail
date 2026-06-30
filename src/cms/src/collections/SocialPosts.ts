@@ -1,7 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
 /**
- * Posts — generic-коллекция социал-постов (R5++). Источник через поле
+ * SocialPosts — коллекция социал-постов (R5++). Источник через поле
  * `source` (VK / Telegram / IG / …) с per-источником `sourceId`.
  *
  * @remarks
@@ -10,9 +10,12 @@ import type { CollectionConfig } from 'payload';
  * текст» либо «отметить эксклюзив». В админке useAsTitle = preview из text.
  *
  * Unique: `(source, sourceId)` — чтобы re-sync не дублировал.
+ *
+ * Имя `Posts` зарезервировано за блог-collection (см. #45) — эта переименована
+ * из `posts` slug → `social-posts` в refactor #49.
  */
-export const Posts: CollectionConfig = {
-  slug: 'posts',
+export const SocialPosts: CollectionConfig = {
+  slug: 'social-posts',
   labels: { singular: 'Пост (соц-сеть)', plural: 'Посты (соц-сети)' },
   admin: {
     useAsTitle: 'previewTitle',
