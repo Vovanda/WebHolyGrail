@@ -29,9 +29,13 @@ STATE_FILE="$SITE_DIR/ACTIVE_COLOR"
 #   /etc/infisical/<slug>/client-id      (chmod 600 deploy:deploy)
 #   /etc/infisical/<slug>/client-secret  (chmod 600 deploy:deploy)
 #
-# Скрипт делает `infisical login --method=universal-auth ...` → JWT, потом
-# каждый `docker compose ...` оборачивает в `infisical run --token=$JWT --env=prod`,
-# чтобы секреты летели в env контейнеров без записи на диск.
+# Скрипт логинит UA → JWT (REST), фетчит все prod-секреты через REST
+# (`/api/v3/secrets/raw?...`) → пишет в tmpfs `/dev/shm/infisical-<slug>.env`
+# (chmod 600) → каждый `docker compose ...` использует `--env-file <tmp>` чтобы
+# секреты летели в env контейнеров без сохранения на диск.
+#
+# Нет зависимости от `infisical` CLI binary — только curl + jq, оба есть на
+# любом Debian/Ubuntu по дефолту.
 #
 # Multi-site (несколько Holy Grail сайтов на одной VPS) — каждый имеет
 # свою папку `/etc/infisical/<slug>/`, изолированную RBAC'ом Infisical.
@@ -42,33 +46,62 @@ SITE_SLUG="${SITE_SLUG:-$(basename "$SITE_DIR")}"
 INFISICAL_ENV="${INFISICAL_ENV:-prod}"
 INFISICAL_HOST_URL="${INFISICAL_HOST_URL:-}"
 CREDS_DIR="/etc/infisical/$SITE_SLUG"
+INFISICAL_PROJECT_SLUG="${INFISICAL_PROJECT_SLUG:-holygrail-$SITE_SLUG}"
 
-if ! command -v infisical >/dev/null 2>&1; then
-  echo "ERROR: infisical CLI not installed on this host." >&2
-  echo "Install: curl -1sLf 'https://artifacts-cli.infisical.com/install.sh' | sh" >&2
-  exit 1
-fi
+for tool in curl jq; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    echo "ERROR: $tool not installed on this host (требуется для REST-based Infisical fetch)." >&2
+    exit 1
+  fi
+done
 if [ -z "$INFISICAL_HOST_URL" ]; then
   echo "ERROR: INFISICAL_HOST_URL env not set (e.g. https://infisical.example.com)." >&2
   exit 1
 fi
 if [ ! -r "$CREDS_DIR/client-id" ] || [ ! -r "$CREDS_DIR/client-secret" ]; then
   echo "ERROR: $CREDS_DIR/{client-id,client-secret} not readable." >&2
-  echo "Set them up via \`pnpm setup-infisical -- --site $SITE_SLUG\` output." >&2
+  echo "Set them up via bootstrap-site-on-vps.sh или вручную через Infisical UI." >&2
   exit 1
 fi
 
-echo "→ Infisical login (slug=$SITE_SLUG, env=$INFISICAL_ENV, host=$INFISICAL_HOST_URL)"
-INFISICAL_TOKEN="$(infisical login --method=universal-auth \
-  --client-id="$(cat "$CREDS_DIR/client-id")" \
-  --client-secret="$(cat "$CREDS_DIR/client-secret")" \
-  --domain="$INFISICAL_HOST_URL" \
-  --plain --silent)"
-if [ -z "$INFISICAL_TOKEN" ]; then
-  echo "ERROR: infisical login returned empty token" >&2
+echo "→ Infisical UA login via REST (slug=$SITE_SLUG, env=$INFISICAL_ENV, host=$INFISICAL_HOST_URL)"
+INFISICAL_TOKEN="$(curl -sS --fail --max-time 15 \
+  -X POST "$INFISICAL_HOST_URL/api/v1/auth/universal-auth/login" \
+  -H "Content-Type: application/json" \
+  -d "{\"clientId\":\"$(cat "$CREDS_DIR/client-id")\",\"clientSecret\":\"$(cat "$CREDS_DIR/client-secret")\"}" \
+  | jq -r '.accessToken')"
+if [ -z "$INFISICAL_TOKEN" ] || [ "$INFISICAL_TOKEN" = "null" ]; then
+  echo "ERROR: Infisical UA login returned empty/null token" >&2
   exit 1
 fi
-INFISICAL_RUN=(infisical run --token="$INFISICAL_TOKEN" --domain="$INFISICAL_HOST_URL" --env="$INFISICAL_ENV" --)
+
+# Найти project id по slug (если slug заканчивается на -xxxx из-за Infisical
+# auto-suffix — попадётся через startsWith).
+INFISICAL_PROJECT_ID="$(curl -sS --fail --max-time 15 \
+  -H "Authorization: Bearer $INFISICAL_TOKEN" \
+  "$INFISICAL_HOST_URL/api/v1/workspace" \
+  | jq -r --arg slug "$INFISICAL_PROJECT_SLUG" \
+      '(.workspaces[] | select(.slug == $slug or (.slug | startswith($slug + "-"))) | .id) // empty' \
+  | head -1)"
+if [ -z "$INFISICAL_PROJECT_ID" ]; then
+  echo "ERROR: Infisical project not found by slug \"$INFISICAL_PROJECT_SLUG\"" >&2
+  exit 1
+fi
+echo "   ✓ project: $INFISICAL_PROJECT_ID"
+
+# Fetch all prod secrets → tmpfs .env file (chmod 600). docker compose --env-file его читает.
+INFISICAL_ENV_FILE="/dev/shm/infisical-${SITE_SLUG}.env"
+trap 'rm -f "$INFISICAL_ENV_FILE"' EXIT
+umask 077
+curl -sS --fail --max-time 15 \
+  -H "Authorization: Bearer $INFISICAL_TOKEN" \
+  "$INFISICAL_HOST_URL/api/v3/secrets/raw?workspaceId=$INFISICAL_PROJECT_ID&environment=$INFISICAL_ENV&secretPath=/" \
+  | jq -r '.secrets[] | "\(.secretKey)=\(.secretValue)"' > "$INFISICAL_ENV_FILE"
+SECRET_COUNT=$(wc -l < "$INFISICAL_ENV_FILE")
+echo "   ✓ fetched $SECRET_COUNT secrets → $INFISICAL_ENV_FILE (chmod 600)"
+
+# Helper: оборачивает `docker compose ...` чтобы секреты подмешивались как --env-file.
+INFISICAL_RUN=(docker compose --env-file "$INFISICAL_ENV_FILE")
 
 TAG="${1:-latest}"
 ACTIVE="$(cat "$STATE_FILE" 2>/dev/null || echo blue)"
@@ -240,7 +273,7 @@ COLOR=$INACTIVE \
 CMS_PORT=$INACTIVE_CMS_PORT \
 CLIENT_PORT=$INACTIVE_CLIENT_PORT \
 TAG=$TAG \
-  "${INFISICAL_RUN[@]}" docker compose -p "$SITE_SLUG-$INACTIVE" -f "$COMPOSE_FILE" pull
+  "${INFISICAL_RUN[@]}" -p "$SITE_SLUG-$INACTIVE" -f "$COMPOSE_FILE" pull
 
 # 2. Up inactive
 echo
@@ -250,7 +283,7 @@ COLOR=$INACTIVE \
 CMS_PORT=$INACTIVE_CMS_PORT \
 CLIENT_PORT=$INACTIVE_CLIENT_PORT \
 TAG=$TAG \
-  "${INFISICAL_RUN[@]}" docker compose -p "$SITE_SLUG-$INACTIVE" -f "$COMPOSE_FILE" up -d
+  "${INFISICAL_RUN[@]}" -p "$SITE_SLUG-$INACTIVE" -f "$COMPOSE_FILE" up -d
 
 # 3. Healthcheck loop — 60 секунд total (30 итераций × 2 сек)
 echo
@@ -276,7 +309,7 @@ if [ "$HEALTHY" != true ]; then
   CMS_PORT=$INACTIVE_CMS_PORT \
   CLIENT_PORT=$INACTIVE_CLIENT_PORT \
   TAG=$TAG \
-    "${INFISICAL_RUN[@]}" docker compose -p "$SITE_SLUG-$INACTIVE" -f "$COMPOSE_FILE" down
+    "${INFISICAL_RUN[@]}" -p "$SITE_SLUG-$INACTIVE" -f "$COMPOSE_FILE" down
   exit 1
 fi
 
@@ -296,7 +329,7 @@ if ! docker exec "$SITE_SLUG-cms-$INACTIVE" pnpm --filter cms migrate 2>&1 | tai
   CMS_PORT=$INACTIVE_CMS_PORT \
   CLIENT_PORT=$INACTIVE_CLIENT_PORT \
   TAG=$TAG \
-    "${INFISICAL_RUN[@]}" docker compose -p "$SITE_SLUG-$INACTIVE" -f "$COMPOSE_FILE" down
+    "${INFISICAL_RUN[@]}" -p "$SITE_SLUG-$INACTIVE" -f "$COMPOSE_FILE" down
   exit 1
 fi
 echo "   ✓ migrations applied"
@@ -331,7 +364,7 @@ if [ "$ACTIVE" != "$INACTIVE" ] && docker ps --format '{{.Names}}' | grep -q "$S
   CMS_PORT=$OLD_CMS_PORT \
   CLIENT_PORT=$OLD_CLIENT_PORT \
   TAG=$TAG \
-    "${INFISICAL_RUN[@]}" docker compose -p "$SITE_SLUG-$ACTIVE" -f "$COMPOSE_FILE" down
+    "${INFISICAL_RUN[@]}" -p "$SITE_SLUG-$ACTIVE" -f "$COMPOSE_FILE" down
   echo "   ✓ $ACTIVE stopped"
 fi
 
