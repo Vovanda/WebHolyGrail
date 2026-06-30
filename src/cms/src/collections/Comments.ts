@@ -47,7 +47,7 @@ export const Comments: CollectionConfig = {
       name: 'post',
       label: 'Пост',
       type: 'relationship',
-      relationTo: 'posts',
+      relationTo: 'social-posts',
       required: true,
       index: true,
     },
