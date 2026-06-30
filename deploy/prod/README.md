@@ -31,17 +31,20 @@ Stack: Payload CMS + Next 15 client, blue-green за shared host-nginx (`/opt/pr
 
 3. **GitHub Actions config** — Settings → Secrets and variables → Actions:
 
-   | Тип    | Имя                 | Значение                                                                      |
-   | ------ | ------------------- | ----------------------------------------------------------------------------- |
-   | secret | `VPS_HOST`          | IP VPS                                                                        |
-   | secret | `VPS_SSH_KEY`       | private key для deploy user (хранится в Infisical; см. `whg-infisical` skill) |
-   | var    | `VPS_USER`          | `deploy` (optional, default)                                                  |
-   | var    | `VPS_PATH`          | `/opt/sites/<slug>`                                                           |
-   | var    | `PUBLIC_URL`        | `https://<your-domain>`                                                       |
-   | var    | `PRIMARY_DOMAIN`    | `<your-domain>` — для pre-flight (nginx-conf + LE-cert на первом деплое)      |
-   | var    | `IMAGE_NAME_PREFIX` | optional — override базы имени образов (например `whg` для template repo).    |
-   |        |                     | Default = repo name lowercased.                                               |
-   | var    | `GHCR_OWNER`        | optional, default `github.repository_owner`                                   |
+   | Тип    | Имя                  | Значение                                                                      |
+   | ------ | -------------------- | ----------------------------------------------------------------------------- |
+   | secret | `VPS_HOST`           | IP VPS                                                                        |
+   | secret | `VPS_SSH_KEY`        | private key для deploy user (хранится в Infisical; см. `whg-infisical` skill) |
+   | var    | `VPS_USER`           | `deploy` (optional, default)                                                  |
+   | var    | `VPS_PATH`           | `/opt/sites/<slug>`                                                           |
+   | var    | `PUBLIC_URL`         | `https://<your-domain>`                                                       |
+   | var    | `PRIMARY_DOMAIN`     | `<your-domain>` — для pre-flight (nginx-conf + LE-cert на первом деплое)      |
+   | var    | `IMAGE_NAME_PREFIX`  | optional — override базы имени образов (например `whg` для template repo).    |
+   |        |                      | Default = repo name lowercased.                                               |
+   | var    | `INFISICAL_HOST_URL` | `https://infisical.<your-host>` — shared self-host instance для всех сайтов   |
+   | var    | `PORT_BASE`          | optional, default 3000. Per-site: site-1 3000, site-2 3020, site-3 3040, …    |
+   |        |                      | Blue = `PORT_BASE`/+1, green = `PORT_BASE`+100/+101.                          |
+   | var    | `GHCR_OWNER`         | optional, default `github.repository_owner`                                   |
 
 4. `.github/workflows/deploy.yml` уже active в template — никаких rename'ов не нужно. Downstream получит его как есть.
 
