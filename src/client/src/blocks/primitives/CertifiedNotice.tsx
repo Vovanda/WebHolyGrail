@@ -45,7 +45,7 @@ export function CertifiedNotice({
           )}
         >
           {kicker && (
-            <p className="font-sans uppercase tracking-[0.18em] text-[12px] md:text-[13px] font-bold text-accent-dark">
+            <p className="font-sans uppercase tracking-[0.18em] text-[12px] md:text-[13px] font-bold text-accent-hover">
               {kicker}
             </p>
           )}

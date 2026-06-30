@@ -29,7 +29,7 @@ export function FaqToggleAllButtons() {
         className={cn(
           'inline-flex items-center min-h-[36px] px-[18px] rounded-full',
           'bg-accent text-paper border-0 font-bold text-[13.5px]',
-          'cursor-pointer transition-colors duration-150 hover:bg-accent-dark',
+          'cursor-pointer transition-colors duration-150 hover:bg-accent-hover',
         )}
       >
         Развернуть всё
@@ -39,8 +39,8 @@ export function FaqToggleAllButtons() {
         onClick={() => toggleAll(false)}
         className={cn(
           'inline-flex items-center min-h-[36px] px-[18px] rounded-full',
-          'bg-transparent text-ink border border-[#E5DCC9] font-bold text-[13.5px]',
-          'cursor-pointer transition-colors duration-150 hover:bg-[#F0E8D6] hover:border-[#CFC8C2]',
+          'bg-transparent text-ink border border-border font-bold text-[13.5px]',
+          'cursor-pointer transition-colors duration-150 hover:bg-surface',
         )}
       >
         Свернуть всё

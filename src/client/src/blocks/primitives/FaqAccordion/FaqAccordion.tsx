@@ -81,9 +81,9 @@ export async function FaqAccordion({
                 href={`#faq-${slugFor(g, i)}`}
                 className={cn(
                   'inline-flex items-center gap-1.5 min-h-9 px-3.5 py-2',
-                  'bg-[#F0E8D6] text-ink rounded-full text-[13px] font-semibold no-underline',
-                  'border border-[#E6E2DF] transition-colors duration-150 transition-transform',
-                  'hover:bg-[#E5DCC9] hover:border-[#CFC8C2] hover:-translate-y-px',
+                  'bg-surface text-ink rounded-full text-[13px] font-semibold no-underline',
+                  'border border-border transition-colors duration-150 transition-transform',
+                  'hover:bg-surface-hover hover:-translate-y-px',
                 )}
               >
                 <span className="text-[14px] text-paper bg-ink rounded-full px-2.5 py-0.5 font-extrabold tracking-[0.3px]">
@@ -98,7 +98,7 @@ export async function FaqAccordion({
 
         {groups.map((g, i) => (
           <section key={g.id} id={`faq-${slugFor(g, i)}`} className="my-5">
-            <h2 className="flex items-center gap-2.5 font-bold text-ink m-0 mb-2.5 pb-1.5 border-b-[1.5px] border-[#E5DCC9] uppercase tracking-[0.5px] text-[16px]">
+            <h2 className="flex items-center gap-2.5 font-bold text-ink m-0 mb-2.5 pb-1.5 border-b-[1.5px] border-border uppercase tracking-[0.5px] text-[16px]">
               <span className="inline-flex items-center justify-center w-[30px] h-[30px] bg-ink text-paper rounded-full text-[15px] font-extrabold">
                 {i + 1}
               </span>
@@ -111,11 +111,10 @@ export async function FaqAccordion({
                 data-faq-item
                 {...(it.openByDefault ? { open: true } : {})}
                 className={cn(
-                  'group bg-paper border border-[#E5DCC9] rounded-[12px] mb-2.5',
-                  'transition-shadow duration-150',
-                  'hover:shadow-[0_2px_8px_rgba(43,34,26,0.05)]',
-                  // Когда открыт — лёгкий cream-фон карточки и более жирная рамка
-                  'open:bg-[#FBF7EE] open:border-success',
+                  'group bg-paper border border-border rounded-[12px] mb-2.5',
+                  'transition-shadow duration-150 hover:shadow-sm',
+                  // Когда открыт — мягкая подложка surface + success-рамка
+                  'open:bg-surface open:border-success',
                 )}
               >
                 <summary
@@ -168,10 +167,10 @@ export async function FaqAccordion({
                 rel="noopener"
                 className={cn(
                   'inline-flex items-center gap-2 min-h-[46px] px-6 py-3',
-                  // VK-link → синий бренд VK, не янтарный (1:1 с legacy).
+                  // VK-link → синий бренд VK, иначе primary accent.
                   isVkUrl(cta.linkHref)
                     ? 'bg-vk hover:bg-vk-hover'
-                    : 'bg-accent hover:bg-accent-dark',
+                    : 'bg-accent hover:bg-accent-hover',
                   'text-paper rounded-full font-bold text-[15px] no-underline',
                   'transition-colors duration-150',
                 )}
@@ -249,7 +248,7 @@ function renderLex(node: LexNode, i: number): React.ReactNode {
         href={node.url ?? '#'}
         target="_blank"
         rel="noopener"
-        className="text-accent-dark underline hover:no-underline"
+        className="text-accent underline hover:text-accent-hover hover:no-underline"
       >
         {(node.children ?? []).map(renderLex)}
       </a>
