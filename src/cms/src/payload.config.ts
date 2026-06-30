@@ -17,6 +17,10 @@ import { ReusableBlocks } from './collections/ReusableBlocks';
 import { Posts } from './collections/Posts';
 import { Comments } from './collections/Comments';
 import { FaqGroups } from './collections/FaqGroups';
+import { Articles } from './collections/Articles';
+import { Threads } from './collections/Threads';
+import { Tags } from './collections/Tags';
+import { Authors } from './collections/Authors';
 import { SiteSettings } from './globals/SiteSettings';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -76,7 +80,22 @@ export default buildConfig({
       baseDir: dirname,
     },
   },
-  collections: [Users, Media, Pages, FormSubmissions, ReusableBlocks, Posts, Comments, FaqGroups],
+  collections: [
+    Users,
+    Media,
+    Pages,
+    FormSubmissions,
+    ReusableBlocks,
+    Posts,
+    Comments,
+    FaqGroups,
+    // Блог (#43): Articles, Threads, Tags, Authors. Имя Articles временное —
+    // после merge #49 (rename Posts→SocialPosts) переименовать в Posts (#45).
+    Articles,
+    Threads,
+    Tags,
+    Authors,
+  ],
   globals: [SiteSettings],
   /**
    * Jobs Queue — admin UI на /admin/collections/payload-jobs. Template поставляет
