@@ -121,11 +121,23 @@ jobs:
       - name: Add VPS to known_hosts
         run: |
           mkdir -p ~/.ssh
-          ssh-keyscan -H "$VPS_HOST" >> ~/.ssh/known_hosts
+          # ssh-keyscan бывает пустой ответ при geo-задержках Azure↔MSK — до 3 попыток.
+          for i in 1 2 3; do
+            out=$(ssh-keyscan -T 15 -H "$VPS_HOST" 2>/dev/null || true)
+            if [ -n "$out" ]; then
+              echo "$out" >> ~/.ssh/known_hosts
+              exit 0
+            fi
+            echo "ssh-keyscan attempt $i empty, retry in 5s"
+            sleep 5
+          done
+          echo "::error::ssh-keyscan вернул пустоту за 3 попытки"
+          exit 1
 
       - name: Sync site directory on VPS (git pull)
         run: |
-          ssh "$VPS_USER@$VPS_HOST" \
+          # ssh -o ConnectTimeout=15 — не висеть 2 мин при packet loss из Azure
+          ssh -o ConnectTimeout=15 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 "$VPS_USER@$VPS_HOST" \
             "cd $VPS_PATH && git fetch --depth 50 origin main && git reset --hard origin/main"
 
       - name: Blue-green deploy
@@ -139,7 +151,7 @@ jobs:
           # PRIMARY_DOMAIN: pre-flight на первом деплое (nginx-conf + LE-cert).
           # INFISICAL_HOST_URL: shared self-host instance для всех WHG-инстансов.
           # PORT_BASE: per-site port allocation (3000 для первого, 3020/3040/... для следующих).
-          ssh "$VPS_USER@$VPS_HOST" \
+          ssh -o ConnectTimeout=15 -o ServerAliveInterval=10 -o ServerAliveCountMax=6 "$VPS_USER@$VPS_HOST" \
             "GHCR_OWNER=$OWNER_LC PRIMARY_DOMAIN=$PRIMARY_DOMAIN INFISICAL_HOST_URL=$INFISICAL_HOST_URL PORT_BASE=$PORT_BASE $VPS_PATH/deploy/prod/deploy.sh ${{ needs.build.outputs.tag }}"
 
       - name: Verify deployed SHA
