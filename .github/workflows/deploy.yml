@@ -136,9 +136,19 @@ jobs:
 
       - name: Sync site directory on VPS (git pull)
         run: |
-          # ssh -o ConnectTimeout=15 — не висеть 2 мин при packet loss из Azure
-          ssh -o ConnectTimeout=15 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 "$VPS_USER@$VPS_HOST" \
-            "cd $VPS_PATH && git fetch --depth 50 origin main && git reset --hard origin/main"
+          # ssh Azure US East → Timeweb MSK иногда даёт TCP timeout на port 22 —
+          # retry до 3 попыток. Ошибки типа "connect to host X port 22: Connection timed out"
+          # обычно intermittent.
+          for i in 1 2 3; do
+            if ssh -o ConnectTimeout=15 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 "$VPS_USER@$VPS_HOST" \
+                 "cd $VPS_PATH && git fetch --depth 50 origin main && git reset --hard origin/main"; then
+              exit 0
+            fi
+            echo "sync attempt $i failed, retry in 10s"
+            sleep 10
+          done
+          echo "::error::sync failed after 3 attempts"
+          exit 1
 
       - name: Blue-green deploy
         env:
@@ -151,8 +161,26 @@ jobs:
           # PRIMARY_DOMAIN: pre-flight на первом деплое (nginx-conf + LE-cert).
           # INFISICAL_HOST_URL: shared self-host instance для всех WHG-инстансов.
           # PORT_BASE: per-site port allocation (3000 для первого, 3020/3040/... для следующих).
-          ssh -o ConnectTimeout=15 -o ServerAliveInterval=10 -o ServerAliveCountMax=6 "$VPS_USER@$VPS_HOST" \
-            "GHCR_OWNER=$OWNER_LC PRIMARY_DOMAIN=$PRIMARY_DOMAIN INFISICAL_HOST_URL=$INFISICAL_HOST_URL PORT_BASE=$PORT_BASE $VPS_PATH/deploy/prod/deploy.sh ${{ needs.build.outputs.tag }}"
+          # SSH-connect retry (3 попытки) — но САМ deploy.sh не идемпотентен на fail
+          # в середине, так что второй попыткой мы пытаемся установить TCP connect,
+          # не перезапустить deploy.sh если он уже поехал. ServerAliveCountMax=30
+          # (5 мин без ответа перед drop) — deploy.sh идёт до 10 мин (build/migrate/seed).
+          for i in 1 2 3; do
+            if ssh -o ConnectTimeout=15 -o ServerAliveInterval=10 -o ServerAliveCountMax=30 "$VPS_USER@$VPS_HOST" \
+                 "GHCR_OWNER=$OWNER_LC PRIMARY_DOMAIN=$PRIMARY_DOMAIN INFISICAL_HOST_URL=$INFISICAL_HOST_URL PORT_BASE=$PORT_BASE $VPS_PATH/deploy/prod/deploy.sh ${{ needs.build.outputs.tag }}"; then
+              exit 0
+            fi
+            code=$?
+            # exit 255 = SSH connect error. Всё остальное — уже deploy.sh упал, retry не поможет.
+            if [ $code -ne 255 ]; then
+              echo "::error::deploy.sh exited with $code (не SSH transport) — retry не поможет"
+              exit $code
+            fi
+            echo "SSH transport error, retry in 15s (attempt $i/3)"
+            sleep 15
+          done
+          echo "::error::SSH connect failed 3 attempts подряд"
+          exit 255
 
       - name: Verify deployed SHA
         run: |
