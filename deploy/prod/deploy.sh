@@ -334,6 +334,19 @@ if ! docker exec "$SITE_SLUG-cms-$INACTIVE" pnpm --filter cms migrate 2>&1 | tai
 fi
 echo "   ✓ migrations applied"
 
+# 3.6. Seed:minimal — идемпотентный засев стартового контента (home page, faq,
+# initial admin если задан ADMIN_INITIAL_PASSWORD). На существующей БД — no-op:
+# home/faq создаются с { slug: 'home' } уникальными; admin skip'ается если уже
+# есть с таким email. Non-blocking: seed failure не откатывает deploy, потому
+# что deploy может пройти нормально и без seed (например при hotfix'е).
+echo
+echo "→ Seeding minimal content (idempotent)..."
+if docker exec "$SITE_SLUG-cms-$INACTIVE" pnpm --filter cms run seed:minimal 2>&1 | tail -20; then
+  echo "   ✓ seed applied"
+else
+  echo "   ⚠ seed failed — deploy continues (не блокер)"
+fi
+
 # 4. Switch nginx upstream symlink (хост путь = bind-mount в nginx container).
 # Snippets именованы per-site чтобы несколько Holy Grail сайтов могли стоять
 # рядом на одной VPS без конфликтов имён.
