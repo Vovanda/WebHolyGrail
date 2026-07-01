@@ -4,19 +4,22 @@
 
 ## Что создаёт
 
-- **Initial admin user** — `Users.role=admin`, email из `SEED_ADMIN_EMAIL`, пароль из `SEED_ADMIN_PASSWORD`.
+- **Initial admin user** — `Users.role=admin`, email из `ADMIN_INITIAL_EMAIL`, пароль из `ADMIN_INITIAL_PASSWORD`. Если password не задан — admin не создаётся, юзер получит first-user wizard на `/admin`.
 - **Home page** — пустая `Pages` запись, `slug=home`, `_status=published`, без блоков.
+- **FAQ** — стартовые группы + `/faq` страница + пункт в mainNav.
 
-Идемпотентно: повторный запуск не дублирует, существующие записи не трогает.
+Идемпотентно: повторный запуск не дублирует, существующие записи не трогает. В `deploy/prod/deploy.sh` запускается автоматически после успешных миграций.
 
 ## Запуск
 
 ```bash
 # из корня репо
-SEED_ADMIN_EMAIL=admin@example.com \
-SEED_ADMIN_PASSWORD="$(openssl rand -hex 16)" \
+ADMIN_INITIAL_EMAIL=admin@example.com \
+ADMIN_INITIAL_PASSWORD="$(openssl rand -hex 16)" \
 pnpm seed:minimal
 ```
+
+Legacy env `SEED_ADMIN_EMAIL/PASSWORD/NAME` + `SEED_FORCE_ADMIN_PASSWORD` — читаются как fallback (deprecated).
 
 Требуется уже поднятый CMS workspace (`./dev.sh` или `pnpm --filter cms run dev`), потому что seed использует Payload Local API и нуждается в инициализированной БД.
 

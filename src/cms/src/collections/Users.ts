@@ -11,6 +11,11 @@ import type { CollectionConfig } from 'payload';
  *
  * Auth настроен по дефолту Payload (email + password). При запуске первого dev
  * Payload предложит создать первого admin через UI.
+ *
+ * First-user safety: поле `role` скрыто в first-user wizard, а beforeChange hook
+ * форсит role='admin' если это самый первый пользователь в БД. Без этого можно
+ * было бы создать редактора и лишить систему единственного админа (некому потом
+ * заводить новых пользователей — access.create ждёт admin).
  */
 export const Users: CollectionConfig = {
   slug: 'users',
@@ -21,6 +26,18 @@ export const Users: CollectionConfig = {
     group: 'Администрирование',
   },
   auth: true,
+  hooks: {
+    beforeChange: [
+      async ({ req, operation, data }) => {
+        if (operation !== 'create') return data;
+        const existing = await req.payload.count({ collection: 'users' });
+        if (existing.totalDocs === 0) {
+          return { ...data, role: 'admin' };
+        }
+        return data;
+      },
+    ],
+  },
   fields: [
     {
       name: 'name',
@@ -32,13 +49,16 @@ export const Users: CollectionConfig = {
       label: 'Роль',
       type: 'select',
       required: true,
-      defaultValue: 'editor',
+      defaultValue: 'admin',
       options: [
         { label: 'Администратор', value: 'admin' },
         { label: 'Редактор', value: 'editor' },
       ],
       admin: {
         description: 'Администратор — полный доступ. Редактор — только контент.',
+        // First-user wizard: user ещё не залогинен → скрываем выбор роли,
+        // beforeChange hook форсит admin для самого первого пользователя.
+        condition: (_data, _siblingData, { user }) => Boolean(user),
       },
     },
   ],

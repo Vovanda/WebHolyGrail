@@ -10,16 +10,19 @@
  * себе админа с известным ему паролем — без передачи дефолт-кредов.
  *
  * Опционально admin можно создать через seed (для CI / автотестов где UI
- * недоступен): задать SEED_ADMIN_PASSWORD env. SEED_FORCE_ADMIN_PASSWORD=1 —
+ * недоступен): задать ADMIN_INITIAL_PASSWORD env. ADMIN_FORCE_PASSWORD=1 —
  * пересоздать пароль существующего admin (рекомендуется только в dev).
  *
- * Env:
- *   SEED_ADMIN_EMAIL              (default: admin@example.com)
- *   SEED_ADMIN_PASSWORD           (если не задан — admin не создаётся, юзер
+ * Env (канон — `ADMIN_INITIAL_*`, совпадает с Dockerfile/Infisical/bootstrap):
+ *   ADMIN_INITIAL_EMAIL           (default: admin@example.com)
+ *   ADMIN_INITIAL_PASSWORD        (если не задан — admin не создаётся, юзер
  *                                   получит first-user wizard в /admin)
- *   SEED_ADMIN_NAME               (default: Admin)
- *   SEED_FORCE_ADMIN_PASSWORD=1   (force-update password существующего admin)
+ *   ADMIN_INITIAL_NAME            (default: Admin)
+ *   ADMIN_FORCE_PASSWORD=1        (force-update password существующего admin)
  *   SEED_FORCE_HOME=1             (force-update home page даже если контент есть)
+ *
+ * Deprecated fallback (для локального dev — читаются если ADMIN_INITIAL_* пусты):
+ *   SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD, SEED_ADMIN_NAME, SEED_FORCE_ADMIN_PASSWORD
  *
  * Идемпотентно: повторный запуск не дублирует, существующие записи остаются.
  *
@@ -40,9 +43,12 @@ import { createFaqPage } from './createFaqPage.js';
 import { addFaqToMainNav } from './addFaqToMainNav.js';
 
 async function main(): Promise<void> {
-  const email = process.env['SEED_ADMIN_EMAIL'] ?? 'admin@example.com';
-  const password = process.env['SEED_ADMIN_PASSWORD'];
-  const name = process.env['SEED_ADMIN_NAME'] ?? 'Admin';
+  const email =
+    process.env['ADMIN_INITIAL_EMAIL'] ?? process.env['SEED_ADMIN_EMAIL'] ?? 'admin@example.com';
+  const password = process.env['ADMIN_INITIAL_PASSWORD'] ?? process.env['SEED_ADMIN_PASSWORD'];
+  const name = process.env['ADMIN_INITIAL_NAME'] ?? process.env['SEED_ADMIN_NAME'] ?? 'Admin';
+  const forcePassword =
+    process.env['ADMIN_FORCE_PASSWORD'] === '1' || process.env['SEED_FORCE_ADMIN_PASSWORD'] === '1';
 
   console.log('→ booting Payload...');
   const payload = await getPayload({ config });
@@ -52,13 +58,13 @@ async function main(): Promise<void> {
     const admin = await createInitialAdmin(payload, { email, password, name });
     if (admin.created) {
       console.log(`  ✓ admin created (id ${admin.id})`);
-    } else if (process.env['SEED_FORCE_ADMIN_PASSWORD'] === '1') {
+    } else if (forcePassword) {
       console.log(`  ✓ admin password updated (id ${admin.id})`);
     } else {
       console.log(`  · admin already exists (id ${admin.id}), password not changed`);
     }
   } else {
-    console.log('→ skip admin creation (no SEED_ADMIN_PASSWORD)');
+    console.log('→ skip admin creation (no ADMIN_INITIAL_PASSWORD)');
     console.log('  Open /admin — Payload покажет first-user wizard если admin ещё нет.');
   }
 
