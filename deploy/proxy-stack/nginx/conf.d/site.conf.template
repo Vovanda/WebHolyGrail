@@ -78,6 +78,12 @@ server {
         proxy_hide_header x-minio-deployment-id;
     }
 
+    # --- Health endpoint (client) — ДО общего /api, иначе улетит в CMS 404 ---
+    location = /api/health {
+        include /etc/nginx/snippets/proxy-upstream.conf;
+        proxy_pass http://<SITE_SLUG>_client;
+    }
+
     # --- Payload (CMS) ---
     location /admin {
         include /etc/nginx/snippets/proxy-upstream.conf;
