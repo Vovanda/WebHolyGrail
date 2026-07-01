@@ -90,9 +90,8 @@ export default buildConfig({
     Comments,
     FaqGroups,
     // Блог (#43): Articles, Threads, Tags, Authors. Имя `Articles` теперь
-    // постоянное — слот `posts` свободен (после #49), можно использовать
-    // если хотим единый naming с Ghost/Substack, но `articles` более
-    // конкретно отражает функцию.
+    // постоянное — слот `posts` свободен после #49 rename Posts→SocialPosts,
+    // но `articles` более конкретно отражает функцию.
     Articles,
     Threads,
     Tags,
