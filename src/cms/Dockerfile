@@ -63,6 +63,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3001
 ENV HOSTNAME=0.0.0.0
 ENV NODE_OPTIONS=--dns-result-order=ipv4first
+# pnpm 11: отключить verify-deps-before-run в runtime (deps installed на build,
+# runtime лезет в registry.npmjs.org → ETIMEDOUT). Дубль настройки из
+# pnpm-workspace.yaml для страховки — env приоритетнее файла config.
+ENV NPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false
 
 # Минимальный набор для запуска Next 15 + Payload + sharp.
 COPY --from=build /repo/node_modules /app/node_modules

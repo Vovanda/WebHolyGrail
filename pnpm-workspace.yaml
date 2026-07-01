@@ -11,3 +11,12 @@ packages:
 allowBuilds:
   esbuild: true
   sharp: true
+
+# pnpm 11 verify-deps-before-run — по дефолту на каждом `pnpm run` сверяет
+# node_modules с pnpm-lock.yaml и при расхождении лезет в registry.npmjs.org
+# «дозаинсталлить». В runtime Docker без outbound npm access это ловит ETIMEDOUT
+# на 800+ запросах, cms/client не стартуют. Deps полностью installed на build
+# стадии, verify в runtime не нужен. Настройка pnpm-specific, поэтому здесь
+# (.npmrc принимает только npm-совместимые ключи, pnpm 10.6+ читает
+# pnpm-specific из workspace file).
+verifyDepsBeforeRun: false

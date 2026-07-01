@@ -35,6 +35,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV NODE_OPTIONS=--dns-result-order=ipv4first
+# pnpm 11: отключить verify-deps-before-run в runtime (deps installed на build,
+# runtime лезет в registry.npmjs.org → ETIMEDOUT). Дубль настройки из
+# pnpm-workspace.yaml для страховки — env приоритетнее файла config.
+ENV NPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false
 
 # Build metadata — заворачивается в image через docker build --build-arg.
 # Endpoint /api/_status читает эти env'ы → они отражают РЕАЛЬНУЮ версию что собрана,
