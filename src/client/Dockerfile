@@ -48,6 +48,10 @@ COPY --from=build /repo/node_modules /app/node_modules
 COPY --from=build /repo/contracts /app/contracts
 COPY --from=build /repo/src/client /app/src/client
 COPY --from=build /repo/package.json /repo/pnpm-workspace.yaml /app/
+# .npmrc с `verify-deps-before-run=false` — pnpm 11 иначе на каждом `pnpm start`
+# сверяет node_modules с lockfile и лезет в registry.npmjs.org (ETIMEDOUT если outbound
+# npm заблокирован). Deps уже полностью installed в build-стадии.
+COPY --from=build /repo/.npmrc /app/.npmrc
 
 WORKDIR /app/src/client
 EXPOSE 3000

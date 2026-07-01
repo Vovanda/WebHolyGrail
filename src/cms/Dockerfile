@@ -69,6 +69,10 @@ COPY --from=build /repo/node_modules /app/node_modules
 COPY --from=build /repo/contracts /app/contracts
 COPY --from=build /repo/src/cms /app/src/cms
 COPY --from=build /repo/package.json /repo/pnpm-workspace.yaml /repo/pnpm-lock.yaml /app/
+# .npmrc с `verify-deps-before-run=false` — иначе pnpm 11 на каждом `pnpm run` пытается
+# сверить node_modules с lockfile и залипает в timeout'ы к registry.npmjs.org (VPS
+# может не иметь outbound npm access). Deps уже полностью installed в build-стадии.
+COPY --from=build /repo/.npmrc /app/.npmrc
 # tsconfig.base.json — нужен Payload CLI (payload migrate, generate:types) во время runtime,
 # т.к. cms/tsconfig.json extends его (../../tsconfig.base.json). Без него `pnpm migrate`
 # падает с "File '../../tsconfig.base.json' not found." — auto-migrate в deploy.sh ломается.
