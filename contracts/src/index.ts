@@ -56,3 +56,15 @@ export type {
   SocialFeedBlockNode,
   SocialFeedFilter,
 } from './social';
+
+export type {
+  BlogMediaRef,
+  BlogTag,
+  BlogAuthor,
+  BlogThread,
+  BlogDisplayOverrides,
+  BlogArticle,
+  BlogGlobalSettings,
+  BlogFilterState,
+} from './blog';
+export { resolveDisplay } from './blog';
