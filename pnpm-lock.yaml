@@ -165,6 +165,9 @@ importers:
       iconv-lite:
         specifier: ^0.7.2
         version: 0.7.2
+      libsql:
+        specifier: ^0.4.7
+        version: 0.4.7
       next:
         specifier: ^15.0.3
         version: 15.5.19(@playwright/test@1.61.0)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(sass@1.77.4)
