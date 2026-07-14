@@ -135,13 +135,19 @@ jobs:
           exit 1
 
       - name: Sync site directory on VPS (git pull)
+        env:
+          # Синкаем ровно тот коммит, из которого собраны образы. Хардкод main
+          # разъезжался с образами: deploy.sh и compose.bluegreen.yml приезжали
+          # из main, а образы — из задеплоенной ветки.
+          GIT_REF: ${{ github.ref_name }}
+          GIT_SHA: ${{ github.sha }}
         run: |
           # ssh Azure US East → Timeweb MSK иногда даёт TCP timeout на port 22 —
           # retry до 3 попыток.
           set +e
           for i in 1 2 3; do
             ssh -o ConnectTimeout=15 -o ServerAliveInterval=10 -o ServerAliveCountMax=3 "$VPS_USER@$VPS_HOST" \
-              "cd $VPS_PATH && git fetch --depth 50 origin main && git reset --hard origin/main"
+              "cd $VPS_PATH && git fetch --depth 50 origin '$GIT_REF' && git reset --hard '$GIT_SHA'"
             code=$?
             if [ $code -eq 0 ]; then
               exit 0
