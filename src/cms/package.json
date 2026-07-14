@@ -35,6 +35,7 @@
     "contracts": "workspace:*",
     "cross-env": "^7.0.3",
     "iconv-lite": "^0.7.2",
+    "libsql": "^0.4.7",
     "next": "^15.0.3",
     "payload": "^3.40.0",
     "react": "^19.0.0",
