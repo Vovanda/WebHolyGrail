@@ -1,6 +1,5 @@
-import type { BlogGlobalSettings } from 'contracts';
-
 import { getSiteSettings, listArticles } from '@/lib/api-client';
+import { resolveBlogSettings } from '@/lib/blog-settings';
 import { PostList } from '@/blocks/primitives/Blog/PostList';
 import { Pagination } from '@/blocks/primitives/Blog/Pagination';
 
@@ -34,8 +33,7 @@ export default async function BlogIndexPage({
   const params = await searchParams;
   const page = Math.max(1, Number(params.page ?? 1));
   const settings = await getSiteSettings();
-  const blogSettings: BlogGlobalSettings =
-    (settings as unknown as { blog?: BlogGlobalSettings })?.blog ?? DEFAULT_BLOG_SETTINGS;
+  const blogSettings = resolveBlogSettings(settings);
 
   const {
     docs,
@@ -66,15 +64,6 @@ export default async function BlogIndexPage({
     </main>
   );
 }
-
-const DEFAULT_BLOG_SETTINGS: BlogGlobalSettings = {
-  showAuthor: true,
-  showDate: true,
-  showReadingTime: true,
-  showTags: true,
-  postsPerPage: 10,
-  defaultSort: 'newest',
-};
 
 function listSubtitle(count: number): string {
   if (count === 0) return 'Пока статей нет — но скоро будут.';

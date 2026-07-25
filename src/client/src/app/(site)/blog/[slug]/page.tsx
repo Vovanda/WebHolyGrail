@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
 
-import type { BlogGlobalSettings } from 'contracts';
 import { resolveDisplay } from 'contracts';
 
 import { getArticleBySlug, getSiteSettings, listArticles } from '@/lib/api-client';
+import { resolveBlogSettings } from '@/lib/blog-settings';
 import { PublishedDateBadge } from '@/blocks/primitives/Blog/PublishedDateBadge';
 import { ReadingTimeBadge } from '@/blocks/primitives/Blog/ReadingTimeBadge';
 import { AuthorBadge } from '@/blocks/primitives/Blog/AuthorBadge';
@@ -46,8 +46,7 @@ export default async function BlogArticlePage({ params }: { params: Promise<Para
   if (!article) notFound();
 
   const settings = await getSiteSettings();
-  const blogSettings: BlogGlobalSettings =
-    (settings as unknown as { blog?: BlogGlobalSettings })?.blog ?? DEFAULT_BLOG_SETTINGS;
+  const blogSettings = resolveBlogSettings(settings);
   const display = resolveDisplay(article, blogSettings);
 
   // Если статья в треде — подтянуть siblings
@@ -139,12 +138,3 @@ function ArticleBody({ body }: { readonly body: unknown }) {
     </div>
   );
 }
-
-const DEFAULT_BLOG_SETTINGS: BlogGlobalSettings = {
-  showAuthor: true,
-  showDate: true,
-  showReadingTime: true,
-  showTags: true,
-  postsPerPage: 10,
-  defaultSort: 'newest',
-};
