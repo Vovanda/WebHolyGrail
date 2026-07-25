@@ -135,6 +135,10 @@ const MIRROR = [
   'src/client/src/app/(site)/blog/',
   'src/client/src/app/sitemap.ts',
   'src/client/src/app/robots.ts',
+  // Catchall — рендер страниц из Payload по slug, чистый generic: доменные
+  // маршруты инстанса живут отдельными папками и его не трогают. Инстансовый
+  // layout.tsx сюда не входит — там шрифты и брендинг конкретного сайта.
+  'src/client/src/app/(site)/[[...slug]]/page.tsx',
 
   // CMS — generic collections + блоки
   'src/cms/src/blocks/',
