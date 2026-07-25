@@ -25,13 +25,10 @@ export const CLASSIC_SITE_LAYOUT: SiteLayoutConfig = {
         node: {
           blockType: 'header',
           id: 'panel-header',
-          data: {
-            githubUrl: 'https://github.com/Vovanda/WebHolyGrail',
-            primaryCta: {
-              label: 'Использовать шаблон',
-              href: 'https://github.com/Vovanda/WebHolyGrail/generate',
-            },
-          },
+          // Пусто намеренно: шапка сайта — это его бренд и его меню, а не
+          // GitHub движка и кнопка «Использовать шаблон». Свои CTA и иконки
+          // редактор задаёт в SiteSettings.layout.
+          data: {},
         },
       },
       visibility: 'always',
