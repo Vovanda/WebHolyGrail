@@ -122,6 +122,12 @@ const MIRROR = [
   'src/client/postcss.config.mjs',
   'src/client/vitest.config.ts',
 
+  // CI и деплой. Вся инстанс-специфика в них уже вынесена в GH vars/secrets,
+  // так что чинится деплой один раз в шаблоне и доезжает до всех сайтов.
+  // template-cleanup.yml сюда не входит — он про сам шаблон.
+  '.github/workflows/ci.yml',
+  '.github/workflows/deploy.yml',
+
   // Блог — generic-маршруты движка. Инстансу без блога они не мешают:
   // пустые коллекции → /blog отдаёт «пока статей нет».
   'src/client/src/app/(site)/blog/',
