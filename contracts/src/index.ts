@@ -66,5 +66,6 @@ export type {
   BlogArticle,
   BlogGlobalSettings,
   BlogFilterState,
+  ArticlesSectionData,
 } from './blog';
 export { resolveDisplay } from './blog';

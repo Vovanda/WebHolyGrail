@@ -105,6 +105,30 @@ export function resolveDisplay(
 }
 
 /**
+ * Данные блока `articles-section` — витрина статей на произвольной странице.
+ *
+ * @remarks
+ * Блок хранит только параметры выборки, сами статьи докачивает компонент (R0).
+ * При `manual` relationship приходит уже populated, но компонент всё равно
+ * перезапрашивает по id — так у всех источников одинаковый depth.
+ */
+export interface ArticlesSectionData {
+  readonly title?: string;
+  readonly description?: string;
+  readonly source: 'latest' | 'by-tag' | 'by-thread' | 'manual';
+  readonly tag?: BlogTag | string | number | null;
+  readonly thread?: BlogThread | string | number | null;
+  readonly items?: ReadonlyArray<BlogArticle | string | number>;
+  readonly limit?: number;
+  readonly sort?: 'newest' | 'oldest';
+  readonly layout?: 'grid' | 'vertical' | 'featured-first';
+  readonly cta?: {
+    readonly label?: string;
+    readonly href?: string;
+  };
+}
+
+/**
  * Filter state для FilterBar primitive. URL-параметры в /blog ?tag=a,b &thread=x.
  */
 export interface BlogFilterState {

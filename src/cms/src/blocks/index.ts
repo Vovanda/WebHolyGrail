@@ -14,6 +14,7 @@ import { WaveDividerBlock } from './WaveDivider';
 import { AchievementBannerBlock } from './AchievementBanner';
 import { CertifiedNoticeBlock } from './CertifiedNotice';
 import { SocialFeedBlock } from './SocialFeed';
+import { ArticlesSectionBlock } from './ArticlesSection';
 import { FaqAccordionBlock } from './FaqAccordion';
 import { ReusableRefBlock } from './ReusableRef';
 import { PageRefBlock } from './PageRef';
@@ -56,6 +57,7 @@ export const REUSABLE_INNER_BLOCKS = [
   AchievementBannerBlock,
   CertifiedNoticeBlock,
   SocialFeedBlock,
+  ArticlesSectionBlock,
   FaqAccordionBlock,
   // WHG-specific:
   ProjectTypesGridBlock,

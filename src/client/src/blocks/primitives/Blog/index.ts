@@ -32,3 +32,6 @@ export type { AuthorBadgeProps } from './AuthorBadge';
 
 export { Pagination } from './Pagination';
 export type { PaginationProps } from './Pagination';
+
+export { ArticlesSection } from './ArticlesSection';
+export type { ArticlesSectionProps } from './ArticlesSection';

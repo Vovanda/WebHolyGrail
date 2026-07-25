@@ -155,6 +155,35 @@ export async function listArticles(params: ListArticlesParams = {}): Promise<Lis
   return (await response.json()) as ListArticlesResult;
 }
 
+/**
+ * Статьи по списку id, в порядке переданных id.
+ *
+ * @remarks
+ * Payload не гарантирует порядок при `where[id][in]`, а редактор в админке
+ * расставляет статьи руками — порядок значим, поэтому пересортировываем на
+ * нашей стороне.
+ */
+export async function listArticlesByIds(
+  ids: ReadonlyArray<string | number>,
+): Promise<ReadonlyArray<BlogArticle>> {
+  if (ids.length === 0) return [];
+  const query = new URLSearchParams({
+    'where[status][equals]': 'published',
+    'where[id][in]': ids.join(','),
+    depth: '2',
+    limit: String(ids.length),
+  });
+  const response = await fetch(`${CMS_URL}/api/articles?${query.toString()}`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) return [];
+  const data = (await response.json()) as { docs: BlogArticle[] };
+  const order = new Map(ids.map((id, index) => [String(id), index]));
+  return [...data.docs].sort(
+    (a, b) => (order.get(String(a.id)) ?? 0) - (order.get(String(b.id)) ?? 0),
+  );
+}
+
 export async function getArticleBySlug(slug: string): Promise<BlogArticle | null> {
   const query = new URLSearchParams({
     'where[slug][equals]': slug,
@@ -205,5 +234,45 @@ export async function listAllTags(): Promise<ReadonlyArray<BlogTag>> {
   const response = await fetch(`${CMS_URL}/api/tags?limit=100&depth=0`, { cache: 'no-store' });
   if (!response.ok) return [];
   const data = (await response.json()) as { docs: BlogTag[] };
+  return data.docs;
+}
+
+export async function listAllThreads(): Promise<ReadonlyArray<BlogThread>> {
+  const query = new URLSearchParams({
+    'where[status][equals]': 'published',
+    limit: '200',
+    depth: '0',
+  });
+  const response = await fetch(`${CMS_URL}/api/threads?${query.toString()}`, { cache: 'no-store' });
+  if (!response.ok) return [];
+  const data = (await response.json()) as { docs: BlogThread[] };
+  return data.docs;
+}
+
+// ─── Sitemap ───────────────────────────────────────────────────────────
+
+/** Минимум, который нужен sitemap'у от произвольной записи. */
+export interface SitemapEntryDoc {
+  readonly slug: string;
+  readonly updatedAt?: string;
+}
+
+/**
+ * Все опубликованные страницы из `Pages`.
+ *
+ * @remarks
+ * Sitemap строится по содержимому CMS, а не по пунктам меню: страница может
+ * существовать и быть нужной поисковику, не появляясь в навигации (лендинг
+ * из рассылки, юридическая страница).
+ */
+export async function listAllPages(): Promise<ReadonlyArray<SitemapEntryDoc>> {
+  const query = new URLSearchParams({
+    'where[_status][equals]': 'published',
+    limit: '500',
+    depth: '0',
+  });
+  const response = await fetch(`${CMS_URL}/api/pages?${query.toString()}`, { cache: 'no-store' });
+  if (!response.ok) return [];
+  const data = (await response.json()) as { docs: SitemapEntryDoc[] };
   return data.docs;
 }
