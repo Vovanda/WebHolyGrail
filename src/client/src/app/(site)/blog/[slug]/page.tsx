@@ -4,6 +4,7 @@ import { resolveDisplay } from 'contracts';
 
 import { getArticleBySlug, getSiteSettings, listArticles } from '@/lib/api-client';
 import { resolveBlogSettings } from '@/lib/blog-settings';
+import { lexicalToPlainText } from '@/lib/lexical-text';
 import { PublishedDateBadge } from '@/blocks/primitives/Blog/PublishedDateBadge';
 import { ReadingTimeBadge } from '@/blocks/primitives/Blog/ReadingTimeBadge';
 import { AuthorBadge } from '@/blocks/primitives/Blog/AuthorBadge';
@@ -27,6 +28,32 @@ import { LexicalRenderer } from '@/blocks/primitives/RichText';
 type Params = { slug: string };
 
 export const dynamic = 'force-dynamic';
+
+/**
+ * Лид показываем только если он говорит что-то сверх текста.
+ *
+ * @remarks
+ * Лид — это превью для ленты, и его часто заполняют первым абзацем записи
+ * (так делают и импортеры с других движков). На самой странице такой лид идёт
+ * прямо над тем же абзацем и читается как случайно продублированный текст.
+ */
+export function showLead(lead: string | undefined, body: unknown): boolean {
+  const trimmed = lead?.trim();
+  if (!trimmed) return false;
+
+  const normalize = (value: string): string =>
+    value
+      .replace(/[\s ]+/g, ' ')
+      .replace(/[…]+$/u, '')
+      .trim()
+      .toLowerCase();
+
+  const leadText = normalize(trimmed);
+  if (!leadText) return false;
+
+  const bodyStart = normalize(lexicalToPlainText(body)).slice(0, leadText.length);
+  return bodyStart !== leadText;
+}
 
 export async function generateMetadata({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
@@ -95,7 +122,7 @@ export default async function BlogArticlePage({ params }: { params: Promise<Para
         />
       )}
 
-      {article.lead && (
+      {showLead(article.lead, article.body) && (
         <p className="text-h4 font-display italic text-ink/90 leading-relaxed border-l-2 border-accent pl-4">
           {article.lead}
         </p>
