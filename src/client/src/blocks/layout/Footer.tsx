@@ -24,6 +24,8 @@ export interface FooterData {
   readonly tagline?: string;
   readonly docsLinks?: readonly { readonly label: string; readonly href: string }[];
   readonly projectLinks?: readonly { readonly label: string; readonly href: string }[];
+  /** Приписка рядом с копирайтом: «MIT License», «ИП Иванов», «18+». */
+  readonly legal?: string;
 }
 
 export function Footer({
@@ -126,8 +128,11 @@ export function Footer({
       {/* Bottom bar */}
       <div className="border-t border-border">
         <div className="mx-auto max-w-wide px-4 md:px-6 py-4 flex flex-wrap items-center justify-between gap-3 text-xs text-muted">
+          {/* MIT — лицензия движка, а не сайта на нём. По умолчанию только
+              копирайт; приписку вроде «ИП Иванов» редактор задаёт в data.legal. */}
           <div>
-            © {year} {siteName} · MIT License
+            © {year} {siteName}
+            {data.legal ? ` · ${data.legal}` : ''}
           </div>
           <div>
             Built on{' '}

@@ -61,33 +61,9 @@ export const CLASSIC_SITE_LAYOUT_JSON = {
         node: {
           blockType: 'footer',
           id: 'panel-footer',
-          data: {
-            githubUrl: 'https://github.com/Vovanda/WebHolyGrail',
-            tagline:
-              'Self-hosted сайт с CMS и архитектурой, которая не заставит вас начинать заново через год.',
-            docsLinks: [
-              {
-                label: 'Введение',
-                href: 'https://github.com/Vovanda/WebHolyGrail/blob/main/docs/whg/00-overview.md',
-              },
-              {
-                label: 'R-правила',
-                href: 'https://github.com/Vovanda/WebHolyGrail/blob/main/docs/whg/30-philosophy.md',
-              },
-              {
-                label: 'Деплой',
-                href: 'https://github.com/Vovanda/WebHolyGrail/tree/main/docs',
-              },
-            ],
-            projectLinks: [
-              { label: 'GitHub', href: 'https://github.com/Vovanda/WebHolyGrail' },
-              { label: 'Issues', href: 'https://github.com/Vovanda/WebHolyGrail/issues' },
-              {
-                label: 'Discussions',
-                href: 'https://github.com/Vovanda/WebHolyGrail/discussions',
-              },
-            ],
-          },
+          // Пусто намеренно: футер сайта не рекламирует движок. Без docsLinks /
+          // projectLinks Footer показывает пункты меню (footerNav, иначе mainNav).
+          data: {},
         },
       },
       visibility: 'always',
