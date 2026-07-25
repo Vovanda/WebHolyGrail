@@ -150,6 +150,7 @@ export const SiteSettings: GlobalConfig = {
           defaultValue: 'whg-default',
           options: [
             { label: 'Web Holy Grail (default)', value: 'whg-default' },
+            { label: 'Ink & Gold (чёрно-золотая)', value: 'ink-gold' },
             { label: 'Linear', value: 'linear' },
             { label: 'Vercel', value: 'vercel' },
             { label: 'GitHub', value: 'github' },

@@ -49,6 +49,32 @@ export const PALETTE_PRESETS: PalettePreset[] = [
     },
   },
   {
+    // Издательская палитра: тёплый чёрный и золото. В светлой теме золото
+    // затемнено — исходный #ffcb19 на белом в тексте нечитаем.
+    id: 'ink-gold',
+    label: 'Ink & Gold (чёрно-золотая)',
+    light: {
+      primary: '#a67c00',
+      primaryHover: '#8a6600',
+      foreground: '#1a1515',
+      foregroundMuted: '#6b6461',
+      background: '#ffffff',
+      surface: '#f7f5f2',
+      success: '#1a7f37',
+      danger: '#c0392b',
+    },
+    dark: {
+      primary: '#ffcb19',
+      primaryHover: '#ffd84d',
+      foreground: '#ffffff',
+      foregroundMuted: '#a8a09e',
+      background: '#1a1515',
+      surface: '#241d1d',
+      success: '#3fb950',
+      danger: '#f85149',
+    },
+  },
+  {
     id: 'linear',
     label: 'Linear',
     light: {
@@ -127,7 +153,8 @@ export const PALETTE_PRESETS: PalettePreset[] = [
       primary: '#635bff',
       primaryHover: '#4f47e5',
       foreground: '#0a2540',
-      foregroundMuted: '#6b7c93',
+      // На четыре пункта темнее фирменного #6b7c93 — тот не дотягивал до AA.
+      foregroundMuted: '#67788f',
       background: '#ffffff',
       surface: '#f6f9fc',
       success: '#3a8e3a',
