@@ -1,6 +1,6 @@
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 
-import { getPageBySlug, getSiteSettings } from '@/lib/api-client';
+import { getArticleBySlug, getPageBySlug, getSiteSettings } from '@/lib/api-client';
 import { FALLBACK_SITE_SETTINGS } from '@/layouts/presets/fallback-site-settings';
 import { renderBlockNode } from '@/layouts/site-layout';
 
@@ -11,8 +11,13 @@ import { renderBlockNode } from '@/layouts/site-layout';
  * - `/about` → slug = `about`
  * - `/contacts/visit` → slug = `contacts/visit` (nested URL'ы — slug целиком)
  *
- * Контент только из БД (R0). Не найдено → 404. Найдено, но `blocks` пустой →
- * сообщение для редактора в админке.
+ * Контент только из БД (R0). Найдено, но `blocks` пустой → сообщение для
+ * редактора в админке.
+ *
+ * Если страницы нет, но есть статья с таким slug — 301 на `/blog/<slug>`. Так
+ * переживают переезд ссылки с движков, где записи лежали в корне (Ghost,
+ * WordPress): канонический адрес остаётся один, дублей контента не появляется.
+ * Не нашлось ни того, ни другого → 404.
  *
  * Domain-маршруты (`/dogs`, `/puppies/...`, `/catalog/...` и т.п.) живут как
  * отдельные роуты в `app/(site)/<domain>/` соответствующих инстансов. В
@@ -45,7 +50,12 @@ export default async function CatchallPage({ params }: { params: Promise<Params>
     getSiteSettings().catch(() => null),
   ]);
 
-  if (!page) notFound();
+  if (!page) {
+    const legacySlug = resolveSlug(slug);
+    const article = await getArticleBySlug(legacySlug).catch(() => null);
+    if (article) permanentRedirect(`/blog/${article.slug}`);
+    notFound();
+  }
 
   const activeSettings = settings ?? FALLBACK_SITE_SETTINGS;
 
