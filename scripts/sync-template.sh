@@ -126,7 +126,14 @@ WHITELIST=(
   "src/client/src/lib/analytics.tsx"
   "src/client/src/lib/theme-bootstrap.tsx"
   "src/client/src/lib/lexical-text.ts"
+  "src/client/src/lib/blog-settings.ts"
   "src/client/src/styles/"
+
+  # Блог — generic-маршруты движка. Инстанс, которому блог не нужен, просто
+  # держит коллекции пустыми: /blog отдаёт «пока статей нет».
+  "src/client/src/app/(site)/blog/"
+  "src/client/src/app/sitemap.ts"
+  "src/client/src/app/robots.ts"
 
   # CMS — только generic collections + блоки
   "src/cms/src/blocks/"
@@ -138,7 +145,12 @@ WHITELIST=(
   "src/cms/src/collections/SocialPosts.ts"
   "src/cms/src/collections/Comments.ts"
   "src/cms/src/collections/FaqGroups.ts"
+  "src/cms/src/collections/Articles.ts"
+  "src/cms/src/collections/Authors.ts"
+  "src/cms/src/collections/Tags.ts"
+  "src/cms/src/collections/Threads.ts"
   "src/cms/src/globals/SiteSettings.ts"
+  "src/cms/scripts/check-schema-drift.ts"
 
   # Contracts — только generic
   "contracts/src/blocks.ts"
@@ -152,6 +164,7 @@ WHITELIST=(
   "contracts/src/reusable.ts"
   "contracts/src/social.ts"
   "contracts/src/theme.ts"
+  "contracts/src/blog.ts"
 
   # Deploy
   "deploy/"
