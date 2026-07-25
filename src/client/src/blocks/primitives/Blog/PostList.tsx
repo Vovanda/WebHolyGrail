@@ -5,14 +5,21 @@ import { cn } from '@/lib/utils';
 import { PostCard } from './PostCard';
 
 /**
- * PostList — grid статей. Default 1 col mobile / 2 col md / 3 col lg.
- * Если `featured` задан — первая статья как `hero`, остальные как `card`.
+ * PostList — лента статей.
+ *
+ * Варианты:
+ *  - `divided`  — лента журнала: запись за записью, hairline между ними (default)
+ *  - `grid`     — плитки, 1 col mobile / 2 col md / 3 col lg
+ *  - `vertical` — компактный список для sidebar
+ *
+ * Если `featured` задан — первая статья идёт крупным `hero`, остальные обычным
+ * потоком выбранного варианта.
  */
 export interface PostListProps {
   readonly articles: ReadonlyArray<BlogArticle>;
   readonly globalBlog: BlogGlobalSettings;
   readonly featured?: boolean;
-  readonly variant?: 'grid' | 'vertical';
+  readonly variant?: 'divided' | 'grid' | 'vertical';
   readonly className?: string;
 }
 
@@ -20,11 +27,34 @@ export function PostList({
   articles,
   globalBlog,
   featured = false,
-  variant = 'grid',
+  variant = 'divided',
   className,
 }: PostListProps) {
   if (articles.length === 0) {
     return <p className={cn('text-muted text-center py-12', className)}>Пока статей нет.</p>;
+  }
+
+  if (variant === 'divided') {
+    const hero = featured ? articles[0] : undefined;
+    const rest = hero ? articles.slice(1) : articles;
+    return (
+      <div className={cn('flex flex-col', className)}>
+        {hero && <PostCard article={hero} globalBlog={globalBlog} variant="hero" />}
+        {rest.map((article, i) => (
+          <div
+            key={article.id}
+            className={cn(
+              'py-6 md:py-7',
+              i === 0 && !hero && 'pt-0',
+              (i > 0 || hero) && 'border-t border-border',
+              i === rest.length - 1 && 'pb-0',
+            )}
+          >
+            <PostCard article={article} globalBlog={globalBlog} variant="list" />
+          </div>
+        ))}
+      </div>
+    );
   }
 
   if (variant === 'vertical') {

@@ -71,6 +71,11 @@ const config: Config = {
         h2: ['var(--text-h2)', { lineHeight: 'var(--line-height-tight)' }],
         h3: ['var(--text-h3)', { lineHeight: '1.2' }],
         h4: ['var(--text-h4)', { lineHeight: '1.3' }],
+        'title-list': ['var(--text-title-list)', { lineHeight: '1.3' }],
+        eyebrow: ['var(--text-eyebrow)', { lineHeight: '1.2' }],
+      },
+      letterSpacing: {
+        eyebrow: 'var(--tracking-eyebrow)',
       },
       maxWidth: {
         content: 'var(--container-content)',

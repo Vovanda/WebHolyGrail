@@ -83,11 +83,14 @@
   --text-h2: 40px; /* section heading */
   --text-h3: 28px; /* sub-section */
   --text-h4: 20px; /* card title */
+  --text-title-list: 23px; /* заголовок записи в ленте — между h3 и h4 */
+  --text-eyebrow: 12px; /* подпись секции капсом */
   --text-body: 16px;
   --text-sm: 14px;
   --text-xs: 12px;
   --line-height-body: 1.6;
   --line-height-tight: 1.2; /* для display headings */
+  --tracking-eyebrow: 0.025em; /* разрядка капса в подписях секций */
 
   /* ── Контейнеры ─────────────────────────────────── */
   --container-content: 880px; /* читабельный текст */

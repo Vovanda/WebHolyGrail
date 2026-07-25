@@ -121,7 +121,12 @@ export interface ArticlesSectionData {
   readonly items?: ReadonlyArray<BlogArticle | string | number>;
   readonly limit?: number;
   readonly sort?: 'newest' | 'oldest';
-  readonly layout?: 'grid' | 'vertical' | 'featured-first';
+  /**
+   * Раскладка ленты. `divided` — лента журнала (крупный заголовок, лид, мета,
+   * hairline между записями) и раскладка по умолчанию, `grid` — плитки,
+   * `vertical` — компактный список, `featured-first` — первая запись крупно.
+   */
+  readonly layout?: 'divided' | 'grid' | 'vertical' | 'featured-first';
   readonly cta?: {
     readonly label?: string;
     readonly href?: string;

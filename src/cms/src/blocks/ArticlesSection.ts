@@ -99,11 +99,12 @@ export const ArticlesSectionBlock: Block = {
       name: 'layout',
       label: 'Вид',
       type: 'select',
-      defaultValue: 'grid',
+      defaultValue: 'divided',
       options: [
+        { label: 'Лента (запись за записью)', value: 'divided' },
         { label: 'Сетка', value: 'grid' },
         { label: 'Список (компактный)', value: 'vertical' },
-        { label: 'Первая крупно, остальные сеткой', value: 'featured-first' },
+        { label: 'Первая крупно, остальные лентой', value: 'featured-first' },
       ],
     },
     {

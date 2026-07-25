@@ -5,6 +5,8 @@ import { listArticles, listArticlesByIds } from '@/lib/api-client';
 import { resolveBlogSettings } from '@/lib/blog-settings';
 import { cn } from '@/lib/utils';
 
+import { SectionEyebrow } from '../SectionEyebrow';
+
 import { PostList } from './PostList';
 
 /**
@@ -35,12 +37,8 @@ export async function ArticlesSection({ node, settings, className }: ArticlesSec
   return (
     <section className={cn('mx-auto max-w-wide px-4 md:px-6 py-10 md:py-14', className)}>
       {(data.title || data.description) && (
-        <header className="flex flex-col gap-2 mb-8 md:mb-10">
-          {data.title && (
-            <h2 className="text-h2 font-display font-semibold text-ink tracking-tight">
-              {data.title}
-            </h2>
-          )}
+        <header className="flex flex-col gap-3 mb-5 md:mb-6">
+          {data.title && <SectionEyebrow>{data.title}</SectionEyebrow>}
           {data.description && <p className="text-muted max-w-prose">{data.description}</p>}
         </header>
       )}
@@ -48,7 +46,7 @@ export async function ArticlesSection({ node, settings, className }: ArticlesSec
       <PostList
         articles={articles}
         globalBlog={globalBlog}
-        variant={data.layout === 'vertical' ? 'vertical' : 'grid'}
+        variant={listVariant(data.layout)}
         featured={data.layout === 'featured-first'}
       />
 
@@ -64,6 +62,16 @@ export async function ArticlesSection({ node, settings, className }: ArticlesSec
       )}
     </section>
   );
+}
+
+/**
+ * Раскладка блока → вариант ленты. `featured-first` отличается от ленты только
+ * первой записью, поток под ней остаётся тем же.
+ */
+function listVariant(layout: ArticlesSectionData['layout']): 'divided' | 'grid' | 'vertical' {
+  if (layout === 'vertical') return 'vertical';
+  if (layout === 'grid') return 'grid';
+  return 'divided';
 }
 
 /** Выборка статей под выбранный источник. Неизвестный источник → пусто. */

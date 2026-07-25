@@ -60,6 +60,42 @@ export function PostCard({ article, globalBlog, variant = 'card', className }: P
     );
   }
 
+  if (variant === 'list') {
+    const cover = article.cover;
+    return (
+      <article className={cn('group', className)}>
+        <div
+          className={cn('flex flex-col gap-4', cover?.url && 'md:flex-row md:items-start md:gap-7')}
+        >
+          {cover?.url && (
+            <a href={href} className="block shrink-0 overflow-hidden rounded-md md:w-56">
+              <img
+                src={cover.url}
+                alt={cover.alt ?? article.title}
+                className="w-full aspect-[16/10] object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                loading="lazy"
+              />
+            </a>
+          )}
+          <div className="flex min-w-0 flex-col gap-2">
+            <h3 className="text-h4 md:text-title-list font-display font-semibold text-ink tracking-tight">
+              <a href={href} className="hover:underline underline-offset-4 decoration-1">
+                {article.title}
+              </a>
+            </h3>
+            {article.lead && (
+              <p className="text-sm text-muted leading-relaxed line-clamp-2">{article.lead}</p>
+            )}
+            <PostMeta article={article} display={display} byline className="mt-1" />
+            {display.showTags && article.tags && article.tags.length > 0 && (
+              <TagList tags={article.tags} className="mt-1" />
+            )}
+          </div>
+        </div>
+      </article>
+    );
+  }
+
   if (variant === 'compact') {
     return (
       <article className={cn('flex flex-col gap-1.5', className)}>
@@ -111,27 +147,44 @@ interface PostMetaProps {
   readonly article: BlogArticle;
   readonly display: ReturnType<typeof resolveDisplay>;
   readonly dense?: boolean;
+  /** Строка «Автор — дата — время чтения» вместо элементов через пробел. */
+  readonly byline?: boolean;
   readonly className?: string;
 }
 
-function PostMeta({ article, display, dense, className }: PostMetaProps) {
-  const hasAuthor = display.showAuthor && article.author;
-  const hasDate = display.showDate && article.publishedAt;
-  const hasReadingTime = display.showReadingTime && article.readingTime;
+function PostMeta({ article, display, dense, byline, className }: PostMetaProps) {
+  const parts = [
+    display.showAuthor && article.author ? (
+      <AuthorBadge key="author" author={article.author} />
+    ) : null,
+    display.showDate && article.publishedAt ? (
+      <PublishedDateBadge key="date" date={article.publishedAt} />
+    ) : null,
+    display.showReadingTime && article.readingTime ? (
+      <ReadingTimeBadge key="reading-time" minutes={article.readingTime} />
+    ) : null,
+  ].filter(Boolean);
 
-  if (!hasAuthor && !hasDate && !hasReadingTime) return null;
+  if (parts.length === 0) return null;
 
   return (
     <div
       className={cn(
-        'flex flex-wrap items-center gap-x-3 gap-y-1 text-muted',
-        dense ? 'text-xs' : 'text-sm',
+        'flex flex-wrap items-center gap-y-1 text-muted',
+        byline ? 'gap-x-2' : 'gap-x-3',
+        dense || byline ? 'text-xs' : 'text-sm',
         className,
       )}
     >
-      {hasAuthor && article.author && <AuthorBadge author={article.author} />}
-      {hasDate && article.publishedAt && <PublishedDateBadge date={article.publishedAt} />}
-      {hasReadingTime && article.readingTime && <ReadingTimeBadge minutes={article.readingTime} />}
+      {byline
+        ? parts.map((part, i) => (
+            // eslint-disable-next-line react/no-array-index-key -- порядок частей меты фиксирован
+            <span key={i} className="inline-flex items-center gap-x-2">
+              {i > 0 && <span aria-hidden="true">—</span>}
+              {part}
+            </span>
+          ))
+        : parts}
     </div>
   );
 }
