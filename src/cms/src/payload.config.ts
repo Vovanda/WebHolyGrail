@@ -157,7 +157,12 @@ export default buildConfig({
   ),
   plugins: [
     /**
-     * S3-совместимое хранилище для Media — **обязательное**.
+     * S3-совместимое хранилище для Media.
+     *
+     * Подключается **только если задан `S3_BUCKET`**. Docker-build и CLI-команды
+     * (`payload migrate:create`, `generate:types`) идут без S3-env — при жёстком
+     * требовании они падали бы на пустых переменных. В prod-runtime env приходит
+     * из Infisical, и плагин активируется.
      *
      * Holy Grail работает на S3 от day 1 — dev (MinIO в Docker) и prod
      * (любой S3 провайдер) используют один и тот же storage layer. Это
@@ -175,26 +180,30 @@ export default buildConfig({
      * Prod: настрой облачный S3 через Infisical UI (см. SKILL
      * `holygrail-infisical`).
      */
-    s3Storage({
-      collections: {
-        media: {
-          generateFileURL: ({ filename, prefix }) => {
-            const base = process.env.S3_PUBLIC_URL ?? '';
-            return `${base}/${prefix ? prefix + '/' : ''}${filename}`;
-          },
-        },
-      },
-      bucket: requireEnv('S3_BUCKET'),
-      acl: 'public-read',
-      config: {
-        credentials: {
-          accessKeyId: requireEnv('S3_ACCESS_KEY_ID'),
-          secretAccessKey: requireEnv('S3_SECRET_ACCESS_KEY'),
-        },
-        region: requireEnv('S3_REGION'),
-        endpoint: requireEnv('S3_ENDPOINT'),
-        forcePathStyle: true,
-      },
-    }),
+    ...(process.env.S3_BUCKET
+      ? [
+          s3Storage({
+            collections: {
+              media: {
+                generateFileURL: ({ filename, prefix }) => {
+                  const base = process.env.S3_PUBLIC_URL ?? '';
+                  return `${base}/${prefix ? prefix + '/' : ''}${filename}`;
+                },
+              },
+            },
+            bucket: requireEnv('S3_BUCKET'),
+            acl: 'public-read',
+            config: {
+              credentials: {
+                accessKeyId: requireEnv('S3_ACCESS_KEY_ID'),
+                secretAccessKey: requireEnv('S3_SECRET_ACCESS_KEY'),
+              },
+              region: requireEnv('S3_REGION'),
+              endpoint: requireEnv('S3_ENDPOINT'),
+              forcePathStyle: true,
+            },
+          }),
+        ]
+      : []),
   ],
 });

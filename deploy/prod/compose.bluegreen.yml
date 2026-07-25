@@ -52,7 +52,7 @@ services:
       - 77.88.8.8
       - 77.88.8.1
     healthcheck:
-      test: ['CMD-SHELL', 'wget -q -O- http://localhost:3001/api/access || exit 1']
+      test: ['CMD-SHELL', 'wget -q -O- http://127.0.0.1:3001/api/access || exit 1']
       interval: 10s
       timeout: 5s
       start_period: 60s
@@ -82,7 +82,7 @@ services:
       cms:
         condition: service_healthy
     healthcheck:
-      test: ['CMD-SHELL', 'wget -q -O- http://localhost:3000/api/health || exit 1']
+      test: ['CMD-SHELL', 'wget -q -O- http://127.0.0.1:3000/api/health || exit 1']
       interval: 10s
       timeout: 5s
       start_period: 60s
