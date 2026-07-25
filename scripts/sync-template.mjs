@@ -112,6 +112,8 @@ const MIRROR = [
   'src/client/src/lib/theme-bootstrap.tsx',
   'src/client/src/lib/lexical-text.ts',
   'src/client/src/lib/blog-settings.ts',
+  'src/client/src/lib/palette-presets.ts',
+  'src/client/src/lib/palette-override.tsx',
   'src/client/src/styles/',
 
   // Конфиги сборки клиента. Едут вместе с tokens.css: маппинг «токен → утилита»
@@ -149,6 +151,10 @@ const MIRROR = [
   'src/cms/src/collections/Tags.ts',
   'src/cms/src/collections/Threads.ts',
   'src/cms/src/globals/SiteSettings.ts',
+  // Админ-компоненты полей + копия палитр. Копия обязана совпадать с
+  // client-версией (R3 не даёт cms импортировать из client), и разъезд этих
+  // двух файлов ничем не заметен — значит ездить они должны вместе.
+  'src/cms/src/admin/',
   'src/cms/scripts/check-schema-drift.ts',
 
   // Contracts — только generic
