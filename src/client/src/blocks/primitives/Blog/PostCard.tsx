@@ -44,7 +44,7 @@ export function PostCard({ article, globalBlog, variant = 'card', className }: P
             />
           </a>
         )}
-        <PostMeta article={article} display={display} className="mb-3" />
+        <PostMeta article={article} display={display} byline className="mb-3" />
         <h1 className="text-h2 font-display text-ink tracking-tight">
           <a href={href} className="hover:underline">
             {article.title}
