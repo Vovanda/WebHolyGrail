@@ -10,6 +10,7 @@ import { CtaBannerBlock } from './CtaBanner';
 import { QuoteBlock } from './Quote';
 import { TimelineBlock } from './Timeline';
 import { ProseBlock } from './Prose';
+import { RichTextBlock } from './RichText';
 import { WaveDividerBlock } from './WaveDivider';
 import { AchievementBannerBlock } from './AchievementBanner';
 import { CertifiedNoticeBlock } from './CertifiedNotice';
@@ -53,6 +54,7 @@ export const REUSABLE_INNER_BLOCKS = [
   QuoteBlock,
   TimelineBlock,
   ProseBlock,
+  RichTextBlock,
   WaveDividerBlock,
   AchievementBannerBlock,
   CertifiedNoticeBlock,

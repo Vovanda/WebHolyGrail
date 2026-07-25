@@ -53,12 +53,12 @@ export function Header({
         >
           <BrandMark
             logo={settings.logo}
-            siteName={settings.siteName ?? 'Web Holy Grail'}
+            siteName={settings.siteName ?? 'Сайт'}
             size={36}
             className="group-hover:opacity-90 transition-opacity"
           />
           <span className="font-display text-base md:text-lg font-semibold tracking-tight text-ink whitespace-nowrap">
-            {settings.siteName ?? 'Web Holy Grail'}
+            {settings.siteName ?? 'Сайт'}
           </span>
         </Link>
 

@@ -13,7 +13,8 @@ import { TagList } from './TagList';
  *
  * Variants:
  *  - `compact` — title + lead + meta (для sidebar / related)
- *  - `card`    — cover + title + lead + meta (default, для grid)
+ *  - `list`    — заголовок-крупно + lead + мета, без плитки (лента журнала)
+ *  - `card`    — cover + title + lead + meta (для grid)
  *  - `hero`    — большой cover + title + subtitle + lead + author + дата
  *
  * Respects per-article `displayOverrides` + global `SiteSettings.blog.show*`
@@ -22,7 +23,7 @@ import { TagList } from './TagList';
 export interface PostCardProps {
   readonly article: BlogArticle;
   readonly globalBlog: BlogGlobalSettings;
-  readonly variant?: 'compact' | 'card' | 'hero';
+  readonly variant?: 'compact' | 'list' | 'card' | 'hero';
   readonly className?: string;
 }
 

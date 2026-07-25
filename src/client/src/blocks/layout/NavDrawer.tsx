@@ -138,7 +138,7 @@ export function NavDrawer({
               </text>
             </svg>
             <span className="font-display font-semibold text-ink text-base">
-              {settings.siteName ?? 'Web Holy Grail'}
+              {settings.siteName ?? 'Сайт'}
             </span>
           </Link>
         </div>

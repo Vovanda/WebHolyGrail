@@ -15,8 +15,12 @@ import type { BlockNode, SiteSettings } from 'contracts';
  *   - `docsLinks?: { label, href }[]` — кастомные ссылки в колонку "Документация"
  *   - `projectLinks?: { label, href }[]` — кастомные ссылки в колонку "Проект"
  *
- * Если data-поля не заданы — используются дефолты (GitHub-ссылка WHG repo,
- * docs/issues/discussions/changelog).
+ *   - `legal?: string` — приписка рядом с копирайтом
+ *
+ * Если `docsLinks` / `projectLinks` не заданы — футер показывает пункты меню
+ * (`footerNav`, иначе `mainNav`). Никаких ссылок на движок в дефолте: сайт на
+ * WHG не должен выглядеть как витрина WHG. Единственное упоминание — подпись
+ * «Built on Web Holy Grail» в нижней строке.
  */
 
 export interface FooterData {
@@ -36,7 +40,7 @@ export function Footer({
   readonly settings: SiteSettings;
 }) {
   const data = node.data ?? {};
-  const siteName = settings.siteName ?? 'Web Holy Grail';
+  const siteName = settings.siteName ?? 'Сайт';
   const githubUrl = data.githubUrl;
   const tagline = data.tagline;
   const docs = data.docsLinks ?? [];
@@ -136,8 +140,10 @@ export function Footer({
           </div>
           <div>
             Built on{' '}
+            {/* Ведём на сайт движка, а не в репозиторий: посетителю чужого
+                сайта нужен рассказ о платформе, а не исходники. */}
             <a
-              href="https://github.com/Vovanda/WebHolyGrail"
+              href="https://whg.sawking.tech/"
               target="_blank"
               rel="noopener noreferrer"
               className="hover:text-ink transition-colors underline-offset-2 hover:underline"
