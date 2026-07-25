@@ -5,7 +5,7 @@
  * R2 — только токены, R3 — данные через contracts/.
  *
  * См. также:
- * - LexicalRenderer (TODO: вынести из FaqAccordion) — рендерит Lexical AST для PostBody
+ * - LexicalRenderer (`primitives/RichText`) — рендер тела статьи из Lexical AST
  * - FilterBar (TODO: client-island для interactive filtering)
  */
 

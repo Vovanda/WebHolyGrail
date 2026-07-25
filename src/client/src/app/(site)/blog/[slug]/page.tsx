@@ -10,6 +10,7 @@ import { AuthorBadge } from '@/blocks/primitives/Blog/AuthorBadge';
 import { TagList } from '@/blocks/primitives/Blog/TagList';
 import { ThreadCard } from '@/blocks/primitives/Blog/ThreadCard';
 import { PostList } from '@/blocks/primitives/Blog/PostList';
+import { LexicalRenderer } from '@/blocks/primitives/RichText';
 
 /**
  * /blog/[slug] — детальная страница статьи. SSR (R14).
@@ -100,8 +101,7 @@ export default async function BlogArticlePage({ params }: { params: Promise<Para
         </p>
       )}
 
-      {/* TODO: PostBody / LexicalRenderer — пока заглушка с JSON dump в dev */}
-      <ArticleBody body={article.body} />
+      <LexicalRenderer value={article.body} className="text-lg" />
 
       {threadSiblings.length > 0 && article.thread && (
         <section className="mt-12 pt-8 border-t border-border flex flex-col gap-6">
@@ -118,23 +118,5 @@ export default async function BlogArticlePage({ params }: { params: Promise<Para
         </section>
       )}
     </article>
-  );
-}
-
-/**
- * Временный плейсхолдер для рендера Lexical AST. Будет заменён на
- * `LexicalRenderer` primitive (см. #46 follow-up / #48).
- */
-function ArticleBody({ body }: { readonly body: unknown }) {
-  if (!body || typeof body !== 'object') return null;
-  return (
-    <div className="prose prose-lg max-w-none text-ink leading-relaxed">
-      <p className="italic text-muted">
-        (PostBody / LexicalRenderer placeholder — будет в follow-up. Lexical AST в JSON ниже:)
-      </p>
-      <pre className="text-xs bg-surface p-4 rounded-md overflow-auto max-h-96">
-        {JSON.stringify(body, null, 2)}
-      </pre>
-    </div>
   );
 }
