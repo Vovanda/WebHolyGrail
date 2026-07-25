@@ -37,6 +37,15 @@ jobs:
         run: |
           pnpm --filter cms run generate:types
           pnpm --filter cms run generate:importmap
+          # generate:importmap умеет завершиться с нулевым кодом, ничего не
+          # записав. Без этой проверки следующим падает tsc с «Cannot find
+          # module '../importMap.js'», и причина выглядит как ошибка в коде.
+          for f in src/cms/src/app/\(payload\)/admin/importMap.js src/cms/src/payload-types.ts; do
+            if [ ! -s "$f" ]; then
+              echo "::error::$f не сгенерирован — payload generate отработал вхолостую"
+              exit 1
+            fi
+          done
 
       # push: false — схема попадает в БД только миграцией. Коллекция/поле без
       # migrate:create = деплой встаёт со старой схемой и падает в рантайме.
