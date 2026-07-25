@@ -114,6 +114,14 @@ const MIRROR = [
   'src/client/src/lib/blog-settings.ts',
   'src/client/src/styles/',
 
+  // Конфиги сборки клиента. Едут вместе с tokens.css: маппинг «токен → утилита»
+  // живёт в tailwind.config, и без него новый токен приезжает в инстанс мёртвым —
+  // класс в JSX есть, утилиты нет, стиль молча не применяется. Инстансы эти
+  // файлы не кастомизируют: по R2 все значения и так в CSS-переменных.
+  'src/client/tailwind.config.ts',
+  'src/client/postcss.config.mjs',
+  'src/client/vitest.config.ts',
+
   // Блог — generic-маршруты движка. Инстансу без блога они не мешают:
   // пустые коллекции → /blog отдаёт «пока статей нет».
   'src/client/src/app/(site)/blog/',
