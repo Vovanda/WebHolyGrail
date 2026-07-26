@@ -7,6 +7,7 @@
  *  2. Create project `holygrail-<slug>`
  *  3. Create environments dev / staging / prod
  *  4. Seed placeholder secrets во все env
+ *  4b. `--from-env <file>` — залить значения секретов в env `--env` (default prod)
  *  5. Create service identity `<slug>-prod-deploy`
  *  6. Attach Universal Auth к identity
  *  7. Create client secret для identity
@@ -16,6 +17,7 @@
  *
  * Запуск:
  *   pnpm setup-infisical -- --site <slug>
+ *   pnpm setup-infisical -- --site <slug> --from-env .env.production --env prod
  *
  * Env (обязательно):
  *   INFISICAL_HOST_URL              — URL self-host instance (https://infisical.example.com)
@@ -29,14 +31,16 @@
  *   - `docs/whg/37-scaffolding.md` — human-readable scaffold guide
  */
 
-import { writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { basename, dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
 interface Args {
   site: string;
   outDir: string;
   type: string;
+  fromEnv?: string;
+  onlyEnv: string;
 }
 
 interface AdminEnv {
@@ -60,6 +64,10 @@ const STANDARD_SECRETS = [
   'NEXT_PUBLIC_SITE_URL',
   // Site identity
   'SITE_NAME',
+  // Первый вход в админку. compose требует их через `:?` — без значений
+  // prod-стек не поднимается вообще.
+  'ADMIN_INITIAL_EMAIL',
+  'ADMIN_INITIAL_PASSWORD',
   // S3 / CDN
   'S3_BUCKET',
   'S3_REGION',
@@ -83,6 +91,8 @@ function parseArguments(): Args {
       site: { type: 'string', short: 's' },
       'out-dir': { type: 'string', default: '.' },
       type: { type: 'string', default: 'minimal' },
+      'from-env': { type: 'string' },
+      env: { type: 'string', default: 'prod' },
       help: { type: 'boolean', short: 'h' },
     },
     allowPositionals: false,
@@ -95,6 +105,8 @@ function parseArguments(): Args {
     console.error('  --site <slug>      site identifier (e.g. "my-site")');
     console.error('  --type <preset>    project type preset (default: minimal)');
     console.error('  --out-dir <path>   where to write .infisical.json (default: .)');
+    console.error('  --from-env <file>  залить значения секретов из .env-файла');
+    console.error('  --env <slug>       куда заливать --from-env (default: prod)');
     console.error('');
     console.error('Required env:');
     console.error('  INFISICAL_HOST_URL              self-host URL');
@@ -108,7 +120,34 @@ function parseArguments(): Args {
     site: values.site as string,
     outDir: resolve(values['out-dir'] ?? '.'),
     type: values.type as string,
+    fromEnv: values['from-env'] ? resolve(values['from-env']) : undefined,
+    onlyEnv: values.env as string,
   };
+}
+
+/**
+ * Читает KEY=VALUE из .env-файла. Ровно то подмножество синтаксиса, которое
+ * понимает `docker compose --env-file`: без подстановок, без multiline.
+ * Пустые значения возвращаются тоже — вызывающий решает, лить их или нет.
+ */
+function parseEnvFile(path: string): Map<string, string> {
+  if (!existsSync(path)) {
+    console.error(`ERROR: --from-env файл не найден: ${path}`);
+    process.exit(1);
+  }
+  const out = new Map<string, string>();
+  for (const raw of readFileSync(path, 'utf8').split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq < 1) continue;
+    const key = line.slice(0, eq).trim();
+    let value = line.slice(eq + 1).trim();
+    // Снимаем обрамляющие кавычки — compose их тоже не считает частью значения.
+    if (value.length > 1 && /^(".*"|'.*')$/.test(value)) value = value.slice(1, -1);
+    out.set(key, value);
+  }
+  return out;
 }
 
 function readAdminEnv(): AdminEnv {
@@ -232,6 +271,51 @@ class Infisical {
       secretPath: '/',
       type: 'shared',
     });
+  }
+
+  async listSecrets(projectId: string, envSlug: string): Promise<Map<string, string>> {
+    const qs = new URLSearchParams({
+      workspaceId: projectId,
+      environment: envSlug,
+      secretPath: '/',
+    });
+    const res = await this.fetch('GET', `/api/v3/secrets/raw?${qs}`);
+    const secrets =
+      (res as { secrets?: Array<{ secretKey: string; secretValue: string }> }).secrets ?? [];
+    return new Map(secrets.map((s) => [s.secretKey, s.secretValue]));
+  }
+
+  async updateSecret(
+    projectId: string,
+    envSlug: string,
+    key: string,
+    value: string,
+  ): Promise<void> {
+    await this.fetch('PATCH', `/api/v3/secrets/raw/${encodeURIComponent(key)}`, {
+      workspaceId: projectId,
+      environment: envSlug,
+      secretValue: value,
+      secretPath: '/',
+      type: 'shared',
+    });
+  }
+
+  /** Значение приезжает независимо от того, разложен ли placeholder этим же прогоном. */
+  async upsertSecret(
+    projectId: string,
+    envSlug: string,
+    key: string,
+    value: string,
+    comment = '',
+  ): Promise<'created' | 'updated'> {
+    try {
+      await this.createSecret(projectId, envSlug, key, value, comment);
+      return 'created';
+    } catch (err) {
+      if (!/already exist/i.test((err as Error).message)) throw err;
+      await this.updateSecret(projectId, envSlug, key, value);
+      return 'updated';
+    }
   }
 
   async createIdentity(name: string, orgId: string): Promise<string> {
@@ -374,6 +458,53 @@ async function main(): Promise<void> {
     }
   }
   console.log('  ✓ placeholders разложены');
+
+  // Placeholder'ов мало: пока значения пустые, `deploy.sh` падает на первом же
+  // обязательном ключе (`S3_BUCKET is missing a value`), а Web UI для ручного
+  // ввода может быть недоступен. Поэтому значения приезжают тем же прогоном.
+  if (args.fromEnv) {
+    const parsed = parseEnvFile(args.fromEnv);
+    const filled = [...parsed].filter(([, v]) => v !== '');
+    const skipped = parsed.size - filled.length;
+    console.log(
+      `→ fillSecrets(${basename(args.fromEnv)} → env "${args.onlyEnv}"): ${filled.length} значений` +
+        (skipped > 0 ? `, ${skipped} пустых пропущено` : ''),
+    );
+
+    let created = 0;
+    let updated = 0;
+    const failed: string[] = [];
+    for (const [key, value] of filled) {
+      try {
+        const how = await inf.upsertSecret(
+          projectId,
+          args.onlyEnv,
+          key,
+          value,
+          `залито из ${basename(args.fromEnv)}`,
+        );
+        if (how === 'created') created++;
+        else updated++;
+      } catch (err) {
+        failed.push(`${key}: ${(err as Error).message.split('\n')[0]}`);
+      }
+    }
+    console.log(`  ✓ created ${created}, updated ${updated}`);
+    for (const f of failed) console.warn(`  ⚠ ${f}`);
+
+    // Пустые ключи после заливки — единственная причина, по которой деплой ещё
+    // может упасть на секретах. Называем их сразу, а не в логах деплоя.
+    const after = await inf.listSecrets(projectId, args.onlyEnv);
+    const stillEmpty = [...after]
+      .filter(([, v]) => v === '')
+      .map(([k]) => k)
+      .sort();
+    if (stillEmpty.length > 0) {
+      console.warn(`  ⚠ пустыми остались (${stillEmpty.length}): ${stillEmpty.join(', ')}`);
+    } else {
+      console.log(`  ✓ в env "${args.onlyEnv}" пустых секретов не осталось`);
+    }
+  }
 
   const identityName = `${args.site}-prod-deploy`;
   console.log(`→ ensureIdentity(${identityName})`);
