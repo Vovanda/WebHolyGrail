@@ -230,35 +230,21 @@ Shared host-nginx (`holygrail-nginx`) для всех сайтов на VPS. Hos
 3. **`template-cleanup.yml`** на первом push'е автоматом причешет README
 4. DNS A record `<your-domain> → VPS IP` (у регистратора)
 5. VPS-часть — `scripts/bootstrap-site-on-vps.sh`: клон в `/opt/sites/<slug>`, Infisical project, UA identity, креды в `/etc/infisical/<slug>/`
-6. Значения prod-секретов:
+6. Секреты, CI-ключ и переменные репозитория — один прогон:
 
    ```bash
-   pnpm setup-infisical -- --site <slug> --from-env .env.production --env prod
+   pnpm setup-infisical -- --site <slug> \
+     --from-env .env.production --env prod \
+     --github --vps-host <vps-ip> --domain <your-domain> --port-base 3020
    ```
 
-   Идемпотентно, в конце печатает оставшиеся пустыми. Обязательные для compose: `PAYLOAD_SECRET`, `PAYLOAD_PUBLIC_SERVER_URL`, `NEXT_PUBLIC_SITE_URL`, `ADMIN_INITIAL_EMAIL`, `ADMIN_INITIAL_PASSWORD`.
+   Делает: значения секретов в prod, ключ `~/.ssh/ci-<slug>` и его авторизацию на VPS, secrets `VPS_HOST`/`VPS_SSH_KEY`, variables `VPS_USER`/`VPS_PATH`/`PUBLIC_URL`/`PRIMARY_DOMAIN`/`INFISICAL_HOST_URL`/`PORT_BASE`. Идемпотентно.
 
-7. CI-ключ и переменные репозитория:
+   Обязательные для compose секреты: `PAYLOAD_SECRET`, `PAYLOAD_PUBLIC_SERVER_URL`, `NEXT_PUBLIC_SITE_URL`, `ADMIN_INITIAL_EMAIL`, `ADMIN_INITIAL_PASSWORD` — скрипт в конце печатает те, что остались пустыми.
 
-   ```bash
-   ssh-keygen -t ed25519 -f ~/.ssh/ci-<slug> -N "" -C "gh-actions@<slug>"
-   ssh-copy-id -f -i ~/.ssh/ci-<slug>.pub <vps-user>@<vps-host>
+   Проверка: `gh variable list && gh secret list`.
 
-   gh secret   set VPS_HOST           --body "<vps-ip>"
-   gh secret   set VPS_SSH_KEY        < ~/.ssh/ci-<slug>
-   gh variable set VPS_USER           --body "deploy"
-   gh variable set VPS_PATH           --body "/opt/sites/<slug>"
-   gh variable set PUBLIC_URL         --body "https://<your-domain>"
-   gh variable set PRIMARY_DOMAIN     --body "<your-domain>"
-   gh variable set INFISICAL_HOST_URL --body "https://infisical.<your-host>"
-   gh variable set PORT_BASE          --body "3020"   # 3000 / 3020 / 3040 — по сайту
-
-   gh variable list && gh secret list   # обе непустые
-   ```
-
-   `ssh-copy-id` — только с `-f`, иначе проверяет вход чужим ключом из `~/.ssh/config` и молча пропускает установку. Ключ — отдельный на сайт.
-
-8. `git push origin main` → `deploy.yml` сам всё доделает
+7. `git push origin main` → `deploy.yml` сам всё доделает
 
 ### Сценарий B: Обычный регулярный деплой
 

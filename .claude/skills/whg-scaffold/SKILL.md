@@ -175,25 +175,18 @@ pnpm setup-infisical -- --site <slug> --from-env .env.production --env prod
 
 ### 4. Vars и secrets репозитория
 
-GitHub не копирует переменные окружения template-репо — у свежего инстанса их нет:
+GitHub не копирует переменные окружения template-репо — у свежего инстанса их нет. Заводит тот же скрипт:
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/ci-<slug> -N "" -C "gh-actions@<slug>"
-ssh-copy-id -f -i ~/.ssh/ci-<slug>.pub deploy@<vps-host>
-
-gh secret   set VPS_HOST           --body "<vps-ip>"
-gh secret   set VPS_SSH_KEY        < ~/.ssh/ci-<slug>
-gh variable set VPS_USER           --body "deploy"
-gh variable set VPS_PATH           --body "/opt/sites/<slug>"
-gh variable set PUBLIC_URL         --body "https://<domain>"
-gh variable set PRIMARY_DOMAIN     --body "<domain>"
-gh variable set INFISICAL_HOST_URL --body "https://infisical.<host>"
-gh variable set PORT_BASE          --body "3020"
-
-gh variable list && gh secret list   # обе непустые
+pnpm setup-infisical -- --site <slug> --github \
+  --vps-host <vps-ip> --domain <domain> --port-base 3020
 ```
 
-Ключ — отдельный на сайт. `-f` у `ssh-copy-id` обязателен: иначе проверяет вход чужим ключом из `~/.ssh/config` и молча пропускает установку.
+Генерирует ключ `~/.ssh/ci-<slug>` (отдельный на сайт), авторизует его на VPS, заводит secrets `VPS_HOST`/`VPS_SSH_KEY` и variables `VPS_USER`/`VPS_PATH`/`PUBLIC_URL`/`PRIMARY_DOMAIN`/`INFISICAL_HOST_URL`/`PORT_BASE`.
+
+Шаги 3 и 4 можно одним прогоном — добавить `--from-env .env.production --env prod`.
+
+Проверка: `gh variable list && gh secret list`.
 
 ### 5. Первый деплой
 

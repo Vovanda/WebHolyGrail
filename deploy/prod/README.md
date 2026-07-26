@@ -34,7 +34,7 @@ Stack: Payload CMS + Next 15 client, blue-green за shared host-nginx (`/opt/pr
 
    После него:
    - **DNS A record** `<your-domain> → VPS IP` (у регистратора, вне репо)
-   - **Заполнить prod-секреты** в Infisical project через Web UI / CLI (PAYLOAD*SECRET, DATABASE_URI, S3*\*, NEXT_PUBLIC_SITE_URL, …)
+   - **Значения секретов и переменные репозитория** — одним прогоном, см. «Первый деплой» ниже
 
 3. **GitHub Actions config** — Settings → Secrets and variables → Actions:
 
@@ -57,31 +57,17 @@ Stack: Payload CMS + Next 15 client, blue-green за shared host-nginx (`/opt/pr
 
 ## Первый деплой
 
-Один раз на сайт:
+Один раз на сайт — один прогон:
 
 ```bash
-# 1. значения секретов в prod
-pnpm setup-infisical -- --site <slug> --from-env .env.production --env prod
-
-# 2. CI-ключ для Actions
-ssh-keygen -t ed25519 -f ~/.ssh/ci-<slug> -N "" -C "gh-actions@<slug>"
-ssh-copy-id -f -i ~/.ssh/ci-<slug>.pub deploy@<vps-host>
-
-# 3. vars и secrets репозитория
-gh secret   set VPS_HOST           --body "<vps-ip>"
-gh secret   set VPS_SSH_KEY        < ~/.ssh/ci-<slug>
-gh variable set VPS_USER           --body "deploy"
-gh variable set VPS_PATH           --body "/opt/sites/<slug>"
-gh variable set PUBLIC_URL         --body "https://<domain>"
-gh variable set PRIMARY_DOMAIN     --body "<domain>"
-gh variable set INFISICAL_HOST_URL --body "https://infisical.<host>"
-gh variable set PORT_BASE          --body "3020"
-
-# проверка: обе команды выдают непустой список
-gh variable list && gh secret list
+pnpm setup-infisical -- --site <slug> \
+  --from-env .env.production --env prod \
+  --github --vps-host <vps-ip> --domain <domain> --port-base 3020
 ```
 
-`ssh-copy-id` — только с `-f`. Ключ — отдельный на сайт.
+Заливает значения секретов в prod, генерирует CI-ключ (`~/.ssh/ci-<slug>`), авторизует его на VPS и заводит vars/secrets репозитория. Идемпотентно — повторный прогон безопасен.
+
+Проверка: `gh variable list && gh secret list` — обе выдают непустой список.
 
 ```bash
 git push origin main

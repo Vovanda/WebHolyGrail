@@ -200,22 +200,13 @@ Quick summary:
 - Repository vars and secrets — GitHub does not copy environment variables of a template repo, so a fresh instance has none:
 
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/ci-<slug> -N "" -C "gh-actions@<slug>"
-ssh-copy-id -f -i ~/.ssh/ci-<slug>.pub deploy@<vps-host>   # -f is required, see note below
-
-gh secret   set VPS_HOST           --body "<vps-ip>"
-gh secret   set VPS_SSH_KEY        < ~/.ssh/ci-<slug>
-gh variable set VPS_USER           --body "deploy"
-gh variable set VPS_PATH           --body "/opt/sites/<slug>"
-gh variable set PUBLIC_URL         --body "https://<your-domain>"
-gh variable set PRIMARY_DOMAIN     --body "<your-domain>"
-gh variable set INFISICAL_HOST_URL --body "https://infisical.<your-host>"
-gh variable set PORT_BASE          --body "3020"    # 3000 / 3020 / 3040 — one slot per site
+pnpm setup-infisical -- --site <slug> --github \
+  --vps-host <vps-ip> --domain <your-domain> --port-base 3020
 
 gh variable list && gh secret list   # both must be non-empty
 ```
 
-Per-site CI key, not your personal one. `ssh-copy-id` needs `-f`, otherwise it verifies with whatever key `~/.ssh/config` offers and skips the install.
+This generates a per-site CI key (`~/.ssh/ci-<slug>`), authorizes it on the VPS, and sets `VPS_HOST`, `VPS_SSH_KEY`, `VPS_USER`, `VPS_PATH`, `PUBLIC_URL`, `PRIMARY_DOMAIN`, `INFISICAL_HOST_URL`, `PORT_BASE`. Add `--from-env .env.production --env prod` to fill secrets in the same run.
 
 Then `git push origin main` — `deploy.yml` does the rest.
 
