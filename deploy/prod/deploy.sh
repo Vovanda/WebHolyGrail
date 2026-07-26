@@ -334,14 +334,20 @@ if ! docker exec "$SITE_SLUG-cms-$INACTIVE" pnpm --filter cms migrate 2>&1 | tai
 fi
 echo "   ✓ migrations applied"
 
-# 3.6. Seed:minimal — идемпотентный засев стартового контента (home page, faq,
-# initial admin если задан ADMIN_INITIAL_PASSWORD). На существующей БД — no-op:
-# home/faq создаются с { slug: 'home' } уникальными; admin skip'ается если уже
-# есть с таким email. Non-blocking: seed failure не откатывает deploy, потому
-# что deploy может пройти нормально и без seed (например при hotfix'е).
+# 3.6. Seed — идемпотентный засев стартового контента (home page, initial admin
+# если задан ADMIN_INITIAL_PASSWORD). На существующей БД — no-op: home создаётся
+# с уникальным { slug: 'home' }, admin skip'ается если уже есть с таким email.
+# Non-blocking: seed failure не откатывает deploy, потому что deploy может
+# пройти нормально и без seed (например при hotfix'е).
+#
+# SEED_PRESET выбирает набор: по умолчанию `minimal` — нейтральный старт без
+# следов движка (#72). Витрину самого WHG (лендинг + FAQ + брендинг) ставит
+# `whg-landing`, и он включается только на whg.sawking.tech — через
+# SEED_PRESET=whg-landing в его .env.production.
+SEED_PRESET="${SEED_PRESET:-minimal}"
 echo
-echo "→ Seeding minimal content (idempotent)..."
-if docker exec "$SITE_SLUG-cms-$INACTIVE" pnpm --filter cms run seed:minimal 2>&1 | tail -20; then
+echo "→ Seeding content (preset: $SEED_PRESET, idempotent)..."
+if docker exec "$SITE_SLUG-cms-$INACTIVE" pnpm --filter cms run "seed:$SEED_PRESET" 2>&1 | tail -20; then
   echo "   ✓ seed applied"
 else
   echo "   ⚠ seed failed — deploy continues (не блокер)"

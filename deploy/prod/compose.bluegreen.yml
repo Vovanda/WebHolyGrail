@@ -35,6 +35,10 @@ services:
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:?required}
       ADMIN_INITIAL_EMAIL: ${ADMIN_INITIAL_EMAIL:?required}
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?required}
+      # Имя сайта для seed:minimal — ставится один раз, если в SiteSettings пусто.
+      # Дальше правится из админки и seed его не трогает.
+      SITE_NAME: ${SITE_NAME:-}
+      SITE_SLUG: ${SITE_SLUG}
     volumes:
       - ../../src/cms/data:/data
     ports:
