@@ -4,7 +4,7 @@ import { resolveDisplay } from 'contracts';
 
 import { getArticleBySlug, getSiteSettings, listArticles } from '@/lib/api-client';
 import { resolveBlogSettings } from '@/lib/blog-settings';
-import { lexicalToPlainText } from '@/lib/lexical-text';
+import { lexicalToParagraphs } from '@/lib/lexical-text';
 import { PublishedDateBadge } from '@/blocks/primitives/Blog/PublishedDateBadge';
 import { ReadingTimeBadge } from '@/blocks/primitives/Blog/ReadingTimeBadge';
 import { AuthorBadge } from '@/blocks/primitives/Blog/AuthorBadge';
@@ -51,9 +51,15 @@ export function showLead(lead: string | undefined, body: unknown): boolean {
   const leadText = normalize(trimmed);
   if (!leadText) return false;
 
-  const bodyStart = normalize(lexicalToPlainText(body)).slice(0, leadText.length);
-  return bodyStart !== leadText;
+  // Сверяем не только с самым началом: у записей с Ghost первым абзацем идёт
+  // подзаголовок («версия 2.0: с поправкой на то, что…»), а лид повторяет
+  // второй абзац.
+  const paragraphs = lexicalToParagraphs(body).slice(0, LEAD_LOOKAHEAD_PARAGRAPHS);
+  return !paragraphs.some((paragraph) => normalize(paragraph).startsWith(leadText));
 }
+
+/** Сколько первых абзацев проверяем на совпадение с лидом. */
+const LEAD_LOOKAHEAD_PARAGRAPHS = 3;
 
 export async function generateMetadata({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
