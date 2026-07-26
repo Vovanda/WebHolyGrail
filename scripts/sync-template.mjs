@@ -113,6 +113,7 @@ const MIRROR = [
   'src/client/src/lib/lexical-text.ts',
   'src/client/src/lib/blog-settings.ts',
   'src/client/src/lib/palette-presets.ts',
+  'src/client/src/lib/contrast.ts',
   'src/client/src/lib/palette-override.tsx',
   'src/client/src/styles/',
 
