@@ -250,6 +250,15 @@ for (const rel of MIRROR) syncPath(rel, true);
 console.log(`\n→ Overlay (${OVERLAY.length} путей, downstream-добавки сохраняются)\n`);
 for (const rel of OVERLAY) syncPath(rel, false);
 
+// На Windows нет POSIX-бита: git пишет новый файл как 100644, и на VPS
+// `deploy.sh` не запускается — GH Actions падает на «found but not executable»
+// (exit 126), уже после успешного билда и git pull. Ищем все .sh, не ведём
+// список: любой скрипт, который приезжает синком, должен быть исполняемым.
+const fixedModes = restoreExecutableBits();
+if (fixedModes.length > 0) {
+  console.log(`\n→ Executable bit (${fixedModes.length}): ${fixedModes.join(', ')}`);
+}
+
 if (!dryRun) {
   const versionFile = path.join(INSTANCE, '.template-version');
   const previous = fs.existsSync(versionFile)
@@ -339,6 +348,34 @@ function copyFile(src, dst, label) {
   if (dryRun) return;
   fs.mkdirSync(path.dirname(dst), { recursive: true });
   fs.copyFileSync(src, dst);
+}
+
+/**
+ * Возвращает исполняемость всем `*.sh` инстанса: и на диске (важно для WSL и
+ * Linux), и в индексе git (единственное, что доедет до VPS). Файлы, ещё не
+ * добавленные в индекс, чинятся на диске — режим подхватится при `git add`.
+ */
+function restoreExecutableBits() {
+  const listed = safeGit(['ls-files', '-s', '*.sh'], INSTANCE);
+  if (!listed) return [];
+
+  const fixed = [];
+  for (const line of listed.trim().split('\n')) {
+    // Формат `ls-files -s`: <mode> <object> <stage>\t<path>
+    const match = line.match(/^(\d{6})\s+\S+\s+\d+\t(.+)$/);
+    if (!match) continue;
+    const [, mode, file] = match;
+
+    const abs = path.join(INSTANCE, file);
+    if (!dryRun && fs.existsSync(abs)) {
+      fs.chmodSync(abs, 0o755);
+    }
+    if (mode === '100755') continue;
+
+    fixed.push(file);
+    if (!dryRun) safeGit(['update-index', '--chmod=+x', file], INSTANCE);
+  }
+  return fixed;
 }
 
 function sameContent(a, b) {
