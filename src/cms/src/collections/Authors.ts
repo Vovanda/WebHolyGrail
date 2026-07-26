@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
+import { slugFrom } from '../lib/slug.js';
+
 /**
  * Authors — авторы статей (M:1 с Article.author).
  *
@@ -63,19 +65,7 @@ export const Authors: CollectionConfig = {
     },
   ],
   hooks: {
-    beforeChange: [
-      ({ data }) => {
-        if (!data.slug && typeof data.name === 'string') {
-          data.slug = data.name
-            .toLowerCase()
-            .replace(/[^\w\sЀ-ӿ-]/g, '')
-            .trim()
-            .replace(/\s+/g, '-')
-            .slice(0, 40);
-        }
-        return data;
-      },
-    ],
+    beforeValidate: [slugFrom('name')],
   },
   access: {
     read: () => true,

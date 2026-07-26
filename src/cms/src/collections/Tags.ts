@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
+import { slugFrom } from '../lib/slug.js';
+
 /**
  * Tags — generic тэги для Articles (M:N через Article.tags).
  *
@@ -48,19 +50,7 @@ export const Tags: CollectionConfig = {
     },
   ],
   hooks: {
-    beforeChange: [
-      ({ data }) => {
-        if (!data.slug && typeof data.label === 'string') {
-          data.slug = data.label
-            .toLowerCase()
-            .replace(/[^\w\sЀ-ӿ-]/g, '')
-            .trim()
-            .replace(/\s+/g, '-')
-            .slice(0, 40);
-        }
-        return data;
-      },
-    ],
+    beforeValidate: [slugFrom('label')],
   },
   access: {
     read: () => true,

@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
+import { slugFrom } from '../lib/slug.js';
+
 /**
  * Articles — основная сущность блога (Posts в терминологии Ghost / Substack).
  *
@@ -155,17 +157,10 @@ export const Articles: CollectionConfig = {
     },
   ],
   hooks: {
+    // Slug — beforeValidate, остальное beforeChange (см. lib/slug.ts).
+    beforeValidate: [slugFrom('title')],
     beforeChange: [
       ({ data, originalDoc }) => {
-        // Auto-slug если пуст
-        if (!data.slug && typeof data.title === 'string') {
-          data.slug = data.title
-            .toLowerCase()
-            .replace(/[^\w\sЀ-ӿ-]/g, '')
-            .trim()
-            .replace(/\s+/g, '-')
-            .slice(0, 80);
-        }
         // Auto-publishedAt при первом переходе draft → published
         if (
           data.status === 'published' &&

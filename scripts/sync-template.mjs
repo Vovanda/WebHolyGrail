@@ -155,6 +155,9 @@ const MIRROR = [
   'src/cms/src/collections/Tags.ts',
   'src/cms/src/collections/Threads.ts',
   'src/cms/src/globals/SiteSettings.ts',
+  // Generic-хелперы CMS (транслитерация slug и т.п.) — на них ссылаются
+  // коллекции из MIRROR, без них инстанс просто не соберётся.
+  'src/cms/src/lib/',
   // Админ-компоненты полей + копия палитр. Копия обязана совпадать с
   // client-версией (R3 не даёт cms импортировать из client), и разъезд этих
   // двух файлов ничем не заметен — значит ездить они должны вместе.
