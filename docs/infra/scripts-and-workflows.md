@@ -276,6 +276,7 @@ deploy.sh подтянет старые images из GHCR + переключит 
 | `The ssh-private-key argument is empty`            | vars/secrets репозитория не заведены                    | Сценарий A шаг 7, проверить `gh variable list && gh secret list`                          |
 | `deploy.sh exited with 126`                        | режим `deploy.sh` 100644 вместо 100755                  | `git update-index --chmod=+x deploy/prod/deploy.sh` + коммит; синк восстанавливает сам    |
 | `S3_BUCKET is missing a value`                     | секреты в Infisical пустые                              | Сценарий A шаг 6                                                                          |
+| `another deploy for ... is already running`        | предыдущий деплой ещё идёт (flock)                      | дождаться; параллельный blue-green небезопасен                                            |
 | GH workflow падает на `Sync site directory` step   | `/opt/sites/<slug>` не git-репо или mismatch remote     | `ssh deploy@<vps> "cd /opt/sites/<slug> && git remote -v"` или запустить bootstrap script |
 | `pre-flight ... ERROR: PRIMARY_DOMAIN env not set` | GH variable не задана                                   | Settings → variables → `PRIMARY_DOMAIN=<your-domain>`                                     |
 | `infisical login returned empty token`             | UA creds в `/etc/infisical/<slug>/` отсутствуют         | Запустить `bootstrap-site-on-vps.sh` для этого сайта                                      |

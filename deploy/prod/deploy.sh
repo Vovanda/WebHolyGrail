@@ -48,12 +48,26 @@ INFISICAL_HOST_URL="${INFISICAL_HOST_URL:-}"
 CREDS_DIR="/etc/infisical/$SITE_SLUG"
 INFISICAL_PROJECT_SLUG="${INFISICAL_PROJECT_SLUG:-holygrail-$SITE_SLUG}"
 
-for tool in curl jq; do
+for tool in curl jq flock; do
   if ! command -v "$tool" >/dev/null 2>&1; then
-    echo "ERROR: $tool not installed on this host (требуется для REST-based Infisical fetch)." >&2
+    echo "ERROR: $tool not installed on this host." >&2
     exit 1
   fi
 done
+
+# Один деплой на сайт за раз. В workflow стоит `cancel-in-progress: true`: на
+# новом пуше SSH-сессия обрывается, а процесс на VPS может разрыв пережить. Без
+# лока второй экземпляр параллельно переключает nginx и пишет ACTIVE_COLOR —
+# активным остаётся цвет, который конкурент через минуту гасит.
+LOCK_FILE="/run/lock/holygrail-$SITE_SLUG.lock"
+exec 9>"$LOCK_FILE" || {
+  echo "ERROR: cannot create lock file $LOCK_FILE." >&2
+  exit 1
+}
+if ! flock -n 9; then
+  echo "ERROR: another deploy for '$SITE_SLUG' is already running (lock: $LOCK_FILE)." >&2
+  exit 1
+fi
 if [ -z "$INFISICAL_HOST_URL" ]; then
   echo "ERROR: INFISICAL_HOST_URL env not set (e.g. https://infisical.example.com)." >&2
   exit 1
