@@ -144,12 +144,24 @@ POST /api/v1/workspace/{projectId}/environments
 
 ### Шаг 4 — seed placeholder secrets
 
-Для каждого env (dev/staging/prod) × каждого STANDARD*SECRET (PAYLOAD_SECRET / DATABASE_URI / S3*_ / NEXT*PUBLIC*_ / VK\_\*):
+Для каждого env (dev/staging/prod) × каждого STANDARD*SECRET (PAYLOAD_SECRET / DATABASE_URI / S3*_ / NEXT*PUBLIC*_ / ADMIN*INITIAL*\* / VK\_\*):
 
 ```
 POST /api/v3/secrets/raw/<KEY>
 { "workspaceId": projectId, "environment": "dev", "secretValue": "", "secretComment": "Заполни через UI или infisical secrets set" }
 ```
+
+### Шаг 4b — залить значения (`--from-env`)
+
+Placeholder'ов недостаточно: пустая строка проходит через Infisical как есть, и деплой падает на первом `${VAR:?}` в compose (`S3_BUCKET is missing a value`). Значения заливает тот же скрипт:
+
+```bash
+pnpm setup-infisical -- --site <slug> --from-env .env.production --env prod
+```
+
+Внутри — upsert: `POST /api/v3/secrets/raw/<KEY>`, при `already exists` → `PATCH` того же адреса. Пустые значения из файла пропускаются, чтобы не затирать placeholder пустотой. В конце скрипт печатает ключи, оставшиеся пустыми — иначе они находятся только в логе упавшего деплоя.
+
+Заполнять через Web UI как основной путь **нельзя**: на свежем self-host пароль superadmin существует только в bootstrap-выводе, встроенного reset без SMTP нет.
 
 ### Шаг 5 — create service identity для prod-деплоя
 

@@ -161,23 +161,53 @@ sudo chown deploy:deploy /etc/infisical/*
 
 ### 3. Заполнить prod-секреты
 
-В Infisical UI → prod environment → заполнить **real** значения:
-
-- `PAYLOAD_SECRET` — production 32-byte hex (НЕ тот что в dev)
-- `DATABASE_URI` — для prod (Postgres URL или путь к SQLite на VPS volume)
-- `S3_*` — **real** cloud bucket (Backblaze B2 / Cloudflare R2 / AWS / Yandex Cloud / VK Cloud)
-- `NEXT_PUBLIC_CMS_URL`, `NEXT_PUBLIC_SITE_URL` → prod-домены
-- `PAYLOAD_ALLOWED_ORIGINS` → CSV прод-доменов
-
-### 4. Первый деплой
-
-В GH Actions / вручную через SSH:
+Не через UI: на свежем self-host пароль superadmin есть только в bootstrap-выводе, а reset без SMTP не работает. Заливаем скриптом из файла:
 
 ```bash
-bash deploy/prod/deploy.sh <git-sha>
+pnpm setup-infisical -- --site <slug> --from-env .env.production --env prod
 ```
 
-`deploy.sh` обёрнут в `infisical run --token=$(cat /etc/infisical/...) --env=prod --` — secrets инжектятся в docker compose.
+Идемпотентно, в конце печатает ключи, оставшиеся пустыми. Обязательные (в compose объявлены через `:?`, без них стек не стартует):
+
+- `PAYLOAD_SECRET` — production 32-byte hex (НЕ тот что в dev)
+- `PAYLOAD_PUBLIC_SERVER_URL`, `NEXT_PUBLIC_SITE_URL` → prod-домены
+- `ADMIN_INITIAL_EMAIL`, `ADMIN_INITIAL_PASSWORD` — первый вход в админку
+
+Нужны приложению, но compose их не сторожит: `DATABASE_URI` (Postgres URL или путь к SQLite на volume), `S3_*` (real bucket — B2 / R2 / AWS / Yandex / VK), `NEXT_PUBLIC_CMS_URL`, `PAYLOAD_ALLOWED_ORIGINS` (CSV прод-доменов), `SITE_NAME`. Опционально: `NEXT_PUBLIC_YM_ID`.
+
+**Пустое значение ≠ отсутствующий ключ.** Infisical отдаёт пустые строки как есть, и compose падает на первом `${VAR:?}` — `S3_BUCKET is missing a value`.
+
+### 4. Vars и secrets репозитория
+
+Шаг, которого нет ни в одном инстансе по умолчанию: GitHub не копирует переменные окружения template-репо. Без них `deploy.yml` умирает за ~4 секунды на `The ssh-private-key argument is empty` — после зелёного билда, поэтому выглядит как поломка деплоя, а не конфигурации.
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/ci-<slug> -N "" -C "gh-actions@<slug>"
+ssh-copy-id -f -i ~/.ssh/ci-<slug>.pub deploy@<vps-host>
+
+gh secret   set VPS_HOST           --body "<vps-ip>"
+gh secret   set VPS_SSH_KEY        < ~/.ssh/ci-<slug>
+gh variable set VPS_USER           --body "deploy"
+gh variable set VPS_PATH           --body "/opt/sites/<slug>"
+gh variable set PUBLIC_URL         --body "https://<domain>"
+gh variable set PRIMARY_DOMAIN     --body "<domain>"
+gh variable set INFISICAL_HOST_URL --body "https://infisical.<host>"
+gh variable set PORT_BASE          --body "3020"
+
+gh variable list && gh secret list   # обе непустые
+```
+
+Ключ — отдельный на сайт, не личный ключ разработчика. `-f` у `ssh-copy-id` обязателен: иначе он проверяет вход любым ключом из `~/.ssh/config`, успешно логинится чужим и сообщает, что новый ключ уже стоит.
+
+### 5. Первый деплой
+
+```bash
+git push origin main    # deploy.yml делает всё сам
+```
+
+`deploy.sh` логинится в Infisical по UA-кредам из `/etc/infisical/<slug>/`, тянет секреты в tmpfs-файл и отдаёт его docker compose как `--env-file`.
+
+Если деплой падает с `exit 126` после успешного билда и `git pull` — у `deploy.sh` потерян executable bit (git на Windows пишет `100644`). Лечится `git update-index --chmod=+x deploy/prod/deploy.sh`; синк от 2026-07-26 и новее восстанавливает бит сам.
 
 ## Smoke-проверки
 
