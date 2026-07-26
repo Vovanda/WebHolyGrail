@@ -14,10 +14,12 @@
  *  8. Add identity к project с role
  *  9. Write `.infisical.json`
  * 10. Print Client ID + Client Secret для VPS
+ * 11. `--github` — CI-ключ, его авторизация на VPS, vars/secrets репозитория
  *
  * Запуск:
  *   pnpm setup-infisical -- --site <slug>
  *   pnpm setup-infisical -- --site <slug> --from-env .env.production --env prod
+ *   pnpm setup-infisical -- --site <slug> --github --vps-host <ip> --domain <host> --port-base 3020
  *
  * Env (обязательно):
  *   INFISICAL_HOST_URL              — URL self-host instance (https://infisical.example.com)
@@ -31,7 +33,9 @@
  *   - `docs/whg/37-scaffolding.md` — human-readable scaffold guide
  */
 
+import { execFileSync } from 'node:child_process';
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -41,6 +45,13 @@ interface Args {
   type: string;
   fromEnv?: string;
   onlyEnv: string;
+  github: boolean;
+  domain?: string;
+  vpsHost?: string;
+  vpsUser: string;
+  portBase: string;
+  repo?: string;
+  sshKey?: string;
 }
 
 interface AdminEnv {
@@ -93,6 +104,13 @@ function parseArguments(): Args {
       type: { type: 'string', default: 'minimal' },
       'from-env': { type: 'string' },
       env: { type: 'string', default: 'prod' },
+      github: { type: 'boolean', default: false },
+      domain: { type: 'string' },
+      'vps-host': { type: 'string' },
+      'vps-user': { type: 'string', default: 'deploy' },
+      'port-base': { type: 'string', default: '3000' },
+      repo: { type: 'string' },
+      'ssh-key': { type: 'string' },
       help: { type: 'boolean', short: 'h' },
     },
     allowPositionals: false,
@@ -105,8 +123,16 @@ function parseArguments(): Args {
     console.error('  --site <slug>      site identifier (e.g. "my-site")');
     console.error('  --type <preset>    project type preset (default: minimal)');
     console.error('  --out-dir <path>   where to write .infisical.json (default: .)');
-    console.error('  --from-env <file>  залить значения секретов из .env-файла');
-    console.error('  --env <slug>       куда заливать --from-env (default: prod)');
+    console.error('  --from-env <file>   fill secret values from an .env file');
+    console.error('  --env <slug>        target environment for --from-env (default: prod)');
+    console.error('');
+    console.error('GitHub deploy (--github, requires gh CLI):');
+    console.error('  --vps-host <ip>     production VPS — required with --github');
+    console.error('  --domain <host>     production domain — required with --github');
+    console.error('  --vps-user <user>   ssh user on the VPS (default: deploy)');
+    console.error('  --port-base <n>     3000 / 3020 / 3040 — one slot per site (default: 3000)');
+    console.error('  --repo <owner/repo> repository (default: origin of the current folder)');
+    console.error('  --ssh-key <path>    existing CI key instead of generating one');
     console.error('');
     console.error('Required env:');
     console.error('  INFISICAL_HOST_URL              self-host URL');
@@ -116,12 +142,30 @@ function parseArguments(): Args {
     process.exit(values.help ? 0 : 1);
   }
 
+  if (values.github) {
+    const missing = [
+      ...(values['vps-host'] ? [] : ['--vps-host']),
+      ...(values.domain ? [] : ['--domain']),
+    ];
+    if (missing.length > 0) {
+      console.error(`ERROR: --github requires ${missing.join(' and ')}`);
+      process.exit(1);
+    }
+  }
+
   return {
     site: values.site as string,
     outDir: resolve(values['out-dir'] ?? '.'),
     type: values.type as string,
     fromEnv: values['from-env'] ? resolve(values['from-env']) : undefined,
     onlyEnv: values.env as string,
+    github: values.github === true,
+    domain: values.domain,
+    vpsHost: values['vps-host'],
+    vpsUser: values['vps-user'] as string,
+    portBase: values['port-base'] as string,
+    repo: values.repo,
+    sshKey: values['ssh-key'] ? resolve(values['ssh-key']) : undefined,
   };
 }
 
@@ -132,7 +176,7 @@ function parseArguments(): Args {
  */
 function parseEnvFile(path: string): Map<string, string> {
   if (!existsSync(path)) {
-    console.error(`ERROR: --from-env файл не найден: ${path}`);
+    console.error(`ERROR: --from-env file not found: ${path}`);
     process.exit(1);
   }
   const out = new Map<string, string>();
@@ -150,6 +194,95 @@ function parseEnvFile(path: string): Map<string, string> {
   return out;
 }
 
+function run(cmd: string, argv: string[], input?: string): string {
+  return execFileSync(cmd, argv, {
+    encoding: 'utf8',
+    ...(input === undefined ? { stdio: ['ignore', 'pipe', 'pipe'] as const } : { input }),
+  }).trim();
+}
+
+/** Одинарные кавычки для remote shell: значение уезжает в ssh как есть. */
+function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", `'\\''`)}'`;
+}
+
+/** Ключ отдельный на сайт: отзывается независимо от личного ключа разработчика. */
+function ensureCiKey(args: Args): { privatePath: string; publicKey: string } {
+  const privatePath = args.sshKey ?? join(homedir(), '.ssh', `ci-${args.site}`);
+  const publicPath = `${privatePath}.pub`;
+
+  if (existsSync(privatePath)) {
+    console.log(`  · key already exists: ${privatePath}`);
+  } else {
+    mkdirSync(dirname(privatePath), { recursive: true });
+    run('ssh-keygen', [
+      '-t',
+      'ed25519',
+      '-f',
+      privatePath,
+      '-N',
+      '',
+      '-C',
+      `gh-actions@${args.site}`,
+      '-q',
+    ]);
+    console.log(`  ✓ key created: ${privatePath}`);
+  }
+
+  if (!existsSync(publicPath)) {
+    throw new Error(`public half of the key is missing: ${publicPath}`);
+  }
+  return { privatePath, publicKey: readFileSync(publicPath, 'utf8').trim() };
+}
+
+/**
+ * Кладёт публичный ключ в authorized_keys. Не через `ssh-copy-id`: он есть не на
+ * каждой платформе и проверяет доступ любым ключом из `~/.ssh/config` — успешно
+ * логинится чужим и пропускает установку нового.
+ */
+function authorizeKeyOnVps(args: Args, publicKey: string): void {
+  const target = `${args.vpsUser}@${args.vpsHost}`;
+  const quoted = shellQuote(publicKey);
+  const remote = [
+    'mkdir -p ~/.ssh',
+    'chmod 700 ~/.ssh',
+    'touch ~/.ssh/authorized_keys',
+    'chmod 600 ~/.ssh/authorized_keys',
+    `grep -qxF ${quoted} ~/.ssh/authorized_keys || echo ${quoted} >> ~/.ssh/authorized_keys`,
+    'grep -c . ~/.ssh/authorized_keys',
+  ].join(' && ');
+
+  const keyCount = run('ssh', ['-o', 'ConnectTimeout=20', '-o', 'BatchMode=yes', target, remote]);
+  console.log(`  ✓ authorized on ${target} (keys in authorized_keys: ${keyCount})`);
+}
+
+function githubDeployConfig(args: Args, infisicalHostUrl: string): void {
+  // Наличие vps-host и domain уже проверено в parseArguments.
+  const repo =
+    args.repo ?? run('gh', ['repo', 'view', '--json', 'nameWithOwner', '-q', '.nameWithOwner']);
+  console.log(`→ github deploy config for ${repo}`);
+
+  const { privatePath, publicKey } = ensureCiKey(args);
+  authorizeKeyOnVps(args, publicKey);
+
+  run('gh', ['secret', 'set', 'VPS_HOST', '--repo', repo, '--body', args.vpsHost!]);
+  run('gh', ['secret', 'set', 'VPS_SSH_KEY', '--repo', repo], readFileSync(privatePath, 'utf8'));
+  console.log('  ✓ secrets: VPS_HOST, VPS_SSH_KEY');
+
+  const vars: Array<[string, string]> = [
+    ['VPS_USER', args.vpsUser],
+    ['VPS_PATH', `/opt/sites/${args.site}`],
+    ['PUBLIC_URL', `https://${args.domain}`],
+    ['PRIMARY_DOMAIN', args.domain!],
+    ['INFISICAL_HOST_URL', infisicalHostUrl],
+    ['PORT_BASE', args.portBase],
+  ];
+  for (const [name, value] of vars) {
+    run('gh', ['variable', 'set', name, '--repo', repo, '--body', value]);
+  }
+  console.log(`  ✓ variables: ${vars.map(([n]) => n).join(', ')}`);
+}
+
 function readAdminEnv(): AdminEnv {
   const hostUrl = process.env['INFISICAL_HOST_URL'];
   const orgId = process.env['INFISICAL_ADMIN_ORG_ID'];
@@ -162,7 +295,7 @@ function readAdminEnv(): AdminEnv {
   if (!orgId) missing.push('INFISICAL_ADMIN_ORG_ID');
   if (!token && !(clientId && clientSecret)) {
     missing.push(
-      'INFISICAL_ADMIN_TOKEN (или INFISICAL_ADMIN_CLIENT_ID + INFISICAL_ADMIN_CLIENT_SECRET)',
+      'INFISICAL_ADMIN_TOKEN (or INFISICAL_ADMIN_CLIENT_ID + INFISICAL_ADMIN_CLIENT_SECRET)',
     );
   }
 
@@ -406,7 +539,7 @@ async function main(): Promise<void> {
   const args = parseArguments();
   const env = readAdminEnv();
 
-  console.log(`\n  Holy Grail — Infisical setup для "${args.site}" (type: ${args.type})`);
+  console.log(`\n  Holy Grail — Infisical setup for "${args.site}" (type: ${args.type})`);
   console.log(`  Host: ${env.hostUrl}\n`);
 
   const inf = new Infisical(env.hostUrl);
@@ -450,14 +583,14 @@ async function main(): Promise<void> {
           e.slug,
           key,
           '',
-          'Заполни через UI или `infisical secrets set`',
+          'Fill via setup-infisical --from-env, UI, or `infisical secrets set`',
         );
       } catch {
         // existing secret or other — skip silently
       }
     }
   }
-  console.log('  ✓ placeholders разложены');
+  console.log('  ✓ placeholders seeded');
 
   // Placeholder'ов мало: пока значения пустые, `deploy.sh` падает на первом же
   // обязательном ключе (`S3_BUCKET is missing a value`), а Web UI для ручного
@@ -467,8 +600,8 @@ async function main(): Promise<void> {
     const filled = [...parsed].filter(([, v]) => v !== '');
     const skipped = parsed.size - filled.length;
     console.log(
-      `→ fillSecrets(${basename(args.fromEnv)} → env "${args.onlyEnv}"): ${filled.length} значений` +
-        (skipped > 0 ? `, ${skipped} пустых пропущено` : ''),
+      `→ fillSecrets(${basename(args.fromEnv)} → env "${args.onlyEnv}"): ${filled.length} values` +
+        (skipped > 0 ? `, ${skipped} empty skipped` : ''),
     );
 
     let created = 0;
@@ -481,7 +614,7 @@ async function main(): Promise<void> {
           args.onlyEnv,
           key,
           value,
-          `залито из ${basename(args.fromEnv)}`,
+          `filled from ${basename(args.fromEnv)}`,
         );
         if (how === 'created') created++;
         else updated++;
@@ -500,9 +633,9 @@ async function main(): Promise<void> {
       .map(([k]) => k)
       .sort();
     if (stillEmpty.length > 0) {
-      console.warn(`  ⚠ пустыми остались (${stillEmpty.length}): ${stillEmpty.join(', ')}`);
+      console.warn(`  ⚠ still empty (${stillEmpty.length}): ${stillEmpty.join(', ')}`);
     } else {
-      console.log(`  ✓ в env "${args.onlyEnv}" пустых секретов не осталось`);
+      console.log(`  ✓ no empty secrets left in "${args.onlyEnv}"`);
     }
   }
 
@@ -514,7 +647,7 @@ async function main(): Promise<void> {
 
   if (identityId) {
     console.log(
-      `  · identity exists ${identityId} (skip create + UA setup; rotate client-secret вручную если нужно)`,
+      `  · identity exists ${identityId} (skip create + UA setup; rotate client-secret manually if needed)`,
     );
   } else {
     identityId = await inf.createIdentity(identityName, env.orgId);
@@ -526,7 +659,7 @@ async function main(): Promise<void> {
 
     console.log('→ createClientSecret');
     prodClientSecret = await inf.createClientSecret(identityId, `${args.site} prod-deploy`);
-    console.log('  ✓ clientSecret получен');
+    console.log('  ✓ clientSecret received');
 
     console.log('→ addIdentityToProject (attach as no-access, then promote)');
     try {
@@ -534,7 +667,7 @@ async function main(): Promise<void> {
       console.log('  ✓ identity attached');
     } catch (err) {
       console.warn(`  ⚠ addIdentityToProject failed: ${(err as Error).message.split('\n')[0]}`);
-      console.warn('    → fallback: добавь identity к project вручную через UI:');
+      console.warn('    → fallback: add the identity to the project manually via UI:');
       console.warn(
         `    ${env.hostUrl}/project/${projectId}/access-management → Add Machine Identity → ${identityName}`,
       );
@@ -546,7 +679,7 @@ async function main(): Promise<void> {
       console.log('  ✓ role: viewer');
     } catch (err) {
       console.warn(`  ⚠ promoteIdentityRole failed: ${(err as Error).message.split('\n')[0]}`);
-      console.warn('    → fallback: PATCH role вручную:');
+      console.warn('    → fallback: PATCH the role manually:');
       console.warn(
         `    curl -X PATCH "${env.hostUrl}/api/v2/workspace/${projectId}/identity-memberships/${identityId}" -d '{"roles":[{"role":"viewer"}]}'`,
       );
@@ -562,14 +695,20 @@ async function main(): Promise<void> {
   writeFileSync(outPath, JSON.stringify(infisicalJson, null, 2) + '\n');
   console.log(`  ✓ .infisical.json → ${outPath}`);
 
+  // Без этого блока автодеплой не поднимется: GitHub не копирует переменные
+  // окружения template-репо, у свежего инстанса их нет.
+  if (args.github) {
+    githubDeployConfig(args, env.hostUrl);
+  }
+
   console.log('\n──────────────────────────────────────────────');
   if (prodClientId && prodClientSecret) {
     console.log('PROD MACHINE IDENTITY CREATED:');
     console.log(`  Client ID:     ${prodClientId}`);
     console.log(`  Client Secret: ${prodClientSecret}`);
-    console.log('  (Client Secret показывается ОДИН раз — сохрани сейчас!)');
+    console.log('  (Client Secret is shown ONCE — save it now!)');
     console.log('');
-    console.log('Положи на VPS:');
+    console.log('Put on the VPS:');
     console.log(`  sudo install -d -m 700 -o deploy -g deploy /etc/infisical/${args.site}`);
     console.log(
       `  echo "${prodClientId}"     | sudo tee /etc/infisical/${args.site}/client-id     > /dev/null`,
@@ -582,19 +721,28 @@ async function main(): Promise<void> {
   } else {
     console.log(`PROD MACHINE IDENTITY EXISTS (${identityId})`);
     console.log(
-      '  Client Secret НЕ повторяется — используй существующий из /etc/infisical/' +
+      '  Client Secret is not shown again — use the existing one from /etc/infisical/' +
         args.site +
         '/',
     );
-    console.log('  Если потерян: rotate через UI или удалить identity и перезапустить scaffold.');
+    console.log('  If lost: rotate via UI, or delete the identity and re-run the scaffold.');
   }
   console.log('');
-  console.log('Дальше:');
-  console.log('  1. Заполни секреты dev env: через UI или `infisical secrets set --env=dev`');
-  console.log('  2. ./dev-setup.sh   (поднимает MinIO + локальный стек)');
+  if (!args.github) {
+    console.log('Production deploy needs repo vars/secrets — re-run with:');
+    console.log(
+      `  pnpm setup-infisical -- --site ${args.site} --github --vps-host <ip> --domain <host> --port-base <n>`,
+    );
+    console.log('');
+  }
+  console.log('Next:');
+  console.log(
+    '  1. Fill dev secrets: `./dev-setup.sh` does it, or `infisical secrets set --env=dev`',
+  );
+  console.log('  2. ./dev-setup.sh   (MinIO + local stack)');
   console.log('  3. ./dev.sh         (infisical run --env=dev --recursive -- pnpm dev)');
   if (args.type === 'minimal') {
-    console.log('  4. После того как CMS поднялась: pnpm seed:minimal');
+    console.log('  4. Once the CMS is up: pnpm seed:minimal');
   }
   console.log('──────────────────────────────────────────────\n');
 }

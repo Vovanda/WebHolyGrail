@@ -256,7 +256,7 @@ for (const rel of OVERLAY) syncPath(rel, false);
 // список: любой скрипт, который приезжает синком, должен быть исполняемым.
 const fixedModes = restoreExecutableBits();
 if (fixedModes.length > 0) {
-  console.log(`\n→ Executable bit (${fixedModes.length}): ${fixedModes.join(', ')}`);
+  console.log(`\n→ Executable bit restored (${fixedModes.length}): ${fixedModes.join(', ')}`);
 }
 
 if (!dryRun) {
