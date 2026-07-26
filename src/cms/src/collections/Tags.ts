@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
-import { slugFrom } from '../lib/slug.js';
+import { slugFrom } from '../lib/slug';
 
 /**
  * Tags — generic тэги для Articles (M:N через Article.tags).

@@ -1,12 +1,21 @@
 import Link from 'next/link';
 
 /**
- * Default 404 — рендерится внутри RootLayout (с Header/Footer), не как
- * standalone Next.js default 404-boundary.
+ * 404 сайта.
+ *
+ * @remarks
+ * Next 15.5.19 рендерит not-found **вне RootLayout** — в аварийном скелете
+ * `<html id="__next_error__">`, куда попадает только клиентский рендер. Из-за
+ * этого на 404 не выставляется `data-theme` и тёмный сайт показывает светлую
+ * страницу (#66). Inline-скрипт темы тут не спасает: React вставляет его через
+ * innerHTML, а такие теги браузер не исполняет.
+ *
+ * Разметку держим на токенах, чтобы палитра (она приезжает как `<style>` и
+ * применяется) отработала хотя бы частично. Полный фикс — в #66.
  */
 export default function NotFound() {
   return (
-    <section className="py-24 md:py-32 text-center px-4">
+    <section className="bg-page-bg text-ink min-h-screen py-24 md:py-32 text-center px-4">
       <div className="mx-auto max-w-content">
         <div className="font-display text-7xl md:text-8xl font-semibold text-accent">404</div>
         <h1 className="mt-6 font-display text-h3 md:text-h2 font-semibold text-ink">

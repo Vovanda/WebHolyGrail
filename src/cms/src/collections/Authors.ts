@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
-import { slugFrom } from '../lib/slug.js';
+import { slugFrom } from '../lib/slug';
 
 /**
  * Authors — авторы статей (M:1 с Article.author).

@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
-import { slugFrom } from '../lib/slug.js';
+import { slugFrom } from '../lib/slug';
 
 /**
  * Articles — основная сущность блога (Posts в терминологии Ghost / Substack).

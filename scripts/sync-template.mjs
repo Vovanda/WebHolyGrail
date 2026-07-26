@@ -140,6 +140,7 @@ const MIRROR = [
   // маршруты инстанса живут отдельными папками и его не трогают. Инстансовый
   // layout.tsx сюда не входит — там шрифты и брендинг конкретного сайта.
   'src/client/src/app/(site)/[[...slug]]/page.tsx',
+  'src/client/src/app/not-found.tsx',
 
   // CMS — generic collections + блоки
   'src/cms/src/blocks/',

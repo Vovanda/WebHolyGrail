@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
-import { slugFrom } from '../lib/slug.js';
+import { slugFrom } from '../lib/slug';
 
 /**
  * Threads — серия связанных Articles (one-to-many через Article.thread).

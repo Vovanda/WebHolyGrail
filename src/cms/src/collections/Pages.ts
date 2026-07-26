@@ -1,7 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
 import { PAGE_BLOCKS } from '../blocks';
-import { slugFrom } from '../lib/slug.js';
+import { slugFrom } from '../lib/slug';
 
 /**
  * Pages — страницы сайта из блоков.
