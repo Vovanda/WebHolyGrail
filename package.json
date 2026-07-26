@@ -26,6 +26,7 @@
     "setup-infisical": "tsx scripts/setup-infisical.ts",
     "sync-infisical": "tsx scripts/sync-infisical.ts",
     "seed:minimal": "infisical run --env=dev -- pnpm --filter cms run seed:minimal",
+    "seed:whg-landing": "infisical run --env=dev -- pnpm --filter cms run seed:whg-landing",
     "prepare": "husky"
   },
   "devDependencies": {

@@ -1,8 +1,12 @@
 #!/usr/bin/env tsx
 /**
- * Seed: minimal — стартовый контент (home Page + Media + SiteSettings).
+ * Seed: minimal — нейтральный старт нового сайта (initial admin + пустая home).
  *
  * @remarks
+ * **Ничего от движка тут нет** (#72): ни логотипа WHG, ни его меню, ни лендинга,
+ * ни FAQ про движок. Всё это переехало в `seed:whg-landing`, который гоняется
+ * только на самом whg.sawking.tech.
+ *
  * **Admin creation — через UI**, не через seed. Когда нет ни одного пользователя
  * с ролью admin, Payload автоматически показывает на /admin first-user wizard
  * (email + password + подтверждение). Это правильный flow для template:
@@ -19,7 +23,7 @@
  *                                   получит first-user wizard в /admin)
  *   ADMIN_INITIAL_NAME            (default: Admin)
  *   ADMIN_FORCE_PASSWORD=1        (force-update password существующего admin)
- *   SEED_FORCE_HOME=1             (force-update home page даже если контент есть)
+ *   SITE_NAME                     (имя сайта; fallback — SITE_SLUG)
  *
  * Deprecated fallback (для локального dev — читаются если ADMIN_INITIAL_* пусты):
  *   SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD, SEED_ADMIN_NAME, SEED_FORCE_ADMIN_PASSWORD
@@ -38,9 +42,6 @@ import config from '../../payload.config.js';
 
 import { createInitialAdmin } from './createInitialAdmin.js';
 import { createHomePage } from './createHomePage.js';
-import { createFaqGroups } from './createFaqGroups.js';
-import { createFaqPage } from './createFaqPage.js';
-import { addFaqToMainNav } from './addFaqToMainNav.js';
 
 async function main(): Promise<void> {
   const email =
@@ -74,28 +75,6 @@ async function main(): Promise<void> {
     home.created
       ? `  ✓ home page created (id ${home.id})`
       : `  · home page already exists (id ${home.id})`,
-  );
-
-  console.log('→ createFaqGroups()');
-  const groups = await createFaqGroups(payload);
-  console.log(
-    `  ✓ faq groups: created=${groups.created}, updated=${groups.updated}, skipped=${groups.skipped}`,
-  );
-
-  console.log('→ createFaqPage(slug=faq)');
-  const faqPage = await createFaqPage(payload, groups.ids);
-  console.log(
-    faqPage.created
-      ? `  ✓ /faq created/updated (id ${faqPage.id})`
-      : `  · /faq already populated (id ${faqPage.id})`,
-  );
-
-  console.log('→ addFaqToMainNav()');
-  const nav = await addFaqToMainNav(payload);
-  console.log(
-    nav.added
-      ? `  ✓ /faq added to mainNav (total: ${nav.total})`
-      : `  · /faq already in mainNav (total: ${nav.total})`,
   );
 
   console.log('\nDone. CMS: http://localhost:3001/admin');

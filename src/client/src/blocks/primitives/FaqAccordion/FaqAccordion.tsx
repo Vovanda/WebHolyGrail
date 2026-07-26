@@ -41,7 +41,7 @@ export async function FaqAccordion({
   if (groups.length === 0) {
     if (process.env.NODE_ENV === 'development') {
       console.warn(
-        '[FaqAccordion] нет опубликованных групп FAQ (pnpm seed:faq или /admin/collections/faq-groups)',
+        '[FaqAccordion] нет опубликованных групп FAQ (заведи их в /admin/collections/faq-groups)',
       );
     }
     return null;

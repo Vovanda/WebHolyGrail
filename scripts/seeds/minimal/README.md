@@ -6,9 +6,11 @@
 
 - **Initial admin user** — `Users.role=admin`, email из `ADMIN_INITIAL_EMAIL`, пароль из `ADMIN_INITIAL_PASSWORD`. Если password не задан — admin не создаётся, юзер получит first-user wizard на `/admin`.
 - **Home page** — пустая `Pages` запись, `slug=home`, `_status=published`, без блоков.
-- **FAQ** — стартовые группы + `/faq` страница + пункт в mainNav.
+- **Имя сайта** — `SiteSettings.siteName` из `SITE_NAME` (fallback `SITE_SLUG`), и только если оно ещё не заполнено.
 
-Идемпотентно: повторный запуск не дублирует, существующие записи не трогает. В `deploy/prod/deploy.sh` запускается автоматически после успешных миграций.
+Ничего от движка тут нет (#72): ни логотипа WHG, ни его меню, ни лендинга, ни FAQ про движок — всё это в отдельном пресете `whg-landing`, который гоняется только на самом whg.sawking.tech.
+
+Идемпотентно: повторный запуск не дублирует, существующие записи не трогает. В `deploy/prod/deploy.sh` запускается автоматически после успешных миграций (пресет выбирается через `SEED_PRESET`, по умолчанию `minimal`).
 
 ## Запуск
 
@@ -16,6 +18,7 @@
 # из корня репо
 ADMIN_INITIAL_EMAIL=admin@example.com \
 ADMIN_INITIAL_PASSWORD="$(openssl rand -hex 16)" \
+SITE_NAME="Мой сайт" \
 pnpm seed:minimal
 ```
 
@@ -32,3 +35,4 @@ Legacy env `SEED_ADMIN_EMAIL/PASSWORD/NAME` + `SEED_FORCE_ADMIN_PASSWORD` — ч
 ## Другие project-types
 
 `business-card`, `blog`, `portal` — placeholder'ы, см. `architecture_project_type_presets` в memory.
+Витрина самого движка — [`../whg-landing/`](../whg-landing/README.md), не для инстансов.

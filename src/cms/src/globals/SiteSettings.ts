@@ -9,6 +9,13 @@ import type { GlobalConfig } from 'payload';
  *
  * Соответствие contracts: `SiteSettings` / `ContactsInfo` / `SocialLink`.
  */
+/**
+ * Дефолт имени сайта — нейтральный: схема generic и уезжает во все инстансы,
+ * так что бренда движка тут быть не должно (#72). Реальное имя ставит
+ * `seed:minimal` из `SITE_NAME`, дальше правится из админки.
+ */
+export const DEFAULT_SITE_NAME = 'Новый сайт';
+
 export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
   label: 'Настройки сайта',
@@ -21,7 +28,7 @@ export const SiteSettings: GlobalConfig = {
       label: 'Имя сайта',
       type: 'text',
       required: true,
-      defaultValue: 'Web Holy Grail',
+      defaultValue: DEFAULT_SITE_NAME,
     },
     {
       name: 'logo',
