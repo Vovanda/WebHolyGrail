@@ -32,6 +32,7 @@ const config: Config = {
         accent: 'var(--color-accent)',
         'accent-hover': 'var(--color-accent-hover)',
         'accent-soft': 'var(--color-accent-soft)',
+        'accent-fg': 'var(--color-accent-fg)',
 
         success: 'var(--color-success)',
         'success-soft': 'var(--color-success-soft)',

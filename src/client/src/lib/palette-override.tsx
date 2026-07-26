@@ -1,5 +1,6 @@
 import type { ThemeConfig } from 'contracts';
 
+import { readableTextOn } from './contrast';
 import { findPreset, type PaletteColors } from './palette-presets';
 
 /**
@@ -54,6 +55,9 @@ function buildVars(p: PaletteColors): string {
   if (p.primary) {
     lines.push(`--color-accent: ${p.primary};`);
     lines.push(`--color-selection-bg: ${p.primary};`);
+    // Текст на кнопках считаем от самого акцента: на золотой палитре белая
+    // надпись не читается, на синей — не читается тёмная (#64).
+    lines.push(`--color-accent-fg: ${readableTextOn(p.primary)};`);
   }
   if (p.primaryHover) lines.push(`--color-accent-hover: ${p.primaryHover};`);
   if (p.foreground) lines.push(`--color-ink: ${p.foreground};`);

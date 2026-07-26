@@ -170,7 +170,7 @@ function CtaButton({
     'inline-flex items-center gap-2 px-5 py-2.5 rounded-md text-sm font-medium transition-colors whitespace-nowrap';
   const styles =
     variant === 'primary'
-      ? 'bg-accent text-white hover:bg-accent-hover shadow-sm'
+      ? 'bg-accent text-accent-fg hover:bg-accent-hover shadow-sm'
       : 'border border-border bg-bg text-ink hover:bg-surface';
   return (
     <Link

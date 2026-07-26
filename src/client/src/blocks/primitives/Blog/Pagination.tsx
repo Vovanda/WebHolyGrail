@@ -48,7 +48,7 @@ export function Pagination({ currentPage, totalPages, hrefBuilder, className }: 
             className={cn(
               'min-w-[36px] px-2 py-1.5 rounded-md text-sm font-semibold text-center',
               p === currentPage
-                ? 'bg-accent text-paper'
+                ? 'bg-accent text-accent-fg'
                 : 'bg-surface hover:bg-surface-hover text-ink',
             )}
           >

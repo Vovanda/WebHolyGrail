@@ -15,7 +15,7 @@ export default function NotFound() {
         <p className="mt-4 text-muted">Возможно, ссылка устарела или адрес введён с опечаткой.</p>
         <Link
           href="/"
-          className="mt-8 inline-flex items-center px-5 py-2.5 rounded-md bg-accent text-white text-sm font-medium hover:bg-accent-hover transition-colors"
+          className="mt-8 inline-flex items-center px-5 py-2.5 rounded-md bg-accent text-accent-fg text-sm font-medium hover:bg-accent-hover transition-colors"
         >
           На главную
         </Link>

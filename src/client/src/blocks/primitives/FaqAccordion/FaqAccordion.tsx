@@ -131,7 +131,7 @@ export async function FaqAccordion({
                     className={cn(
                       'inline-flex items-center justify-center shrink-0',
                       'w-7 h-7 rounded-full text-[18px] font-bold leading-none',
-                      'bg-accent text-paper',
+                      'bg-accent text-accent-fg',
                       'group-open:hidden',
                     )}
                   >
@@ -167,11 +167,12 @@ export async function FaqAccordion({
                 rel="noopener"
                 className={cn(
                   'inline-flex items-center gap-2 min-h-[46px] px-6 py-3',
-                  // VK-link → синий бренд VK, иначе primary accent.
+                  // VK-link → синий бренд VK (фиксированный, текст всегда
+                  // светлый), иначе primary accent с вычисленным контрастом.
                   isVkUrl(cta.linkHref)
-                    ? 'bg-vk hover:bg-vk-hover'
-                    : 'bg-accent hover:bg-accent-hover',
-                  'text-paper rounded-full font-bold text-[15px] no-underline',
+                    ? 'bg-vk hover:bg-vk-hover text-paper'
+                    : 'bg-accent hover:bg-accent-hover text-accent-fg',
+                  'rounded-full font-bold text-[15px] no-underline',
                   'transition-colors duration-150',
                 )}
               >

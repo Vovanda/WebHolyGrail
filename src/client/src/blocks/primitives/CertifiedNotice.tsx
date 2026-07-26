@@ -77,7 +77,7 @@ export function CertifiedNotice({
                       aria-hidden
                       className={cn(
                         'flex items-center justify-center shrink-0',
-                        'h-5 w-5 rounded-full bg-accent/90 text-bg text-[11px] font-bold mt-0.5',
+                        'h-5 w-5 rounded-full bg-accent/90 text-accent-fg text-[11px] font-bold mt-0.5',
                       )}
                     >
                       ✓

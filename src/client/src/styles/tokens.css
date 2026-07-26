@@ -26,6 +26,10 @@
   --color-accent: #2563eb;
   --color-accent-hover: #1d4ed8;
   --color-accent-soft: #dbeafe; /* очень бледный для бейджей/hover-state'ов */
+  /* Текст поверх accent. Палитру задают в админке, и на светлом акценте
+   * (золото, жёлтый) белый текст не читается — значение пересчитывается по
+   * контрасту в palette-override. */
+  --color-accent-fg: #f8fafc;
 
   /* Semantic: success / danger. Используются в comparison + бейджах. */
   --color-success: #16a34a;
@@ -126,6 +130,8 @@
   --color-accent: #3b82f6;
   --color-accent-hover: #60a5fa;
   --color-accent-soft: #1e3a8a; /* deep navy — для soft-backgrounds в dark */
+  /* Светлее accent, чем в light-теме, — поверх него читается тёмный текст. */
+  --color-accent-fg: #0b1120;
 
   --color-success: #22c55e;
   --color-success-soft: #14532d;

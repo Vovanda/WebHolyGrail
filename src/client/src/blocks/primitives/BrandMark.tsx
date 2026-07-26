@@ -47,7 +47,7 @@ export function BrandMark({
       aria-label={siteName}
       className={cn(
         'inline-flex shrink-0 items-center justify-center rounded-md',
-        'bg-accent text-white font-display font-bold tracking-tight',
+        'bg-accent text-accent-fg font-display font-bold tracking-tight',
         className,
       )}
       style={{ width: size, height: size, fontSize, lineHeight: 1 }}

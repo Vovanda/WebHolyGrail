@@ -28,7 +28,7 @@ export function FaqToggleAllButtons() {
         onClick={() => toggleAll(true)}
         className={cn(
           'inline-flex items-center min-h-[36px] px-[18px] rounded-full',
-          'bg-accent text-paper border-0 font-bold text-[13.5px]',
+          'bg-accent text-accent-fg border-0 font-bold text-[13.5px]',
           'cursor-pointer transition-colors duration-150 hover:bg-accent-hover',
         )}
       >
