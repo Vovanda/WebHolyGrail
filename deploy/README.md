@@ -13,4 +13,4 @@
 
 Регулярный деплой — это `git push origin main`, всё остальное делает [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml): build → GHCR → ssh → `prod/deploy.sh` → переключение nginx.
 
-Первый деплой нового инстанса требует двух шагов вручную (их не делает ни шаблон, ни workflow) — значения секретов в Infisical и vars/secrets репозитория. Оба расписаны в [«Сценарий A»](../docs/infra/scripts-and-workflows.md#сценарий-a-новый-holy-grail-инстанс-с-нуля).
+Для нового инстанса перед первым пушем — значения секретов в Infisical и vars/secrets репозитория: [prod/README.md](prod/README.md).

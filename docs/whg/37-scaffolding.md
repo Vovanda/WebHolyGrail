@@ -120,13 +120,13 @@ You don't have to set them by hand. If you want different values — edit them i
 
 ## Secrets for prod
 
-Unlike dev, **nothing fills prod for you**. The scaffold seeds empty placeholders, and an empty value is not a missing key — `deploy.sh` fetches all of them and then `compose` stops at the first required one (`S3_BUCKET is missing a value`). Fill them in one run:
+Unlike dev, nothing fills prod for you. Fill it in one run:
 
 ```bash
 pnpm setup-infisical -- --site <slug> --from-env .env.production --env prod
 ```
 
-The script upserts every non-empty `KEY=VALUE` from the file and prints which keys are still empty. Required by `compose.bluegreen.yml` (declared with `:?`, so the stack refuses to start without them):
+The script upserts every non-empty `KEY=VALUE` and prints which keys are still empty. Required by `compose.bluegreen.yml` — the stack refuses to start without them:
 
 | Key                         | Note                                                           |
 | --------------------------- | -------------------------------------------------------------- |
@@ -136,9 +136,9 @@ The script upserts every non-empty `KEY=VALUE` from the file and prints which ke
 | `ADMIN_INITIAL_EMAIL`       | first admin login                                              |
 | `ADMIN_INITIAL_PASSWORD`    | first admin login                                              |
 
-The rest (`DATABASE_URI`, `S3_*`, `SITE_NAME`, `NEXT_PUBLIC_CMS_URL`) is not gated by compose but the app needs it. `NEXT_PUBLIC_YM_ID` is optional — leaving it empty is fine.
+The rest (`DATABASE_URI`, `S3_*`, `SITE_NAME`, `NEXT_PUBLIC_CMS_URL`) the app needs but compose doesn't gate. `NEXT_PUBLIC_YM_ID` is optional.
 
-Don't rely on filling these through the Web UI: on a fresh self-host the superadmin password exists only in the bootstrap output, and Infisical has no built-in reset.
+Don't count on the Web UI: on a fresh self-host the superadmin password exists only in the bootstrap output, and there is no built-in reset.
 
 ## Storage: S3 only, no local-disk fallback
 
@@ -196,8 +196,8 @@ Quick summary:
 
 - Push instance to GitHub.
 - VPS — install Docker + Infisical CLI (user-space binary, see prereqs above) + `/etc/infisical/<slug>/{client-id,client-secret,project-id}` (chmod 600 deploy:deploy). **Three files**, not two — without `project-id`, `infisical run --token=...` fails with `Project ID is required when using machine identity`.
-- Fill prod secrets — see [Secrets for prod](#secrets-for-prod) above. Empty is not missing: Infisical passes empty strings through and compose dies on the first `${VAR:?required}`.
-- **Repository vars and secrets — the step everyone misses.** `deploy.yml` ships with the template, but GitHub does not copy environment variables of a template repo. A fresh instance has none, so the workflow dies in ~4 seconds on `The ssh-private-key argument is empty` — after a green build, which makes it look like a deploy problem rather than a config one.
+- Fill prod secrets — see [Secrets for prod](#secrets-for-prod) above.
+- Repository vars and secrets — GitHub does not copy environment variables of a template repo, so a fresh instance has none:
 
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/ci-<slug> -N "" -C "gh-actions@<slug>"
@@ -215,9 +215,9 @@ gh variable set PORT_BASE          --body "3020"    # 3000 / 3020 / 3040 — one
 gh variable list && gh secret list   # both must be non-empty
 ```
 
-Use a per-site CI key, not your personal one. `ssh-copy-id` needs `-f`: without it, it verifies by logging in with whatever key your `~/.ssh/config` offers, succeeds with the wrong one, and reports the new key as already installed.
+Per-site CI key, not your personal one. `ssh-copy-id` needs `-f`, otherwise it verifies with whatever key `~/.ssh/config` offers and skips the install.
 
-- Scripts must stay executable. `deploy/prod/deploy.sh` is `100755` in the template; if it lands as `100644` (which is what git records on Windows), the deploy reaches the last step and fails with `exit 126 — found but not executable`. Fix: `git update-index --chmod=+x deploy/prod/deploy.sh`. Syncing from template ≥ 2026-07-26 restores the bit automatically.
+Then `git push origin main` — `deploy.yml` does the rest.
 
 ### Troubleshooting / disaster recovery
 

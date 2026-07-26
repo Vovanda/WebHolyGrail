@@ -91,7 +91,7 @@
 3. Infisical: создаёт UA machine identity `<slug>-deploy`, attaches к project (role `member`), генерирует Universal Auth method + client-secret
 4. `/etc/infisical/<slug>/{client-id,client-secret}`: chmod 600 deploy:deploy
 
-После него — заполнить prod-секреты в Infisical project через Web UI или CLI, потом `git push` → workflow `deploy.yml` всё доделывает сам.
+После него — залить значения секретов (`setup-infisical --from-env`) и завести переменные репозитория (Сценарий A шаги 6-7), потом `git push`.
 
 **Запуск:**
 
@@ -148,9 +148,9 @@ pnpm setup-infisical -- --site <slug> --type <minimal|business-card|blog|portal>
 pnpm setup-infisical -- --site <slug> --from-env .env.production --env prod
 ```
 
-`--from-env` читает `KEY=VALUE` в том же подмножестве синтаксиса, что понимает `docker compose --env-file`: без подстановок и multiline, обрамляющие кавычки снимаются. Пустые значения из файла пропускаются — placeholder не перезатирается пустотой. В конце печатается список ключей, оставшихся пустыми: иначе они обнаруживаются только в логе упавшего деплоя.
+`--from-env` читает `KEY=VALUE` как `docker compose --env-file`: без подстановок и multiline, кавычки снимаются. Пустые значения пропускаются. В конце печатает ключи, оставшиеся пустыми.
 
-Без этого шага деплой инстанса падает на первом обязательном ключе (`S3_BUCKET is missing a value`), а заполнить секреты через Web UI не всегда возможно — на свежем self-host пароль superadmin известен только из bootstrap-вывода.
+Заполнять через Web UI не рассчитывай: на свежем self-host пароль superadmin есть только в bootstrap-выводе.
 
 Env:
 
@@ -158,7 +158,7 @@ Env:
 - `INFISICAL_ADMIN_TOKEN` (или `INFISICAL_ADMIN_CLIENT_ID` + `INFISICAL_ADMIN_CLIENT_SECRET`)
 - `INFISICAL_ADMIN_ORG_ID`
 
-⚠ Токен из `infisical bootstrap` живёт ~90 дней и **инвалидируется, если identity пересоздали** — симптом `401 Cannot renew revoked or unknown access token`. UA-пара `CLIENT_ID`/`CLIENT_SECRET` надёжнее: она переживает перевыпуск access-токена.
+Предпочитать UA-пару `CLIENT_ID`/`CLIENT_SECRET`: токен из `infisical bootstrap` живёт ~90 дней и умирает при пересоздании identity (`401 Cannot renew revoked or unknown access token`).
 
 ## nginx templates (`deploy/proxy-stack/nginx/`)
 
@@ -230,18 +230,17 @@ Shared host-nginx (`holygrail-nginx`) для всех сайтов на VPS. Hos
 3. **`template-cleanup.yml`** на первом push'е автоматом причешет README
 4. DNS A record `<your-domain> → VPS IP` (у регистратора)
 5. VPS-часть — `scripts/bootstrap-site-on-vps.sh`: клон в `/opt/sites/<slug>`, Infisical project, UA identity, креды в `/etc/infisical/<slug>/`
-6. **Значения** prod-секретов в Infisical (шаг 5 создаёт только пустые placeholder'ы):
+6. Значения prod-секретов:
 
    ```bash
    pnpm setup-infisical -- --site <slug> --from-env .env.production --env prod
    ```
 
-   Скрипт идемпотентен и в конце печатает ключи, которые остались пустыми. Обязательные для `compose.bluegreen.yml`: `PAYLOAD_SECRET`, `PAYLOAD_PUBLIC_SERVER_URL`, `NEXT_PUBLIC_SITE_URL`, `ADMIN_INITIAL_EMAIL`, `ADMIN_INITIAL_PASSWORD` — без любого из них prod-стек не поднимется.
+   Идемпотентно, в конце печатает оставшиеся пустыми. Обязательные для compose: `PAYLOAD_SECRET`, `PAYLOAD_PUBLIC_SERVER_URL`, `NEXT_PUBLIC_SITE_URL`, `ADMIN_INITIAL_EMAIL`, `ADMIN_INITIAL_PASSWORD`.
 
-7. **GH vars/secrets и CI-ключ.** Шаблон копирует файлы, но не переменные окружения репозитория — их нет ни у одного нового инстанса, и деплой падает на первом же шаге за 4 секунды:
+7. CI-ключ и переменные репозитория:
 
    ```bash
-   # CI-ключ для Actions (отдельный на сайт, не личный ключ разработчика)
    ssh-keygen -t ed25519 -f ~/.ssh/ci-<slug> -N "" -C "gh-actions@<slug>"
    ssh-copy-id -f -i ~/.ssh/ci-<slug>.pub <vps-user>@<vps-host>
 
@@ -253,15 +252,11 @@ Shared host-nginx (`holygrail-nginx`) для всех сайтов на VPS. Hos
    gh variable set PRIMARY_DOMAIN     --body "<your-domain>"
    gh variable set INFISICAL_HOST_URL --body "https://infisical.<your-host>"
    gh variable set PORT_BASE          --body "3020"   # 3000 / 3020 / 3040 — по сайту
+
+   gh variable list && gh secret list   # обе непустые
    ```
 
-   `-f` у `ssh-copy-id` обязателен: без него он логинится любым подходящим ключом из `~/.ssh/config` и решает, что новый ключ уже установлен.
-
-   Проверка, что ничего не забыто, — обе команды должны выдать непустой список:
-
-   ```bash
-   gh variable list && gh secret list
-   ```
+   `ssh-copy-id` — только с `-f`, иначе проверяет вход чужим ключом из `~/.ssh/config` и молча пропускает установку. Ключ — отдельный на сайт.
 
 8. `git push origin main` → `deploy.yml` сам всё доделает
 
@@ -290,18 +285,18 @@ deploy.sh подтянет старые images из GHCR + переключит 
 
 ## Troubleshooting
 
-| Симптом                                                           | Причина                                                       | Что делать                                                                                              |
-| ----------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `The ssh-private-key argument is empty` (deploy падает за ~4 сек) | vars/secrets репозитория не заведены — шаблон их не копирует  | Сценарий A шаг 7; проверить `gh variable list && gh secret list`                                        |
-| `deploy.sh exited with 126` после успешного билда и `git pull`    | у `deploy.sh` нет executable bit: на Windows git пишет 100644 | `git update-index --chmod=+x deploy/prod/deploy.sh` + коммит; синк с версии от 2026-07-26 чинит это сам |
-| `S3_BUCKET is missing a value` при запуске `deploy.sh`            | секреты в Infisical созданы, но пустые (placeholder'ы)        | Сценарий A шаг 6 — `setup-infisical --from-env`; в конце он печатает оставшиеся пустыми                 |
-| GH workflow падает на `Sync site directory` step                  | `/opt/sites/<slug>` не git-репо или mismatch remote           | `ssh deploy@<vps> "cd /opt/sites/<slug> && git remote -v"` или запустить bootstrap script               |
-| `pre-flight ... ERROR: PRIMARY_DOMAIN env not set`                | GH variable не задана                                         | Settings → variables → `PRIMARY_DOMAIN=<your-domain>`                                                   |
-| `infisical login returned empty token`                            | UA creds в `/etc/infisical/<slug>/` отсутствуют               | Запустить `bootstrap-site-on-vps.sh` для этого сайта                                                    |
-| Картинки 404 на `/media/...`                                      | Bucket пуст или nginx-conf без `/media/` location             | `docker exec minio mc ls local/<slug>-media`, перепроверь `${PRIMARY_DOMAIN}.conf`                      |
-| cms healthcheck failed                                            | Миграции не накатились или env-переменные не подцеплены       | `docker logs <slug>-cms-<color>` + `infisical secrets list --env=prod --domain=$HOST_URL`               |
-| Port conflict (Bind for 127.0.0.1:30XX failed)                    | Два сайта с одинаковым `PORT_BASE`                            | Установить разные `PORT_BASE` (3000 / 3020 / 3040)                                                      |
-| nginx test fails after cert renewal                               | LE renew успел до того как deploy.sh кладёт vhost             | `docker exec holygrail-nginx nginx -t` и читать конкретную ошибку; обычно про missing key               |
+| Симптом                                            | Причина                                                 | Что делать                                                                                |
+| -------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `The ssh-private-key argument is empty`            | vars/secrets репозитория не заведены                    | Сценарий A шаг 7, проверить `gh variable list && gh secret list`                          |
+| `deploy.sh exited with 126`                        | режим `deploy.sh` 100644 вместо 100755                  | `git update-index --chmod=+x deploy/prod/deploy.sh` + коммит; синк восстанавливает сам    |
+| `S3_BUCKET is missing a value`                     | секреты в Infisical пустые                              | Сценарий A шаг 6                                                                          |
+| GH workflow падает на `Sync site directory` step   | `/opt/sites/<slug>` не git-репо или mismatch remote     | `ssh deploy@<vps> "cd /opt/sites/<slug> && git remote -v"` или запустить bootstrap script |
+| `pre-flight ... ERROR: PRIMARY_DOMAIN env not set` | GH variable не задана                                   | Settings → variables → `PRIMARY_DOMAIN=<your-domain>`                                     |
+| `infisical login returned empty token`             | UA creds в `/etc/infisical/<slug>/` отсутствуют         | Запустить `bootstrap-site-on-vps.sh` для этого сайта                                      |
+| Картинки 404 на `/media/...`                       | Bucket пуст или nginx-conf без `/media/` location       | `docker exec minio mc ls local/<slug>-media`, перепроверь `${PRIMARY_DOMAIN}.conf`        |
+| cms healthcheck failed                             | Миграции не накатились или env-переменные не подцеплены | `docker logs <slug>-cms-<color>` + `infisical secrets list --env=prod --domain=$HOST_URL` |
+| Port conflict (Bind for 127.0.0.1:30XX failed)     | Два сайта с одинаковым `PORT_BASE`                      | Установить разные `PORT_BASE` (3000 / 3020 / 3040)                                        |
+| nginx test fails after cert renewal                | LE renew успел до того как deploy.sh кладёт vhost       | `docker exec holygrail-nginx nginx -t` и читать конкретную ошибку; обычно про missing key |
 
 ## Дальше
 

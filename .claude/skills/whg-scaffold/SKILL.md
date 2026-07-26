@@ -137,31 +137,27 @@ Pages → Create → slug = `home`, status = `published`, blocks = [Hero, Quote,
 
 ### 1. Machine Identity для prod-деплоя
 
-В Infisical UI:
-
-1. Project `holygrail-<slug>` → Access Control → Machine Identities → Create
-2. Name: `<slug>-prod-deploy`, Type: Universal Auth
-3. Привязать к environment `prod`, scope `Read`
-4. Сгенерировать Client ID + Client Secret (показывается один раз — скопировать)
+Создаёт `pnpm setup-infisical -- --site <slug>` (шаг 3 выше): identity `<slug>-prod-deploy`, Universal Auth, роль `viewer`. Client ID и Client Secret печатаются один раз — сохранить сразу.
 
 ### 2. Setup VPS
 
 ```bash
 ssh deploy@<vps-host>
-# Install Infisical CLI
-curl -1sLf 'https://artifacts-cli.infisical.com/install.sh' | sh
 
-# Положить client credentials
-sudo install -d -m 700 -o deploy -g deploy /etc/infisical
-echo "<client-id>" | sudo tee /etc/infisical/client-id > /dev/null
-echo "<client-secret>" | sudo tee /etc/infisical/client-secret > /dev/null
-sudo chmod 600 /etc/infisical/*
-sudo chown deploy:deploy /etc/infisical/*
+# креды сайта — папка на слаг, три файла
+sudo install -d -m 700 -o deploy -g deploy /etc/infisical/<slug>
+echo "<client-id>"     | sudo tee /etc/infisical/<slug>/client-id     > /dev/null
+echo "<client-secret>" | sudo tee /etc/infisical/<slug>/client-secret > /dev/null
+echo "<project-id>"    | sudo tee /etc/infisical/<slug>/project-id    > /dev/null
+sudo chmod 600 /etc/infisical/<slug>/*
+sudo chown deploy:deploy /etc/infisical/<slug>/*
 ```
+
+Всё это делает `scripts/bootstrap-site-on-vps.sh` — руками только если он не подходит.
 
 ### 3. Заполнить prod-секреты
 
-Не через UI: на свежем self-host пароль superadmin есть только в bootstrap-выводе, а reset без SMTP не работает. Заливаем скриптом из файла:
+Заливаем скриптом (в UI не рассчитывай — пароль superadmin есть только в bootstrap-выводе, reset без SMTP не работает):
 
 ```bash
 pnpm setup-infisical -- --site <slug> --from-env .env.production --env prod
@@ -175,11 +171,11 @@ pnpm setup-infisical -- --site <slug> --from-env .env.production --env prod
 
 Нужны приложению, но compose их не сторожит: `DATABASE_URI` (Postgres URL или путь к SQLite на volume), `S3_*` (real bucket — B2 / R2 / AWS / Yandex / VK), `NEXT_PUBLIC_CMS_URL`, `PAYLOAD_ALLOWED_ORIGINS` (CSV прод-доменов), `SITE_NAME`. Опционально: `NEXT_PUBLIC_YM_ID`.
 
-**Пустое значение ≠ отсутствующий ключ.** Infisical отдаёт пустые строки как есть, и compose падает на первом `${VAR:?}` — `S3_BUCKET is missing a value`.
+Пустое значение ≠ отсутствующий ключ: Infisical отдаёт пустую строку как есть, compose падает на первом `${VAR:?}`.
 
 ### 4. Vars и secrets репозитория
 
-Шаг, которого нет ни в одном инстансе по умолчанию: GitHub не копирует переменные окружения template-репо. Без них `deploy.yml` умирает за ~4 секунды на `The ssh-private-key argument is empty` — после зелёного билда, поэтому выглядит как поломка деплоя, а не конфигурации.
+GitHub не копирует переменные окружения template-репо — у свежего инстанса их нет:
 
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/ci-<slug> -N "" -C "gh-actions@<slug>"
@@ -197,7 +193,7 @@ gh variable set PORT_BASE          --body "3020"
 gh variable list && gh secret list   # обе непустые
 ```
 
-Ключ — отдельный на сайт, не личный ключ разработчика. `-f` у `ssh-copy-id` обязателен: иначе он проверяет вход любым ключом из `~/.ssh/config`, успешно логинится чужим и сообщает, что новый ключ уже стоит.
+Ключ — отдельный на сайт. `-f` у `ssh-copy-id` обязателен: иначе проверяет вход чужим ключом из `~/.ssh/config` и молча пропускает установку.
 
 ### 5. Первый деплой
 
@@ -206,8 +202,6 @@ git push origin main    # deploy.yml делает всё сам
 ```
 
 `deploy.sh` логинится в Infisical по UA-кредам из `/etc/infisical/<slug>/`, тянет секреты в tmpfs-файл и отдаёт его docker compose как `--env-file`.
-
-Если деплой падает с `exit 126` после успешного билда и `git pull` — у `deploy.sh` потерян executable bit (git на Windows пишет `100644`). Лечится `git update-index --chmod=+x deploy/prod/deploy.sh`; синк от 2026-07-26 и новее восстанавливает бит сам.
 
 ## Smoke-проверки
 

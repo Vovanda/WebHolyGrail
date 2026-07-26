@@ -57,14 +57,31 @@ Stack: Payload CMS + Next 15 client, blue-green за shared host-nginx (`/opt/pr
 
 ## Первый деплой
 
-Перед первым пушем должно быть сделано три вещи — ни одну из них не делает ни шаблон, ни workflow:
+Один раз на сайт:
 
-1. **Значения секретов в Infisical prod.** Scaffold раскладывает пустые placeholder'ы; пустая строка проходит насквозь и compose падает на `S3_BUCKET is missing a value`.
-   `pnpm setup-infisical -- --site <slug> --from-env .env.production --env prod`
-2. **Vars и secrets репозитория** (`VPS_HOST`, `VPS_SSH_KEY`, `VPS_PATH`, `PUBLIC_URL`, `PRIMARY_DOMAIN`, `INFISICAL_HOST_URL`, `PORT_BASE`). GitHub не копирует их из template-репо, поэтому у свежего инстанса их нет и деплой умирает за ~4 секунды на `The ssh-private-key argument is empty`. Команды — [«Сценарий A», шаг 7](../../docs/infra/scripts-and-workflows.md#сценарий-a-новый-holy-grail-инстанс-с-нуля).
-3. **`deploy.sh` исполняемый** (`100755`). Если git записал `100644` — а на Windows он записывает именно так — деплой доходит до последнего шага и падает с `exit 126`.
+```bash
+# 1. значения секретов в prod
+pnpm setup-infisical -- --site <slug> --from-env .env.production --env prod
 
-Проверить готовность: `gh variable list && gh secret list` — обе команды должны выдать непустой список.
+# 2. CI-ключ для Actions
+ssh-keygen -t ed25519 -f ~/.ssh/ci-<slug> -N "" -C "gh-actions@<slug>"
+ssh-copy-id -f -i ~/.ssh/ci-<slug>.pub deploy@<vps-host>
+
+# 3. vars и secrets репозитория
+gh secret   set VPS_HOST           --body "<vps-ip>"
+gh secret   set VPS_SSH_KEY        < ~/.ssh/ci-<slug>
+gh variable set VPS_USER           --body "deploy"
+gh variable set VPS_PATH           --body "/opt/sites/<slug>"
+gh variable set PUBLIC_URL         --body "https://<domain>"
+gh variable set PRIMARY_DOMAIN     --body "<domain>"
+gh variable set INFISICAL_HOST_URL --body "https://infisical.<host>"
+gh variable set PORT_BASE          --body "3020"
+
+# проверка: обе команды выдают непустой список
+gh variable list && gh secret list
+```
+
+`ssh-copy-id` — только с `-f`. Ключ — отдельный на сайт.
 
 ```bash
 git push origin main
