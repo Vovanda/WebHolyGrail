@@ -28,10 +28,12 @@ export function CtaBanner({
 
   return (
     <section
-      className="relative py-16 md:py-22 text-white overflow-hidden"
+      className="relative py-16 md:py-22 text-accent-fg overflow-hidden"
       style={{
+        // Затемнение мягкое: на светлом акценте (золото) текст считается тёмным,
+        // и сильный градиент к чёрному сделал бы дальний край нечитаемым.
         background:
-          'linear-gradient(135deg, var(--color-accent) 0%, color-mix(in srgb, var(--color-accent) 80%, black) 100%)',
+          'linear-gradient(135deg, var(--color-accent) 0%, color-mix(in srgb, var(--color-accent) 92%, black) 100%)',
       }}
     >
       <div className="mx-auto max-w-content px-4 md:px-6 text-center">
@@ -39,7 +41,9 @@ export function CtaBanner({
           {heading}
         </h2>
         {subtitle && (
-          <p className="mt-4 text-base md:text-lg text-white/85 max-w-2xl mx-auto">{subtitle}</p>
+          <p className="mt-4 text-base md:text-lg text-accent-fg/85 max-w-2xl mx-auto">
+            {subtitle}
+          </p>
         )}
         {(ctaPrimary || ctaSecondary) && (
           <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -48,7 +52,7 @@ export function CtaBanner({
                 href={ctaPrimary.href}
                 target={ctaPrimary.href.startsWith('http') ? '_blank' : undefined}
                 rel={ctaPrimary.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-md bg-white text-accent text-sm font-semibold hover:bg-white/90 transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-md bg-accent-fg text-accent text-sm font-semibold hover:opacity-90 transition-opacity"
               >
                 {ctaPrimary.label}
                 <ArrowRight size={16} />
@@ -59,7 +63,7 @@ export function CtaBanner({
                 href={ctaSecondary.href}
                 target={ctaSecondary.href.startsWith('http') ? '_blank' : undefined}
                 rel={ctaSecondary.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-md border border-white/40 text-white text-sm font-medium hover:bg-white/10 transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-md border border-accent-fg/40 text-accent-fg text-sm font-medium hover:bg-accent-fg/10 transition-colors"
               >
                 {ctaSecondary.label}
               </Link>

@@ -58,6 +58,9 @@ function buildVars(p: PaletteColors): string {
     // Текст на кнопках считаем от самого акцента: на золотой палитре белая
     // надпись не читается, на синей — не читается тёмная (#64).
     lines.push(`--color-accent-fg: ${readableTextOn(p.primary)};`);
+    // Подложка иконок и бейджей — тот же акцент, разбавленный фоном. Без этого
+    // она остаётся синей из дефолтных токенов и спорит с палитрой сайта.
+    lines.push(`--color-accent-soft: color-mix(in srgb, ${p.primary} 22%, var(--color-bg));`);
   }
   if (p.primaryHover) lines.push(`--color-accent-hover: ${p.primaryHover};`);
   if (p.foreground) lines.push(`--color-ink: ${p.foreground};`);
