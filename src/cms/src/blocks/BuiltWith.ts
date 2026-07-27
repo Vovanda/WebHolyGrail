@@ -3,16 +3,17 @@ import type { Block } from 'payload';
 /**
  * BuiltWith — секция «реальные сайты на этом стеке».
  *
+ * @deprecated Дублирует `feature-grid` с раскладкой «карусель»: та же карточка,
+ * превью и ссылка, только поля названы под один домен (siteName/url/niche).
+ * Новые страницы собираем на `feature-grid`. Блок остаётся, пока на нём живут
+ * страницы прода; переедут — удаляем вместе с таблицей отдельной миграцией.
+ *
  * Tip для админа: показывает живые production-инстансы для credibility.
  * Каждая карточка — имя сайта + URL + ниша + опциональный preview-скриншот.
- * Заменяет fake testimonials/logo-cloud когда есть реальные проекты.
- *
- * Generic — любой downstream может использовать как «наши проекты» или
- * «партнёры». Для WHG-template — реальные сайты Володи на стеке.
  */
 export const BuiltWithBlock: Block = {
   slug: 'built-with',
-  labels: { singular: 'Реальные сайты на стеке', plural: 'Списки сайтов' },
+  labels: { singular: 'Реальные сайты на стеке (устаревший)', plural: 'Списки сайтов' },
   fields: [
     {
       name: 'heading',

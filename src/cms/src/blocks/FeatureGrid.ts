@@ -22,6 +22,20 @@ export const FeatureGridBlock: Block = {
       type: 'text',
     },
     {
+      name: 'layout',
+      label: 'Раскладка',
+      type: 'select',
+      defaultValue: 'grid',
+      options: [
+        { label: 'Сетка — видно все карточки сразу', value: 'grid' },
+        { label: 'Карусель — листается, для длинных списков и превью', value: 'carousel' },
+      ],
+      admin: {
+        description:
+          'Сетка — когда карточек 3–7 и важно показать набор целиком. Карусель — когда их много или каждая держит крупное превью.',
+      },
+    },
+    {
       name: 'items',
       label: 'Карточки фич',
       type: 'array',
@@ -39,6 +53,36 @@ export const FeatureGridBlock: Block = {
           admin: {
             description:
               'Несколько фраз почему это решение хорошо. Если пусто — карточка не кликабельна.',
+          },
+        },
+        {
+          name: 'images',
+          label: 'Картинки карточки',
+          type: 'array',
+          maxRows: 8,
+          admin: {
+            description:
+              'Одна картинка — показывается статично над текстом, несколько — слайдер со стрелками и свайпом. Пусто — рисуется иконка.',
+          },
+          fields: [
+            {
+              name: 'image',
+              label: 'Изображение',
+              type: 'upload',
+              relationTo: 'media',
+              required: true,
+            },
+          ],
+        },
+        {
+          name: 'href',
+          label: 'Ссылка карточки',
+          type: 'text',
+          admin: {
+            description:
+              'Куда ведёт карточка: /audit, https://example.com. Пусто — карточка никуда не ведёт. ' +
+              'Если заполнено вместе с детальным описанием — по клику открывается модалка, а ссылка ' +
+              'показывается в ней кнопкой.',
           },
         },
       ],
