@@ -209,6 +209,11 @@ const MIRROR = [
 
 /** Overlay: обновляем существующее, downstream-добавки не удаляем. */
 const OVERLAY = [
+  // Миграции едут вместе со схемой, иначе инстанс обновляет коллекции и блоки,
+  // а таблиц под них не получает. Именно overlay: доменные миграции инстанса
+  // должны остаться. `migrations/index.ts` после синка пересобирается по
+  // фактическому составу каталога — см. rebuildMigrationsIndex().
+  'src/cms/migrations/',
   'docs/whg/',
   'docs/stack/',
   '.claude/skills/whg-rules/',
@@ -249,6 +254,11 @@ for (const rel of MIRROR) syncPath(rel, true);
 
 console.log(`\n→ Overlay (${OVERLAY.length} путей, downstream-добавки сохраняются)\n`);
 for (const rel of OVERLAY) syncPath(rel, false);
+
+// index.ts миграций — общий файл шаблона и инстанса. Копировать его нельзя:
+// upstream-версия не знает про доменные миграции инстанса и молча выключила бы
+// их из прогона. Собираем список заново по тому, что реально лежит в каталоге.
+rebuildMigrationsIndex();
 
 // На Windows нет POSIX-бита: git пишет новый файл как 100644, и на VPS
 // `deploy.sh` не запускается — GH Actions падает на «found but not executable»
@@ -348,6 +358,46 @@ function copyFile(src, dst, label) {
   if (dryRun) return;
   fs.mkdirSync(path.dirname(dst), { recursive: true });
   fs.copyFileSync(src, dst);
+}
+
+/**
+ * Пересобирает `src/cms/migrations/index.ts` инстанса по файлам, которые в этом
+ * каталоге реально лежат: приехавшие из шаблона плюс доменные миграции самого
+ * инстанса. Порядок — по имени файла, оно начинается с даты, так что
+ * лексикографическая сортировка совпадает с хронологической.
+ *
+ * Без этого шага downstream, обновивший шаблон, получил бы либо список без
+ * своих миграций (если копировать upstream-файл), либо список без новых
+ * upstream-миграций (если не копировать вовсе).
+ */
+function rebuildMigrationsIndex() {
+  const dir = path.join(INSTANCE, 'src/cms/migrations');
+  const indexFile = path.join(dir, 'index.ts');
+  if (!fs.existsSync(dir)) return;
+
+  const names = fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith('.ts') && f !== 'index.ts')
+    .map((f) => f.slice(0, -3))
+    .sort();
+  if (names.length === 0) return;
+
+  const body =
+    names.map((n) => `import * as migration_${n} from './${n}';`).join('\n') +
+    '\n\nexport const migrations = [\n' +
+    names
+      .map(
+        (n) =>
+          `  {\n    up: migration_${n}.up,\n    down: migration_${n}.down,\n    name: '${n}',\n  },`,
+      )
+      .join('\n') +
+    '\n];\n';
+
+  const unchanged = fs.existsSync(indexFile) && fs.readFileSync(indexFile, 'utf8') === body;
+  if (unchanged) return;
+
+  console.log(`\n→ Migrations index пересобран (${names.length} миграций)`);
+  if (!dryRun) fs.writeFileSync(indexFile, body);
 }
 
 /**

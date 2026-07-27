@@ -5,8 +5,6 @@ import { listArticles, listArticlesByIds } from '@/lib/api-client';
 import { resolveBlogSettings } from '@/lib/blog-settings';
 import { cn } from '@/lib/utils';
 
-import { SectionEyebrow } from '../SectionEyebrow';
-
 import { PostList } from './PostList';
 
 /**
@@ -36,10 +34,17 @@ export async function ArticlesSection({ node, settings, className }: ArticlesSec
 
   return (
     <section className={cn('mx-auto max-w-wide px-4 md:px-6 py-10 md:py-14', className)}>
+      {/* Заголовок набран как у остальных секций страницы: на посадочной
+          лента статей стоит в одном ряду с блоками услуг и опыта, и мелкий
+          eyebrow рядом с ними читался как служебная подпись. */}
       {(data.title || data.description) && (
-        <header className="flex flex-col gap-3 mb-5 md:mb-6">
-          {data.title && <SectionEyebrow>{data.title}</SectionEyebrow>}
-          {data.description && <p className="text-muted max-w-prose">{data.description}</p>}
+        <header className="mb-8 md:mb-10 text-center">
+          {data.title && (
+            <h2 className="font-display text-h3 md:text-h2 font-semibold text-ink">{data.title}</h2>
+          )}
+          {data.description && (
+            <p className="text-muted mt-3 max-w-prose mx-auto">{data.description}</p>
+          )}
         </header>
       )}
 
