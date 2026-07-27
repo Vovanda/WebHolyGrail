@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { BlockNode, SiteSettings } from 'contracts';
 
+import { BrandMark } from '@/blocks/primitives/BrandMark';
 import { SocialIcon } from '@/blocks/primitives/SocialIcon';
 
 /**
@@ -115,28 +116,7 @@ export function NavDrawer({
             aria-label={settings.siteName ?? 'На главную'}
             className="flex items-center gap-3 shrink-0"
           >
-            <svg
-              width="36"
-              height="36"
-              viewBox="0 0 36 36"
-              fill="none"
-              className="text-accent"
-              aria-hidden="true"
-            >
-              <rect width="36" height="36" rx="8" fill="currentColor" />
-              <text
-                x="18"
-                y="24"
-                textAnchor="middle"
-                fontFamily="var(--font-display, system-ui)"
-                fontSize="13"
-                fontWeight="700"
-                fill="white"
-                letterSpacing="0.5"
-              >
-                WHG
-              </text>
-            </svg>
+            <BrandMark logo={settings.logo} siteName={settings.siteName ?? 'Сайт'} size={36} />
             <span className="font-display font-semibold text-ink text-base">
               {settings.siteName ?? 'Сайт'}
             </span>

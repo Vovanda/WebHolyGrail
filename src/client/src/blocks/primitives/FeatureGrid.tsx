@@ -280,8 +280,12 @@ export function FeatureGrid({
           >
             {items.map((item, i) => {
               const isLast = i === items.length - 1;
-              const hangingMobile = isLast && items.length % 2 === 1 ? 'col-span-2' : '';
-              const hangingSm = isLast && items.length % 3 === 1 ? 'sm:col-span-3' : '';
+              // Растягивать одинокую карточку последнего ряда есть смысл только
+              // когда рядов больше одного. На четырёх карточках ряд и так полный,
+              // а col-span раздувал последнюю во всю ширину.
+              const mayHang = items.length >= 5;
+              const hangingMobile = mayHang && isLast && items.length % 2 === 1 ? 'col-span-2' : '';
+              const hangingSm = mayHang && isLast && items.length % 3 === 1 ? 'sm:col-span-3' : '';
               const lgSpan = isSevenCheckerboard
                 ? i < 2 || i > 4
                   ? 'lg:col-span-3'

@@ -29,6 +29,7 @@ export function Timeline({
 }: {
   readonly node: BlockNode & {
     data?: {
+      heading?: string;
       entries?: readonly TimelineEntry[];
       visibleCount?: number;
       sort?: SortMode;
@@ -39,6 +40,8 @@ export function Timeline({
   const rawEntries: readonly TimelineEntry[] = node.data?.entries ?? [];
   const visibleCount = node.data?.visibleCount ?? 3;
   const sort: SortMode = node.data?.sort ?? 'year-desc';
+  // Заголовок задаётся в админке; «Наш путь» — только запасной вариант.
+  const heading = node.data?.heading?.trim() || 'Наш путь';
 
   const entries = sortEntries(rawEntries, sort);
 
@@ -50,7 +53,7 @@ export function Timeline({
     <section className="bg-bg py-12 md:py-16">
       <ContentFrame side="right" decor="vines" className="px-6">
         <h2 className="text-center font-display text-3xl md:text-h2 font-semibold text-ink">
-          Наш путь
+          {heading}
         </h2>
         <div className="mx-auto mt-4 mb-10 h-[1.5px] w-16 bg-accent opacity-85 rounded-full" />
 
