@@ -40,7 +40,17 @@ export async function ArticlesSection({ node, settings, className }: ArticlesSec
       {(data.title || data.description) && (
         <header className="mb-8 md:mb-10 text-center">
           {data.title && (
-            <h2 className="font-display text-h3 md:text-h2 font-semibold text-ink">{data.title}</h2>
+            <h2 className="font-display text-h3 md:text-h2 font-semibold text-ink">
+              {/* Если у секции есть ссылка «смотреть все» — заголовок ведёт туда же:
+                  по нему кликают раньше, чем доходят до ссылки под лентой. */}
+              {cta ? (
+                <Link href={cta.href!} className="hover:text-accent transition-colors">
+                  {data.title}
+                </Link>
+              ) : (
+                data.title
+              )}
+            </h2>
           )}
           {data.description && (
             <p className="text-muted mt-3 max-w-prose mx-auto">{data.description}</p>
