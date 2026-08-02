@@ -23,7 +23,7 @@ export function Breadcrumbs({ items }: { readonly items: readonly Crumb[] }) {
   if (items.length === 0) return null;
 
   return (
-    <nav aria-label="Хлебные крошки" className="mb-6 text-sm text-muted">
+    <nav aria-label="Хлебные крошки" className="mb-3 text-sm text-muted">
       <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
         {items.map((item, index) => {
           const last = index === items.length - 1;

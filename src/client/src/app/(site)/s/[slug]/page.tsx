@@ -103,7 +103,7 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
   if (blocks.length > 0 && settings) {
     return (
       <>
-        <div className="mx-auto max-w-wide px-4 pt-6 md:px-6">
+        <div className="mx-auto max-w-wide px-4 pt-4 md:px-6">
           <Breadcrumbs
             items={[
               { label: 'Главная', href: '/' },
