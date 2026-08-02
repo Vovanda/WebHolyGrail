@@ -184,6 +184,18 @@ pnpm setup-infisical -- --site <slug> --github \
 
 Генерирует ключ `~/.ssh/ci-<slug>` (отдельный на сайт), авторизует его на VPS, заводит secrets `VPS_HOST`/`VPS_SSH_KEY` и variables `VPS_USER`/`VPS_PATH`/`PUBLIC_URL`/`PRIMARY_DOMAIN`/`INFISICAL_HOST_URL`/`PORT_BASE`.
 
+**`PORT_BASE` — свободную базу выбираешь ты.** Шаг +20 на сайт (3000 / 3020 / 3040 / …), у каждого сайта blue на базе и green на базе +100. Перед выбором посмотри, что уже занято на хосте: `ssh <vps> 'docker ps --format "{{.Names}} {{.Ports}}"'`. deploy.sh падает с внятной ошибкой, если база занята чужим контейнером.
+
+**Домен ещё не резолвится — не повод ждать.** Основным сразу ставится целевой домен, рабочим — временный:
+
+```bash
+pnpm setup-infisical -- --site <slug> --github \
+  --vps-host <vps-ip> --domain <target-domain> \
+  --extra-domains <temp-domain> --port-base 3060
+```
+
+Сайт слушает оба домена; серт выпускается на тот, что уже резолвится; основной подключается сам на следующем деплое, когда доедет DNS. Ручных шагов и правки nginx руками не требуется — детали в [`docs/infra/scripts-and-workflows.md`](../../../docs/infra/scripts-and-workflows.md#несколько-доменов-на-сайт).
+
 Шаги 3 и 4 можно одним прогоном — добавить `--from-env .env.production --env prod`.
 
 Проверка: `gh variable list && gh secret list`.

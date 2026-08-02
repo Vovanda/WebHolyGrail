@@ -47,6 +47,7 @@ interface Args {
   onlyEnv: string;
   github: boolean;
   domain?: string;
+  extraDomains?: string;
   vpsHost?: string;
   vpsUser: string;
   portBase: string;
@@ -106,6 +107,7 @@ function parseArguments(): Args {
       env: { type: 'string', default: 'prod' },
       github: { type: 'boolean', default: false },
       domain: { type: 'string' },
+      'extra-domains': { type: 'string' },
       'vps-host': { type: 'string' },
       'vps-user': { type: 'string', default: 'deploy' },
       'port-base': { type: 'string', default: '3000' },
@@ -129,6 +131,13 @@ function parseArguments(): Args {
     console.error('GitHub deploy (--github, requires gh CLI):');
     console.error('  --vps-host <ip>     production VPS — required with --github');
     console.error('  --domain <host>     production domain — required with --github');
+    console.error(
+      '  --extra-domains <a,b>  доп. домены сайта: временный на период пропагации DNS,',
+    );
+    console.error(
+      '                      старый домен после переезда. Серт выпускается только на те,',
+    );
+    console.error('                      что уже резолвятся; остальные доедут на след. деплое.');
     console.error('  --vps-user <user>   ssh user on the VPS (default: deploy)');
     console.error('  --port-base <n>     3000 / 3020 / 3040 — one slot per site (default: 3000)');
     console.error('  --repo <owner/repo> repository (default: origin of the current folder)');
@@ -161,6 +170,7 @@ function parseArguments(): Args {
     onlyEnv: values.env as string,
     github: values.github === true,
     domain: values.domain,
+    extraDomains: values['extra-domains'],
     vpsHost: values['vps-host'],
     vpsUser: values['vps-user'] as string,
     portBase: values['port-base'] as string,
@@ -277,6 +287,10 @@ function githubDeployConfig(args: Args, infisicalHostUrl: string): void {
     ['INFISICAL_HOST_URL', infisicalHostUrl],
     ['PORT_BASE', args.portBase],
   ];
+  // Доп. домены (--extra-domains): временный домен на период пропагации DNS,
+  // старый домен после переезда. Пустое значение не пишем, чтобы не плодить
+  // пустую переменную в репозиториях с одним доменом.
+  if (args.extraDomains) vars.push(['EXTRA_DOMAINS', args.extraDomains]);
   for (const [name, value] of vars) {
     run('gh', ['variable', 'set', name, '--repo', repo, '--body', value]);
   }

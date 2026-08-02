@@ -208,6 +208,18 @@ gh variable list && gh secret list   # both must be non-empty
 
 This generates a per-site CI key (`~/.ssh/ci-<slug>`), authorizes it on the VPS, and sets `VPS_HOST`, `VPS_SSH_KEY`, `VPS_USER`, `VPS_PATH`, `PUBLIC_URL`, `PRIMARY_DOMAIN`, `INFISICAL_HOST_URL`, `PORT_BASE`. Add `--from-env .env.production --env prod` to fill secrets in the same run.
 
+`--port-base` is yours to pick: one slot per site, step +20 (blue on the base, green on base +100). Check what the host already uses — `ssh <vps> 'docker ps --format "{{.Names}} {{.Ports}}"'` — deploy.sh refuses to start if the base belongs to another site.
+
+**Target domain not resolving yet?** Point at it anyway and add a working one:
+
+```bash
+pnpm setup-infisical -- --site <slug> --github \
+  --vps-host <vps-ip> --domain <target-domain> \
+  --extra-domains <temp-domain> --port-base 3060
+```
+
+The site serves every listed domain from the first deploy. The certificate covers whichever ones already resolve; the rest are added automatically on a later deploy once DNS catches up — no manual nginx edits, no waiting. See [`docs/infra/scripts-and-workflows.md`](../infra/scripts-and-workflows.md#несколько-доменов-на-сайт).
+
 Then `git push origin main` — `deploy.yml` does the rest.
 
 ### Troubleshooting / disaster recovery

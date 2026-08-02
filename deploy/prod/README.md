@@ -46,6 +46,8 @@ Stack: Payload CMS + Next 15 client, blue-green за shared host-nginx (`/opt/pr
    | var    | `VPS_PATH`           | `/opt/sites/<slug>`                                                           |
    | var    | `PUBLIC_URL`         | `https://<your-domain>`                                                       |
    | var    | `PRIMARY_DOMAIN`     | `<your-domain>` — для pre-flight (nginx-conf + LE-cert на первом деплое)      |
+   | var    | `EXTRA_DOMAINS`      | optional — доп. домены через запятую: временный на период пропагации DNS,     |
+   |        |                      | старый домен после переезда. Серт — только на резолвящиеся, остальные позже.  |
    | var    | `IMAGE_NAME_PREFIX`  | optional — override базы имени образов (например `whg` для template repo).    |
    |        |                      | Default = repo name lowercased.                                               |
    | var    | `INFISICAL_HOST_URL` | `https://infisical.<your-host>` — shared self-host instance для всех сайтов   |

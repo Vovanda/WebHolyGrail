@@ -4,8 +4,14 @@
 #
 # Заменить плейсхолдеры при scaffold нового сайта:
 #   <PRIMARY_DOMAIN>     — основной домен сайта (например example.com)
+#   <ALL_SERVER_NAMES>   — primary + EXTRA_DOMAINS через пробел (временные / доп. домены)
+#   <CERT_NAME>          — имя LE-lineage в /etc/letsencrypt/live/ (обычно slug сайта)
 #   <SITE_SLUG>          — slug сайта, используется в именах upstreams/snippets
 # Скрипт deploy.sh делает это автоматически (envsubst или sed).
+#
+# Несколько доменов на сайт — штатный сценарий: сайт стартует на временном домене
+# (<slug>.example.com), а основной подключается позже, когда доедет DNS. Все домены
+# слушаются сразу; certbot выпускает серт только на те, что уже резолвятся.
 
 include /etc/nginx/snippets/<SITE_SLUG>-upstream-active.conf;
 
@@ -13,15 +19,17 @@ include /etc/nginx/snippets/<SITE_SLUG>-upstream-active.conf;
 server {
     listen 80;
     listen [::]:80;
-    server_name <PRIMARY_DOMAIN> www.<PRIMARY_DOMAIN>;
+    server_name <ALL_SERVER_NAMES> www.<PRIMARY_DOMAIN>;
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
         try_files $uri =404;
     }
 
+    # Редирект на тот же host, а не на primary: пока DNS основного домена не доехал,
+    # сайт работает по временному, и уводить на ещё-не-резолвящийся домен нельзя.
     location / {
-        return 301 https://<PRIMARY_DOMAIN>$request_uri;
+        return 301 https://$host$request_uri;
     }
 }
 
@@ -33,8 +41,8 @@ server {
     server_name www.<PRIMARY_DOMAIN>;
 
 
-    ssl_certificate /etc/letsencrypt/live/<PRIMARY_DOMAIN>/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/<PRIMARY_DOMAIN>/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/<CERT_NAME>/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/<CERT_NAME>/privkey.pem;
     include /etc/nginx/snippets/ssl-modern.conf;
     include /etc/nginx/snippets/security-headers.conf;
 
@@ -46,11 +54,11 @@ server {
     listen 443 ssl;
     listen [::]:443 ssl;
     http2 on;
-    server_name <PRIMARY_DOMAIN>;
+    server_name <ALL_SERVER_NAMES>;
 
 
-    ssl_certificate /etc/letsencrypt/live/<PRIMARY_DOMAIN>/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/<PRIMARY_DOMAIN>/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/<CERT_NAME>/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/<CERT_NAME>/privkey.pem;
     include /etc/nginx/snippets/ssl-modern.conf;
     include /etc/nginx/snippets/security-headers.conf;
 

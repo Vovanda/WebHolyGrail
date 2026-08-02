@@ -69,6 +69,7 @@
 | var    | `VPS_PATH`           | `/opt/sites/<slug>`                                                      |
 | var    | `PUBLIC_URL`         | `https://<your-domain>`                                                  |
 | var    | `PRIMARY_DOMAIN`     | `<your-domain>` — для pre-flight в deploy.sh (nginx-conf + LE-cert)      |
+| var    | `EXTRA_DOMAINS`      | optional — доп. домены сайта через запятую (см. ниже)                    |
 | var    | `INFISICAL_HOST_URL` | `https://infisical.<your-host>` — shared self-host instance              |
 | var    | `IMAGE_NAME_PREFIX`  | optional — override базы имени образов (например `whg` вместо repo-name) |
 | var    | `PORT_BASE`          | optional, default 3000. Per-site: 3000 / 3020 / 3040 / …                 |
@@ -114,10 +115,12 @@ ssh deploy@<vps> "SLUG=<slug> \
 1. **Infisical login** через UA creds из `/etc/infisical/<slug>/` → JWT
 2. **Idempotency check** — если запрошенный SHA уже на active color, skip
 3. **Pre-flight ensure-site-infra** (идемпотентно):
+   - проверка, что порты `PORT_BASE`/`PORT_BASE+1` не заняты контейнером другого сайта
    - MinIO bucket `<slug>-media`
    - nginx upstream snippets `<slug>-upstream-{blue,green}.conf` (с per-color portами из `PORT_BASE`)
-   - nginx site vhost `${PRIMARY_DOMAIN}.conf` из `deploy/proxy-stack/.../site.conf.template`
-   - LE-cert через `certbot/certbot:latest certonly --webroot` (если ещё нет)
+   - nginx site vhost `${SITE_SLUG}.conf` из `deploy/proxy-stack/.../site.conf.template`
+     (сайты, заведённые раньше, остаются на своём файле `${PRIMARY_DOMAIN}.conf`)
+   - LE-cert через `certbot/certbot:latest certonly --webroot` — только на резолвящиеся домены
 4. **Pull** images для inactive color
 5. **Up** inactive color через `compose.bluegreen.yml`
 6. **Healthcheck loop** 60s (cms + client)
@@ -133,6 +136,32 @@ Per-color порты:
 - green: `PORT_BASE+100` (client), `PORT_BASE+101` (cms)
 
 Per-site offset 20: site-1 `PORT_BASE=3000`, site-2 `=3020`, site-3 `=3040`, …
+Свободную базу выбирает тот, кто ставит сайт — deploy.sh только предупреждает о занятом порте,
+чтобы вместо `bind: address already in use` из недр compose было видно имя чужого контейнера.
+
+#### Несколько доменов на сайт
+
+Штатный сценарий: сайт нужно запустить **до** того, как доедет DNS основного домена (покупка,
+смена NS, пропагация). Тогда основным сразу ставится целевой домен, а рабочим — временный:
+
+```
+PRIMARY_DOMAIN=example.com          # canonical, на него смотрит PUBLIC_URL
+EXTRA_DOMAINS=site.temp-host.tld    # через запятую, если их несколько
+```
+
+Что делает deploy.sh:
+
+- слушает **все** домены сразу (`server_name` = primary + extra);
+- выпускает серт только на те, что уже резолвятся; остальные пропускает с предупреждением
+  и добирает на следующем деплое через `--expand` — без ручных шагов;
+- если не резолвится ни один — сайт поднимается по `http://`, деплой не падает;
+- HTTP→HTTPS редиректит на тот же host, а не на primary, иначе временный домен уводил бы
+  на ещё-не-работающий основной;
+- lineage серта называется по слагу сайта (`--cert-name <slug>`), поэтому смена основного
+  домена не рвёт пути внутри vhost.
+
+Verify-шаг в `deploy.yml` тоже перебирает домены: если основной ещё не резолвится, проверка
+SHA идёт по временному, и успешный деплой не красится в fail.
 
 ### `scripts/setup-infisical.ts` — Infisical project setup от dev-machine
 

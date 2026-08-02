@@ -173,18 +173,31 @@ docker network inspect "$SITE_SLUG-net" >/dev/null 2>&1 || docker network create
 # первый деплой выходит с 502 / 404 на media / placeholder без серта.
 #
 # Требует на VPS:
-#   - PRIMARY_DOMAIN env (или $1, или из ${SITE_SLUG}.conf если уже есть)
+#   - PRIMARY_DOMAIN env (или из vhost сайта если уже есть)
+#   - EXTRA_DOMAINS env (опц.) — доп. домены сайта через запятую/пробел
 #   - admin email для certbot — $CERTBOT_EMAIL env (fallback noreply@$PRIMARY_DOMAIN)
 #   - shared host-nginx container `holygrail-nginx` (host-network mode)
 #   - MinIO container `minio` доступен на 127.0.0.1:9100
+#
+# Несколько доменов на сайт — штатный сценарий: сайт запускается на временном
+# домене, пока DNS основного ещё не доехал (покупка / смена NS / пропагация).
+# Все домены слушаются сразу, серт выпускается только на резолвящиеся, остальные
+# добираются на следующем деплое через --expand. Ручных шагов не требуется.
 PRIMARY_DOMAIN="${PRIMARY_DOMAIN:-}"
+EXTRA_DOMAINS="${EXTRA_DOMAINS:-}"
 NGINX_CONFD="/opt/proxy/nginx/conf.d"
 NGINX_SNIPPETS="/opt/proxy/nginx/snippets"
 CERTS_ROOT="/opt/proxy/certs"
 WEBROOT="/opt/proxy/nginx/webroot"
 
-if [ -z "$PRIMARY_DOMAIN" ] && [ -f "$NGINX_CONFD/${PRIMARY_DOMAIN}.conf" ]; then
-  PRIMARY_DOMAIN="$(awk '/server_name/ && !/www\./ {print $2; exit}' "$NGINX_CONFD/${PRIMARY_DOMAIN}.conf" | tr -d ';')"
+# Fallback: достать домен из уже существующего vhost этого сайта.
+if [ -z "$PRIMARY_DOMAIN" ]; then
+  for cand in "$NGINX_CONFD/${SITE_SLUG}.conf" "$NGINX_CONFD"/*.conf; do
+    [ -f "$cand" ] || continue
+    grep -q "${SITE_SLUG}-upstream-active" "$cand" 2>/dev/null || continue
+    PRIMARY_DOMAIN="$(awk '/server_name/ && !/www\./ {print $2; exit}' "$cand" | tr -d ';')"
+    [ -n "$PRIMARY_DOMAIN" ] && break
+  done
 fi
 if [ -z "$PRIMARY_DOMAIN" ]; then
   echo "ERROR: PRIMARY_DOMAIN env not set and не удалось вывести из nginx-conf." >&2
@@ -193,8 +206,42 @@ if [ -z "$PRIMARY_DOMAIN" ]; then
 fi
 CERTBOT_EMAIL="${CERTBOT_EMAIL:-noreply@${PRIMARY_DOMAIN}}"
 
+# Полный список доменов: primary первым, дальше EXTRA_DOMAINS (запятая/точка с
+# запятой/пробел — любой разделитель), дубли отбрасываем.
+ALL_DOMAINS="$PRIMARY_DOMAIN"
+for d in $(echo "$EXTRA_DOMAINS" | tr ',;' '  '); do
+  [ -n "$d" ] || continue
+  case " $ALL_DOMAINS " in *" $d "*) continue ;; esac
+  ALL_DOMAINS="$ALL_DOMAINS $d"
+done
+
+# Имя LE-lineage. Новые сайты — по слагу: смена основного домена не должна рвать
+# пути к серту внутри vhost. Сайты с уже выпущенным lineage-по-домену остаются на нём.
+if [ -d "$CERTS_ROOT/live/$PRIMARY_DOMAIN" ]; then
+  CERT_NAME="$PRIMARY_DOMAIN"
+else
+  CERT_NAME="$SITE_SLUG"
+fi
+
 echo
-echo "→ Pre-flight ensure-site-infra (domain=$PRIMARY_DOMAIN)"
+echo "→ Pre-flight ensure-site-infra"
+echo "   primary : $PRIMARY_DOMAIN"
+[ "$ALL_DOMAINS" != "$PRIMARY_DOMAIN" ] && echo "   domains : $ALL_DOMAINS"
+echo "   cert    : $CERT_NAME"
+
+# Порты сайта заняты чужим контейнером? Внятная ошибка вместо
+# "bind: address already in use" из недр docker compose.
+# Каждому сайту на хосте назначается своя PORT_BASE (шаг +20) — какая свободна,
+# знает тот, кто ставит сайт; здесь только предупреждаем о коллизии.
+for p in "$INACTIVE_CLIENT_PORT" "$INACTIVE_CMS_PORT"; do
+  holder="$(docker ps --format '{{.Names}} {{.Ports}}' \
+             | awk -v pat=":${p}->" '$0 ~ pat {print $1; exit}')"
+  if [ -n "$holder" ] && [ "${holder#"${SITE_SLUG}"-}" = "$holder" ]; then
+    echo "ERROR: порт $p уже занят контейнером '$holder' — это другой сайт." >&2
+    echo "       PORT_BASE=$PORT_BASE конфликтует; выбери свободную базу (шаг +20)." >&2
+    exit 1
+  fi
+done
 
 # 1. MinIO bucket для media (same-origin proxy через /media/).
 BUCKET="${SITE_SLUG}-media"
@@ -227,50 +274,137 @@ if [ ! -L "$NGINX_SNIPPETS/${SITE_SLUG}-upstream-active.conf" ]; then
   sudo ln -sf "${SITE_SLUG}-upstream-blue.conf" "$NGINX_SNIPPETS/${SITE_SLUG}-upstream-active.conf"
 fi
 
-# 3. nginx site vhost из template (если ещё нет).
-vhost="$NGINX_CONFD/${PRIMARY_DOMAIN}.conf"
-if [ ! -f "$vhost" ]; then
-  sed -e "s/<PRIMARY_DOMAIN>/${PRIMARY_DOMAIN}/g" \
-      -e "s/<SITE_SLUG>/${SITE_SLUG}/g" \
-      "$TEMPLATE_DIR/conf.d/site.conf.template" \
-      | sudo tee "$vhost" >/dev/null
-  echo "   • generated $vhost"
+# 3. nginx site vhost. Имя файла — по слагу; сайты, заведённые до появления
+# мультидоменности, продолжают жить на своём файле-по-домену.
+if [ -f "$NGINX_CONFD/${PRIMARY_DOMAIN}.conf" ]; then
+  vhost="$NGINX_CONFD/${PRIMARY_DOMAIN}.conf"
+else
+  vhost="$NGINX_CONFD/${SITE_SLUG}.conf"
+fi
+CERT_LIVE="$CERTS_ROOT/live/$CERT_NAME"
 
-  # На самом первом старте серта ещё нет — nginx упадёт. Кладём временный
-  # HTTP-only vhost (только ACME-challenge + redirect), выпускаем серт,
-  # затем переставляем full TLS-vhost.
-  tmp_vhost="$NGINX_CONFD/${PRIMARY_DOMAIN}.conf.tmp"
-  sudo mv "$vhost" "$tmp_vhost"
+# Пока серта нет, TLS-vhost класть нельзя — nginx не стартует без файла серта.
+# Временный HTTP-only vhost отдаёт ACME-челлендж и проксирует сайт как есть,
+# чтобы он был доступен по http:// уже с первого деплоя.
+write_http_only_vhost() {
   sudo tee "$vhost" >/dev/null <<EOF
+# Временный vhost сайта ${SITE_SLUG}: серт ещё не выпущен.
+# deploy.sh заменит его на TLS-версию, как только certbot отработает.
+include /etc/nginx/snippets/${SITE_SLUG}-upstream-active.conf;
+
 server {
     listen 80;
     listen [::]:80;
-    server_name ${PRIMARY_DOMAIN};
+    server_name ${ALL_DOMAINS} www.${PRIMARY_DOMAIN};
+
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
         try_files \$uri =404;
     }
-    location / { return 503 'cert pending'; }
+
+    location = /api/health {
+        include /etc/nginx/snippets/proxy-upstream.conf;
+        proxy_pass http://${SITE_SLUG}_client;
+    }
+    location /admin {
+        include /etc/nginx/snippets/proxy-upstream.conf;
+        proxy_pass http://${SITE_SLUG}_cms;
+    }
+    location /api {
+        include /etc/nginx/snippets/proxy-upstream.conf;
+        proxy_pass http://${SITE_SLUG}_cms;
+    }
+    location / {
+        include /etc/nginx/snippets/proxy-upstream.conf;
+        proxy_pass http://${SITE_SLUG}_client;
+    }
 }
 EOF
+}
+
+# Полный TLS-vhost из шаблона.
+write_tls_vhost() {
+  sed -e "s/<ALL_SERVER_NAMES>/${ALL_DOMAINS}/g" \
+      -e "s/<PRIMARY_DOMAIN>/${PRIMARY_DOMAIN}/g" \
+      -e "s/<CERT_NAME>/${CERT_NAME}/g" \
+      -e "s/<SITE_SLUG>/${SITE_SLUG}/g" \
+      "$TEMPLATE_DIR/conf.d/site.conf.template" \
+    | sudo tee "$vhost" >/dev/null
+}
+
+# Набор доменов в текущем vhost — чтобы поймать добавление/смену домена.
+# Без этого vhost, созданный один раз, навсегда остаётся со старым server_name.
+current_names="$(awk '/^[[:space:]]*server_name/ {sub(/;.*/,""); sub(/^[[:space:]]*server_name[[:space:]]*/,""); print; exit}' "$vhost" 2>/dev/null || true)"
+want_names="$ALL_DOMAINS www.${PRIMARY_DOMAIN}"
+
+if [ ! -f "$vhost" ]; then
+  write_http_only_vhost
+  echo "   • generated $vhost (http-only, серт ещё не выпущен)"
+  docker exec holygrail-nginx nginx -s reload >/dev/null 2>&1 || true
+elif [ "$current_names" != "$want_names" ]; then
+  echo "   • набор доменов изменился: [$current_names] → [$want_names]"
+  if [ -f "$CERT_LIVE/fullchain.pem" ]; then
+    write_tls_vhost
+  else
+    write_http_only_vhost
+  fi
   docker exec holygrail-nginx nginx -s reload >/dev/null 2>&1 || true
 fi
 
 # 4. LE-cert через certbot/certbot docker (webroot challenge).
-if [ ! -f "$CERTS_ROOT/live/${PRIMARY_DOMAIN}/fullchain.pem" ]; then
-  echo "   • issuing LE cert for $PRIMARY_DOMAIN"
-  sudo docker run --rm \
-    -v "$CERTS_ROOT:/etc/letsencrypt" \
-    -v "$WEBROOT:/var/www/certbot" \
-    certbot/certbot:latest certonly \
-    --webroot --webroot-path=/var/www/certbot \
-    -d "$PRIMARY_DOMAIN" \
-    --email "$CERTBOT_EMAIL" --agree-tos --no-eff-email --non-interactive \
-    --keep-until-expiring
+# Выпускаем только на домены, которые уже резолвятся: ACME http-01 требует,
+# чтобы имя указывало на этот хост. Остальные пропускаем с предупреждением —
+# они доедут сами на следующем деплое, когда обновится DNS.
+CERT_DOMAINS=""
+CERT_SKIPPED=""
+for d in $ALL_DOMAINS "www.$PRIMARY_DOMAIN"; do
+  if getent hosts "$d" >/dev/null 2>&1; then
+    CERT_DOMAINS="$CERT_DOMAINS $d"
+  else
+    CERT_SKIPPED="$CERT_SKIPPED $d"
+  fi
+done
+[ -n "$CERT_SKIPPED" ] && echo "   • DNS ещё не резолвится, серт без них:$CERT_SKIPPED"
 
-  # Серт получен — поставить full TLS vhost (если выше клали tmp HTTP-only).
-  if [ -f "$NGINX_CONFD/${PRIMARY_DOMAIN}.conf.tmp" ]; then
-    sudo mv "$NGINX_CONFD/${PRIMARY_DOMAIN}.conf.tmp" "$vhost"
+if [ -z "$CERT_DOMAINS" ]; then
+  echo "   ! ни один домен сайта не резолвится — серт не выпускаем, сайт по http://"
+else
+  # Что уже покрыто текущим сертом (SAN-список).
+  cert_san=""
+  if [ -f "$CERT_LIVE/cert.pem" ]; then
+    cert_san="$(sudo openssl x509 -in "$CERT_LIVE/cert.pem" -noout -text 2>/dev/null \
+                 | tr ',' '\n' | sed -n 's/.*DNS://p' | tr -d ' ' | tr '\n' ' ')"
+  fi
+  need_issue=0
+  for d in $CERT_DOMAINS; do
+    case " $cert_san " in *" $d "*) ;; *) need_issue=1 ;; esac
+  done
+
+  if [ "$need_issue" = 1 ]; then
+    echo "   • issuing LE cert '$CERT_NAME' for:$CERT_DOMAINS"
+    cert_args=""
+    for d in $CERT_DOMAINS; do cert_args="$cert_args -d $d"; done
+    # shellcheck disable=SC2086
+    if sudo docker run --rm \
+        -v "$CERTS_ROOT:/etc/letsencrypt" \
+        -v "$WEBROOT:/var/www/certbot" \
+        certbot/certbot:latest certonly \
+        --webroot --webroot-path=/var/www/certbot \
+        --cert-name "$CERT_NAME" $cert_args --expand \
+        --email "$CERTBOT_EMAIL" --agree-tos --no-eff-email --non-interactive \
+        --keep-until-expiring; then
+      echo "   ✓ cert ok"
+    else
+      # Не валим деплой: контейнеры поднимутся, сайт останется на http://
+      # до следующего прогона. Иначе недоехавший DNS блокирует релиз кода.
+      echo "   ! certbot не смог выпустить серт — деплой продолжается по http://" >&2
+    fi
+  fi
+
+  # Серт на месте, а vhost ещё http-only → переставить на TLS.
+  if [ -f "$CERT_LIVE/fullchain.pem" ] && ! grep -q 'ssl_certificate' "$vhost" 2>/dev/null; then
+    write_tls_vhost
+    echo "   • vhost переключён на TLS"
   fi
 fi
 

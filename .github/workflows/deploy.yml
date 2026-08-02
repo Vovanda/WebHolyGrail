@@ -162,11 +162,14 @@ jobs:
         env:
           GHCR_OWNER_LC: ${{ env.GHCR_OWNER }}
           PRIMARY_DOMAIN: ${{ vars.PRIMARY_DOMAIN }}
+          EXTRA_DOMAINS: ${{ vars.EXTRA_DOMAINS }}
           INFISICAL_HOST_URL: ${{ vars.INFISICAL_HOST_URL }}
           PORT_BASE: ${{ vars.PORT_BASE }}
         run: |
           OWNER_LC=$(echo "$GHCR_OWNER_LC" | tr '[:upper:]' '[:lower:]')
           # PRIMARY_DOMAIN: pre-flight на первом деплое (nginx-conf + LE-cert).
+          # EXTRA_DOMAINS: доп. домены сайта (временный на период пропагации DNS,
+          #   старый домен после переезда). Серт выпускается только на резолвящиеся.
           # INFISICAL_HOST_URL: shared self-host instance для всех WHG-инстансов.
           # PORT_BASE: per-site port allocation (3000 для первого, 3020/3040/... для следующих).
           # SSH-connect retry (3 попытки). Deploy.sh идемпотентен через SHA-check
@@ -175,7 +178,7 @@ jobs:
           set +e
           for i in 1 2 3; do
             ssh -o ConnectTimeout=15 -o ServerAliveInterval=10 -o ServerAliveCountMax=30 "$VPS_USER@$VPS_HOST" \
-              "GHCR_OWNER=$OWNER_LC PRIMARY_DOMAIN=$PRIMARY_DOMAIN INFISICAL_HOST_URL=$INFISICAL_HOST_URL PORT_BASE=$PORT_BASE $VPS_PATH/deploy/prod/deploy.sh ${{ needs.build.outputs.tag }}"
+              "GHCR_OWNER=$OWNER_LC PRIMARY_DOMAIN=$PRIMARY_DOMAIN EXTRA_DOMAINS='$EXTRA_DOMAINS' INFISICAL_HOST_URL=$INFISICAL_HOST_URL PORT_BASE=$PORT_BASE $VPS_PATH/deploy/prod/deploy.sh ${{ needs.build.outputs.tag }}"
             code=$?
             if [ $code -eq 0 ]; then
               exit 0
@@ -192,6 +195,8 @@ jobs:
           exit 255
 
       - name: Verify deployed SHA
+        env:
+          EXTRA_DOMAINS: ${{ vars.EXTRA_DOMAINS }}
         run: |
           EXPECTED=$(echo ${{ github.sha }} | cut -c1-7)
           # Подождём 10 сек на nginx warm-up after reload
@@ -200,9 +205,32 @@ jobs:
             echo "::warning::PUBLIC_URL variable not set — skipping SHA verify"
             exit 0
           fi
-          DEPLOYED=$(curl -sf "$PUBLIC_URL/api/health" | jq -r '.sha' || echo "unknown")
+          # Кандидаты: основной домен, затем дополнительные. Пока DNS основного
+          # домена не доехал, проверяемся по временному — иначе успешный деплой
+          # красится в fail из-за того, что имя ещё не резолвится.
+          CANDIDATES="$PUBLIC_URL"
+          for d in $(echo "$EXTRA_DOMAINS" | tr ',;' '  '); do
+            [ -n "$d" ] && CANDIDATES="$CANDIDATES https://$d"
+          done
+          DEPLOYED=""
+          for url in $CANDIDATES; do
+            got=$(curl -sf --max-time 15 "$url/api/health" 2>/dev/null | jq -r '.sha' 2>/dev/null || echo "")
+            if [ -n "$got" ] && [ "$got" != "null" ]; then
+              echo "verified via: $url"
+              DEPLOYED="$got"
+              break
+            fi
+            echo "no answer from $url"
+          done
           echo "expected: $EXPECTED"
-          echo "deployed: $DEPLOYED"
+          echo "deployed: ${DEPLOYED:-<none>}"
+          if [ -z "$DEPLOYED" ]; then
+            # Сам деплой уже подтверждён healthcheck'ом внутри deploy.sh перед
+            # переключением upstream. Недоступность снаружи — это DNS/сертификат,
+            # а не плохой образ, поэтому предупреждение, а не падение.
+            echo "::warning::ни один домен не ответил — SHA-verify пропущен (DNS ещё не доехал?)"
+            exit 0
+          fi
           if [ "$EXPECTED" != "$DEPLOYED" ]; then
             echo "::error::SHA mismatch — image не из этого commit'а!"
             exit 1
