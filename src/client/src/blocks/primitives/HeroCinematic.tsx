@@ -68,8 +68,8 @@ function Corner({ corner }: { readonly corner: HeroCinematicCorner }) {
   return (
     <div
       className={[
-        'relative inline-block max-w-[220px] px-4 py-3 uppercase leading-snug tracking-wide text-accent-fg',
-        'before:absolute before:bg-accent-fg before:content-[""] after:absolute after:bg-accent-fg after:content-[""]',
+        'relative inline-block max-w-[220px] px-4 py-3 uppercase leading-snug tracking-wide text-accent',
+        'before:absolute before:bg-accent before:content-[""] after:absolute after:bg-accent after:content-[""]',
         EMPHASIS_CLASS[emphasis],
         FRAME_CLASS[position],
       ].join(' ')}
@@ -134,7 +134,7 @@ export function HeroCinematic({
         )}
 
         <div className="flex flex-grow items-center py-4 md:px-[6%]">
-          <h1 className="font-display text-2xl font-bold uppercase leading-tight tracking-wide text-accent-fg [text-shadow:0_2px_8px_rgba(0,0,0,0.5)] md:text-4xl">
+          <h1 className="font-display text-2xl font-bold uppercase leading-tight tracking-wide text-accent [text-shadow:0_2px_8px_rgba(0,0,0,0.5)] md:text-4xl">
             {data.headline}
             {data.highlightHref ? (
               <Link href={data.highlightHref} className="no-underline hover:opacity-80">
@@ -147,7 +147,7 @@ export function HeroCinematic({
         </div>
 
         {data.quote && (
-          <blockquote className="mx-auto max-w-3xl border-y-2 border-accent-fg py-4 text-center font-display text-base italic leading-relaxed text-white/95 md:text-xl">
+          <blockquote className="mx-auto max-w-3xl border-y-2 border-accent py-4 text-center font-display text-base italic leading-relaxed text-white/95 md:text-xl">
             {data.quote}
           </blockquote>
         )}
@@ -156,7 +156,7 @@ export function HeroCinematic({
           <div className="py-4 text-center">
             <Link
               href={data.ctaHref}
-              className="inline-block border-2 border-accent-fg px-8 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-accent-fg transition-all hover:-translate-y-0.5 hover:bg-accent-fg hover:text-dark-block md:px-11 md:py-4"
+              className="inline-block border-2 border-accent px-8 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-accent transition-all hover:-translate-y-0.5 hover:bg-accent hover:text-accent-fg md:px-11 md:py-4"
             >
               {data.ctaLabel}
             </Link>
