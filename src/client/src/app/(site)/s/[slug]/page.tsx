@@ -69,13 +69,24 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
   if (blocks.length > 0 && settings) {
     return (
       <>
-        {blocks.map((block, index) =>
-          renderBlockNode(
-            block as Parameters<typeof renderBlockNode>[0],
-            settings,
-            `${slug}-${index}`,
-          ),
-        )}
+        {blocks.map((block, index) => {
+          // Payload отдаёт поля блока на верхнем уровне, а рендер ждёт их в
+          // `data` — без этой обёртки компоненты видят пустые пропсы и
+          // показывают одни значения по умолчанию.
+          const raw = block as { blockType: string; id?: string };
+          return (
+            <div key={raw.id ?? `${slug}-${index}`}>
+              {renderBlockNode(
+                {
+                  blockType: raw.blockType,
+                  id: raw.id ?? `${slug}-${index}`,
+                  data: raw as unknown as Record<string, unknown>,
+                },
+                settings,
+              )}
+            </div>
+          );
+        })}
       </>
     );
   }
