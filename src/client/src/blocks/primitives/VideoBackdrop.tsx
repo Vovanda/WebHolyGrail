@@ -12,6 +12,11 @@ import { useEffect, useRef } from 'react';
  * Автовоспроизведение работает лишь у беззвучного видео — отсюда `muted`
  * вместе с `autoPlay`. `playsInline` не даёт iOS открыть его на весь экран.
  * Если браузер экономит трафик и видео не стартовало, остаётся постер.
+ *
+ * `preload="metadata"`, а не `auto`: обложка — первый экран, и с `auto` браузер
+ * тянет весь файл до отрисовки страницы. На ролике в 17 МБ это означало пустой
+ * экран на десятки секунд. Метаданных достаточно, дальше видео догружается по
+ * ходу воспроизведения.
  */
 export function VideoBackdrop({
   src,
@@ -37,7 +42,7 @@ export function VideoBackdrop({
       muted
       loop
       playsInline
-      preload="auto"
+      preload="metadata"
       {...(poster ? { poster } : {})}
       aria-hidden="true"
       tabIndex={-1}
