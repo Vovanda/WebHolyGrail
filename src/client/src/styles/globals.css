@@ -13,6 +13,25 @@
   html[data-theme='dark'] {
     color-scheme: dark;
   }
+
+  /*
+   * Аварийные страницы (not-found, error) Next рендерит вне корневого layout, в
+   * скелете `<html id="__next_error__">`. Inline-скрипт темы туда не попадает —
+   * React вставляет его через innerHTML, а такие теги браузер не исполняет.
+   * Пока не отработал JS, идём по системной теме: иначе ночью на тёмном сайте
+   * опечатка в адресе выдавала белый экран во весь экран.
+   */
+  @media (prefers-color-scheme: dark) {
+    html#__next_error__:not([data-theme]) {
+      color-scheme: dark;
+      --color-page-bg: #0a0a0a;
+      --color-bg: #0a0a0a;
+      --color-surface: #171717;
+      --color-ink: #fafafa;
+      --color-muted: #a3a3a3;
+      --color-border: #262626;
+    }
+  }
   body {
     position: relative;
     min-height: 100vh;
