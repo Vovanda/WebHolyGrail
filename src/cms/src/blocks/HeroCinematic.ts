@@ -35,6 +35,27 @@ export const HeroCinematicBlock: Block = {
       },
     },
     {
+      name: 'watermark',
+      label: 'Знак фоном',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        description:
+          'Логотип крупно и полупрозрачно сбоку кадра. Нужен файл с прозрачным фоном — картинка с заливкой перекроет видео квадратом.',
+      },
+    },
+    {
+      name: 'watermarkSide',
+      label: 'Сторона знака',
+      type: 'select',
+      defaultValue: 'right',
+      options: [
+        { label: 'Справа', value: 'right' },
+        { label: 'Слева', value: 'left' },
+      ],
+      admin: { condition: (_, siblingData) => Boolean(siblingData?.['watermark']) },
+    },
+    {
       name: 'brand',
       label: 'Крупная надпись сверху',
       type: 'text',

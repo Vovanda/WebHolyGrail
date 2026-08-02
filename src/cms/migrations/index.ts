@@ -5,6 +5,7 @@ import * as migration_20260725_185004_rich_text_block from './20260725_185004_ri
 import * as migration_20260727_203025_feature_grid_media_and_href from './20260727_203025_feature_grid_media_and_href';
 import * as migration_20260802_140203_hero_cinematic_block from './20260802_140203_hero_cinematic_block';
 import * as migration_20260802_145655_specialists_catalog from './20260802_145655_specialists_catalog';
+import * as migration_20260802_151224_hero_watermark from './20260802_151224_hero_watermark';
 
 export const migrations = [
   {
@@ -41,5 +42,10 @@ export const migrations = [
     up: migration_20260802_145655_specialists_catalog.up,
     down: migration_20260802_145655_specialists_catalog.down,
     name: '20260802_145655_specialists_catalog',
+  },
+  {
+    up: migration_20260802_151224_hero_watermark.up,
+    down: migration_20260802_151224_hero_watermark.down,
+    name: '20260802_151224_hero_watermark',
   },
 ];

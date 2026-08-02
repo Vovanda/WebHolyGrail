@@ -29,6 +29,8 @@ export interface HeroCinematicCorner {
 export interface HeroCinematicData {
   readonly videoUrl?: string;
   readonly poster?: MediaRef | null;
+  readonly watermark?: MediaRef | null;
+  readonly watermarkSide?: 'left' | 'right';
   readonly brand?: string;
   readonly headline?: string;
   readonly highlightLabel?: string;
@@ -112,6 +114,22 @@ export function HeroCinematic({
           alt=""
           aria-hidden="true"
           className="absolute inset-0 h-full w-full object-cover"
+        />
+      )}
+
+      {/* Знак фоном: крупно, приглушённо, наполовину за краем кадра — читается
+          как фактура, а не как ещё один элемент, спорящий с заголовком.
+          Прячем на узких экранах: там он налезает на текст. */}
+      {mediaUrl(data.watermark) && (
+        // eslint-disable-next-line @next/next/no-img-element -- декоративный слой, размеры задаёт секция
+        <img
+          src={mediaUrl(data.watermark)}
+          alt=""
+          aria-hidden="true"
+          className={[
+            'pointer-events-none absolute top-1/2 hidden w-[46%] max-w-[560px] -translate-y-1/2 opacity-[0.14] mix-blend-luminosity md:block',
+            (data.watermarkSide ?? 'right') === 'left' ? '-left-[8%]' : '-right-[8%]',
+          ].join(' ')}
         />
       )}
 
