@@ -181,13 +181,13 @@ export function HeroCinematic({
         ) : null}
 
         {!mediaUrl(data.logo) && data.brand && (
-          <p className="py-2 text-center font-display text-3xl font-black uppercase tracking-[0.15em] text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.6)] md:text-5xl">
+          <p className="py-2 text-center font-display text-3xl font-black uppercase tracking-[0.15em] text-white dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.6)] md:text-5xl">
             {data.brand}
           </p>
         )}
 
         <div className="flex flex-grow items-center py-4 md:px-[6%]">
-          <h1 className="font-display text-2xl font-bold uppercase leading-tight tracking-wide text-accent [text-shadow:0_2px_10px_rgba(0,0,0,0.6)] md:text-4xl">
+          <h1 className="font-display text-2xl font-bold uppercase leading-tight tracking-wide text-accent dark:[text-shadow:0_2px_10px_rgba(0,0,0,0.6)] md:text-4xl">
             {data.headline}
             {data.highlightHref ? (
               <Link href={data.highlightHref} className="no-underline hover:opacity-80">
