@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { getSiteSettings, getSpecialistBySlug, type SpecialistDoc } from '@/lib/api-client';
 import { renderBlockNode } from '@/layouts/site-layout';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
+import { RatingStars } from '@/blocks/primitives/RatingStars';
 
 /**
  * /s/[slug] — личная страница специалиста. SSR (R14).
@@ -162,8 +163,10 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
               {(doc.city as { name?: string }).name}
             </p>
           )}
-          {doc.ratingPublic && typeof doc.rating === 'number' && (
-            <p className="mt-2 text-sm text-ink">Оценка {doc.rating.toFixed(1)} из 5</p>
+          {doc.ratingPublic && typeof doc.rating === 'number' && doc.rating > 0 && (
+            <p className="mt-2">
+              <RatingStars value={doc.rating} showValue />
+            </p>
           )}
         </div>
       </header>

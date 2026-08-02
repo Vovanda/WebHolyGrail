@@ -10,6 +10,7 @@ import {
   type SpecialistDoc,
 } from '@/lib/api-client';
 
+import { RatingStars } from './RatingStars';
 import { SpecialistTop, type TopCity, type TopPerson } from './SpecialistTop';
 
 /**
@@ -91,6 +92,9 @@ function Card({ doc }: { readonly doc: SpecialistDoc }) {
       )}
       <div className="flex flex-1 flex-col gap-1 p-4">
         <h3 className="font-display text-lg font-semibold text-ink">{doc.fullName}</h3>
+        {doc.ratingPublic && typeof doc.rating === 'number' && doc.rating > 0 && (
+          <RatingStars value={doc.rating} />
+        )}
         {doc.headline && <p className="text-sm text-muted">{doc.headline}</p>}
         {disciplines.length > 0 && (
           <p className="mt-2 text-sm text-ink/80">{disciplines.join(' · ')}</p>
@@ -202,6 +206,9 @@ async function TopView({ data }: { readonly data: SpecialistDirectoryData }) {
     ...(photoUrl(doc) ? { photoUrl: photoUrl(doc)! } : {}),
     disciplines: (doc.disciplines ?? []).map((d) => d.title ?? '').filter(Boolean),
     cityId: cityIdOf(doc),
+    // Закрытая оценка не уезжает на клиент даже в пропсах: скрыта — значит её
+    // не должно быть видно и в исходниках страницы.
+    ...(doc.ratingPublic && typeof doc.rating === 'number' ? { rating: doc.rating } : {}),
   }));
   const cityList: TopCity[] = cities.map((c) => ({
     id: String(c.id),

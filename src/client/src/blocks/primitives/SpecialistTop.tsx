@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import { RatingStars } from './RatingStars';
+
 /**
  * SpecialistTop — топ специалистов с переключателем городов.
  *
@@ -28,6 +30,8 @@ export interface TopPerson {
   readonly photoUrl?: string;
   readonly disciplines: readonly string[];
   readonly cityId: string | null;
+  /** Показываем, только если владелец карточки открыл оценку. */
+  readonly rating?: number;
 }
 
 export interface TopCity {
@@ -154,6 +158,7 @@ export function SpecialistTop({
                 )}
                 <div className="flex flex-1 flex-col gap-1 p-4">
                   <h3 className="font-display text-lg font-semibold text-ink">{p.fullName}</h3>
+                  {typeof p.rating === 'number' && p.rating > 0 && <RatingStars value={p.rating} />}
                   {p.headline && <p className="text-sm text-muted">{p.headline}</p>}
                   {p.disciplines.length > 0 && (
                     <p className="mt-2 text-sm text-ink/80">{p.disciplines.join(' · ')}</p>

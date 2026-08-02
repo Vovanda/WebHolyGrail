@@ -5,6 +5,7 @@ import { listCities, listSpecialists, type CityDoc, type SpecialistDoc } from '@
 
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { CatalogFilters } from '@/blocks/primitives/CatalogFilters';
+import { RatingStars } from '@/blocks/primitives/RatingStars';
 
 /**
  * /specialists — полный список специалистов с фильтром по городу.
@@ -53,6 +54,9 @@ function Card({ doc }: { readonly doc: SpecialistDoc }) {
         )}
         <div className="flex flex-1 flex-col gap-1 p-4">
           <h2 className="font-display text-lg font-semibold text-ink">{doc.fullName}</h2>
+          {doc.ratingPublic && typeof doc.rating === 'number' && doc.rating > 0 && (
+            <RatingStars value={doc.rating} />
+          )}
           {doc.headline && <p className="text-sm text-muted">{doc.headline}</p>}
           {disciplines.length > 0 && (
             <p className="mt-2 text-sm text-ink/80">{disciplines.join(' · ')}</p>
