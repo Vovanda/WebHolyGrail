@@ -42,8 +42,11 @@ export const CtaBannerBlock: Block = {
           label: 'Secondary CTA (transparent outline)',
           type: 'group',
           fields: [
-            { name: 'label', type: 'text', defaultValue: 'Документация' },
-            { name: 'href', type: 'text', defaultValue: '#' },
+            // Без defaultValue: заполненная по умолчанию вторая кнопка появлялась
+            // на сайте сама и вела в «#» — то есть каждый инстанс получал ссылку
+            // на документацию движка прямо в CTA-баннере.
+            { name: 'label', type: 'text' },
+            { name: 'href', type: 'text' },
           ],
         },
       ],

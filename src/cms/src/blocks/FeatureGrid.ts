@@ -42,7 +42,16 @@ export const FeatureGridBlock: Block = {
       minRows: 2,
       maxRows: 12,
       fields: [
-        { name: 'icon', label: 'Иконка (emoji или lucide-имя)', type: 'text', required: true },
+        {
+          name: 'icon',
+          label: 'Иконка (emoji)',
+          type: 'text',
+          required: true,
+          admin: {
+            description:
+              'Emoji — например 🎯 или 👥. На сайте подменяется на чистую SVG-иконку. Имя lucide-иконки текстом не работает: оно отрендерится как есть.',
+          },
+        },
         { name: 'title', label: 'Заголовок карточки', type: 'text', required: true },
         { name: 'subtitle', label: 'Подзаголовок (1 строка)', type: 'text' },
         { name: 'description', label: 'Описание (1 строка)', type: 'text' },

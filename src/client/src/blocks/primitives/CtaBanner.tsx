@@ -60,7 +60,9 @@ export function CtaBanner({
                 <ArrowRight size={16} />
               </Link>
             )}
-            {ctaSecondary && (
+            {/* Именно по label+href, а не по самому объекту: Payload отдаёт группу
+                и когда она пустая, и тогда на сайте появлялась кнопка без текста. */}
+            {ctaSecondary?.label && ctaSecondary.href && (
               <Link
                 href={ctaSecondary.href}
                 target={ctaSecondary.href.startsWith('http') ? '_blank' : undefined}

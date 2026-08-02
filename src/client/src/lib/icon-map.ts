@@ -33,6 +33,13 @@ import {
   Clock,
   Globe,
   Wrench,
+  Dumbbell,
+  Bike,
+  Trees,
+  Salad,
+  HeartPulse,
+  Footprints,
+  Timer,
   Key,
 } from 'lucide-react';
 
@@ -96,6 +103,14 @@ export const ICON_MAP: Record<string, LucideIcon> = {
   '🕒': Clock,
   '🌐': Globe,
   '🔧': Wrench,
+  // Спорт, тренировки, здоровье
+  '🏋️': Dumbbell,
+  '🚴': Bike,
+  '🌳': Trees,
+  '🥗': Salad,
+  '❤️': HeartPulse,
+  '👟': Footprints,
+  '⏱️': Timer,
 };
 
 /**

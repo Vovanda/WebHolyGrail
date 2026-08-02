@@ -20,7 +20,8 @@ import type { BlockNode, SiteSettings } from 'contracts';
  * Если `docsLinks` / `projectLinks` не заданы — футер показывает пункты меню
  * (`footerNav`, иначе `mainNav`). Никаких ссылок на движок в дефолте: сайт на
  * WHG не должен выглядеть как витрина WHG. Единственное упоминание — подпись
- * «Built on Web Holy Grail» в нижней строке.
+ * «Built on Web Holy Grail» в нижней строке, как это делают Ghost и прочие
+ * платформы; снимается через `engineCredit: false`.
  */
 
 export interface FooterData {
@@ -30,6 +31,12 @@ export interface FooterData {
   readonly projectLinks?: readonly { readonly label: string; readonly href: string }[];
   /** Приписка рядом с копирайтом: «MIT License», «ИП Иванов», «18+». */
   readonly legal?: string;
+  /**
+   * Подпись «Built on Web Holy Grail» в нижней строке. По умолчанию показывается —
+   * это стандартная атрибуция движка. Убирается осознанно, явным `false`:
+   * например когда заказчик не хочет упоминания платформы на своём сайте.
+   */
+  readonly engineCredit?: boolean;
 }
 
 export function Footer({
@@ -138,19 +145,21 @@ export function Footer({
             © {year} {siteName}
             {data.legal ? ` · ${data.legal}` : ''}
           </div>
-          <div>
-            Built on{' '}
-            {/* Ведём на сайт движка, а не в репозиторий: посетителю чужого
-                сайта нужен рассказ о платформе, а не исходники. */}
-            <a
-              href="https://whg.sawking.tech/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-ink transition-colors underline-offset-2 hover:underline"
-            >
-              Web Holy Grail
-            </a>
-          </div>
+          {data.engineCredit !== false && (
+            <div>
+              Built on{' '}
+              {/* Ведём на сайт движка, а не в репозиторий: посетителю чужого
+                  сайта нужен рассказ о платформе, а не исходники. */}
+              <a
+                href="https://whg.sawking.tech/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-ink transition-colors underline-offset-2 hover:underline"
+              >
+                Web Holy Grail
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </footer>
