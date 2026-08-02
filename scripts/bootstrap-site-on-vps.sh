@@ -73,11 +73,12 @@ API() {
     "$@"
 }
 
-# Try to find existing project. v2 API: GET /api/v2/workspace?organizationId=...
+# Список проектов: GET /api/v1/workspace. Прежний `/api/v2/workspace?organizationId=`
+# отвечает 404 — маршрута нет, то есть поиск существующего проекта не работал
+# никогда и каждый прогон создавал дубль (Infisical дописываетslug суффикс).
 # Через jq, а не grep по сырому JSON: порядок полей в ответе не гарантирован, а
-# `grep` без совпадения под `set -euo pipefail` убивал весь скрипт молча — ровно
-# в основном сценарии, когда проекта ещё нет.
-EXISTING=$(API "$INFISICAL_HOST_URL/api/v2/workspace?organizationId=$INFISICAL_ADMIN_ORG_ID" \
+# `grep` без совпадения под `set -euo pipefail` убивал весь скрипт молча.
+EXISTING=$(API "$INFISICAL_HOST_URL/api/v1/workspace" \
   | jq -r --arg name "$PROJECT_NAME" \
       'first(.workspaces[]? | select(.name == $name) | .id) // empty' 2>/dev/null || true)
 
@@ -103,7 +104,10 @@ echo
 echo "→ Infisical: ensure UA identity '$SLUG-deploy'"
 
 IDENTITY_NAME="${SLUG}-deploy"
-EXISTING_IDENT=$(API "$INFISICAL_HOST_URL/api/v1/workspace/$PROJECT_ID/identity-memberships" \
+# Identity живёт на уровне организации, а не проекта: прежний
+# `/api/v1/workspace/<id>/identity-memberships` отвечает 404, поэтому «уже
+# существует» не срабатывало и каждый прогон плодил новую identity.
+EXISTING_IDENT=$(API "$INFISICAL_HOST_URL/api/v2/organizations/$INFISICAL_ADMIN_ORG_ID/identity-memberships" \
   | jq -r --arg name "$IDENTITY_NAME" \
       'first(.identityMemberships[]? | select(.identity.name == $name) | .identity.id) // empty' 2>/dev/null || true)
 
