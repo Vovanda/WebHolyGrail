@@ -18,7 +18,10 @@ import { ContentFrame } from '@/layouts/ContentFrame';
  * Контент пока plain-text-абзацы (split по `\n\n`). Когда понадобится — заменим
  * на rich-text-renderer для Lexical-AST из Payload (Шаг 4.4+).
  */
-const proseRoot = cva('relative px-6 md:px-10 text-left', {
+// max-w-[68ch]: строка длиннее ~75 символов теряется при переносе — глаз не
+// находит начало следующей. В ландшафте на телефоне без ограничения строка
+// уходила за сотню символов на всю ширину экрана.
+const proseRoot = cva('relative mx-auto max-w-[68ch] px-6 md:px-10 text-left', {
   variants: {
     variant: {
       'editorial-with-dropcap':

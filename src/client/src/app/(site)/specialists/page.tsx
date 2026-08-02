@@ -136,9 +136,13 @@ export default async function SpecialistsPage({ searchParams }: { searchParams: 
       ) : (
         <div
           className={
-            people.length < 3
-              ? 'grid max-w-3xl gap-4 sm:grid-cols-2'
-              : 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
+            // Одна карточка в двухколоночной сетке садится в левую колонку, и
+            // половина экрана остаётся пустой — заметнее всего в ландшафте.
+            people.length === 1
+              ? 'grid max-w-sm gap-4'
+              : people.length === 2
+                ? 'grid max-w-3xl gap-4 sm:grid-cols-2'
+                : 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
           }
         >
           {people.map((doc) => (

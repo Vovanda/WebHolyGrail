@@ -56,9 +56,15 @@ function WaveSep({ flipped }: { readonly flipped: boolean }) {
   );
 }
 
+/**
+ * Разделители не добавляют собственный воздух: секции вокруг уже отбиты своими
+ * отступами, и padding у разделителя складывался с ними — между блоками
+ * набегало под 190px пустоты, разделитель повисал в середине этого поля вместо
+ * того, чтобы отмечать границу.
+ */
 function LineSep() {
   return (
-    <div aria-hidden className="py-8 md:py-10 w-full">
+    <div aria-hidden className="w-full">
       <div className="mx-auto max-w-wide px-4 sm:px-6">
         <div className="h-px w-full bg-border" />
       </div>
@@ -68,7 +74,7 @@ function LineSep() {
 
 function DotsSep() {
   return (
-    <div aria-hidden className="py-8 md:py-10 w-full flex items-center justify-center gap-2">
+    <div aria-hidden className="w-full flex items-center justify-center gap-2">
       <span className="h-1 w-1 rounded-full bg-border" />
       <span className="h-1.5 w-1.5 rounded-full bg-border" />
       <span className="h-2 w-2 rounded-full bg-accent" />
@@ -82,7 +88,7 @@ function DotsSep() {
 
 function GradientSep() {
   return (
-    <div aria-hidden className="py-6 md:py-8 w-full">
+    <div aria-hidden className="w-full">
       <div
         className="h-px w-full"
         style={{

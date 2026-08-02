@@ -138,9 +138,13 @@ export function SpecialistTop({
       ) : (
         <div
           className={
-            shown.length < 3
-              ? 'mx-auto grid max-w-3xl gap-4 sm:grid-cols-2'
-              : 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
+            // Одна карточка в двухколоночной сетке садится в левую колонку, и
+            // половина экрана остаётся пустой — заметнее всего в ландшафте.
+            shown.length === 1
+              ? 'mx-auto grid max-w-sm gap-4'
+              : shown.length === 2
+                ? 'mx-auto grid max-w-3xl gap-4 sm:grid-cols-2'
+                : 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
           }
         >
           {shown.map((p) => (
