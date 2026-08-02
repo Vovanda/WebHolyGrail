@@ -79,7 +79,7 @@ function Corner({ corner }: { readonly corner: HeroCinematicCorner }) {
     >
       {corner.title}
       {corner.subtitle && (
-        <span className="mt-1 block text-[11px] font-normal normal-case leading-tight tracking-normal text-white/90 md:mt-1.5 md:text-sm">
+        <span className="mt-1 block text-[11px] font-normal normal-case leading-tight tracking-normal text-ink/85 md:mt-1.5 md:text-sm">
           {corner.subtitle}
         </span>
       )}
@@ -105,8 +105,18 @@ export function HeroCinematic({
     </span>
   );
 
+  // Тон обложки: фон страницы, притемнённый и слегка подкрашенный акцентом. На
+  // светлой теме выходит тёплый серый, на тёмной — почти чёрный с золотым
+  // отливом. Притемняем именно чёрным, а не цветом текста: текст в тёмной теме
+  // светлый и осветлил бы обложку вместо того, чтобы её углубить.
+  //
+  // Чистый фон страницы делал обложку невидимой заготовкой, жёстко тёмный —
+  // вставкой с чужого сайта поверх белой страницы.
+  const tint =
+    'color-mix(in srgb, color-mix(in srgb, var(--color-bg) 82%, #000) 94%, var(--color-accent))';
+
   return (
-    <section className="relative w-full overflow-hidden bg-dark-block">
+    <section className="relative w-full overflow-hidden" style={{ backgroundColor: tint }}>
       {data.videoUrl && <VideoBackdrop src={data.videoUrl} {...(poster ? { poster } : {})} />}
       {!data.videoUrl && poster && (
         // eslint-disable-next-line @next/next/no-img-element -- фон обложки, размеры задаёт секция
@@ -134,19 +144,20 @@ export function HeroCinematic({
         />
       )}
 
-      {/* Виньетка: гасит края кадра, чтобы текст читался поверх любого видео.
-          Цвет — из палитры, а не жёсткий чёрный: на чёрно-золотом сайте края
-          уходят в тёплый чёрный бренда, на синем — в синий.
+      {/* Виньетка: гасит кадр к краям тем же тоном, что и фон обложки, — видео
+          проступает в центре и уходит в подложку по краю.
+
+          В центре плёнка слабая, но есть: без неё текст держится только на
+          удачном кадре, а видео меняют.
 
           Градиент задан inline, а не классом: Tailwind не разбирает запятые
           внутри вложенного color-mix() и молча не выдаёт правило — виньетка
-          просто исчезает. */}
+          тогда исчезает совсем. */}
       <div
         aria-hidden="true"
         className="absolute inset-0"
         style={{
-          background:
-            'radial-gradient(ellipse at center, transparent 30%, color-mix(in srgb, var(--color-dark-block) 80%, transparent) 70%, var(--color-dark-block) 100%)',
+          background: `radial-gradient(ellipse at center, color-mix(in srgb, ${tint} 30%, transparent) 0%, color-mix(in srgb, ${tint} 75%, transparent) 62%, ${tint} 100%)`,
         }}
       />
 
@@ -168,13 +179,13 @@ export function HeroCinematic({
         ) : null}
 
         {!mediaUrl(data.logo) && data.brand && (
-          <p className="py-2 text-center font-display text-3xl font-black uppercase tracking-[0.15em] text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.5)] md:text-5xl">
+          <p className="py-2 text-center font-display text-3xl font-black uppercase tracking-[0.15em] text-ink [text-shadow:0_2px_14px_var(--color-bg)] md:text-5xl">
             {data.brand}
           </p>
         )}
 
         <div className="flex flex-grow items-center py-4 md:px-[6%]">
-          <h1 className="font-display text-2xl font-bold uppercase leading-tight tracking-wide text-accent [text-shadow:0_2px_8px_rgba(0,0,0,0.5)] md:text-4xl">
+          <h1 className="font-display text-2xl font-bold uppercase leading-tight tracking-wide text-accent [text-shadow:0_2px_12px_var(--color-bg)] md:text-4xl">
             {data.headline}
             {data.highlightHref ? (
               <Link href={data.highlightHref} className="no-underline hover:opacity-80">
@@ -187,7 +198,7 @@ export function HeroCinematic({
         </div>
 
         {data.quote && (
-          <blockquote className="mx-auto max-w-3xl border-y-2 border-accent py-4 text-center text-base leading-relaxed text-white/95 md:text-lg">
+          <blockquote className="mx-auto max-w-3xl border-y-2 border-accent py-4 text-center text-base leading-relaxed text-ink/90 md:text-lg">
             {data.quote}
           </blockquote>
         )}
