@@ -56,6 +56,13 @@ export function SpecialistTop({
   const withPeople = cities.filter((c) => people.some((p) => p.cityId === c.id));
   const fallback = defaultCityId ?? withPeople[0]?.id ?? null;
   const [cityId, setCityId] = useState<string | null>(fallback);
+  const [skill, setSkill] = useState<string>('');
+
+  // Направления собираем из самих карточек: справочник не нужен, список растёт
+  // вместе с людьми.
+  const skills = [...new Set(people.flatMap((p) => p.disciplines))].sort((a, b) =>
+    a.localeCompare(b, 'ru'),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -79,29 +86,48 @@ export function SpecialistTop({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const shown = people.filter((p) => (cityId ? p.cityId === cityId : true)).slice(0, limit);
+  const shown = people
+    .filter((p) => (cityId ? p.cityId === cityId : true))
+    .filter((p) => (skill ? p.disciplines.includes(skill) : true))
+    .slice(0, limit);
 
-  const chip = 'rounded-full border px-4 py-2 text-sm transition-colors';
-  const on = 'border-accent bg-accent text-accent-fg';
-  const off = 'border-border text-ink hover:border-accent';
+  const select =
+    'rounded-md border border-border bg-bg px-3 py-2 text-ink outline-none focus:border-accent';
 
   return (
     <>
-      {withPeople.length > 1 && (
-        <div className="mb-6 flex flex-wrap justify-center gap-2">
-          {withPeople.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => setCityId(c.id)}
-              className={`${chip} ${cityId === c.id ? on : off}`}
-              aria-pressed={cityId === c.id}
+      <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
+        {withPeople.length > 1 && (
+          <label className="flex items-center gap-2 text-sm text-muted">
+            Город
+            <select
+              className={select}
+              value={cityId ?? ''}
+              onChange={(e) => setCityId(e.target.value || null)}
             >
-              {c.name}
-            </button>
-          ))}
-        </div>
-      )}
+              <option value="">Все</option>
+              {withPeople.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {skills.length > 0 && (
+          <label className="flex items-center gap-2 text-sm text-muted">
+            Направление
+            <select className={select} value={skill} onChange={(e) => setSkill(e.target.value)}>
+              <option value="">Все</option>
+              {skills.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
 
       {shown.length === 0 ? (
         <p className="text-center text-muted">{emptyText ?? 'Скоро здесь появятся специалисты.'}</p>

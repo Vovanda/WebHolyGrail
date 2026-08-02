@@ -3,6 +3,8 @@ import Link from 'next/link';
 
 import { listCities, listSpecialists, type CityDoc, type SpecialistDoc } from '@/lib/api-client';
 
+import { CatalogFilters } from '@/blocks/primitives/CatalogFilters';
+
 /**
  * /specialists — полный список специалистов с фильтром по городу.
  *
@@ -21,7 +23,7 @@ export const metadata: Metadata = {
   description: 'Эксперты сообщества: выберите город и направление.',
 };
 
-type Search = { city?: string; skill?: string; all?: string };
+type Search = { city?: string; skill?: string };
 
 function photoUrl(doc: SpecialistDoc): string | undefined {
   const photo = doc.photo;
@@ -54,11 +56,6 @@ function Card({ doc }: { readonly doc: SpecialistDoc }) {
           {disciplines.length > 0 && (
             <p className="mt-2 text-sm text-ink/80">{disciplines.join(' · ')}</p>
           )}
-          {doc.acceptingClients === false && (
-            <p className="mt-auto pt-3 text-xs uppercase tracking-wide text-muted">
-              Сейчас не набирает
-            </p>
-          )}
         </div>
       </article>
     </Link>
@@ -66,13 +63,9 @@ function Card({ doc }: { readonly doc: SpecialistDoc }) {
 }
 
 export default async function SpecialistsPage({ searchParams }: { searchParams: Promise<Search> }) {
-  const { city: citySlug, skill, all } = await searchParams;
-  const showBusy = all === '1';
+  const { city: citySlug, skill } = await searchParams;
 
-  const [cities, everyone] = await Promise.all([
-    listCities(),
-    listSpecialists({ limit: 200, ...(showBusy ? {} : { onlyAccepting: true }) }),
-  ]);
+  const [cities, everyone] = await Promise.all([listCities(), listSpecialists({ limit: 200 })]);
 
   const activeCity = citySlug ? cities.find((c) => c.slug === citySlug) : undefined;
 
@@ -86,74 +79,19 @@ export default async function SpecialistsPage({ searchParams }: { searchParams: 
     .filter((doc) => (activeCity ? cityIdOf(doc) === String(activeCity.id) : true))
     .filter((doc) => (skill ? (doc.disciplines ?? []).some((d) => d.title === skill) : true));
 
-  const chip = 'rounded-full border px-4 py-2 text-sm no-underline transition-colors';
-  const chipOn = 'border-accent bg-accent text-accent-fg';
-  const chipOff = 'border-border text-ink hover:border-accent';
-  /** Собирает адрес фильтра, сохраняя остальные выбранные условия. */
-  const link = (next: Partial<Search>) => {
-    const params = new URLSearchParams();
-    const city = next.city !== undefined ? next.city : citySlug;
-    const sk = next.skill !== undefined ? next.skill : skill;
-    const busy = next.all !== undefined ? next.all : showBusy ? '1' : '';
-    if (city) params.set('city', city);
-    if (sk) params.set('skill', sk);
-    if (busy) params.set('all', '1');
-    const qs = params.toString();
-    return qs ? `/specialists?${qs}` : '/specialists';
-  };
-
   return (
     <div className="mx-auto max-w-wide px-4 py-10 md:px-6 md:py-14">
       <header className="mb-8">
         <h1 className="font-display text-3xl font-semibold text-ink md:text-4xl">Эксперты</h1>
         <p className="mt-2 text-muted">
-          {activeCity ? activeCity.name : 'Все города'} · {skill ?? 'все направления'} ·{' '}
-          {showBusy ? 'включая занятых' : 'только те, кто берёт новых'}
+          {activeCity ? activeCity.name : 'Все города'} · {skill ?? 'все направления'}
         </p>
       </header>
 
-      {cities.length > 0 && (
-        <nav aria-label="Фильтр по городу" className="mb-6 flex flex-wrap gap-2">
-          <Link href={link({ city: '' })} className={`${chip} ${activeCity ? chipOff : chipOn}`}>
-            Все города
-          </Link>
-          {cities.map((c) => (
-            <Link
-              key={String(c.id)}
-              href={link({ city: c.slug ?? '' })}
-              className={`${chip} ${activeCity?.id === c.id ? chipOn : chipOff}`}
-            >
-              {c.name}
-            </Link>
-          ))}
-        </nav>
-      )}
-
-      {skills.length > 0 && (
-        <nav aria-label="Фильтр по направлению" className="mb-6 flex flex-wrap gap-2">
-          <Link href={link({ skill: '' })} className={`${chip} ${skill ? chipOff : chipOn}`}>
-            Все направления
-          </Link>
-          {skills.map((title) => (
-            <Link
-              key={title}
-              href={link({ skill: title })}
-              className={`${chip} ${skill === title ? chipOn : chipOff}`}
-            >
-              {title}
-            </Link>
-          ))}
-        </nav>
-      )}
-
-      <p className="mb-6">
-        <Link
-          href={link({ all: showBusy ? '' : '1' })}
-          className="text-sm text-accent underline-offset-2 hover:underline"
-        >
-          {showBusy ? 'Показать только тех, кто берёт новых' : 'Показать всех, включая занятых'}
-        </Link>
-      </p>
+      <CatalogFilters
+        cities={cities.map((c) => ({ slug: c.slug ?? '', name: c.name }))}
+        skills={skills}
+      />
 
       {people.length === 0 ? (
         <p className="text-muted">
