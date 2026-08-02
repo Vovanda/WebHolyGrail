@@ -10,6 +10,8 @@ import {
   type SpecialistDoc,
 } from '@/lib/api-client';
 
+import { SpecialistTop, type TopCity, type TopPerson } from './SpecialistTop';
+
 /**
  * SpecialistDirectory — каталог людей, сгруппированный по городам.
  *
@@ -23,7 +25,8 @@ import {
  * стабильный порядок — это молчаливое «этот главный».
  */
 export interface SpecialistDirectoryData {
-  readonly view?: 'people' | 'cities';
+  readonly view?: 'people' | 'cities' | 'top';
+  readonly defaultCity?: { readonly id?: string | number } | string | number | null;
   readonly moreLabel?: string;
   readonly moreHref?: string;
   readonly heading?: string;
@@ -180,6 +183,58 @@ async function CitiesView({ data }: { readonly data: SpecialistDirectoryData }) 
   );
 }
 
+/**
+ * Топ с переключателем городов. Отбор и сортировка — здесь, на сервере;
+ * клиенту уходит готовый список, он только переключает город.
+ */
+async function TopView({ data }: { readonly data: SpecialistDirectoryData }) {
+  const [cities, everyone] = await Promise.all([
+    listCities(),
+    listSpecialists({ ...(data.onlyAccepting ? { onlyAccepting: true } : {}), limit: 200 }),
+  ]);
+
+  const ranked = [...everyone].sort((a, b) => score(b) - score(a));
+  const people: TopPerson[] = ranked.map((doc) => ({
+    id: String(doc.id),
+    fullName: doc.fullName,
+    ...(doc.headline ? { headline: doc.headline } : {}),
+    ...(doc.slug ? { slug: doc.slug } : {}),
+    ...(photoUrl(doc) ? { photoUrl: photoUrl(doc)! } : {}),
+    disciplines: (doc.disciplines ?? []).map((d) => d.title ?? '').filter(Boolean),
+    cityId: cityIdOf(doc),
+  }));
+  const cityList: TopCity[] = cities.map((c) => ({
+    id: String(c.id),
+    name: c.name,
+    ...(c.slug ? { slug: c.slug } : {}),
+  }));
+
+  const fallback = data.defaultCity;
+  const defaultCityId =
+    fallback && typeof fallback === 'object'
+      ? String(fallback.id ?? '')
+      : fallback
+        ? String(fallback)
+        : null;
+
+  return (
+    <section id="specialists" className="bg-bg py-10 md:py-14">
+      <div className="mx-auto max-w-wide px-4 md:px-6">
+        <Header data={data} />
+        <SpecialistTop
+          people={people}
+          cities={cityList}
+          defaultCityId={defaultCityId}
+          limit={data.limit ?? 6}
+          moreLabel={data.moreLabel}
+          moreHref={data.moreHref}
+          emptyText={data.emptyText}
+        />
+      </div>
+    </section>
+  );
+}
+
 /** Русские окончания: 1 специалист, 2 специалиста, 5 специалистов. */
 function plural(n: number, one: string, few: string, many: string): string {
   const mod10 = n % 10;
@@ -197,6 +252,7 @@ export async function SpecialistDirectory({
 }) {
   const data = node.data ?? {};
   if (data.view === 'cities') return <CitiesView data={data} />;
+  if (data.view === 'top') return <TopView data={data} />;
   const [cities, specialists] = await Promise.all([
     listCities(),
     listSpecialists({

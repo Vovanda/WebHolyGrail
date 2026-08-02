@@ -21,6 +21,7 @@ export const SpecialistDirectoryBlock: Block = {
       options: [
         { label: 'Людей — карточки специалистов', value: 'people' },
         { label: 'Города — сколько в каждом и куда перейти', value: 'cities' },
+        { label: 'Топ с переключателем городов', value: 'top' },
       ],
       admin: {
         description:
@@ -95,6 +96,17 @@ export const SpecialistDirectoryBlock: Block = {
       label: 'Если никого нет',
       type: 'text',
       defaultValue: 'Скоро здесь появятся специалисты.',
+    },
+    {
+      name: 'defaultCity',
+      label: 'Город по умолчанию',
+      type: 'relationship',
+      relationTo: 'cities',
+      admin: {
+        condition: (_, siblingData) => siblingData?.['view'] === 'top',
+        description:
+          'Показывается, если город посетителя определить не удалось или в нём ещё нет специалистов.',
+      },
     },
   ],
 };
