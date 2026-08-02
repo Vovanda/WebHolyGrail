@@ -10,6 +10,8 @@ import * as migration_20260802_153624_hero_logo_and_custom_markup from './202608
 import * as migration_20260802_170844_directory_view from './20260802_170844_directory_view';
 import * as migration_20260802_175355_directory_top from './20260802_175355_directory_top';
 import * as migration_20260802_182254_request_form_anchor from './20260802_182254_request_form_anchor';
+import * as migration_20260802_193450_specialist_youtube from './20260802_193450_specialist_youtube';
+import * as migration_20260802_193614_drop_specialist_site from './20260802_193614_drop_specialist_site';
 
 export const migrations = [
   {
@@ -71,5 +73,15 @@ export const migrations = [
     up: migration_20260802_182254_request_form_anchor.up,
     down: migration_20260802_182254_request_form_anchor.down,
     name: '20260802_182254_request_form_anchor',
+  },
+  {
+    up: migration_20260802_193450_specialist_youtube.up,
+    down: migration_20260802_193450_specialist_youtube.down,
+    name: '20260802_193450_specialist_youtube',
+  },
+  {
+    up: migration_20260802_193614_drop_specialist_site.up,
+    down: migration_20260802_193614_drop_specialist_site.down,
+    name: '20260802_193614_drop_specialist_site',
   },
 ];

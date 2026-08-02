@@ -58,7 +58,7 @@ const CONTACT_LABEL: Record<string, string> = {
   telegram: 'Telegram',
   whatsapp: 'WhatsApp',
   vk: 'ВКонтакте',
-  site: 'Сайт',
+  youtube: 'YouTube',
 };
 
 /**
@@ -81,7 +81,7 @@ function Contacts({ doc }: { readonly doc: SpecialistDoc }) {
             <a
               href={contactHref(kind, value)}
               className="inline-block rounded-md border border-accent px-4 py-2 text-accent transition-colors hover:bg-accent hover:text-accent-fg"
-              {...(kind === 'vk' || kind === 'site'
+              {...(kind === 'vk' || kind === 'youtube'
                 ? { target: '_blank', rel: 'noopener noreferrer' }
                 : {})}
             >

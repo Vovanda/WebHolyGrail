@@ -317,7 +317,7 @@ export interface SpecialistDoc {
     readonly telegram?: string;
     readonly whatsapp?: string;
     readonly vk?: string;
-    readonly site?: string;
+    readonly youtube?: string;
   };
   readonly blocks?: ReadonlyArray<unknown>;
 }

@@ -136,13 +136,17 @@ export const Specialists: CollectionConfig = {
               name: 'contacts',
               label: 'Контакты',
               type: 'group',
+              admin: {
+                description:
+                  'Как с человеком связаться. Ссылку на личный сайт не спрашиваем: каталог не уводит клиента на сторону.',
+              },
               fields: [
                 { name: 'phone', label: 'Телефон', type: 'text' },
                 { name: 'email', label: 'Почта', type: 'text' },
                 { name: 'telegram', label: 'Telegram', type: 'text' },
                 { name: 'whatsapp', label: 'WhatsApp', type: 'text' },
                 { name: 'vk', label: 'ВКонтакте', type: 'text' },
-                { name: 'site', label: 'Свой сайт', type: 'text' },
+                { name: 'youtube', label: 'YouTube', type: 'text' },
               ],
             },
             {
