@@ -28,6 +28,9 @@ export interface RequestFormData {
   readonly successText?: string;
   readonly askCity?: boolean;
   readonly messageLabel?: string;
+  /** Адрес страницы с политикой обработки данных. */
+  readonly policyHref?: string;
+  readonly consentLabel?: string;
   /** Якорь секции: по нему на форму ссылаются кнопки со страницы. */
   readonly anchor?: string;
   /** Кому адресована заявка — id специалиста или раскрытый документ. */
@@ -89,7 +92,14 @@ export function RequestForm({
           source: typeof window === 'undefined' ? '' : window.location.pathname,
           // specialistId кладём внутрь data: по нему CMS засчитывает заявку
           // конкретному специалисту.
-          data: { ...values, ...(specialistId ? { specialistId } : {}) },
+          //
+          // consent приходит из формы как 'on'; заменяем на отметку времени —
+          // по закону нужно уметь показать, что согласие было и когда именно.
+          data: {
+            ...values,
+            consent: values['consent'] ? new Date().toISOString() : '',
+            ...(specialistId ? { specialistId } : {}),
+          },
         }),
       });
       if (!res.ok) throw new Error(String(res.status));
@@ -141,6 +151,31 @@ export function RequestForm({
               placeholder={data.messageLabel ?? 'Сообщение'}
               className={field}
             />
+
+            {/* Галочка обязательная и снятая по умолчанию: согласие на
+                обработку данных должно быть действием человека. Формулировка
+                «отправляя форму, вы соглашаетесь» таким действием не считается.
+                Отметку и время сохраняем вместе с заявкой — иначе подтвердить
+                согласие потом нечем. */}
+            <label className="flex items-start gap-2.5 text-sm text-muted">
+              <input
+                type="checkbox"
+                name="consent"
+                required
+                className="mt-0.5 h-4 w-4 shrink-0 accent-[color:var(--color-accent)]"
+              />
+              <span>
+                {data.consentLabel ?? 'Согласен на обработку персональных данных'}{' '}
+                <a
+                  href={data.policyHref ?? '/privacy'}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-accent underline-offset-2 hover:underline"
+                >
+                  Политика обработки данных
+                </a>
+              </span>
+            </label>
 
             <div className="flex flex-wrap items-center gap-3">
               <button
