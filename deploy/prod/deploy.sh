@@ -283,6 +283,13 @@ else
 fi
 CERT_LIVE="$CERTS_ROOT/live/$CERT_NAME"
 
+# /opt/proxy/certs и conf.d принадлежат root — от пользователя deploy обычный
+# `[ -f ]` возвращает false даже когда файл есть. Без sudo скрипт «не видит»
+# свежевыпущенный серт и оставляет сайт на http-only vhost: домен отвечает
+# чужим сертификатом, потому что nginx отдаёт первый server-блок.
+cert_file_exists() { sudo test -f "$1"; }
+vhost_has_tls() { sudo grep -q 'ssl_certificate' "$vhost" 2>/dev/null; }
+
 # Пока серта нет, TLS-vhost класть нельзя — nginx не стартует без файла серта.
 # Временный HTTP-only vhost отдаёт ACME-челлендж и проксирует сайт как есть,
 # чтобы он был доступен по http:// уже с первого деплоя.
@@ -343,7 +350,7 @@ if [ ! -f "$vhost" ]; then
   docker exec holygrail-nginx nginx -s reload >/dev/null 2>&1 || true
 elif [ "$current_names" != "$want_names" ]; then
   echo "   • набор доменов изменился: [$current_names] → [$want_names]"
-  if [ -f "$CERT_LIVE/fullchain.pem" ]; then
+  if cert_file_exists "$CERT_LIVE/fullchain.pem"; then
     write_tls_vhost
   else
     write_http_only_vhost
@@ -371,7 +378,7 @@ if [ -z "$CERT_DOMAINS" ]; then
 else
   # Что уже покрыто текущим сертом (SAN-список).
   cert_san=""
-  if [ -f "$CERT_LIVE/cert.pem" ]; then
+  if cert_file_exists "$CERT_LIVE/cert.pem"; then
     cert_san="$(sudo openssl x509 -in "$CERT_LIVE/cert.pem" -noout -text 2>/dev/null \
                  | tr ',' '\n' | sed -n 's/.*DNS://p' | tr -d ' ' | tr '\n' ' ')"
   fi
@@ -402,7 +409,7 @@ else
   fi
 
   # Серт на месте, а vhost ещё http-only → переставить на TLS.
-  if [ -f "$CERT_LIVE/fullchain.pem" ] && ! grep -q 'ssl_certificate' "$vhost" 2>/dev/null; then
+  if cert_file_exists "$CERT_LIVE/fullchain.pem" && ! vhost_has_tls; then
     write_tls_vhost
     echo "   • vhost переключён на TLS"
   fi
