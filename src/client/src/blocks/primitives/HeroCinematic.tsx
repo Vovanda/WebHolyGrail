@@ -73,11 +73,29 @@ function mediaUrl(ref: MediaRef | null | undefined): string | undefined {
  * границу света и тени посреди экрана и читается как нарисованный овал, а не
  * как затемнение по краям.
  */
-function corners(color: string): string {
+function cornerGlow(color: string): string {
   return (['top left', 'top right', 'bottom left', 'bottom right'] as const)
     .map((at) => `radial-gradient(circle at ${at}, ${color} 0%, transparent 45%)`)
     .join(', ');
 }
+
+/**
+ * Маска «прозрачно в центре — плотно по углам»: ею гасится не цвет, а сам
+ * эффект, поэтому центр кадра остаётся нетронутым.
+ */
+const CORNER_MASK = (['top left', 'top right', 'bottom left', 'bottom right'] as const)
+  .map((at) => `radial-gradient(circle at ${at}, #000 0%, transparent 48%)`)
+  .join(', ');
+
+/**
+ * Зерно — плёночный шум поверх кадра.
+ *
+ * @remarks
+ * Генерируется SVG-фильтром прямо в data-URI: отдельный файл ради едва заметной
+ * текстуры — лишний запрос и лишний артефакт в сборке.
+ */
+const GRAIN =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")";
 
 function Corner({ corner }: { readonly corner: HeroCinematicCorner }) {
   const position = corner.position ?? 'top-left';
@@ -177,12 +195,32 @@ export function HeroCinematic({
       <div
         aria-hidden="true"
         className="absolute inset-0 dark:hidden"
-        style={{ background: corners(paper) }}
+        style={{ background: cornerGlow(paper) }}
       />
       <div
         aria-hidden="true"
         className="absolute inset-0 hidden dark:block"
-        style={{ background: corners(edge) }}
+        style={{ background: cornerGlow(edge) }}
+      />
+
+      {/* Выцветание к углам: гасим не яркость, а цвет — кадр к краям теряет
+          насыщенность и контраст, как выгоревшая по краям страница. Затемнение
+          вместо этого давало чёрный ореол и спорило с самим кадром. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 backdrop-saturate-[0.45] backdrop-contrast-[0.9]"
+        style={{
+          maskImage: CORNER_MASK,
+          WebkitMaskImage: CORNER_MASK,
+          maskComposite: 'add',
+        }}
+      />
+
+      {/* Зерно: чуть-чуть, только чтобы кадр перестал быть стерильно чистым. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-[0.07] mix-blend-overlay dark:opacity-[0.09]"
+        style={{ backgroundImage: GRAIN, backgroundRepeat: 'repeat' }}
       />
 
       <div className="relative mx-auto flex w-full max-w-wide flex-col gap-6 px-4 py-8 md:min-h-[87vh] md:gap-0 md:px-6">
