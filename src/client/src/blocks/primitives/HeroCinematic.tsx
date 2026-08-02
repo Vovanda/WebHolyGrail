@@ -203,16 +203,34 @@ export function HeroCinematic({
         style={{ background: cornerGlow(edge) }}
       />
 
-      {/* Выцветание к углам: гасим не яркость, а цвет — кадр к краям теряет
-          насыщенность и контраст, как выгоревшая по краям страница. Затемнение
-          вместо этого давало чёрный ореол и спорило с самим кадром. */}
+      {/* Выцветание кадра — как выгорает на солнце бумага.
+
+          На свету первыми уходят пурпурные и голубые пигменты, остаётся
+          жёлто-охристое, контраст падает, чёрный сползает в серо-коричневый.
+          Отсюда порядок: лёгкая сепия, ниже насыщенность, ниже контраст.
+
+          По всей площади, а не только по углам: ради этого приглушение и
+          делается — яркая середина видео перетягивает внимание с текста. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 backdrop-saturate-[0.45] backdrop-contrast-[0.9]"
+        className="pointer-events-none absolute inset-0 backdrop-sepia-[0.18] backdrop-saturate-[0.6] backdrop-contrast-[0.92] backdrop-brightness-[0.94]"
+      />
+
+      {/* Второй слой — по маске в углы: там выгорание сильнее, как у страницы,
+          которая годами лежала краями к свету. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 backdrop-sepia-[0.35] backdrop-saturate-[0.4]"
+        style={{ maskImage: CORNER_MASK, WebkitMaskImage: CORNER_MASK }}
+      />
+
+      {/* Выгорание всегда направленное: сильнее с той стороны, куда падал свет.
+          Ровное по всему листу читается как фильтр, а не как прожитое время. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-40 dark:opacity-25"
         style={{
-          maskImage: CORNER_MASK,
-          WebkitMaskImage: CORNER_MASK,
-          maskComposite: 'add',
+          background: `linear-gradient(170deg, ${paper} 0%, transparent 45%)`,
         }}
       />
 
