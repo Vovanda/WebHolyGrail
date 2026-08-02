@@ -295,6 +295,51 @@ function githubDeployConfig(args: Args, infisicalHostUrl: string): void {
     run('gh', ['variable', 'set', name, '--repo', repo, '--body', value]);
   }
   console.log(`  ✓ variables: ${vars.map(([n]) => n).join(', ')}`);
+
+  ensureWorkflowCanPublishPackages(repo);
+}
+
+/**
+ * GitHub создаёт репозиторий с `default_workflow_permissions: read`, а блок
+ * `permissions:` внутри workflow этот потолок поднять не может — только сузить.
+ * Итог: `GITHUB_TOKEN` не вправе создать новый пакет в GHCR, и самый первый
+ * деплой падает на `docker push` с 403 Forbidden — уже после успешной сборки.
+ *
+ * На сайтах, которые давно работают, дефект незаметен: их пакеты уже созданы, и
+ * доступ выдан на уровне самого пакета. Поэтому чинить нужно здесь, один раз при
+ * заведении деплоя, а не ловить 403 на каждом новом инстансе.
+ */
+function ensureWorkflowCanPublishPackages(repo: string): void {
+  const endpoint = `repos/${repo}/actions/permissions/workflow`;
+  let current = '';
+  try {
+    current = run('gh', ['api', endpoint, '--jq', '.default_workflow_permissions']);
+  } catch {
+    console.log('  ⚠ не удалось прочитать workflow permissions — проверь вручную');
+    return;
+  }
+  if (current === 'write') {
+    console.log('  ✓ workflow permissions: write (образы в GHCR публикуются)');
+    return;
+  }
+  try {
+    run('gh', [
+      'api',
+      '-X',
+      'PUT',
+      endpoint,
+      '-f',
+      'default_workflow_permissions=write',
+      '-F',
+      'can_approve_pull_request_reviews=false',
+    ]);
+    console.log(`  ✓ workflow permissions: ${current} → write (иначе первый push в GHCR даёт 403)`);
+  } catch {
+    console.log(
+      `  ⚠ workflow permissions остались "${current}". Первый деплой упадёт на push образа с 403.\n` +
+        `    Почини: gh api -X PUT ${endpoint} -f default_workflow_permissions=write`,
+    );
+  }
 }
 
 function readAdminEnv(): AdminEnv {
