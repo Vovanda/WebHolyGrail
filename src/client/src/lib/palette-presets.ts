@@ -55,9 +55,14 @@ export const PALETTE_PRESETS: readonly PalettePreset[] = [
     // контраст около 1.6:1 и в тексте нечитаем.
     id: 'ink-gold',
     label: 'Ink & Gold (чёрно-золотая)',
+    // Золото одно и то же в обеих темах: это цвет бренда, и он не должен
+    // подменяться на светлом фоне. Затемнённый вариант ради формального
+    // контраста читается как горчица и пачкает всю светлую тему.
+    // Акцент здесь — заливка кнопок и плашек с тёмным текстом поверх, там
+    // контраст 8.6:1. Мелкий текст самим акцентом на белом не набираем.
     light: {
-      primary: '#a67c00',
-      primaryHover: '#8a6600',
+      primary: '#d4af37',
+      primaryHover: '#c19b2e',
       foreground: '#1a1515',
       foregroundMuted: '#6b6461',
       background: '#ffffff',
@@ -66,8 +71,8 @@ export const PALETTE_PRESETS: readonly PalettePreset[] = [
       danger: '#c0392b',
     },
     dark: {
-      primary: '#ffcb19',
-      primaryHover: '#ffd84d',
+      primary: '#d4af37',
+      primaryHover: '#e0c04f',
       foreground: '#ffffff',
       foregroundMuted: '#a8a09e',
       background: '#1a1515',

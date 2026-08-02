@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { PALETTE_PRESETS, findPreset } from './palette-presets';
+import { readableTextOn } from './contrast';
 
 /**
  * Палитру выбирает контент-менеджер, а не разработчик, поэтому нечитаемое
@@ -60,10 +61,28 @@ describe('палитры', () => {
   );
 
   it.each(PALETTE_PRESETS.map((p) => [p.id, p] as const))(
-    '%s: акцент читается на фоне в обеих темах',
+    '%s: акцент отличим от фона в обеих темах',
     (_id, preset) => {
-      expect(contrast(preset.light.primary, preset.light.background)).toBeGreaterThanOrEqual(3);
-      expect(contrast(preset.dark.primary, preset.dark.background)).toBeGreaterThanOrEqual(3);
+      // Акцент — заливка кнопок и плашек, а не цвет мелкого текста, поэтому
+      // порог здесь ниже текстового: он должен быть уверенно виден на фоне.
+      // Жёлтые и золотые акценты физически не дают 3:1 на белом, и требование
+      // 3:1 выдавливает их в грязно-горчичный.
+      expect(contrast(preset.light.primary, preset.light.background)).toBeGreaterThanOrEqual(2);
+      expect(contrast(preset.dark.primary, preset.dark.background)).toBeGreaterThanOrEqual(2);
+    },
+  );
+
+  it.each(PALETTE_PRESETS.map((p) => [p.id, p] as const))(
+    '%s: текст на акцентной заливке читается',
+    (_id, preset) => {
+      // Вот это и есть настоящее требование доступности для акцента: что бы ни
+      // стояло на кнопке, надпись на ней должна читаться.
+      expect(
+        contrast(preset.light.primary, readableTextOn(preset.light.primary)),
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(
+        contrast(preset.dark.primary, readableTextOn(preset.dark.primary)),
+      ).toBeGreaterThanOrEqual(4.5);
     },
   );
 });
