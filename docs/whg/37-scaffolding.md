@@ -196,6 +196,18 @@ Quick summary:
 
 - Push instance to GitHub.
 - VPS — install Docker + Infisical CLI (user-space binary, see prereqs above) + `/etc/infisical/<slug>/{client-id,client-secret,project-id}` (chmod 600 deploy:deploy). **Three files**, not two — without `project-id`, `infisical run --token=...` fails with `Project ID is required when using machine identity`.
+- **Private repo? Give the VPS a deploy key first** — `bootstrap-site-on-vps.sh` clones over git, and without a key it cannot read the repository at all:
+
+  ```bash
+  ssh <vps> 'ssh-keygen -t ed25519 -f ~/.ssh/<slug>_deploy -N "" -q
+    printf "\nHost github-<slug>\n  HostName github.com\n  User git\n  IdentityFile ~/.ssh/<slug>_deploy\n  IdentitiesOnly yes\n  StrictHostKeyChecking accept-new\n" >> ~/.ssh/config
+    cat ~/.ssh/<slug>_deploy.pub'
+
+  gh repo deploy-key add <pubkey-file> --repo <owner>/<repo> --title vps-deploy
+  ```
+
+  Then pass `REPO=github-<slug>:<owner>/<repo>.git` to the bootstrap script.
+
 - Fill prod secrets — see [Secrets for prod](#secrets-for-prod) above.
 - Repository vars and secrets — GitHub does not copy environment variables of a template repo, so a fresh instance has none:
 
@@ -221,6 +233,16 @@ pnpm setup-infisical -- --site <slug> --github \
 The site serves every listed domain from the first deploy. The certificate covers whichever ones already resolve; the rest are added automatically on a later deploy once DNS catches up — no manual nginx edits, no waiting. See [`docs/infra/scripts-and-workflows.md`](../infra/scripts-and-workflows.md#несколько-доменов-на-сайт).
 
 Then `git push origin main` — `deploy.yml` does the rest.
+
+> **Recreating an instance under the same name?** Deleting a repository does **not** delete its
+> GHCR packages — they survive with `repository: null`, and the new repository gets `403 Forbidden`
+> on every `docker push`. The error looks like a workflow-permissions problem; it isn't. Delete
+> the orphans first:
+>
+> ```bash
+> gh api -X DELETE user/packages/container/<repo>-cms
+> gh api -X DELETE user/packages/container/<repo>-client   # needs the delete:packages scope
+> ```
 
 ### Troubleshooting / disaster recovery
 

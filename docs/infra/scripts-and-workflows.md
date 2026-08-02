@@ -31,7 +31,7 @@
 │                                                                  │
 │ Per-site (создаётся bootstrap-site-on-vps.sh):                   │
 │ /opt/sites/<slug>/         git clone <repo>                      │
-│ /etc/infisical/<slug>/     {client-id, client-secret} chmod 600  │
+│ /etc/infisical/<slug>/  {client-id,client-secret,project-id} 600 │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -90,18 +90,20 @@
 1. `/opt/sites/<slug>`: создаёт dir + `git init` + remote add + `git fetch --depth 50` + `reset --hard origin/main`
 2. Infisical: создаёт project `holygrail-<slug>` через self-host REST (через admin JWT)
 3. Infisical: создаёт UA machine identity `<slug>-deploy`, attaches к project (role `member`), генерирует Universal Auth method + client-secret
-4. `/etc/infisical/<slug>/{client-id,client-secret}`: chmod 600 deploy:deploy
+4. `/etc/infisical/<slug>/{client-id,client-secret,project-id}`: chmod 600 deploy:deploy.
+   Файла именно три — без `project-id` UA-логин в deploy.sh падает с
+   «Project ID is required when using machine identity»
 
-После него — залить значения секретов (`setup-infisical --from-env`) и завести переменные репозитория (Сценарий A шаги 6-7), потом `git push`.
+После него — залить значения секретов (`setup-infisical --from-env`) и завести переменные репозитория (Сценарий A шаг 5), потом `git push`.
 
 **Запуск:**
 
 ```bash
 scp scripts/bootstrap-site-on-vps.sh deploy@<vps>:/tmp/
 ssh deploy@<vps> "SLUG=<slug> \
-  REPO=https://github.com/<owner>/<repo>.git \
+  REPO=github-<slug>:<owner>/<repo>.git \
   INFISICAL_HOST_URL=https://infisical.<your-host> \
-  INFISICAL_ADMIN_TOKEN=<JWT из /opt/infisical/.bootstrap.json> \
+  INFISICAL_ADMIN_TOKEN=<JWT: bootstrap-output или UA-логин админской identity> \
   INFISICAL_ADMIN_ORG_ID=<org uuid> \
   /tmp/bootstrap-site-on-vps.sh"
 ```
@@ -254,12 +256,29 @@ Shared host-nginx (`holygrail-nginx`) для всех сайтов на VPS. Hos
 
 ### Сценарий A: Новый Holy Grail инстанс с нуля
 
+Порядок важен: первый `git push` запускает `deploy.yml`, поэтому VPS и переменные репозитория
+должны быть готовы **до** него. Иначе первый запуск гарантированно красный.
+
 1. `gh repo create <owner>/<repo> --template Vovanda/WebHolyGrail --private --clone`
-2. Локально: `cd <repo>` → переписать README / поднастроить под свой проект → `git push`
-3. **`template-cleanup.yml`** на первом push'е автоматом причешет README
-4. DNS A record `<your-domain> → VPS IP` (у регистратора)
-5. VPS-часть — `scripts/bootstrap-site-on-vps.sh`: клон в `/opt/sites/<slug>`, Infisical project, UA identity, креды в `/etc/infisical/<slug>/`
-6. Секреты, CI-ключ и переменные репозитория — один прогон:
+   (`template-cleanup.yml` сам причешет README и удалит себя — отдельный коммит для этого не нужен)
+2. DNS A record `<your-domain> → VPS IP` (у регистратора). Домен ещё не доехал — не ждём,
+   см. [несколько доменов на сайт](#несколько-доменов-на-сайт)
+3. **Deploy key, если репозиторий приватный** — иначе VPS не сможет его склонировать:
+
+   ```bash
+   # на VPS: ключ + SSH-alias
+   ssh <vps> 'ssh-keygen -t ed25519 -f ~/.ssh/<slug>_deploy -N "" -q
+     printf "\nHost github-<slug>\n  HostName github.com\n  User git\n  IdentityFile ~/.ssh/<slug>_deploy\n  IdentitiesOnly yes\n  StrictHostKeyChecking accept-new\n" >> ~/.ssh/config
+     cat ~/.ssh/<slug>_deploy.pub'
+
+   # локально: отдать публичный ключ репозиторию (read-only достаточно)
+   gh repo deploy-key add <pubkey-file> --repo <owner>/<repo> --title vps-deploy
+   ```
+
+   Дальше `REPO=github-<slug>:<owner>/<repo>.git` — именно в таком виде его ждёт bootstrap.
+
+4. VPS-часть — `scripts/bootstrap-site-on-vps.sh`: клон в `/opt/sites/<slug>`, Infisical project, UA identity, три файла кредов в `/etc/infisical/<slug>/`
+5. Секреты, CI-ключ и переменные репозитория — один прогон:
 
    ```bash
    pnpm setup-infisical -- --site <slug> \
@@ -273,7 +292,17 @@ Shared host-nginx (`holygrail-nginx`) для всех сайтов на VPS. Hos
 
    Проверка: `gh variable list && gh secret list`.
 
-7. `git push origin main` → `deploy.yml` сам всё доделает
+6. `git push origin main` → `deploy.yml` сам всё доделает
+
+> **Пересоздаёшь инстанс?** Удаление репозитория **не удаляет** его пакеты в GHCR — они
+> остаются осиротевшими (`repository: null`), и новый репозиторий с тем же именем получает
+> на них `403 Forbidden` при каждом `docker push`. Выглядит как проблема прав workflow, но
+> права тут ни при чём. Перед пересозданием:
+>
+> ```bash
+> gh api -X DELETE user/packages/container/<repo>-cms
+> gh api -X DELETE user/packages/container/<repo>-client   # нужен scope delete:packages
+> ```
 
 ### Сценарий B: Обычный регулярный деплой
 
@@ -300,19 +329,22 @@ deploy.sh подтянет старые images из GHCR + переключит 
 
 ## Troubleshooting
 
-| Симптом                                            | Причина                                                 | Что делать                                                                                |
-| -------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `The ssh-private-key argument is empty`            | vars/secrets репозитория не заведены                    | Сценарий A шаг 7, проверить `gh variable list && gh secret list`                          |
-| `deploy.sh exited with 126`                        | режим `deploy.sh` 100644 вместо 100755                  | `git update-index --chmod=+x deploy/prod/deploy.sh` + коммит; синк восстанавливает сам    |
-| `S3_BUCKET is missing a value`                     | секреты в Infisical пустые                              | Сценарий A шаг 6                                                                          |
-| `another deploy for ... is already running`        | предыдущий деплой ещё идёт (flock)                      | дождаться; параллельный blue-green небезопасен                                            |
-| GH workflow падает на `Sync site directory` step   | `/opt/sites/<slug>` не git-репо или mismatch remote     | `ssh deploy@<vps> "cd /opt/sites/<slug> && git remote -v"` или запустить bootstrap script |
-| `pre-flight ... ERROR: PRIMARY_DOMAIN env not set` | GH variable не задана                                   | Settings → variables → `PRIMARY_DOMAIN=<your-domain>`                                     |
-| `infisical login returned empty token`             | UA creds в `/etc/infisical/<slug>/` отсутствуют         | Запустить `bootstrap-site-on-vps.sh` для этого сайта                                      |
-| Картинки 404 на `/media/...`                       | Bucket пуст или nginx-conf без `/media/` location       | `docker exec minio mc ls local/<slug>-media`, перепроверь `${PRIMARY_DOMAIN}.conf`        |
-| cms healthcheck failed                             | Миграции не накатились или env-переменные не подцеплены | `docker logs <slug>-cms-<color>` + `infisical secrets list --env=prod --domain=$HOST_URL` |
-| Port conflict (Bind for 127.0.0.1:30XX failed)     | Два сайта с одинаковым `PORT_BASE`                      | Установить разные `PORT_BASE` (3000 / 3020 / 3040)                                        |
-| nginx test fails after cert renewal                | LE renew успел до того как deploy.sh кладёт vhost       | `docker exec holygrail-nginx nginx -t` и читать конкретную ошибку; обычно про missing key |
+| Симптом                                                            | Причина                                                                                         | Что делать                                                                                                     |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `The ssh-private-key argument is empty`                            | vars/secrets репозитория не заведены                                                            | Сценарий A шаг 5, проверить `gh variable list && gh secret list`                                               |
+| `deploy.sh exited with 126`                                        | режим `deploy.sh` 100644 вместо 100755                                                          | `git update-index --chmod=+x deploy/prod/deploy.sh` + коммит; синк восстанавливает сам                         |
+| `S3_BUCKET is missing a value`                                     | секреты в Infisical пустые                                                                      | Сценарий A шаг 5                                                                                               |
+| `another deploy for ... is already running`                        | предыдущий деплой ещё идёт (flock)                                                              | дождаться; параллельный blue-green небезопасен                                                                 |
+| GH workflow падает на `Sync site directory` step                   | `/opt/sites/<slug>` не git-репо или mismatch remote                                             | `ssh deploy@<vps> "cd /opt/sites/<slug> && git remote -v"` или запустить bootstrap script                      |
+| `pre-flight ... ERROR: PRIMARY_DOMAIN env not set`                 | GH variable не задана                                                                           | Settings → variables → `PRIMARY_DOMAIN=<your-domain>`                                                          |
+| `infisical login returned empty token`                             | UA creds в `/etc/infisical/<slug>/` отсутствуют                                                 | Запустить `bootstrap-site-on-vps.sh` для этого сайта                                                           |
+| Картинки 404 на `/media/...`                                       | Bucket пуст или nginx-conf без `/media/` location                                               | `docker exec minio mc ls local/<slug>-media`, перепроверь `${PRIMARY_DOMAIN}.conf`                             |
+| cms healthcheck failed                                             | Миграции не накатились или env-переменные не подцеплены                                         | `docker logs <slug>-cms-<color>` + `infisical secrets list --env=prod --domain=$HOST_URL`                      |
+| Port conflict (Bind for 127.0.0.1:30XX failed)                     | Два сайта с одинаковым `PORT_BASE`                                                              | Установить разные `PORT_BASE` (3000 / 3020 / 3040)                                                             |
+| nginx test fails after cert renewal                                | LE renew успел до того как deploy.sh кладёт vhost                                               | `docker exec holygrail-nginx nginx -t` и читать конкретную ошибку; обычно про missing key                      |
+| `403 Forbidden` при `docker push` в GHCR                           | пакет остался от удалённого репозитория (`repository: null`)                                    | `gh api -X DELETE user/packages/container/<repo>-{cms,client}` и передеплоить. Права workflow ни при чём       |
+| Домен отдаёт сертификат **другого** сайта, деплой при этом зелёный | vhost остался http-only: для 443 с этим именем server-блока нет, nginx отдаёт первый попавшийся | `sudo grep -c ssl_certificate /opt/proxy/nginx/conf.d/<slug>.conf` — если 0, смотреть pre-flight в логе деплоя |
+| VPS не может склонировать репозиторий                              | приватный репо без deploy key                                                                   | Сценарий A шаг 3                                                                                               |
 
 ## Дальше
 

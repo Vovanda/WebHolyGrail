@@ -139,6 +139,21 @@ Pages → Create → slug = `home`, status = `published`, blocks = [Hero, Quote,
 
 Создаёт `pnpm setup-infisical -- --site <slug>` (шаг 3 выше): identity `<slug>-prod-deploy`, Universal Auth, роль `viewer`. Client ID и Client Secret печатаются один раз — сохранить сразу.
 
+### 1.5. Deploy key — если репозиторий приватный
+
+`bootstrap-site-on-vps.sh` клонирует репозиторий по git, и без ключа VPS его просто не видит.
+На публичном шаблоне шаг незаметен, на первом приватном инстансе деплой встаёт.
+
+```bash
+ssh <vps> 'ssh-keygen -t ed25519 -f ~/.ssh/<slug>_deploy -N "" -q
+  printf "\nHost github-<slug>\n  HostName github.com\n  User git\n  IdentityFile ~/.ssh/<slug>_deploy\n  IdentitiesOnly yes\n  StrictHostKeyChecking accept-new\n" >> ~/.ssh/config
+  cat ~/.ssh/<slug>_deploy.pub'
+
+gh repo deploy-key add <pubkey-file> --repo <owner>/<repo> --title vps-deploy
+```
+
+Дальше bootstrap запускается с `REPO=github-<slug>:<owner>/<repo>.git`.
+
 ### 2. Setup VPS
 
 ```bash
@@ -222,6 +237,28 @@ git push origin main    # deploy.yml делает всё сам
 ## Грабли (заполнять по мере)
 
 > Обновляется после каждого реального scaffold'а. Если попал в грабли которой здесь нет — добавь.
+
+### `403 Forbidden` при push образа в GHCR на новом инстансе
+
+- **Симптом:** билд собрался, но `failed to push ghcr.io/<owner>/<repo>-cms:<sha>: 403 Forbidden`.
+- **Причина:** репозиторий с таким именем уже существовал и был удалён, а его GHCR-пакеты
+  остались — удаление репозитория их не трогает. Осиротевший пакет (`repository: null`)
+  новому одноимённому репозиторию не принадлежит, писать в него нельзя.
+- **Решение:** удалить пакеты, потом передеплоить.
+  ```bash
+  gh api -X DELETE user/packages/container/<repo>-cms
+  gh api -X DELETE user/packages/container/<repo>-client   # scope delete:packages
+  ```
+- **Не лечится** правкой `default_workflow_permissions` — выглядит похоже, но причина другая.
+
+### Домен отдаёт сертификат другого сайта, а деплой зелёный
+
+- **Симптом:** `https://<domain>` ругается на несоответствие имени, в серте — соседний сайт.
+- **Причина:** vhost остался http-only, для 443 с этим именем нет server-блока, и nginx
+  отдаёт первый попавшийся. Статусом workflow не ловится — деплой честно зелёный.
+- **Проверка:** `sudo grep -c ssl_certificate /opt/proxy/nginx/conf.d/<slug>.conf` → 0.
+- **Решение:** смотреть pre-flight в логе деплоя. Исторически причиной было то, что deploy.sh
+  проверял наличие серта без sudo и «не видел» его (закрыто).
 
 ### `pnpm setup-infisical` падает на createProject
 
