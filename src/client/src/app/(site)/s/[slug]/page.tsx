@@ -61,6 +61,39 @@ const CONTACT_LABEL: Record<string, string> = {
   site: 'Сайт',
 };
 
+/**
+ * Контакты специалиста. Показываются в обоих режимах страницы: человек, который
+ * долистал до конца, должен иметь возможность написать напрямую — даже если
+ * страница собрана блоками и заканчивается формой.
+ */
+function Contacts({ doc }: { readonly doc: SpecialistDoc }) {
+  const contacts = Object.entries(doc.contacts ?? {}).filter(([, v]) => Boolean(v)) as Array<
+    [string, string]
+  >;
+  if (contacts.length === 0) return null;
+
+  return (
+    <section className="mx-auto max-w-content px-4 py-10 md:px-6">
+      <h2 className="font-display text-xl font-semibold text-ink">Связаться</h2>
+      <ul className="mt-3 flex flex-wrap gap-3">
+        {contacts.map(([kind, value]) => (
+          <li key={kind}>
+            <a
+              href={contactHref(kind, value)}
+              className="inline-block rounded-md border border-accent px-4 py-2 text-accent transition-colors hover:bg-accent hover:text-accent-fg"
+              {...(kind === 'vk' || kind === 'site'
+                ? { target: '_blank', rel: 'noopener noreferrer' }
+                : {})}
+            >
+              {CONTACT_LABEL[kind] ?? kind}: {value}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 export default async function SpecialistPage({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
   const [doc, settings] = await Promise.all([getSpecialistBySlug(slug), getSiteSettings()]);
@@ -97,16 +130,13 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
             </div>
           );
         })}
+        <Contacts doc={doc} />
       </>
     );
   }
 
   const photo = photoUrl(doc);
   const disciplines = (doc.disciplines ?? []).map((d) => d.title).filter(Boolean);
-  const contacts = Object.entries(doc.contacts ?? {}).filter(([, v]) => Boolean(v)) as Array<
-    [string, string]
-  >;
-
   return (
     <article className="mx-auto max-w-content px-4 py-10 md:px-6 md:py-14">
       <Breadcrumbs
@@ -217,26 +247,7 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
         </section>
       )}
 
-      {contacts.length > 0 && (
-        <section className="mt-8">
-          <h2 className="font-display text-xl font-semibold text-ink">Связаться</h2>
-          <ul className="mt-3 flex flex-wrap gap-3">
-            {contacts.map(([kind, value]) => (
-              <li key={kind}>
-                <a
-                  href={contactHref(kind, value)}
-                  className="inline-block rounded-md border border-accent px-4 py-2 text-accent transition-colors hover:bg-accent hover:text-accent-fg"
-                  {...(kind === 'vk' || kind === 'site'
-                    ? { target: '_blank', rel: 'noopener noreferrer' }
-                    : {})}
-                >
-                  {CONTACT_LABEL[kind] ?? kind}: {value}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <Contacts doc={doc} />
     </article>
   );
 }
