@@ -2,7 +2,13 @@ import Link from 'next/link';
 
 import type { BlockNode, SiteSettings } from 'contracts';
 
-import { listCities, listSpecialists, type CityDoc, type SpecialistDoc } from '@/lib/api-client';
+import {
+  countSpecialistsByCity,
+  listCities,
+  listSpecialists,
+  type CityDoc,
+  type SpecialistDoc,
+} from '@/lib/api-client';
 
 /**
  * SpecialistDirectory — каталог людей, сгруппированный по городам.
@@ -17,6 +23,9 @@ import { listCities, listSpecialists, type CityDoc, type SpecialistDoc } from '@
  * стабильный порядок — это молчаливое «этот главный».
  */
 export interface SpecialistDirectoryData {
+  readonly view?: 'people' | 'cities';
+  readonly moreLabel?: string;
+  readonly moreHref?: string;
   readonly heading?: string;
   readonly description?: string;
   readonly onlyAccepting?: boolean;
@@ -101,6 +110,85 @@ function Card({ doc }: { readonly doc: SpecialistDoc }) {
   );
 }
 
+/** Заголовок секции и ссылка на полный список — общая шапка обоих режимов. */
+function Header({ data }: { readonly data: SpecialistDirectoryData }) {
+  return (
+    <header className="mb-8 text-center md:mb-10">
+      {data.heading && (
+        <h2 className="font-display text-h3 font-semibold text-ink md:text-h2">{data.heading}</h2>
+      )}
+      {data.description && <p className="mt-2 text-muted">{data.description}</p>}
+    </header>
+  );
+}
+
+function MoreLink({ data }: { readonly data: SpecialistDirectoryData }) {
+  if (!data.moreLabel || !data.moreHref) return null;
+  return (
+    <div className="mt-8 text-center">
+      <Link
+        href={data.moreHref}
+        className="inline-block rounded-md border border-accent px-6 py-3 font-medium text-accent transition-colors hover:bg-accent hover:text-accent-fg"
+      >
+        {data.moreLabel}
+      </Link>
+    </div>
+  );
+}
+
+/**
+ * Витрина городов: сколько людей в каждом и переход в список этого города.
+ * На главной это честнее списка людей — сразу видно географию сообщества.
+ */
+async function CitiesView({ data }: { readonly data: SpecialistDirectoryData }) {
+  const [cities, counts] = await Promise.all([
+    listCities(),
+    countSpecialistsByCity(data.onlyAccepting ? { onlyAccepting: true } : {}),
+  ]);
+  const shown = cities.filter((city) => (counts.get(String(city.id)) ?? 0) > 0);
+
+  return (
+    <section id="specialists" className="bg-bg py-10 md:py-14">
+      <div className="mx-auto max-w-wide px-4 md:px-6">
+        <Header data={data} />
+        {shown.length === 0 ? (
+          <p className="text-center text-muted">
+            {data.emptyText ?? 'Скоро здесь появятся специалисты.'}
+          </p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {shown.map((city) => {
+              const count = counts.get(String(city.id)) ?? 0;
+              return (
+                <Link
+                  key={String(city.id)}
+                  href={`${data.moreHref ?? '/specialists'}?city=${city.slug ?? ''}`}
+                  className="group rounded-xl border border-border bg-surface p-6 no-underline transition-colors hover:border-accent"
+                >
+                  <p className="font-display text-xl font-semibold text-ink">{city.name}</p>
+                  <p className="mt-1 text-sm text-muted">
+                    {count} {plural(count, 'специалист', 'специалиста', 'специалистов')}
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+        <MoreLink data={data} />
+      </div>
+    </section>
+  );
+}
+
+/** Русские окончания: 1 специалист, 2 специалиста, 5 специалистов. */
+function plural(n: number, one: string, few: string, many: string): string {
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
+}
+
 export async function SpecialistDirectory({
   node,
 }: {
@@ -108,6 +196,7 @@ export async function SpecialistDirectory({
   readonly settings: SiteSettings;
 }) {
   const data = node.data ?? {};
+  if (data.view === 'cities') return <CitiesView data={data} />;
   const [cities, specialists] = await Promise.all([
     listCities(),
     listSpecialists({
@@ -141,14 +230,7 @@ export async function SpecialistDirectory({
   return (
     <section id="specialists" className="bg-bg py-10 md:py-14">
       <div className="mx-auto max-w-wide px-4 md:px-6">
-        <header className="mb-8 text-center md:mb-10">
-          {data.heading && (
-            <h2 className="font-display text-h3 font-semibold text-ink md:text-h2">
-              {data.heading}
-            </h2>
-          )}
-          {data.description && <p className="mt-2 text-muted">{data.description}</p>}
-        </header>
+        <Header data={data} />
 
         {specialists.length === 0 && (
           <p className="text-center text-muted">
@@ -178,6 +260,8 @@ export async function SpecialistDirectory({
             ))}
           </div>
         )}
+
+        <MoreLink data={data} />
       </div>
     </section>
   );

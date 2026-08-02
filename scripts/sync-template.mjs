@@ -141,6 +141,7 @@ const MIRROR = [
   // layout.tsx сюда не входит — там шрифты и брендинг конкретного сайта.
   'src/client/src/app/(site)/[[...slug]]/page.tsx',
   'src/client/src/app/(site)/s/',
+  'src/client/src/app/(site)/specialists/',
   'src/client/src/app/not-found.tsx',
 
   // CMS — generic collections + блоки

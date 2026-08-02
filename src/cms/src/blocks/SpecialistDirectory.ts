@@ -10,8 +10,23 @@ import type { Block } from 'payload';
  */
 export const SpecialistDirectoryBlock: Block = {
   slug: 'specialist-directory',
-  labels: { singular: 'Каталог специалистов', plural: 'Каталоги специалистов' },
+  labels: { singular: 'Витрина специалистов', plural: 'Витрины специалистов' },
   fields: [
+    {
+      name: 'view',
+      label: 'Что показывать',
+      type: 'select',
+      required: true,
+      defaultValue: 'people',
+      options: [
+        { label: 'Людей — карточки специалистов', value: 'people' },
+        { label: 'Города — сколько в каждом и куда перейти', value: 'cities' },
+      ],
+      admin: {
+        description:
+          'На главной уместна витрина: несколько человек или города. Полный список с фильтрами — отдельная страница.',
+      },
+    },
     { name: 'heading', label: 'Заголовок', type: 'text', defaultValue: 'Специалисты' },
     {
       name: 'description',
@@ -53,10 +68,27 @@ export const SpecialistDirectoryBlock: Block = {
     },
     {
       name: 'showCities',
-      label: 'Показывать переключатель городов',
+      label: 'Разбивать по городам',
       type: 'checkbox',
-      defaultValue: true,
-      admin: { description: 'Пока город один, переключатель можно убрать.' },
+      defaultValue: false,
+      admin: {
+        description:
+          'Заголовок города над каждой группой. Для витрины обычно не нужен, для полного списка — да.',
+        condition: (_, siblingData) => siblingData?.['view'] !== 'cities',
+      },
+    },
+    {
+      name: 'moreLabel',
+      label: 'Ссылка на полный список',
+      type: 'text',
+      defaultValue: 'Все специалисты',
+      admin: { description: 'Пусто — ссылки не будет.' },
+    },
+    {
+      name: 'moreHref',
+      label: 'Адрес полного списка',
+      type: 'text',
+      defaultValue: '/specialists',
     },
     {
       name: 'emptyText',

@@ -372,3 +372,21 @@ export async function getSpecialistBySlug(slug: string): Promise<SpecialistDoc |
   const data = (await response.json()) as { docs: SpecialistDoc[] };
   return data.docs[0] ?? null;
 }
+
+/** Сколько специалистов в каждом городе — для витрины по городам. */
+export async function countSpecialistsByCity(options?: {
+  readonly onlyAccepting?: boolean;
+}): Promise<ReadonlyMap<string, number>> {
+  const people = await listSpecialists({
+    ...(options?.onlyAccepting ? { onlyAccepting: true } : {}),
+    limit: 500,
+  });
+  const counts = new Map<string, number>();
+  for (const person of people) {
+    const city = person.city;
+    const id = city && typeof city === 'object' ? String((city as CityDoc).id) : String(city ?? '');
+    if (!id) continue;
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+  return counts;
+}
