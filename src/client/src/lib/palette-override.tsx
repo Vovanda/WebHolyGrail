@@ -62,6 +62,10 @@ function buildVars(p: PaletteColors): string {
     // она остаётся синей из дефолтных токенов и спорит с палитрой сайта.
     lines.push(`--color-accent-soft: color-mix(in srgb, ${p.primary} 22%, var(--color-bg));`);
   }
+  if (p.primary) {
+    // Текст на выделении считаем от акцента по той же причине, что и на кнопке.
+    lines.push(`--color-selection-fg: ${readableTextOn(p.primary)};`);
+  }
   if (p.primaryHover) lines.push(`--color-accent-hover: ${p.primaryHover};`);
   if (p.foreground) lines.push(`--color-ink: ${p.foreground};`);
   if (p.foregroundMuted) lines.push(`--color-muted: ${p.foregroundMuted};`);
@@ -70,8 +74,24 @@ function buildVars(p: PaletteColors): string {
     lines.push(`--color-page-bg: ${p.background};`);
   }
   if (p.surface) lines.push(`--color-surface: ${p.surface};`);
-  if (p.success) lines.push(`--color-success: ${p.success};`);
-  if (p.danger) lines.push(`--color-danger: ${p.danger};`);
+  if (p.success) {
+    lines.push(`--color-success: ${p.success};`);
+    lines.push(`--color-success-soft: color-mix(in srgb, ${p.success} 18%, var(--color-bg));`);
+  }
+  if (p.danger) {
+    lines.push(`--color-danger: ${p.danger};`);
+    lines.push(`--color-danger-soft: color-mix(in srgb, ${p.danger} 18%, var(--color-bg));`);
+  }
+  // Граница — не самостоятельный цвет палитры, а текст, разбавленный фоном:
+  // отдельным полем её пришлось бы подбирать вручную под каждую тему, и она
+  // осталась бы серой на любом бренде, как это и было.
+  if (p.foreground && p.background) {
+    lines.push(
+      `--color-border: color-mix(in srgb, ${p.foreground} 14%, ${p.background});`,
+      // Плашка поверх surface: на светлой теме светлее фона, на тёмной — темнее.
+      `--color-paper: color-mix(in srgb, ${p.foreground} 4%, ${p.background});`,
+    );
+  }
   return lines.join(' ');
 }
 
@@ -89,9 +109,19 @@ export function PaletteOverride({ config }: { readonly config: ThemeConfig }) {
   const lightVars = light ? buildVars(light) : '';
   const darkVars = dark ? buildVars(dark) : '';
 
-  if (!lightVars && !darkVars) return null;
+  // Тёмный блок (обложка, врезка с цитатой, сниппет кода) остаётся тёмным в
+  // обеих темах — в этом его смысл. Но цвет берём из тёмной половины палитры,
+  // иначе он остаётся синим из дефолтных токенов и на чёрно-золотом сайте
+  // выглядит чужим пятном.
+  const blockVars =
+    dark?.background && dark?.foreground
+      ? `--color-dark-block: ${dark.background}; --color-dark-block-fg: ${dark.foreground};`
+      : '';
 
-  const css = `${lightVars ? `:root{${lightVars}}` : ''}${darkVars ? `:root[data-theme="dark"]{${darkVars}}` : ''}`;
+  if (!lightVars && !darkVars && !blockVars) return null;
+
+  const rootVars = `${lightVars}${blockVars ? ` ${blockVars}` : ''}`;
+  const css = `${rootVars ? `:root{${rootVars}}` : ''}${darkVars ? `:root[data-theme="dark"]{${darkVars}}` : ''}`;
 
   return <style id="hg-palette-override" dangerouslySetInnerHTML={{ __html: css }} />;
 }

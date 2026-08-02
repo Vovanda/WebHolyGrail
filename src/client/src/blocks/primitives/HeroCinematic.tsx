@@ -134,10 +134,12 @@ export function HeroCinematic({
         />
       )}
 
-      {/* Виньетка: гасит края кадра, чтобы текст читался поверх любого видео. */}
+      {/* Виньетка: гасит края кадра, чтобы текст читался поверх любого видео.
+          Цвет — из палитры, а не жёсткий чёрный: на чёрно-золотом сайте края
+          уходят в тёплый чёрный бренда, на синем — в синий. */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 mix-blend-multiply [background:radial-gradient(ellipse_at_center,transparent_30%,rgba(15,15,15,0.8)_70%,rgba(0,0,0,0.95)_100%)]"
+        className="absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_30%,color-mix(in_srgb,var(--color-dark-block)_80%,transparent)_70%,var(--color-dark-block)_100%)]"
       />
 
       <div className="relative mx-auto flex w-full max-w-wide flex-col gap-6 px-4 py-8 md:min-h-[87vh] md:gap-0 md:px-6">
