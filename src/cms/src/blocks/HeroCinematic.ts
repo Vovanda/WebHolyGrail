@@ -56,10 +56,23 @@ export const HeroCinematicBlock: Block = {
       admin: { condition: (_, siblingData) => Boolean(siblingData?.['watermark']) },
     },
     {
+      name: 'logo',
+      label: 'Логотип по центру',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        description:
+          'Знак проекта крупно в центре обложки — вместо надписи. Нужен файл с прозрачным фоном.',
+      },
+    },
+    {
       name: 'brand',
       label: 'Крупная надпись сверху',
       type: 'text',
-      admin: { description: 'Название бренда или проекта. Набирается вразрядку заглавными.' },
+      admin: {
+        description:
+          'Название бренда или проекта вразрядку заглавными. Если задан логотип, надпись не показывается.',
+      },
     },
     {
       name: 'headline',

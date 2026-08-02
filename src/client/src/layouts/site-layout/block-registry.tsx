@@ -8,6 +8,7 @@ import { NavDrawer } from '@/blocks/layout/NavDrawer';
 import { Hero } from '@/blocks/primitives/Hero';
 import { HeroSplit } from '@/blocks/primitives/HeroSplit';
 import { HeroCinematic } from '@/blocks/primitives/HeroCinematic';
+import { CustomMarkup } from '@/blocks/primitives/CustomMarkup';
 import { RequestForm } from '@/blocks/primitives/RequestForm';
 import { SpecialistDirectory } from '@/blocks/primitives/SpecialistDirectory';
 import { InstallSnippet } from '@/blocks/primitives/InstallSnippet';
@@ -50,6 +51,7 @@ const REGISTRY: Record<string, BlockRenderer> = {
   hero: (node, settings) => <Hero node={node} settings={settings} />,
   'hero-split': (node, settings) => <HeroSplit node={node} settings={settings} />,
   'hero-cinematic': (node, settings) => <HeroCinematic node={node} settings={settings} />,
+  'custom-markup': (node, settings) => <CustomMarkup node={node} settings={settings} />,
   'request-form': (node, settings) => <RequestForm node={node} settings={settings} />,
   'specialist-directory': (node, settings) => (
     <SpecialistDirectory node={node} settings={settings} />

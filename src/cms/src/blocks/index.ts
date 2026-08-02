@@ -2,6 +2,7 @@ import { BannerSliderBlock } from './BannerSlider';
 import { HeroBlock } from './Hero';
 import { HeroSplitBlock } from './HeroSplit';
 import { HeroCinematicBlock } from './HeroCinematic';
+import { CustomMarkupBlock } from './CustomMarkup';
 import { RequestFormBlock } from './RequestForm';
 import { SpecialistDirectoryBlock } from './SpecialistDirectory';
 import { InstallSnippetBlock } from './InstallSnippet';
@@ -49,6 +50,7 @@ export const REUSABLE_INNER_BLOCKS = [
   HeroBlock,
   HeroSplitBlock,
   HeroCinematicBlock,
+  CustomMarkupBlock,
   RequestFormBlock,
   SpecialistDirectoryBlock,
   InstallSnippetBlock,

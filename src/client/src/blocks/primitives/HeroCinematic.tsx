@@ -29,6 +29,7 @@ export interface HeroCinematicCorner {
 export interface HeroCinematicData {
   readonly videoUrl?: string;
   readonly poster?: MediaRef | null;
+  readonly logo?: MediaRef | null;
   readonly watermark?: MediaRef | null;
   readonly watermarkSide?: 'left' | 'right';
   readonly brand?: string;
@@ -145,7 +146,18 @@ export function HeroCinematic({
           {at('top-right') && <Corner corner={at('top-right')!} />}
         </div>
 
-        {data.brand && (
+        {mediaUrl(data.logo) ? (
+          // Знак проекта вместо надписи: на главной бренд узнаётся по логотипу,
+          // а не по набранному вразрядку названию.
+          // eslint-disable-next-line @next/next/no-img-element -- источник S3 нашей CMS
+          <img
+            src={mediaUrl(data.logo)}
+            alt={data.brand ?? ''}
+            className="mx-auto my-4 w-40 max-w-[70%] md:w-64"
+          />
+        ) : null}
+
+        {!mediaUrl(data.logo) && data.brand && (
           <p className="py-2 text-center font-display text-3xl font-black uppercase tracking-[0.15em] text-white [text-shadow:0_2px_10px_rgba(0,0,0,0.5)] md:text-5xl">
             {data.brand}
           </p>

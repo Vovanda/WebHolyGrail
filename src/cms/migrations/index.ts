@@ -6,6 +6,7 @@ import * as migration_20260727_203025_feature_grid_media_and_href from './202607
 import * as migration_20260802_140203_hero_cinematic_block from './20260802_140203_hero_cinematic_block';
 import * as migration_20260802_145655_specialists_catalog from './20260802_145655_specialists_catalog';
 import * as migration_20260802_151224_hero_watermark from './20260802_151224_hero_watermark';
+import * as migration_20260802_153624_hero_logo_and_custom_markup from './20260802_153624_hero_logo_and_custom_markup';
 
 export const migrations = [
   {
@@ -47,5 +48,10 @@ export const migrations = [
     up: migration_20260802_151224_hero_watermark.up,
     down: migration_20260802_151224_hero_watermark.down,
     name: '20260802_151224_hero_watermark',
+  },
+  {
+    up: migration_20260802_153624_hero_logo_and_custom_markup.up,
+    down: migration_20260802_153624_hero_logo_and_custom_markup.down,
+    name: '20260802_153624_hero_logo_and_custom_markup',
   },
 ];
