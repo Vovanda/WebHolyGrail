@@ -136,10 +136,18 @@ export function HeroCinematic({
 
       {/* Виньетка: гасит края кадра, чтобы текст читался поверх любого видео.
           Цвет — из палитры, а не жёсткий чёрный: на чёрно-золотом сайте края
-          уходят в тёплый чёрный бренда, на синем — в синий. */}
+          уходят в тёплый чёрный бренда, на синем — в синий.
+
+          Градиент задан inline, а не классом: Tailwind не разбирает запятые
+          внутри вложенного color-mix() и молча не выдаёт правило — виньетка
+          просто исчезает. */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 [background:radial-gradient(ellipse_at_center,transparent_30%,color-mix(in_srgb,var(--color-dark-block)_80%,transparent)_70%,var(--color-dark-block)_100%)]"
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at center, transparent 30%, color-mix(in srgb, var(--color-dark-block) 80%, transparent) 70%, var(--color-dark-block) 100%)',
+        }}
       />
 
       <div className="relative mx-auto flex w-full max-w-wide flex-col gap-6 px-4 py-8 md:min-h-[87vh] md:gap-0 md:px-6">
