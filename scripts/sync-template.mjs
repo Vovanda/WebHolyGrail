@@ -188,6 +188,15 @@ const MIRROR = [
   'dev-setup.sh',
   'scripts/sync-template.mjs',
   'scripts/sync-template.sh',
+  // Остальные generic-скрипты обвязки. Без них инстанс навсегда остаётся с той
+  // версией, что была на момент `Use this template`: новые флаги (--extra-domains),
+  // новые GH-переменные и фиксы bootstrap'а до него не доезжают.
+  // `scripts/seeds/` намеренно не здесь — там контент конкретного сайта.
+  'scripts/setup-infisical.ts',
+  'scripts/sync-infisical.ts',
+  'scripts/infisical-template.ts',
+  'scripts/bootstrap-site-on-vps.sh',
+  'scripts/README.md',
 
   // Generic configs
   'commitlint.config.js',
