@@ -74,12 +74,12 @@ API() {
 }
 
 # Try to find existing project. v2 API: GET /api/v2/workspace?organizationId=...
+# Через jq, а не grep по сырому JSON: порядок полей в ответе не гарантирован, а
+# `grep` без совпадения под `set -euo pipefail` убивал весь скрипт молча — ровно
+# в основном сценарии, когда проекта ещё нет.
 EXISTING=$(API "$INFISICAL_HOST_URL/api/v2/workspace?organizationId=$INFISICAL_ADMIN_ORG_ID" \
-  | grep -oE "\"id\":\"[^\"]+\",\"name\":\"$PROJECT_NAME\"" \
-  | head -1 \
-  | grep -oE '"id":"[^"]+"' \
-  | head -1 \
-  | cut -d'"' -f4)
+  | jq -r --arg name "$PROJECT_NAME" \
+      'first(.workspaces[]? | select(.name == $name) | .id) // empty' 2>/dev/null || true)
 
 if [ -n "$EXISTING" ]; then
   PROJECT_ID="$EXISTING"
@@ -90,7 +90,7 @@ else
     \"organizationId\": \"$INFISICAL_ADMIN_ORG_ID\",
     \"type\": \"secret-manager\"
   }")
-  PROJECT_ID=$(echo "$RESP" | grep -oE '"id":"[^"]+"' | head -1 | cut -d'"' -f4)
+  PROJECT_ID=$(echo "$RESP" | jq -r '.project.id // .id // empty' 2>/dev/null || true)
   if [ -z "$PROJECT_ID" ]; then
     echo "   ✗ create project failed: $RESP" >&2
     exit 1
@@ -104,10 +104,8 @@ echo "→ Infisical: ensure UA identity '$SLUG-deploy'"
 
 IDENTITY_NAME="${SLUG}-deploy"
 EXISTING_IDENT=$(API "$INFISICAL_HOST_URL/api/v1/workspace/$PROJECT_ID/identity-memberships" \
-  | grep -oE "\"identityId\":\"[^\"]+\"[^}]*\"name\":\"$IDENTITY_NAME\"" \
-  | head -1 \
-  | grep -oE '"identityId":"[^"]+"' \
-  | cut -d'"' -f4)
+  | jq -r --arg name "$IDENTITY_NAME" \
+      'first(.identityMemberships[]? | select(.identity.name == $name) | .identity.id) // empty' 2>/dev/null || true)
 
 if [ -n "$EXISTING_IDENT" ]; then
   IDENTITY_ID="$EXISTING_IDENT"
@@ -121,7 +119,7 @@ else
     \"organizationId\": \"$INFISICAL_ADMIN_ORG_ID\",
     \"role\": \"member\"
   }")
-  IDENTITY_ID=$(echo "$RESP" | grep -oE '"id":"[^"]+"' | head -1 | cut -d'"' -f4)
+  IDENTITY_ID=$(echo "$RESP" | jq -r '.identity.id // .id // empty' 2>/dev/null || true)
   if [ -z "$IDENTITY_ID" ]; then
     echo "   ✗ create identity failed: $RESP" >&2
     exit 1
@@ -139,12 +137,12 @@ else
     "accessTokenMaxTTL": 2592000,
     "accessTokenNumUsesLimit": 0
   }')
-  CLIENT_ID=$(echo "$UA_RESP" | grep -oE '"clientId":"[^"]+"' | head -1 | cut -d'"' -f4)
+  CLIENT_ID=$(echo "$UA_RESP" | jq -r '.identityUniversalAuth.clientId // .clientId // empty' 2>/dev/null || true)
 
   # Generate client-secret
   SECRET_RESP=$(API -X POST "$INFISICAL_HOST_URL/api/v1/auth/universal-auth/identities/$IDENTITY_ID/client-secrets" \
     -d '{"description":"deploy", "numUsesLimit": 0, "ttl": 0}')
-  CLIENT_SECRET=$(echo "$SECRET_RESP" | grep -oE '"clientSecret":"[^"]+"' | head -1 | cut -d'"' -f4)
+  CLIENT_SECRET=$(echo "$SECRET_RESP" | jq -r '.clientSecret // .clientSecretData.clientSecret // empty' 2>/dev/null || true)
 
   if [ -z "$CLIENT_ID" ] || [ -z "$CLIENT_SECRET" ]; then
     echo "   ✗ UA setup failed (clientId=$CLIENT_ID, clientSecret=${CLIENT_SECRET:+<set>}${CLIENT_SECRET:-<empty>})" >&2
@@ -154,16 +152,29 @@ else
   SKIP_CREDS=0
 fi
 
-# ─── 4. Save creds на disk (только для свежесозданного identity) ────────
+# ─── 4. Save creds на disk ──────────────────────────────────────────────
+# Файла ровно три: без `project-id` UA-логин из deploy.sh падает с
+# «Project ID is required when using machine identity». client-secret пишем
+# только для свежесозданной identity — у существующей он неизвлекаем.
+echo
+echo "→ Saving creds → $CREDS_DIR"
+sudo install -d -m 0700 -o deploy -g deploy "$CREDS_DIR"
+printf '%s' "$PROJECT_ID" | sudo tee "$CREDS_DIR/project-id" >/dev/null
 if [ "${SKIP_CREDS:-0}" = "0" ]; then
-  echo
-  echo "→ Saving UA creds → $CREDS_DIR"
-  sudo install -d -m 0700 -o deploy -g deploy "$CREDS_DIR"
-  echo -n "$CLIENT_ID" | sudo tee "$CREDS_DIR/client-id" >/dev/null
-  echo -n "$CLIENT_SECRET" | sudo tee "$CREDS_DIR/client-secret" >/dev/null
-  sudo chown deploy:deploy "$CREDS_DIR/client-id" "$CREDS_DIR/client-secret"
-  sudo chmod 600 "$CREDS_DIR/client-id" "$CREDS_DIR/client-secret"
-  echo "   ✓ creds saved (chmod 600 deploy:deploy)"
+  printf '%s' "$CLIENT_ID" | sudo tee "$CREDS_DIR/client-id" >/dev/null
+  printf '%s' "$CLIENT_SECRET" | sudo tee "$CREDS_DIR/client-secret" >/dev/null
+fi
+sudo chown deploy:deploy "$CREDS_DIR"/*
+sudo chmod 600 "$CREDS_DIR"/*
+if [ "${SKIP_CREDS:-0}" = "0" ]; then
+  echo "   ✓ client-id, client-secret, project-id (chmod 600 deploy:deploy)"
+else
+  echo "   ✓ project-id обновлён; client-id/secret оставлены от существующей identity"
+  if [ ! -s "$CREDS_DIR/client-secret" ]; then
+    echo "   ✗ client-secret пуст, а identity уже существует — его нельзя перевыпустить здесь." >&2
+    echo "     Удали identity '$IDENTITY_NAME' в Infisical и перезапусти bootstrap." >&2
+    exit 1
+  fi
 fi
 
 echo
