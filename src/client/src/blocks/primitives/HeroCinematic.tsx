@@ -79,7 +79,7 @@ function Corner({ corner }: { readonly corner: HeroCinematicCorner }) {
     >
       {corner.title}
       {corner.subtitle && (
-        <span className="mt-1 block text-[11px] font-normal normal-case leading-tight tracking-normal text-ink/85 md:mt-1.5 md:text-sm">
+        <span className="mt-1 block text-[11px] font-normal normal-case leading-tight tracking-normal text-white/90 md:mt-1.5 md:text-sm">
           {corner.subtitle}
         </span>
       )}
@@ -159,7 +159,7 @@ export function HeroCinematic({
         aria-hidden="true"
         className="absolute inset-0"
         style={{
-          background: `radial-gradient(ellipse at center, color-mix(in srgb, ${edge} 25%, transparent) 0%, color-mix(in srgb, ${edge} 72%, transparent) 60%, ${edge} 100%)`,
+          background: `radial-gradient(ellipse at center, transparent 42%, color-mix(in srgb, ${edge} 65%, transparent) 72%, ${edge} 100%)`,
         }}
       />
 
@@ -181,13 +181,13 @@ export function HeroCinematic({
         ) : null}
 
         {!mediaUrl(data.logo) && data.brand && (
-          <p className="py-2 text-center font-display text-3xl font-black uppercase tracking-[0.15em] text-ink [text-shadow:0_2px_14px_var(--color-bg)] md:text-5xl">
+          <p className="py-2 text-center font-display text-3xl font-black uppercase tracking-[0.15em] text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.6)] md:text-5xl">
             {data.brand}
           </p>
         )}
 
         <div className="flex flex-grow items-center py-4 md:px-[6%]">
-          <h1 className="font-display text-2xl font-bold uppercase leading-tight tracking-wide text-accent [text-shadow:0_2px_12px_var(--color-bg)] md:text-4xl">
+          <h1 className="font-display text-2xl font-bold uppercase leading-tight tracking-wide text-accent [text-shadow:0_2px_10px_rgba(0,0,0,0.6)] md:text-4xl">
             {data.headline}
             {data.highlightHref ? (
               <Link href={data.highlightHref} className="no-underline hover:opacity-80">
@@ -200,7 +200,7 @@ export function HeroCinematic({
         </div>
 
         {data.quote && (
-          <blockquote className="mx-auto max-w-3xl border-y-2 border-accent py-4 text-center text-base leading-relaxed text-ink/90 md:text-lg">
+          <blockquote className="mx-auto max-w-3xl border-y-2 border-accent py-4 text-center text-base leading-relaxed text-white/95 md:text-lg">
             {data.quote}
           </blockquote>
         )}
