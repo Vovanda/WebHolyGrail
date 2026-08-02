@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { BlockNode, SiteSettings } from 'contracts';
 
@@ -44,8 +44,29 @@ export function RequestForm({
 }) {
   const data = node.data ?? {};
   const collapsible = data.collapsible ?? false;
+  const anchorId = data.anchor || `form-${data.requestType ?? 'general'}`;
   const [open, setOpen] = useState(!collapsible);
   const [status, setStatus] = useState<Status>('idle');
+
+  // Кнопка «Записаться» со страницы ведёт на #anchor. Если форма свёрнута, то
+  // без этого человек попадает на заголовок и пустое место: полей на странице
+  // просто нет. Раскрываем, когда пришли именно за этой формой — по ссылке с
+  // той же страницы (hashchange) или по прямой ссылке из мессенджера.
+  useEffect(() => {
+    if (!collapsible) return;
+    const openIfTargeted = () => {
+      if (decodeURIComponent(window.location.hash.slice(1)) !== anchorId) return;
+      setOpen(true);
+      // Браузер уже проскроллил к свёрнутой секции; после раскрытия она стала
+      // выше — возвращаем её в кадр целиком.
+      requestAnimationFrame(() => {
+        document.getElementById(anchorId)?.scrollIntoView({ block: 'start' });
+      });
+    };
+    openIfTargeted();
+    window.addEventListener('hashchange', openIfTargeted);
+    return () => window.removeEventListener('hashchange', openIfTargeted);
+  }, [collapsible, anchorId]);
   const specialistId =
     typeof data.specialist === 'object' && data.specialist
       ? String(data.specialist.id ?? '')
@@ -83,10 +104,7 @@ export function RequestForm({
     'w-full rounded-md border border-border bg-bg px-3 py-2.5 text-ink outline-none placeholder:text-muted focus:border-accent';
 
   return (
-    <section
-      id={data.anchor || `form-${data.requestType ?? 'general'}`}
-      className="bg-bg py-10 md:py-14 scroll-mt-24"
-    >
+    <section id={anchorId} className="bg-bg py-10 md:py-14 scroll-mt-24">
       <div className="mx-auto max-w-content px-4 md:px-6">
         <h2 className="font-display text-2xl font-semibold text-ink md:text-3xl">{data.heading}</h2>
         {data.description && <p className="mt-2 text-muted">{data.description}</p>}
