@@ -86,7 +86,7 @@ export default async function SpecialistsPage({ searchParams }: { searchParams: 
 
   return (
     <div className="mx-auto max-w-wide px-4 pb-10 md:px-6 md:pb-14">
-      <Breadcrumbs items={[{ label: 'Главная', href: '/' }, { label: 'Эксперты' }]} />
+      <Breadcrumbs copyLink items={[{ label: 'Главная', href: '/' }, { label: 'Эксперты' }]} />
 
       <header className="mb-8">
         <h1 className="font-display text-3xl font-semibold text-ink md:text-4xl">Эксперты</h1>

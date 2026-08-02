@@ -1,5 +1,7 @@
 import Link from 'next/link';
 
+import { CopyLinkButton } from './CopyLinkButton';
+
 /**
  * Breadcrumbs — путь до текущей страницы.
  *
@@ -24,11 +26,21 @@ export interface Crumb {
   readonly href?: string;
 }
 
-export function Breadcrumbs({ items }: { readonly items: readonly Crumb[] }) {
+export function Breadcrumbs({
+  items,
+  copyLink = false,
+}: {
+  readonly items: readonly Crumb[];
+  /** Кнопка «скопировать ссылку» справа от пути. */
+  readonly copyLink?: boolean;
+}) {
   if (items.length === 0) return null;
 
   return (
-    <nav aria-label="Хлебные крошки" className="py-4 text-sm text-muted">
+    <nav
+      aria-label="Хлебные крошки"
+      className="flex items-center justify-between gap-3 py-4 text-sm text-muted"
+    >
       <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
         {items.map((item, index) => {
           const last = index === items.length - 1;
@@ -54,6 +66,7 @@ export function Breadcrumbs({ items }: { readonly items: readonly Crumb[] }) {
           );
         })}
       </ol>
+      {copyLink && <CopyLinkButton />}
     </nav>
   );
 }

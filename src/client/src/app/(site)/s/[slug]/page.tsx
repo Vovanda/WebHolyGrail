@@ -106,6 +106,7 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
       <>
         <div className="mx-auto max-w-wide px-4 md:px-6">
           <Breadcrumbs
+            copyLink
             items={[
               { label: 'Главная', href: '/' },
               { label: 'Эксперты', href: '/specialists' },
@@ -141,6 +142,7 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
   return (
     <article className="mx-auto max-w-content px-4 pb-10 md:px-6 md:pb-14">
       <Breadcrumbs
+        copyLink
         items={[
           { label: 'Главная', href: '/' },
           { label: 'Эксперты', href: '/specialists' },
