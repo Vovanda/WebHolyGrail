@@ -153,7 +153,7 @@ export function HeroCinematic({
           <img
             src={mediaUrl(data.logo)}
             alt={data.brand ?? ''}
-            className="mx-auto my-4 w-40 max-w-[70%] md:w-64"
+            className="mx-auto my-4 w-60 max-w-[82%] md:w-[26rem]"
           />
         ) : null}
 
