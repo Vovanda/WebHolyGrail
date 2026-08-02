@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 
 import { getSiteSettings, getSpecialistBySlug, type SpecialistDoc } from '@/lib/api-client';
 import { renderBlockNode } from '@/layouts/site-layout';
+import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 
 /**
  * /s/[slug] — личная страница специалиста. SSR (R14).
@@ -69,6 +70,15 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
   if (blocks.length > 0 && settings) {
     return (
       <>
+        <div className="mx-auto max-w-wide px-4 pt-6 md:px-6">
+          <Breadcrumbs
+            items={[
+              { label: 'Главная', href: '/' },
+              { label: 'Эксперты', href: '/specialists' },
+              { label: doc.fullName },
+            ]}
+          />
+        </div>
         {blocks.map((block, index) => {
           // Payload отдаёт поля блока на верхнем уровне, а рендер ждёт их в
           // `data` — без этой обёртки компоненты видят пустые пропсы и
@@ -99,6 +109,14 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
 
   return (
     <article className="mx-auto max-w-content px-4 py-10 md:px-6 md:py-14">
+      <Breadcrumbs
+        items={[
+          { label: 'Главная', href: '/' },
+          { label: 'Эксперты', href: '/specialists' },
+          { label: doc.fullName },
+        ]}
+      />
+
       <header className="flex flex-col gap-6 md:flex-row md:items-start">
         {photo && (
           // eslint-disable-next-line @next/next/no-img-element -- источник S3 нашей CMS
@@ -116,11 +134,6 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
           )}
           {doc.ratingPublic && typeof doc.rating === 'number' && (
             <p className="mt-2 text-sm text-ink">Оценка {doc.rating.toFixed(1)} из 5</p>
-          )}
-          {doc.acceptingClients === false && (
-            <p className="mt-3 inline-block rounded-md border border-border px-3 py-1 text-sm text-muted">
-              Сейчас не набирает новых клиентов
-            </p>
           )}
         </div>
       </header>

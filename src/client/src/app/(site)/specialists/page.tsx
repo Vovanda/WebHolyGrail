@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import { listCities, listSpecialists, type CityDoc, type SpecialistDoc } from '@/lib/api-client';
 
+import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { CatalogFilters } from '@/blocks/primitives/CatalogFilters';
 
 /**
@@ -81,6 +82,8 @@ export default async function SpecialistsPage({ searchParams }: { searchParams: 
 
   return (
     <div className="mx-auto max-w-wide px-4 py-10 md:px-6 md:py-14">
+      <Breadcrumbs items={[{ label: 'Главная', href: '/' }, { label: 'Эксперты' }]} />
+
       <header className="mb-8">
         <h1 className="font-display text-3xl font-semibold text-ink md:text-4xl">Эксперты</h1>
         <p className="mt-2 text-muted">
