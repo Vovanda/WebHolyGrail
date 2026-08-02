@@ -10,6 +10,7 @@ import type { BlockNode, MediaRef, SiteSettings } from 'contracts';
 import { resolveMediaUrl } from '@/lib/media';
 
 import { Icon } from './Icon';
+import { PhotoLightbox } from './PhotoLightbox';
 
 /**
  * FeatureGrid — сетка карточек с иконкой/заголовком/описанием.
@@ -70,13 +71,25 @@ function CardMedia({
   urls,
   alt,
   ratio,
+  natural = false,
+  onPick,
 }: {
   readonly urls: readonly string[];
   readonly alt: string;
   readonly ratio: MediaRatio;
+  /**
+   * Показать картинку целиком, по её собственным пропорциям.
+   *
+   * В сетке карточки обрезаются под общее соотношение — иначе ряд разъезжается.
+   * В модалке резать нечего: там одна картинка и ей отведено всё место, а
+   * баннер с текстом от обрезки теряет как раз текст.
+   */
+  readonly natural?: boolean;
+  /** Клик по картинке — открыть её крупно. */
+  readonly onPick?: (index: number) => void;
 }) {
   const many = urls.length > 1;
-  const ratioClass = RATIO_CLASS[ratio];
+  const ratioClass = natural ? '' : RATIO_CLASS[ratio];
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, []);
   const [selected, setSelected] = useState(0);
 
@@ -104,7 +117,14 @@ function CardMedia({
     return (
       <div className={`${ratioClass} overflow-hidden bg-surface`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={urls[0]} alt={alt} className="h-full w-full object-cover" />
+        <img
+          src={urls[0]}
+          alt={alt}
+          {...(onPick ? { onClick: () => onPick(0), role: 'button', tabIndex: 0 } : {})}
+          className={
+            natural ? `w-full ${onPick ? 'cursor-zoom-in' : ''}` : 'h-full w-full object-cover'
+          }
+        />
       </div>
     );
   }
@@ -117,7 +137,16 @@ function CardMedia({
             <div key={i} className="min-w-0 flex-[0_0_100%]">
               <div className={ratioClass}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={url} alt={alt} className="h-full w-full object-cover" />
+                <img
+                  src={url}
+                  alt={alt}
+                  {...(onPick ? { onClick: () => onPick(i), role: 'button', tabIndex: 0 } : {})}
+                  className={
+                    natural
+                      ? `w-full ${onPick ? 'cursor-zoom-in' : ''}`
+                      : 'h-full w-full object-cover'
+                  }
+                />
               </div>
             </div>
           ))}
@@ -413,13 +442,13 @@ function FeatureModal({
     <div
       role="presentation"
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-ink/60 backdrop-blur-sm flex items-center justify-center p-4 animate-[hg-fade-in_180ms_ease-out]"
+      className="fixed inset-0 z-50 bg-ink/60 backdrop-blur-sm flex items-center justify-center overflow-y-auto p-4 animate-[hg-fade-in_180ms_ease-out]"
     >
       <div
         role="dialog"
         aria-labelledby="feature-modal-title"
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md rounded-2xl bg-bg border border-border shadow-lg p-7"
+        className="relative my-auto w-full max-w-md rounded-2xl bg-bg border border-border shadow-lg p-7"
       >
         <button
           type="button"
@@ -431,7 +460,16 @@ function FeatureModal({
         </button>
         {modalUrls.length > 0 ? (
           <div className="mb-5 -mx-7 -mt-7 overflow-hidden rounded-t-2xl">
-            <CardMedia urls={modalUrls} alt={item.title} ratio="16/10" />
+            {/* Картинка услуги — это афиша с текстом: в модалке он мелкий, а по
+                клику открывается во весь экран с зумом. */}
+            <PhotoLightbox
+              slides={modalUrls.map((src) => ({ src, alt: item.title }))}
+              groupId={`feature-${item.title}`}
+            >
+              {(open) => (
+                <CardMedia urls={modalUrls} alt={item.title} ratio="16/10" natural onPick={open} />
+              )}
+            </PhotoLightbox>
           </div>
         ) : (
           <div className="mb-4">
