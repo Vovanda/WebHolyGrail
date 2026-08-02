@@ -44,7 +44,7 @@ function Card({ doc }: { readonly doc: SpecialistDoc }) {
   const url = photoUrl(doc);
   const disciplines = (doc.disciplines ?? []).map((d) => d.title).filter(Boolean);
   return (
-    <Link href={doc.slug ? `/s/${doc.slug}` : '#'} className="no-underline">
+    <Link href={doc.slug ? `/specialists/${doc.slug}` : '#'} className="no-underline">
       <article className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-accent">
         {url ? (
           // eslint-disable-next-line @next/next/no-img-element -- источник S3 нашей CMS

@@ -144,7 +144,11 @@ export function SpecialistTop({
           }
         >
           {shown.map((p) => (
-            <Link key={p.id} href={p.slug ? `/s/${p.slug}` : '#'} className="no-underline">
+            <Link
+              key={p.id}
+              href={p.slug ? `/specialists/${p.slug}` : '#'}
+              className="no-underline"
+            >
               <article className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-accent">
                 {p.photoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- источник S3 нашей CMS

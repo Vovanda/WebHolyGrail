@@ -7,7 +7,7 @@ import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { RatingStars } from '@/blocks/primitives/RatingStars';
 
 /**
- * /s/[slug] — личная страница специалиста. SSR (R14).
+ * /specialists/[slug] — личная страница специалиста. SSR (R14).
  *
  * @remarks
  * Страница работает в двух режимах. Если человек собрал себе блоки — рендерим

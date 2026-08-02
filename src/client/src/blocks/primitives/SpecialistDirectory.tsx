@@ -79,7 +79,7 @@ function shuffled<T>(items: readonly T[]): T[] {
 
 function Card({ doc }: { readonly doc: SpecialistDoc }) {
   const url = photoUrl(doc);
-  const href = doc.slug ? `/s/${doc.slug}` : undefined;
+  const href = doc.slug ? `/specialists/${doc.slug}` : undefined;
   const disciplines = (doc.disciplines ?? []).map((d) => d.title).filter(Boolean);
 
   const inner = (
