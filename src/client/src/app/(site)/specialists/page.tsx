@@ -67,6 +67,29 @@ function Card({ doc }: { readonly doc: SpecialistDoc }) {
   );
 }
 
+/**
+ * Разметка списка: робот видит, что это каталог людей и в каком они порядке.
+ * Отдаём только показанных — с учётом фильтров, как и посетителю.
+ */
+function listJsonLd(people: readonly SpecialistDoc[]): string {
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    numberOfItems: people.length,
+    itemListElement: people.map((doc, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      item: {
+        '@type': 'Person',
+        name: doc.fullName,
+        ...(doc.slug ? { url: `/specialists/${doc.slug}` } : {}),
+        ...(photoUrl(doc) ? { image: photoUrl(doc) } : {}),
+        ...(doc.headline ? { jobTitle: doc.headline } : {}),
+      },
+    })),
+  });
+}
+
 export default async function SpecialistsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const { city: citySlug, skill } = await searchParams;
 
@@ -86,6 +109,12 @@ export default async function SpecialistsPage({ searchParams }: { searchParams: 
 
   return (
     <div className="mx-auto max-w-wide px-4 pb-10 md:px-6 md:pb-14">
+      {people.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: listJsonLd(people) }}
+        />
+      )}
       <Breadcrumbs copyLink items={[{ label: 'Главная', href: '/' }, { label: 'Эксперты' }]} />
 
       <header className="mb-8">

@@ -24,10 +24,51 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   const doc = await getSpecialistBySlug(slug);
   if (!doc) return { title: 'Страница не найдена' };
   const description = doc.headline ?? doc.bio?.slice(0, 160);
+  const photo = photoUrl(doc);
+
   return {
     title: doc.fullName,
     ...(description ? { description } : {}),
+    alternates: { canonical: `/specialists/${slug}` },
+    openGraph: {
+      type: 'profile',
+      title: doc.fullName,
+      ...(description ? { description } : {}),
+      // Ссылкой на человека делятся в мессенджерах, и в превью должен быть он,
+      // а не логотип сайта: по логотипу все страницы выглядят одинаково.
+      ...(photo ? { images: [{ url: photo, alt: doc.fullName }] } : {}),
+    },
+    ...(photo ? { twitter: { card: 'summary_large_image', images: [photo] } } : {}),
   };
+}
+
+/**
+ * Разметка Person для поисковика: имя, фото, направления, город и ссылки на
+ * профили. Без неё карточка человека для робота — обычный текст.
+ */
+function personJsonLd(doc: SpecialistDoc, slug: string): string {
+  const photo = photoUrl(doc);
+  const city =
+    typeof doc.city === 'object' && doc.city ? (doc.city as { name?: string }).name : undefined;
+  const links = Object.values(doc.contacts ?? {}).filter(
+    (v): v is string => typeof v === 'string' && v.startsWith('http'),
+  );
+  const disciplines = (doc.disciplines ?? []).map((d) => d.title).filter(Boolean);
+
+  return JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'Person',
+    name: doc.fullName,
+    url: `/specialists/${slug}`,
+    ...(doc.headline ? { jobTitle: doc.headline } : {}),
+    ...(doc.bio ? { description: doc.bio.slice(0, 500) } : {}),
+    ...(photo ? { image: photo } : {}),
+    ...(city ? { address: { '@type': 'PostalAddress', addressLocality: city } } : {}),
+    ...(disciplines.length > 0 ? { knowsAbout: disciplines } : {}),
+    ...(links.length > 0 ? { sameAs: links } : {}),
+    ...(doc.contacts?.email ? { email: doc.contacts.email } : {}),
+    ...(doc.contacts?.phone ? { telephone: doc.contacts.phone } : {}),
+  });
 }
 
 function photoUrl(doc: SpecialistDoc): string | undefined {
@@ -104,6 +145,10 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
   if (blocks.length > 0 && settings) {
     return (
       <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: personJsonLd(doc, slug) }}
+        />
         <div className="mx-auto max-w-wide px-4 md:px-6">
           <Breadcrumbs
             copyLink
@@ -141,6 +186,10 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
   const disciplines = (doc.disciplines ?? []).map((d) => d.title).filter(Boolean);
   return (
     <article className="mx-auto max-w-content px-4 pb-10 md:px-6 md:pb-14">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: personJsonLd(doc, slug) }}
+      />
       <Breadcrumbs
         copyLink
         items={[

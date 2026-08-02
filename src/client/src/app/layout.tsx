@@ -4,6 +4,7 @@ import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 
 import { getSiteSettings } from '@/lib/api-client';
+import { resolveMediaUrl } from '@/lib/media';
 import { ThemeBootstrap } from '@/lib/theme-bootstrap';
 import { PaletteOverride } from '@/lib/palette-override';
 import { YandexMetrika } from '@/lib/analytics';
@@ -13,12 +14,30 @@ import '@/styles/globals.css';
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = (await getSiteSettings().catch(() => null)) ?? FALLBACK_SITE_SETTINGS;
+  const siteUrl = process.env['NEXT_PUBLIC_SITE_URL'];
+  const logo = resolveMediaUrl(settings.logo) ?? '/branding/logo.png';
+
   return {
+    // Без базы относительные пути в og:image уезжают в ссылку как есть, а
+    // мессенджеры и соцсети требуют абсолютный адрес — картинка не покажется.
+    ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
     title: { default: settings.siteName, template: `%s — ${settings.siteName}` },
     icons: {
       icon: '/branding/logo.png',
       shortcut: '/branding/logo.png',
       apple: '/branding/logo.png',
+    },
+    openGraph: {
+      type: 'website',
+      siteName: settings.siteName,
+      locale: 'ru_RU',
+      title: settings.siteName,
+      images: [{ url: logo, alt: settings.siteName }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: settings.siteName,
+      images: [logo],
     },
   };
 }
