@@ -140,6 +140,7 @@ const MIRROR = [
   // маршруты инстанса живут отдельными папками и его не трогают. Инстансовый
   // layout.tsx сюда не входит — там шрифты и брендинг конкретного сайта.
   'src/client/src/app/(site)/[[...slug]]/page.tsx',
+  'src/client/src/app/(site)/s/',
   'src/client/src/app/not-found.tsx',
 
   // CMS — generic collections + блоки
@@ -156,6 +157,9 @@ const MIRROR = [
   'src/cms/src/collections/Authors.ts',
   'src/cms/src/collections/Tags.ts',
   'src/cms/src/collections/Threads.ts',
+  // Каталог специалистов: generic-механика «люди по городам»
+  'src/cms/src/collections/Cities.ts',
+  'src/cms/src/collections/Specialists.ts',
   'src/cms/src/globals/SiteSettings.ts',
   // Generic-хелперы CMS (транслитерация slug и т.п.) — на них ссылаются
   // коллекции из MIRROR, без них инстанс просто не соберётся.
