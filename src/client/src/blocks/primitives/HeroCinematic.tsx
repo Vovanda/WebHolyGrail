@@ -65,6 +65,20 @@ function mediaUrl(ref: MediaRef | null | undefined): string | undefined {
   return (ref as { url?: string }).url;
 }
 
+/**
+ * Четыре пятна по углам кадра — приём выцветшего журнала.
+ *
+ * @remarks
+ * Углы, а не эллипс через весь кадр: единый радиальный градиент даёт видимую
+ * границу света и тени посреди экрана и читается как нарисованный овал, а не
+ * как затемнение по краям.
+ */
+function corners(color: string): string {
+  return (['top left', 'top right', 'bottom left', 'bottom right'] as const)
+    .map((at) => `radial-gradient(circle at ${at}, ${color} 0%, transparent 45%)`)
+    .join(', ');
+}
+
 function Corner({ corner }: { readonly corner: HeroCinematicCorner }) {
   const position = corner.position ?? 'top-left';
   const emphasis = corner.emphasis ?? 'medium';
@@ -117,6 +131,11 @@ export function HeroCinematic({
   const edge =
     'color-mix(in srgb, color-mix(in srgb, var(--color-bg) 78%, #000) 93%, var(--color-accent))';
 
+  // Светлая тема получает не тень, а желтизну: углы уходят в тёплый кремовый,
+  // как пожелтевшая по краям бумага. Затемнение здесь читалось бы грязью, а
+  // пожелтение — тем же журнальным приёмом, что и тёмные углы в тёмной теме.
+  const paper = 'color-mix(in srgb, var(--color-bg) 78%, var(--color-accent))';
+
   return (
     <section className="relative w-full overflow-hidden bg-bg">
       {data.videoUrl && <VideoBackdrop src={data.videoUrl} {...(poster ? { poster } : {})} />}
@@ -149,18 +168,21 @@ export function HeroCinematic({
       {/* Виньетка: гасит кадр к краям, видео проступает в центре и уходит в
           подложку по краю.
 
-          В центре плёнка слабая, но есть: без неё текст держится только на
-          удачном кадре, а видео меняют.
+          Только в тёмной теме. На светлой любое затемнение краёв читается как
+          грязь поверх кадра — там же, где мешает и тень под текстом.
 
           Градиент задан inline, а не классом: Tailwind не разбирает запятые
           внутри вложенного color-mix() и молча не выдаёт правило — виньетка
           тогда исчезает совсем. */}
       <div
         aria-hidden="true"
-        className="absolute inset-0"
-        style={{
-          background: `radial-gradient(ellipse at center, transparent 42%, color-mix(in srgb, ${edge} 65%, transparent) 72%, ${edge} 100%)`,
-        }}
+        className="absolute inset-0 dark:hidden"
+        style={{ background: corners(paper) }}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 hidden dark:block"
+        style={{ background: corners(edge) }}
       />
 
       <div className="relative mx-auto flex w-full max-w-wide flex-col gap-6 px-4 py-8 md:min-h-[87vh] md:gap-0 md:px-6">
