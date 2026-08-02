@@ -7,13 +7,13 @@ import type { BlockNode, SiteSettings } from 'contracts';
  * Самостоятельный блок — только текстовая часть. Баннеры (фото-слайдер)
  * идут отдельным блоком `BannerSliderBlock` выше или ниже по странице.
  *
- * H1 поддерживает янтарное italic акцент-слово через маркер `{accent}` в поле title.
+ * H1 поддерживает акцентное слово через маркер `{accent}` в поле title.
  * Subtitle адаптирует длину на mobile через `subtitleShort`.
  */
 export interface HeroData {
   /** Полный текст заголовка; `{accent}` — место для янтарного слова. */
   readonly title?: string;
-  /** Акцент-слово (заменит `{accent}`). Янтарный italic Cormorant. */
+  /** Акцент-слово (заменит `{accent}`). Набирается акцентным цветом. */
   readonly titleAccent?: string;
   /** Подзаголовок на desktop (полная форма). */
   readonly subtitle?: string;
@@ -41,10 +41,10 @@ export function Hero({
       <div className="mx-auto max-w-wide px-6 text-center">
         <h1 className="font-display text-3xl md:text-h1 font-semibold leading-tight tracking-tight text-ink">
           {titleHead}
-          <b className="text-accent italic font-semibold">{titleAccent}</b>
+          <b className="text-accent font-semibold">{titleAccent}</b>
           {titleTail}
         </h1>
-        <p className="mt-3 font-display italic text-muted text-base md:text-lg">
+        <p className="mt-3 font-display text-muted text-base md:text-lg">
           <span className="md:hidden">{subtitleShort}</span>
           <span className="hidden md:inline">{subtitle}</span>
         </p>
