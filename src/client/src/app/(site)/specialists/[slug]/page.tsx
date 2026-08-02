@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 
 import { getSiteSettings, getSpecialistBySlug, type SpecialistDoc } from '@/lib/api-client';
 import { renderBlockNode } from '@/layouts/site-layout';
+import { resolveMediaUrl } from '@/lib/media';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { RatingStars } from '@/blocks/primitives/RatingStars';
 
@@ -23,22 +24,27 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   const { slug } = await params;
   const doc = await getSpecialistBySlug(slug);
   if (!doc) return { title: 'Страница не найдена' };
-  const description = doc.headline ?? doc.bio?.slice(0, 160);
-  const photo = photoUrl(doc);
+
+  // Заполненная секция SEO главнее профиля: владелец страницы решает, каким
+  // она уходит в поиск и в мессенджеры. Пусто — собираем из того, что уже есть.
+  const title = doc.seo?.title ?? doc.fullName;
+  const description = doc.seo?.description ?? doc.headline ?? doc.bio?.slice(0, 160);
+  // Ссылкой на человека делятся в мессенджерах, и в превью должен быть он,
+  // а не логотип сайта: по логотипу все страницы выглядят одинаково.
+  const image = resolveMediaUrl(doc.seo?.ogImage) ?? photoUrl(doc);
 
   return {
-    title: doc.fullName,
+    title,
     ...(description ? { description } : {}),
     alternates: { canonical: `/specialists/${slug}` },
+    ...(doc.seo?.noindex ? { robots: { index: false, follow: false } } : {}),
     openGraph: {
       type: 'profile',
-      title: doc.fullName,
+      title,
       ...(description ? { description } : {}),
-      // Ссылкой на человека делятся в мессенджерах, и в превью должен быть он,
-      // а не логотип сайта: по логотипу все страницы выглядят одинаково.
-      ...(photo ? { images: [{ url: photo, alt: doc.fullName }] } : {}),
+      ...(image ? { images: [{ url: image, alt: title }] } : {}),
     },
-    ...(photo ? { twitter: { card: 'summary_large_image', images: [photo] } } : {}),
+    ...(image ? { twitter: { card: 'summary_large_image' as const, images: [image] } } : {}),
   };
 }
 
@@ -102,6 +108,93 @@ const CONTACT_LABEL: Record<string, string> = {
   vk: 'ВКонтакте',
   youtube: 'YouTube',
 };
+
+/**
+ * Профиль: рассказ о себе, регалии, факты, адреса.
+ *
+ * @remarks
+ * Показывается в обоих режимах страницы. Эти поля человек заполняет в своей
+ * карточке, и если собрать страницу блоками, они молча пропадали: заполнил «О
+ * себе» — на сайте пусто, без единого намёка почему.
+ *
+ * Каждая секция рисуется только когда заполнена, поэтому у того, кто рассказал
+ * о себе прямо в блоках, ничего не задвоится.
+ */
+function ProfileSections({ doc }: { readonly doc: SpecialistDoc }) {
+  const credentials = doc.credentials ?? [];
+  const facts = doc.facts ?? [];
+  const locations = doc.locations ?? [];
+  if (!doc.bio && credentials.length === 0 && facts.length === 0 && locations.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mx-auto max-w-content px-4 md:px-6">
+      {doc.bio && (
+        <section className="mt-8">
+          <h2 className="font-display text-xl font-semibold text-ink">О себе</h2>
+          {doc.bio.split(/\n{2,}/).map((paragraph) => (
+            <p key={paragraph.slice(0, 40)} className="mt-3 leading-relaxed text-ink/90">
+              {paragraph}
+            </p>
+          ))}
+        </section>
+      )}
+
+      {credentials.length > 0 && (
+        <section className="mt-8">
+          <h2 className="font-display text-xl font-semibold text-ink">Образование и регалии</h2>
+          <ul className="mt-3 space-y-2">
+            {credentials.map((item) => (
+              <li key={item.title} className="text-ink/90">
+                {item.title}
+                {item.note && <span className="text-muted"> — {item.note}</span>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {facts.length > 0 && (
+        <section className="mt-8">
+          <h2 className="font-display text-xl font-semibold text-ink">Факты</h2>
+          <ul className="mt-3 space-y-2">
+            {facts.map((item) => (
+              <li key={item.text} className="text-ink/90">
+                {item.text}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {locations.length > 0 && (
+        <section className="mt-8">
+          <h2 className="font-display text-xl font-semibold text-ink">Где найти</h2>
+          <ul className="mt-3 space-y-3">
+            {locations.map((place) => (
+              <li key={place.title} className="rounded-lg border border-border p-4">
+                <p className="font-medium text-ink">{place.title}</p>
+                {place.address && <p className="text-muted">{place.address}</p>}
+                {place.note && <p className="text-sm text-muted">{place.note}</p>}
+                {place.mapUrl && (
+                  <a
+                    href={place.mapUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-block text-sm text-accent underline-offset-2 hover:underline"
+                  >
+                    Посмотреть на карте
+                  </a>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
 
 /**
  * Контакты специалиста. Показываются в обоих режимах страницы: человек, который
@@ -177,6 +270,7 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
             </div>
           );
         })}
+        <ProfileSections doc={doc} />
         <Contacts doc={doc} />
       </>
     );
@@ -238,68 +332,12 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
         </section>
       )}
 
-      {doc.bio && (
-        <section className="mt-8">
-          <h2 className="font-display text-xl font-semibold text-ink">О себе</h2>
-          {doc.bio.split(/\n{2,}/).map((paragraph) => (
-            <p key={paragraph.slice(0, 40)} className="mt-3 leading-relaxed text-ink/90">
-              {paragraph}
-            </p>
-          ))}
-        </section>
-      )}
-
-      {(doc.credentials ?? []).length > 0 && (
-        <section className="mt-8">
-          <h2 className="font-display text-xl font-semibold text-ink">Образование и регалии</h2>
-          <ul className="mt-3 space-y-2">
-            {(doc.credentials ?? []).map((item) => (
-              <li key={item.title} className="text-ink/90">
-                {item.title}
-                {item.note && <span className="text-muted"> — {item.note}</span>}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {(doc.facts ?? []).length > 0 && (
-        <section className="mt-8">
-          <h2 className="font-display text-xl font-semibold text-ink">Факты</h2>
-          <ul className="mt-3 space-y-2">
-            {(doc.facts ?? []).map((item) => (
-              <li key={item.text} className="text-ink/90">
-                {item.text}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {(doc.locations ?? []).length > 0 && (
-        <section className="mt-8">
-          <h2 className="font-display text-xl font-semibold text-ink">Где найти</h2>
-          <ul className="mt-3 space-y-3">
-            {(doc.locations ?? []).map((place) => (
-              <li key={place.title} className="rounded-lg border border-border p-4">
-                <p className="font-medium text-ink">{place.title}</p>
-                {place.address && <p className="text-muted">{place.address}</p>}
-                {place.note && <p className="text-sm text-muted">{place.note}</p>}
-                {place.mapUrl && (
-                  <a
-                    href={place.mapUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-1 inline-block text-sm text-accent underline-offset-2 hover:underline"
-                  >
-                    Посмотреть на карте
-                  </a>
-                )}
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      {/* Профиль вынесен наружу: те же секции показываются и когда страница
+          собрана блоками. Отрицательные отступы гасят внешний контейнер —
+          он свой у обоих режимов. */}
+      <div className="-mx-4 md:-mx-6">
+        <ProfileSections doc={doc} />
+      </div>
 
       <Contacts doc={doc} />
     </article>
