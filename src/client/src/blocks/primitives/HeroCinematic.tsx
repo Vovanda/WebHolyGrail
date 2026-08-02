@@ -177,7 +177,7 @@ export function HeroCinematic({
         </div>
 
         {data.quote && (
-          <blockquote className="mx-auto max-w-3xl border-y-2 border-accent py-4 text-center font-display text-base italic leading-relaxed text-white/95 md:text-xl">
+          <blockquote className="mx-auto max-w-3xl border-y-2 border-accent py-4 text-center text-base leading-relaxed text-white/95 md:text-lg">
             {data.quote}
           </blockquote>
         )}

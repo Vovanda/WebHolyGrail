@@ -132,7 +132,13 @@ export function SpecialistTop({
       {shown.length === 0 ? (
         <p className="text-center text-muted">{emptyText ?? 'Скоро здесь появятся специалисты.'}</p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          className={
+            shown.length < 3
+              ? 'mx-auto grid max-w-3xl gap-4 sm:grid-cols-2'
+              : 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
+          }
+        >
           {shown.map((p) => (
             <Link key={p.id} href={p.slug ? `/s/${p.slug}` : '#'} className="no-underline">
               <article className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-accent">

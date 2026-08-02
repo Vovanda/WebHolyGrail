@@ -101,7 +101,13 @@ export default async function SpecialistsPage({ searchParams }: { searchParams: 
           Здесь пока никого нет. Попробуйте другой город или загляните позже.
         </p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div
+          className={
+            people.length < 3
+              ? 'grid max-w-3xl gap-4 sm:grid-cols-2'
+              : 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
+          }
+        >
           {people.map((doc) => (
             <Card key={String(doc.id)} doc={doc} />
           ))}
