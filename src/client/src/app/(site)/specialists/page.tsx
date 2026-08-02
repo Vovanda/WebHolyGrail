@@ -17,11 +17,11 @@ import { listCities, listSpecialists, type CityDoc, type SpecialistDoc } from '@
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Специалисты',
-  description: 'Все специалисты сообщества: выберите город и формат работы.',
+  title: 'Эксперты',
+  description: 'Эксперты сообщества: выберите город и направление.',
 };
 
-type Search = { city?: string; all?: string };
+type Search = { city?: string; skill?: string; all?: string };
 
 function photoUrl(doc: SpecialistDoc): string | undefined {
   const photo = doc.photo;
@@ -66,7 +66,7 @@ function Card({ doc }: { readonly doc: SpecialistDoc }) {
 }
 
 export default async function SpecialistsPage({ searchParams }: { searchParams: Promise<Search> }) {
-  const { city: citySlug, all } = await searchParams;
+  const { city: citySlug, skill, all } = await searchParams;
   const showBusy = all === '1';
 
   const [cities, everyone] = await Promise.all([
@@ -75,37 +75,52 @@ export default async function SpecialistsPage({ searchParams }: { searchParams: 
   ]);
 
   const activeCity = citySlug ? cities.find((c) => c.slug === citySlug) : undefined;
-  const people = activeCity
-    ? everyone.filter((doc) => cityIdOf(doc) === String(activeCity.id))
-    : everyone;
+
+  // Направления собираем из самих карточек: отдельного справочника нет и не
+  // нужно — список тем растёт вместе с людьми, а не заводится заранее.
+  const skills = [
+    ...new Set(everyone.flatMap((d) => (d.disciplines ?? []).map((x) => x.title).filter(Boolean))),
+  ].sort((a, b) => a!.localeCompare(b!, 'ru')) as string[];
+
+  const people = everyone
+    .filter((doc) => (activeCity ? cityIdOf(doc) === String(activeCity.id) : true))
+    .filter((doc) => (skill ? (doc.disciplines ?? []).some((d) => d.title === skill) : true));
 
   const chip = 'rounded-full border px-4 py-2 text-sm no-underline transition-colors';
   const chipOn = 'border-accent bg-accent text-accent-fg';
   const chipOff = 'border-border text-ink hover:border-accent';
-  const keep = showBusy ? '&all=1' : '';
+  /** Собирает адрес фильтра, сохраняя остальные выбранные условия. */
+  const link = (next: Partial<Search>) => {
+    const params = new URLSearchParams();
+    const city = next.city !== undefined ? next.city : citySlug;
+    const sk = next.skill !== undefined ? next.skill : skill;
+    const busy = next.all !== undefined ? next.all : showBusy ? '1' : '';
+    if (city) params.set('city', city);
+    if (sk) params.set('skill', sk);
+    if (busy) params.set('all', '1');
+    const qs = params.toString();
+    return qs ? `/specialists?${qs}` : '/specialists';
+  };
 
   return (
     <div className="mx-auto max-w-wide px-4 py-10 md:px-6 md:py-14">
       <header className="mb-8">
-        <h1 className="font-display text-3xl font-semibold text-ink md:text-4xl">Специалисты</h1>
+        <h1 className="font-display text-3xl font-semibold text-ink md:text-4xl">Эксперты</h1>
         <p className="mt-2 text-muted">
-          {activeCity ? `Город: ${activeCity.name}` : 'Все города'} ·{' '}
+          {activeCity ? activeCity.name : 'Все города'} · {skill ?? 'все направления'} ·{' '}
           {showBusy ? 'включая занятых' : 'только те, кто берёт новых'}
         </p>
       </header>
 
-      {cities.length > 1 && (
+      {cities.length > 0 && (
         <nav aria-label="Фильтр по городу" className="mb-6 flex flex-wrap gap-2">
-          <Link
-            href={`/specialists${showBusy ? '?all=1' : ''}`}
-            className={`${chip} ${activeCity ? chipOff : chipOn}`}
-          >
+          <Link href={link({ city: '' })} className={`${chip} ${activeCity ? chipOff : chipOn}`}>
             Все города
           </Link>
           {cities.map((c) => (
             <Link
               key={String(c.id)}
-              href={`/specialists?city=${c.slug ?? ''}${keep}`}
+              href={link({ city: c.slug ?? '' })}
               className={`${chip} ${activeCity?.id === c.id ? chipOn : chipOff}`}
             >
               {c.name}
@@ -114,9 +129,26 @@ export default async function SpecialistsPage({ searchParams }: { searchParams: 
         </nav>
       )}
 
+      {skills.length > 0 && (
+        <nav aria-label="Фильтр по направлению" className="mb-6 flex flex-wrap gap-2">
+          <Link href={link({ skill: '' })} className={`${chip} ${skill ? chipOff : chipOn}`}>
+            Все направления
+          </Link>
+          {skills.map((title) => (
+            <Link
+              key={title}
+              href={link({ skill: title })}
+              className={`${chip} ${skill === title ? chipOn : chipOff}`}
+            >
+              {title}
+            </Link>
+          ))}
+        </nav>
+      )}
+
       <p className="mb-6">
         <Link
-          href={`/specialists?${citySlug ? `city=${citySlug}` : ''}${showBusy ? '' : `${citySlug ? '&' : ''}all=1`}`}
+          href={link({ all: showBusy ? '' : '1' })}
           className="text-sm text-accent underline-offset-2 hover:underline"
         >
           {showBusy ? 'Показать только тех, кто берёт новых' : 'Показать всех, включая занятых'}

@@ -28,6 +28,8 @@ export interface RequestFormData {
   readonly successText?: string;
   readonly askCity?: boolean;
   readonly messageLabel?: string;
+  /** Якорь секции: по нему на форму ссылаются кнопки со страницы. */
+  readonly anchor?: string;
   /** Кому адресована заявка — id специалиста или раскрытый документ. */
   readonly specialist?: { readonly id?: string | number } | string | number | null;
 }
@@ -81,7 +83,10 @@ export function RequestForm({
     'w-full rounded-md border border-border bg-bg px-3 py-2.5 text-ink outline-none placeholder:text-muted focus:border-accent';
 
   return (
-    <section className="bg-bg py-10 md:py-14">
+    <section
+      id={data.anchor || `form-${data.requestType ?? 'general'}`}
+      className="bg-bg py-10 md:py-14 scroll-mt-24"
+    >
       <div className="mx-auto max-w-content px-4 md:px-6">
         <h2 className="font-display text-2xl font-semibold text-ink md:text-3xl">{data.heading}</h2>
         {data.description && <p className="mt-2 text-muted">{data.description}</p>}

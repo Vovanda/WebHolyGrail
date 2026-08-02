@@ -51,6 +51,15 @@ export const RequestFormBlock: Block = {
       },
     },
     {
+      name: 'anchor',
+      label: 'Якорь секции',
+      type: 'text',
+      admin: {
+        description:
+          'Чтобы на форму вели кнопки со страницы: укажите слово без пробелов, например join, и ссылайтесь как «#join». Пусто — якорь соберётся из типа заявки.',
+      },
+    },
+    {
       name: 'collapsible',
       label: 'Скрывать форму до клика',
       type: 'checkbox',
