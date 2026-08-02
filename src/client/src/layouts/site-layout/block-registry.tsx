@@ -8,6 +8,8 @@ import { NavDrawer } from '@/blocks/layout/NavDrawer';
 import { Hero } from '@/blocks/primitives/Hero';
 import { HeroSplit } from '@/blocks/primitives/HeroSplit';
 import { HeroCinematic } from '@/blocks/primitives/HeroCinematic';
+import { RequestForm } from '@/blocks/primitives/RequestForm';
+import { SpecialistDirectory } from '@/blocks/primitives/SpecialistDirectory';
 import { InstallSnippet } from '@/blocks/primitives/InstallSnippet';
 import { StackTransparency } from '@/blocks/primitives/StackTransparency';
 import { ComparisonTable } from '@/blocks/primitives/ComparisonTable';
@@ -48,6 +50,10 @@ const REGISTRY: Record<string, BlockRenderer> = {
   hero: (node, settings) => <Hero node={node} settings={settings} />,
   'hero-split': (node, settings) => <HeroSplit node={node} settings={settings} />,
   'hero-cinematic': (node, settings) => <HeroCinematic node={node} settings={settings} />,
+  'request-form': (node, settings) => <RequestForm node={node} settings={settings} />,
+  'specialist-directory': (node, settings) => (
+    <SpecialistDirectory node={node} settings={settings} />
+  ),
   'install-snippet': (node, settings) => <InstallSnippet node={node} settings={settings} />,
   'stack-transparency': (node, settings) => <StackTransparency node={node} settings={settings} />,
   'comparison-table': (node, settings) => <ComparisonTable node={node} settings={settings} />,

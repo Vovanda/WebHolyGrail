@@ -21,6 +21,8 @@ import { Articles } from './collections/Articles';
 import { Threads } from './collections/Threads';
 import { Tags } from './collections/Tags';
 import { Authors } from './collections/Authors';
+import { Cities } from './collections/Cities';
+import { Specialists } from './collections/Specialists';
 import { SiteSettings } from './globals/SiteSettings';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -97,6 +99,9 @@ export default buildConfig({
     Threads,
     Tags,
     Authors,
+    // Каталог специалистов по городам (тренеры, мастера, врачи).
+    Cities,
+    Specialists,
   ],
   globals: [SiteSettings],
   /**

@@ -20,6 +20,45 @@ export const FormSubmissions: CollectionConfig = {
     defaultColumns: ['formType', 'status', 'createdAt', 'source'],
     group: 'Заявки',
   },
+  hooks: {
+    afterChange: [
+      /**
+       * Заявка, адресованная специалисту, увеличивает его счётчик — по нему
+       * считается спрос в подборках каталога.
+       *
+       * Считаем только при создании: правка статуса заявки в админке не должна
+       * накручивать счётчик. Ошибку глотаем осознанно — если каталога в проекте
+       * нет или специалиста удалили, это не повод терять саму заявку.
+       */
+      async ({ doc, operation, req }) => {
+        if (operation !== 'create') return;
+        const payload = (doc as { data?: Record<string, unknown> }).data ?? {};
+        const raw = payload['specialistId'];
+        if (!raw) return;
+        // id в SQLite числовой, а из формы приходит строкой.
+        const specialistId = Number(raw);
+        if (!Number.isFinite(specialistId)) return;
+        try {
+          const current = await req.payload.findByID({
+            collection: 'specialists',
+            id: specialistId,
+            depth: 0,
+          });
+          await req.payload.update({
+            collection: 'specialists',
+            id: specialistId,
+            data: {
+              requestsCount: ((current as { requestsCount?: number }).requestsCount ?? 0) + 1,
+            },
+          });
+        } catch {
+          req.payload.logger.warn(
+            `Заявка ${String((doc as { id?: unknown }).id)}: не удалось засчитать её специалисту ${String(specialistId)}`,
+          );
+        }
+      },
+    ],
+  },
   fields: [
     {
       name: 'formType',

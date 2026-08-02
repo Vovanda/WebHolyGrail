@@ -276,3 +276,99 @@ export async function listAllPages(): Promise<ReadonlyArray<SitemapEntryDoc>> {
   const data = (await response.json()) as { docs: SitemapEntryDoc[] };
   return data.docs;
 }
+
+// ─── Каталог специалистов ──────────────────────────────────────────────
+
+/** Город каталога — как его отдаёт CMS. */
+export interface CityDoc {
+  readonly id: number | string;
+  readonly name: string;
+  readonly slug?: string;
+  readonly order?: number;
+}
+
+/** Карточка специалиста. Полный документ приходит на его личной странице. */
+export interface SpecialistDoc {
+  readonly id: number | string;
+  readonly fullName: string;
+  readonly nickname?: string;
+  readonly slug?: string;
+  readonly headline?: string;
+  readonly bio?: string;
+  readonly acceptingClients?: boolean;
+  readonly rating?: number;
+  readonly ratingPublic?: boolean;
+  readonly boost?: number;
+  readonly requestsCount?: number;
+  readonly photo?: unknown;
+  readonly city?: CityDoc | number | string | null;
+  readonly disciplines?: ReadonlyArray<{ readonly title?: string }>;
+  readonly credentials?: ReadonlyArray<{ readonly title?: string; readonly note?: string }>;
+  readonly facts?: ReadonlyArray<{ readonly text?: string }>;
+  readonly locations?: ReadonlyArray<{
+    readonly title?: string;
+    readonly address?: string;
+    readonly note?: string;
+    readonly mapUrl?: string;
+  }>;
+  readonly contacts?: {
+    readonly phone?: string;
+    readonly email?: string;
+    readonly telegram?: string;
+    readonly whatsapp?: string;
+    readonly vk?: string;
+    readonly site?: string;
+  };
+  readonly blocks?: ReadonlyArray<unknown>;
+}
+
+/** Города каталога, по возрастанию `order`, затем по алфавиту. */
+export async function listCities(): Promise<ReadonlyArray<CityDoc>> {
+  const query = new URLSearchParams({ limit: '200', depth: '0', sort: 'order,name' });
+  const response = await fetch(`${CMS_URL}/api/cities?${query.toString()}`, { cache: 'no-store' });
+  if (!response.ok) return [];
+  const data = (await response.json()) as { docs: CityDoc[] };
+  return data.docs;
+}
+
+/**
+ * Специалисты каталога.
+ *
+ * @remarks
+ * `cache: 'no-store'` осознанно: каталог меняется в админке и должен
+ * отражаться сразу, а не после следующей сборки.
+ */
+export async function listSpecialists(options?: {
+  readonly cityId?: string | number;
+  readonly onlyAccepting?: boolean;
+  readonly limit?: number;
+}): Promise<ReadonlyArray<SpecialistDoc>> {
+  const query = new URLSearchParams({
+    limit: String(options?.limit ?? 100),
+    depth: '1',
+  });
+  if (options?.cityId !== undefined) query.set('where[city][equals]', String(options.cityId));
+  if (options?.onlyAccepting) query.set('where[acceptingClients][equals]', 'true');
+
+  const response = await fetch(`${CMS_URL}/api/specialists?${query.toString()}`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) return [];
+  const data = (await response.json()) as { docs: SpecialistDoc[] };
+  return data.docs;
+}
+
+/** Один специалист по адресу страницы. `null`, если такого нет. */
+export async function getSpecialistBySlug(slug: string): Promise<SpecialistDoc | null> {
+  const query = new URLSearchParams({
+    'where[slug][equals]': slug,
+    limit: '1',
+    depth: '2',
+  });
+  const response = await fetch(`${CMS_URL}/api/specialists?${query.toString()}`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) return null;
+  const data = (await response.json()) as { docs: SpecialistDoc[] };
+  return data.docs[0] ?? null;
+}

@@ -2,6 +2,8 @@ import { BannerSliderBlock } from './BannerSlider';
 import { HeroBlock } from './Hero';
 import { HeroSplitBlock } from './HeroSplit';
 import { HeroCinematicBlock } from './HeroCinematic';
+import { RequestFormBlock } from './RequestForm';
+import { SpecialistDirectoryBlock } from './SpecialistDirectory';
 import { InstallSnippetBlock } from './InstallSnippet';
 import { StackTransparencyBlock } from './StackTransparency';
 import { ComparisonTableBlock } from './ComparisonTable';
@@ -47,6 +49,8 @@ export const REUSABLE_INNER_BLOCKS = [
   HeroBlock,
   HeroSplitBlock,
   HeroCinematicBlock,
+  RequestFormBlock,
+  SpecialistDirectoryBlock,
   InstallSnippetBlock,
   StackTransparencyBlock,
   ComparisonTableBlock,
