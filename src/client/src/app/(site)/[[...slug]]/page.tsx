@@ -3,6 +3,7 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import { getArticleBySlug, getPageBySlug, getSiteSettings } from '@/lib/api-client';
 import { FALLBACK_SITE_SETTINGS } from '@/layouts/presets/fallback-site-settings';
 import { renderBlockNode } from '@/layouts/site-layout';
+import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 
 /**
  * Catchall публичный маршрут — рендерит страницу из Payload `Pages` по slug.
@@ -59,8 +60,18 @@ export default async function CatchallPage({ params }: { params: Promise<Params>
 
   const activeSettings = settings ?? FALLBACK_SITE_SETTINGS;
 
+  // Главная — корень, возвращаться с неё некуда. На остальных страницах крошки
+  // нужны: сюда приходят по прямой ссылке, и без них единственный путь дальше —
+  // кнопка «назад» в браузере.
+  const crumbs = resolveSlug(slug) === 'home' ? [] : [{ label: 'Главная', href: '/' }];
+
   return (
     <>
+      {crumbs.length > 0 && (
+        <div className="mx-auto max-w-wide px-4 md:px-6">
+          <Breadcrumbs items={[...crumbs, { label: page.title }]} />
+        </div>
+      )}
       {page.blocks.length === 0 ? (
         <section className="py-24 text-center">
           <p className="text-muted font-display italic text-lg">

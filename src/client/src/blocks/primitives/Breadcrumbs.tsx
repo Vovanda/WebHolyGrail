@@ -13,6 +13,11 @@ import Link from 'next/link';
  *
  * Последний элемент не ссылка: это текущая страница, и делать её кликабельной
  * значит обещать переход, которого не будет.
+ *
+ * Вертикальные отступы задаёт сам компонент, а не страница вокруг него. Иначе
+ * каждая страница отмеряет их по-своему и одна и та же строка висит то под
+ * шапкой, то в середине пустого экрана. Родителю остаётся горизонтальный
+ * контейнер: по ширине крошки равняются на контент, а он у страниц разный.
  */
 export interface Crumb {
   readonly label: string;
@@ -23,7 +28,7 @@ export function Breadcrumbs({ items }: { readonly items: readonly Crumb[] }) {
   if (items.length === 0) return null;
 
   return (
-    <nav aria-label="Хлебные крошки" className="mb-3 text-sm text-muted">
+    <nav aria-label="Хлебные крошки" className="py-4 text-sm text-muted">
       <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
         {items.map((item, index) => {
           const last = index === items.length - 1;

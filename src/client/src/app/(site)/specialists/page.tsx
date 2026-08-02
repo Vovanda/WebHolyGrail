@@ -81,7 +81,7 @@ export default async function SpecialistsPage({ searchParams }: { searchParams: 
     .filter((doc) => (skill ? (doc.disciplines ?? []).some((d) => d.title === skill) : true));
 
   return (
-    <div className="mx-auto max-w-wide px-4 py-10 md:px-6 md:py-14">
+    <div className="mx-auto max-w-wide px-4 pb-10 md:px-6 md:pb-14">
       <Breadcrumbs items={[{ label: 'Главная', href: '/' }, { label: 'Эксперты' }]} />
 
       <header className="mb-8">

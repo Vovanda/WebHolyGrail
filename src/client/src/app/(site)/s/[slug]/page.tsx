@@ -103,7 +103,7 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
   if (blocks.length > 0 && settings) {
     return (
       <>
-        <div className="mx-auto max-w-wide px-4 pt-4 md:px-6">
+        <div className="mx-auto max-w-wide px-4 md:px-6">
           <Breadcrumbs
             items={[
               { label: 'Главная', href: '/' },
@@ -138,7 +138,7 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
   const photo = photoUrl(doc);
   const disciplines = (doc.disciplines ?? []).map((d) => d.title).filter(Boolean);
   return (
-    <article className="mx-auto max-w-content px-4 py-10 md:px-6 md:py-14">
+    <article className="mx-auto max-w-content px-4 pb-10 md:px-6 md:pb-14">
       <Breadcrumbs
         items={[
           { label: 'Главная', href: '/' },
