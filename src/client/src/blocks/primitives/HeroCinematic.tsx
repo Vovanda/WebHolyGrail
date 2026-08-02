@@ -105,18 +105,20 @@ export function HeroCinematic({
     </span>
   );
 
-  // Тон обложки: фон страницы, притемнённый и слегка подкрашенный акцентом. На
+  // Края обложки: фон страницы, притемнённый и чуть подкрашенный акцентом. На
   // светлой теме выходит тёплый серый, на тёмной — почти чёрный с золотым
-  // отливом. Притемняем именно чёрным, а не цветом текста: текст в тёмной теме
-  // светлый и осветлил бы обложку вместо того, чтобы её углубить.
+  // отливом. Притемняем чёрным, а не цветом текста: в тёмной теме текст светлый
+  // и осветлил бы обложку вместо того, чтобы её углубить.
   //
-  // Чистый фон страницы делал обложку невидимой заготовкой, жёстко тёмный —
-  // вставкой с чужого сайта поверх белой страницы.
-  const tint =
-    'color-mix(in srgb, color-mix(in srgb, var(--color-bg) 82%, #000) 94%, var(--color-accent))';
+  // Сама секция остаётся цвета страницы, и тон работает только по краям. Если
+  // залить им всё, обложка без видео превращается в плоское пятно; так же
+  // выглядит и заливка чистым фоном. А пара «центр — край» даёт градиент, и
+  // пустая обложка всё равно смотрится кадром.
+  const edge =
+    'color-mix(in srgb, color-mix(in srgb, var(--color-bg) 78%, #000) 93%, var(--color-accent))';
 
   return (
-    <section className="relative w-full overflow-hidden" style={{ backgroundColor: tint }}>
+    <section className="relative w-full overflow-hidden bg-bg">
       {data.videoUrl && <VideoBackdrop src={data.videoUrl} {...(poster ? { poster } : {})} />}
       {!data.videoUrl && poster && (
         // eslint-disable-next-line @next/next/no-img-element -- фон обложки, размеры задаёт секция
@@ -144,8 +146,8 @@ export function HeroCinematic({
         />
       )}
 
-      {/* Виньетка: гасит кадр к краям тем же тоном, что и фон обложки, — видео
-          проступает в центре и уходит в подложку по краю.
+      {/* Виньетка: гасит кадр к краям, видео проступает в центре и уходит в
+          подложку по краю.
 
           В центре плёнка слабая, но есть: без неё текст держится только на
           удачном кадре, а видео меняют.
@@ -157,7 +159,7 @@ export function HeroCinematic({
         aria-hidden="true"
         className="absolute inset-0"
         style={{
-          background: `radial-gradient(ellipse at center, color-mix(in srgb, ${tint} 30%, transparent) 0%, color-mix(in srgb, ${tint} 75%, transparent) 62%, ${tint} 100%)`,
+          background: `radial-gradient(ellipse at center, color-mix(in srgb, ${edge} 25%, transparent) 0%, color-mix(in srgb, ${edge} 72%, transparent) 60%, ${edge} 100%)`,
         }}
       />
 
