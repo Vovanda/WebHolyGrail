@@ -40,9 +40,9 @@ export interface HeroCinematicData {
 }
 
 const EMPHASIS_CLASS: Record<NonNullable<HeroCinematicCorner['emphasis']>, string> = {
-  large: 'text-base md:text-xl font-semibold',
-  medium: 'text-sm md:text-lg font-medium',
-  small: 'text-sm md:text-base font-normal',
+  large: 'text-xs md:text-xl font-semibold',
+  medium: 'text-xs md:text-lg font-medium',
+  small: 'text-[11px] md:text-base font-normal',
 };
 
 /** Уголки рамки рисуются псевдоэлементами: две линии сходятся в свой угол. */
@@ -68,7 +68,7 @@ function Corner({ corner }: { readonly corner: HeroCinematicCorner }) {
   return (
     <div
       className={[
-        'relative inline-block max-w-[220px] px-4 py-3 uppercase leading-snug tracking-wide text-accent',
+        'relative inline-block w-[46%] max-w-[150px] px-3 py-2.5 uppercase leading-snug tracking-wide text-accent md:w-auto md:max-w-[220px] md:px-4 md:py-3',
         'before:absolute before:bg-accent before:content-[""] after:absolute after:bg-accent after:content-[""]',
         EMPHASIS_CLASS[emphasis],
         FRAME_CLASS[position],
@@ -76,7 +76,7 @@ function Corner({ corner }: { readonly corner: HeroCinematicCorner }) {
     >
       {corner.title}
       {corner.subtitle && (
-        <span className="mt-1.5 block text-xs font-normal normal-case tracking-normal text-white/90 md:text-sm">
+        <span className="mt-1 block text-[11px] font-normal normal-case leading-tight tracking-normal text-white/90 md:mt-1.5 md:text-sm">
           {corner.subtitle}
         </span>
       )}
@@ -122,7 +122,7 @@ export function HeroCinematic({
       />
 
       <div className="relative mx-auto flex w-full max-w-wide flex-col gap-6 px-4 py-8 md:min-h-[87vh] md:gap-0 md:px-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div className="flex items-start justify-between gap-3 md:gap-4">
           {at('top-left') && <Corner corner={at('top-left')!} />}
           {at('top-right') && <Corner corner={at('top-right')!} />}
         </div>
@@ -163,7 +163,7 @@ export function HeroCinematic({
           </div>
         )}
 
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div className="flex items-end justify-between gap-3 md:gap-4">
           {at('bottom-left') && <Corner corner={at('bottom-left')!} />}
           {at('bottom-right') && <Corner corner={at('bottom-right')!} />}
         </div>
