@@ -79,7 +79,7 @@ function Corner({ corner }: { readonly corner: HeroCinematicCorner }) {
     >
       {corner.title}
       {corner.subtitle && (
-        <span className="mt-1 block text-[11px] font-normal normal-case leading-tight tracking-normal text-white/90 md:mt-1.5 md:text-sm">
+        <span className="mt-1 block text-[11px] font-normal normal-case leading-tight tracking-normal text-ink/80 md:mt-1.5 md:text-sm">
           {corner.subtitle}
         </span>
       )}
@@ -200,7 +200,11 @@ export function HeroCinematic({
         </div>
 
         {data.quote && (
-          <blockquote className="mx-auto max-w-3xl border-y-2 border-accent py-4 text-center text-base leading-relaxed text-white/95 md:text-lg">
+          // Подложка цвета фона: описание набрано обычным текстом поверх видео,
+          // и белым оно пропадало на светлой теме, а тёмным пропадёт на тёмном
+          // кадре. Плашка даёт тексту собственный фон и заодно привязывает его
+          // к теме сайта.
+          <blockquote className="mx-auto max-w-3xl rounded-lg border-y-2 border-accent bg-bg/70 px-4 py-4 text-center text-base leading-relaxed text-ink backdrop-blur-sm md:text-lg">
             {data.quote}
           </blockquote>
         )}
