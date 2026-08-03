@@ -130,8 +130,12 @@ export function NavDrawer({
           </Link>
         </div>
 
+        {/* Прокручивается всё содержимое разом, а не только список пунктов:
+            иначе на телефоне в альбомной ориентации меню из десятка пунктов
+            зажимается в узкую полосу, потому что контакты занимают низ панели. */}
+        <div className="flex-1 overflow-y-auto">
         {/* Nav-пункты — full-width разделители, выраженный hover */}
-        <nav className="overflow-y-auto">
+        <nav>
           <ul>
             {nav.map((item) => (
               <li key={item.href} className="border-b border-border last:border-b-0">
@@ -225,6 +229,7 @@ export function NavDrawer({
             )}
           </div>
         )}
+        </div>
       </aside>
     </div>
   );
