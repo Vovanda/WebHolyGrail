@@ -73,6 +73,11 @@ services:
     container_name: ${SITE_SLUG}-client-${COLOR:?required}
     environment:
       # SSR ходит к своему же cms по container_name внутри shared network ${SITE_SLUG}-net.
+      # Сегмент раздела каталога людей: experts, doctors, masters. Пусто —
+      # остаётся `specialists`, как в шаблоне. Читается на сервере и приходит
+      # в клиентские компоненты пропом: NEXT_PUBLIC_* вшивается в бандл на
+      # сборке, а сегмент задаётся при развёртывании инстанса.
+      NEXT_PUBLIC_CATALOG_SEGMENT: ${NEXT_PUBLIC_CATALOG_SEGMENT:-}
       NEXT_PUBLIC_CMS_URL: http://${SITE_SLUG}-cms-${COLOR}:3001
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?required}
       NODE_ENV: production

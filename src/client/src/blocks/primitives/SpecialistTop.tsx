@@ -59,6 +59,7 @@ export function SpecialistTop({
   moreLabel,
   moreHref,
   emptyText,
+  basePath,
 }: {
   readonly people: readonly TopPerson[];
   readonly cities: readonly TopCity[];
@@ -67,6 +68,8 @@ export function SpecialistTop({
   readonly moreLabel?: string | undefined;
   readonly moreHref?: string | undefined;
   readonly emptyText?: string | undefined;
+  /** Адрес раздела каталога — приходит с сервера, см. CatalogFilters. */
+  readonly basePath: string;
 }) {
   const withPeople = cities.filter((c) => people.some((p) => p.cityId === c.id));
   const fallback = defaultCityId ?? withPeople[0]?.id ?? null;
@@ -165,11 +168,7 @@ export function SpecialistTop({
           }
         >
           {shown.map((p) => (
-            <Link
-              key={p.id}
-              href={p.slug ? `/specialists/${p.slug}` : '#'}
-              className="no-underline"
-            >
+            <Link key={p.id} href={p.slug ? `${basePath}/${p.slug}` : '#'} className="no-underline">
               <article className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-accent">
                 {p.photoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- источник S3 нашей CMS

@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 
 import { getSiteSettings, getSpecialistBySlug, type SpecialistDoc } from '@/lib/api-client';
 import { renderBlockNode } from '@/layouts/site-layout';
 import { resolveMediaUrl } from '@/lib/media';
+import { CATALOG_RENAMED, catalogPath } from '@/lib/catalog-path';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { RatingStars } from '@/blocks/primitives/RatingStars';
 
@@ -36,7 +37,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   return {
     title,
     ...(description ? { description } : {}),
-    alternates: { canonical: `/specialists/${slug}` },
+    alternates: { canonical: catalogPath(slug) },
     ...(doc.seo?.noindex ? { robots: { index: false, follow: false } } : {}),
     openGraph: {
       type: 'profile',
@@ -65,7 +66,7 @@ function personJsonLd(doc: SpecialistDoc, slug: string): string {
     '@context': 'https://schema.org',
     '@type': 'Person',
     name: doc.fullName,
-    url: `/specialists/${slug}`,
+    url: catalogPath(slug),
     ...(doc.headline ? { jobTitle: doc.headline } : {}),
     ...(doc.bio ? { description: doc.bio.slice(0, 500) } : {}),
     ...(photo ? { image: photo } : {}),
@@ -231,6 +232,11 @@ function Contacts({ doc }: { readonly doc: SpecialistDoc }) {
 
 export default async function SpecialistPage({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
+
+  // Раздел переименован инстансом — этот адрес остался от шаблона. Уводим на
+  // актуальный, чтобы ссылка из мессенджера не открывала вторую копию страницы.
+  if (CATALOG_RENAMED) permanentRedirect(catalogPath(slug));
+
   const [doc, settings] = await Promise.all([getSpecialistBySlug(slug), getSiteSettings()]);
   if (!doc) notFound();
 
@@ -251,7 +257,7 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
             copyLink
             items={[
               { label: 'Главная', href: '/' },
-              { label: 'Эксперты', href: '/specialists' },
+              { label: 'Эксперты', href: catalogPath() },
               { label: doc.fullName },
             ]}
           />
@@ -297,7 +303,7 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
         copyLink
         items={[
           { label: 'Главная', href: '/' },
-          { label: 'Эксперты', href: '/specialists' },
+          { label: 'Эксперты', href: catalogPath() },
           { label: doc.fullName },
         ]}
       />

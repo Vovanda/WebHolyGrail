@@ -10,6 +10,7 @@ import {
   type SpecialistDoc,
 } from '@/lib/api-client';
 
+import { catalogPath } from '@/lib/catalog-path';
 import { RatingStars } from './RatingStars';
 import { SpecialistTop, type TopCity, type TopPerson } from './SpecialistTop';
 
@@ -87,7 +88,7 @@ function shuffled<T>(items: readonly T[]): T[] {
 
 function Card({ doc }: { readonly doc: SpecialistDoc }) {
   const url = photoUrl(doc);
-  const href = doc.slug ? `/specialists/${doc.slug}` : undefined;
+  const href = doc.slug ? catalogPath(doc.slug) : undefined;
   const disciplines = (doc.disciplines ?? []).map((d) => d.title).filter(Boolean);
 
   const inner = (
@@ -180,7 +181,7 @@ async function CitiesView({ data }: { readonly data: SpecialistDirectoryData }) 
               return (
                 <Link
                   key={String(city.id)}
-                  href={`${data.moreHref ?? '/specialists'}?city=${city.slug ?? ''}`}
+                  href={`${data.moreHref ?? catalogPath()}?city=${city.slug ?? ''}`}
                   className="group rounded-xl border border-border bg-surface p-6 no-underline transition-colors hover:border-accent"
                 >
                   <p className="font-display text-xl font-semibold text-ink">{city.name}</p>
@@ -241,6 +242,7 @@ async function TopView({ data }: { readonly data: SpecialistDirectoryData }) {
       <div className="mx-auto max-w-wide px-4 md:px-6">
         <Header data={data} />
         <SpecialistTop
+          basePath={catalogPath()}
           people={people}
           cities={cityList}
           defaultCityId={defaultCityId}

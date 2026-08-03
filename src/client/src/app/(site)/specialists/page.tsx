@@ -3,6 +3,9 @@ import Link from 'next/link';
 
 import { listCities, listSpecialists, type CityDoc, type SpecialistDoc } from '@/lib/api-client';
 
+import { permanentRedirect } from 'next/navigation';
+
+import { CATALOG_RENAMED, catalogPath } from '@/lib/catalog-path';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { CatalogFilters } from '@/blocks/primitives/CatalogFilters';
 import { RatingStars } from '@/blocks/primitives/RatingStars';
@@ -44,7 +47,7 @@ function Card({ doc, cityName }: { readonly doc: SpecialistDoc; readonly cityNam
   const url = photoUrl(doc);
   const disciplines = (doc.disciplines ?? []).map((d) => d.title).filter(Boolean);
   return (
-    <Link href={doc.slug ? `/specialists/${doc.slug}` : '#'} className="no-underline">
+    <Link href={doc.slug ? catalogPath(doc.slug) : '#'} className="no-underline">
       <article className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-accent">
         {url ? (
           // eslint-disable-next-line @next/next/no-img-element -- источник S3 нашей CMS
@@ -88,7 +91,7 @@ function listJsonLd(people: readonly SpecialistDoc[]): string {
       item: {
         '@type': 'Person',
         name: doc.fullName,
-        ...(doc.slug ? { url: `/specialists/${doc.slug}` } : {}),
+        ...(doc.slug ? { url: catalogPath(doc.slug) } : {}),
         ...(photoUrl(doc) ? { image: photoUrl(doc) } : {}),
         ...(doc.headline ? { jobTitle: doc.headline } : {}),
       },
@@ -98,6 +101,17 @@ function listJsonLd(people: readonly SpecialistDoc[]): string {
 
 export default async function SpecialistsPage({ searchParams }: { searchParams: Promise<Search> }) {
   const { city: citySlug, skill } = await searchParams;
+
+  // Инстанс переименовал раздел (`эксперты`, `врачи`, `мастера`) — этот адрес
+  // остаётся от шаблона и не должен жить вторым каталогом: одинаковый список по
+  // двум адресам поисковик считает дублем, а люди расходятся по разным ссылкам.
+  if (CATALOG_RENAMED) {
+    const query = new URLSearchParams();
+    if (citySlug) query.set('city', citySlug);
+    if (skill) query.set('skill', skill);
+    const qs = query.toString();
+    permanentRedirect(qs ? `${catalogPath()}?${qs}` : catalogPath());
+  }
 
   const [cities, everyone] = await Promise.all([listCities(), listSpecialists({ limit: 200 })]);
 
@@ -131,6 +145,7 @@ export default async function SpecialistsPage({ searchParams }: { searchParams: 
       </header>
 
       <CatalogFilters
+        basePath={catalogPath()}
         cities={cities.map((c) => ({ slug: c.slug ?? '', name: c.name }))}
         // Направления прячем, пока выбирать нечего: с одним человеком в
         // каталоге фильтр только подчёркивает, что он пустой. Появится второй —

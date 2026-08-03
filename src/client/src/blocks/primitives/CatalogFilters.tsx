@@ -18,9 +18,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 export function CatalogFilters({
   cities,
   skills,
+  basePath,
 }: {
   readonly cities: ReadonlyArray<{ readonly slug: string; readonly name: string }>;
   readonly skills: readonly string[];
+  /**
+   * Адрес раздела каталога. Приходит пропом с сервера, а не из окружения:
+   * `NEXT_PUBLIC_*` вшивается в бандл на сборке, а сегмент задаётся инстансом
+   * при развёртывании — в клиентском коде значение застыло бы навсегда.
+   */
+  readonly basePath: string;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -35,7 +42,7 @@ export function CatalogFilters({
     if (nextCity) query.set('city', nextCity);
     if (nextSkill) query.set('skill', nextSkill);
     const qs = query.toString();
-    router.push(qs ? `/specialists?${qs}` : '/specialists');
+    router.push(qs ? `${basePath}?${qs}` : basePath);
   }
 
   const select =
