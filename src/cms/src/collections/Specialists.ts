@@ -180,6 +180,38 @@ export const Specialists: CollectionConfig = {
             },
           ],
         },
+        {
+          label: 'SEO',
+          fields: [
+            {
+              name: 'seo',
+              label: 'SEO',
+              type: 'group',
+              admin: {
+                description:
+                  'Не заполнено — берётся из профиля: имя в заголовок, специализация в описание, фото в картинку ссылки.',
+              },
+              fields: [
+                { name: 'title', label: 'Title (переопределить)', type: 'text' },
+                { name: 'description', label: 'Description', type: 'textarea' },
+                {
+                  name: 'ogImage',
+                  label: 'Картинка для соцсетей',
+                  type: 'upload',
+                  relationTo: 'media',
+                  admin: {
+                    description: 'Что увидят в превью ссылки при отправке в мессенджер.',
+                  },
+                },
+                {
+                  name: 'noindex',
+                  label: 'Скрыть от поисковиков (noindex, nofollow)',
+                  type: 'checkbox',
+                },
+              ],
+            },
+          ],
+        },
       ],
     },
     {

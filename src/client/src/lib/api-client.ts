@@ -4,6 +4,7 @@ import type {
   BlogTag,
   BlogThread,
   FaqGroupDoc,
+  MediaRef,
   PageDoc,
   ReusableBlockDoc,
   SiteSettings,
@@ -301,6 +302,12 @@ export interface SpecialistDoc {
   readonly boost?: number;
   readonly requestsCount?: number;
   readonly photo?: unknown;
+  readonly seo?: {
+    readonly title?: string;
+    readonly description?: string;
+    readonly ogImage?: MediaRef;
+    readonly noindex?: boolean;
+  };
   readonly city?: CityDoc | number | string | null;
   readonly disciplines?: ReadonlyArray<{ readonly title?: string }>;
   readonly credentials?: ReadonlyArray<{ readonly title?: string; readonly note?: string }>;
