@@ -30,9 +30,20 @@ export interface TopPerson {
   readonly photoUrl?: string;
   readonly disciplines: readonly string[];
   readonly cityId: string | null;
+  /** Название города — в карточке оно нужнее списка направлений. */
+  readonly cityName?: string;
   /** Показываем, только если владелец карточки открыл оценку. */
   readonly rating?: number;
 }
+
+/**
+ * Сколько направлений влезает в карточку.
+ *
+ * @remarks
+ * Полный список превращает карточку в простыню и уравнивает всё подряд.
+ * Остальное человек увидит на странице специалиста.
+ */
+const MAX_CARD_SKILLS = 4;
 
 export interface TopCity {
   readonly id: string;
@@ -101,7 +112,10 @@ export function SpecialistTop({
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center justify-center gap-3">
-        {withPeople.length > 1 && (
+        {/* Город показываем всегда, когда он вообще есть: даже с одним городом
+            фильтр сразу отсекает тех, кто ищет в другом, и показывает, что
+            каталог городской. */}
+        {withPeople.length > 0 && (
           <label className="flex items-center gap-2 text-sm text-muted">
             Город
             <select
@@ -118,7 +132,10 @@ export function SpecialistTop({
             </select>
           </label>
         )}
-        {skills.length > 0 && (
+        {/* Направления прячем, пока выбирать нечего: с одним человеком в списке
+            фильтр только показывает, что каталог пустой. Появится второй — и
+            условие само его вернёт. */}
+        {skills.length > 1 && people.length > 1 && (
           <label className="flex items-center gap-2 text-sm text-muted">
             Направление
             <select className={select} value={skill} onChange={(e) => setSkill(e.target.value)}>
@@ -166,10 +183,18 @@ export function SpecialistTop({
                 )}
                 <div className="flex flex-1 flex-col gap-1 p-4">
                   <h3 className="font-display text-lg font-semibold text-ink">{p.fullName}</h3>
+                  {/* Город — первое, что человек ищет в карточке: он выбирает
+                      не только специалиста, но и «дотуда ли я доеду». */}
+                  {p.cityName && (
+                    <p className="text-sm uppercase tracking-wide text-accent">{p.cityName}</p>
+                  )}
                   {typeof p.rating === 'number' && p.rating > 0 && <RatingStars value={p.rating} />}
                   {p.headline && <p className="text-sm text-muted">{p.headline}</p>}
                   {p.disciplines.length > 0 && (
-                    <p className="mt-2 text-sm text-ink/80">{p.disciplines.join(' · ')}</p>
+                    <p className="mt-2 text-sm text-ink/80">
+                      {p.disciplines.slice(0, MAX_CARD_SKILLS).join(' · ')}
+                      {p.disciplines.length > MAX_CARD_SKILLS && ' …'}
+                    </p>
                   )}
                 </div>
               </article>

@@ -61,6 +61,14 @@ function cityIdOf(doc: SpecialistDoc): string | null {
   return String(city);
 }
 
+/** Название города: связь приходит либо раскрытой, либо голым id — ищем в справочнике. */
+function cityNameOf(doc: SpecialistDoc, cities: ReadonlyArray<CityDoc>): string | undefined {
+  const city = doc.city;
+  if (city && typeof city === 'object') return (city as CityDoc).name;
+  const id = cityIdOf(doc);
+  return id ? cities.find((c) => String(c.id) === id)?.name : undefined;
+}
+
 function photoUrl(doc: SpecialistDoc): string | undefined {
   const photo = doc.photo;
   if (!photo || typeof photo !== 'object') return undefined;
@@ -97,7 +105,10 @@ function Card({ doc }: { readonly doc: SpecialistDoc }) {
         )}
         {doc.headline && <p className="text-sm text-muted">{doc.headline}</p>}
         {disciplines.length > 0 && (
-          <p className="mt-2 text-sm text-ink/80">{disciplines.join(' · ')}</p>
+          <p className="mt-2 text-sm text-ink/80">
+            {disciplines.slice(0, 4).join(' · ')}
+            {disciplines.length > 4 && ' …'}
+          </p>
         )}
         {doc.acceptingClients === false && (
           <p className="mt-auto pt-3 text-xs uppercase tracking-wide text-muted">
@@ -206,6 +217,7 @@ async function TopView({ data }: { readonly data: SpecialistDirectoryData }) {
     ...(photoUrl(doc) ? { photoUrl: photoUrl(doc)! } : {}),
     disciplines: (doc.disciplines ?? []).map((d) => d.title ?? '').filter(Boolean),
     cityId: cityIdOf(doc),
+    ...(cityNameOf(doc, cities) ? { cityName: cityNameOf(doc, cities)! } : {}),
     // Закрытая оценка не уезжает на клиент даже в пропсах: скрыта — значит её
     // не должно быть видно и в исходниках страницы.
     ...(doc.ratingPublic && typeof doc.rating === 'number' ? { rating: doc.rating } : {}),

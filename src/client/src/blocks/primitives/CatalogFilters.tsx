@@ -55,17 +55,25 @@ export function CatalogFilters({
         </select>
       </label>
 
-      <label className="flex items-center gap-2 text-sm text-muted">
-        Направление
-        <select className={select} value={skill} onChange={(e) => apply({ skill: e.target.value })}>
-          <option value="">Все</option>
-          {skills.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </label>
+      {/* Пустой список направлений — сигнал скрыть фильтр целиком: выбирать
+          в нём нечего, а место он занимает. */}
+      {skills.length > 0 && (
+        <label className="flex items-center gap-2 text-sm text-muted">
+          Направление
+          <select
+            className={select}
+            value={skill}
+            onChange={(e) => apply({ skill: e.target.value })}
+          >
+            <option value="">Все</option>
+            {skills.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       {(city || skill) && (
         <button

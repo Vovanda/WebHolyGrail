@@ -40,7 +40,7 @@ function cityIdOf(doc: SpecialistDoc): string | null {
   return String(city);
 }
 
-function Card({ doc }: { readonly doc: SpecialistDoc }) {
+function Card({ doc, cityName }: { readonly doc: SpecialistDoc; readonly cityName?: string }) {
   const url = photoUrl(doc);
   const disciplines = (doc.disciplines ?? []).map((d) => d.title).filter(Boolean);
   return (
@@ -54,12 +54,18 @@ function Card({ doc }: { readonly doc: SpecialistDoc }) {
         )}
         <div className="flex flex-1 flex-col gap-1 p-4">
           <h2 className="font-display text-lg font-semibold text-ink">{doc.fullName}</h2>
+          {/* Город — первое, что человек ищет в карточке: он выбирает не только
+              специалиста, но и «дотуда ли я доеду». */}
+          {cityName && <p className="text-sm uppercase tracking-wide text-accent">{cityName}</p>}
           {doc.ratingPublic && typeof doc.rating === 'number' && doc.rating > 0 && (
             <RatingStars value={doc.rating} />
           )}
           {doc.headline && <p className="text-sm text-muted">{doc.headline}</p>}
           {disciplines.length > 0 && (
-            <p className="mt-2 text-sm text-ink/80">{disciplines.join(' · ')}</p>
+            <p className="mt-2 text-sm text-ink/80">
+              {disciplines.slice(0, 4).join(' · ')}
+              {disciplines.length > 4 && ' …'}
+            </p>
           )}
         </div>
       </article>
@@ -126,7 +132,10 @@ export default async function SpecialistsPage({ searchParams }: { searchParams: 
 
       <CatalogFilters
         cities={cities.map((c) => ({ slug: c.slug ?? '', name: c.name }))}
-        skills={skills}
+        // Направления прячем, пока выбирать нечего: с одним человеком в
+        // каталоге фильтр только подчёркивает, что он пустой. Появится второй —
+        // и список вернётся сам.
+        skills={skills.length > 1 && everyone.length > 1 ? skills : []}
       />
 
       {people.length === 0 ? (
@@ -145,9 +154,10 @@ export default async function SpecialistsPage({ searchParams }: { searchParams: 
                 : 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
           }
         >
-          {people.map((doc) => (
-            <Card key={String(doc.id)} doc={doc} />
-          ))}
+          {people.map((doc) => {
+            const name = cities.find((c) => String(c.id) === cityIdOf(doc))?.name;
+            return <Card key={String(doc.id)} doc={doc} {...(name ? { cityName: name } : {})} />;
+          })}
         </div>
       )}
     </div>
