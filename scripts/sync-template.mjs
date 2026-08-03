@@ -105,16 +105,6 @@ const MIRROR = [
   'src/client/src/blocks/layout/',
   'src/client/src/blocks/system/',
   'src/client/src/layouts/',
-  'src/client/src/lib/api-client.ts',
-  'src/client/src/lib/utils.ts',
-  'src/client/src/lib/seo/',
-  'src/client/src/lib/analytics.tsx',
-  'src/client/src/lib/theme-bootstrap.tsx',
-  'src/client/src/lib/lexical-text.ts',
-  'src/client/src/lib/blog-settings.ts',
-  'src/client/src/lib/palette-presets.ts',
-  'src/client/src/lib/contrast.ts',
-  'src/client/src/lib/palette-override.tsx',
   'src/client/src/styles/',
 
   // Конфиги сборки клиента. Едут вместе с tokens.css: маппинг «токен → утилита»
@@ -229,6 +219,13 @@ const OVERLAY = [
   // должны остаться. `migrations/index.ts` после синка пересобирается по
   // фактическому составу каталога — см. rebuildMigrationsIndex().
   'src/cms/migrations/',
+  // Хелперы клиента — целиком, как и миграции. Пофайловый список приходилось
+  // пополнять на каждый новый хелпер, и это забывалось: файл оставался в
+  // шаблоне, инстанс получал код, который его импортирует, и сборка падала на
+  // «Cannot find module». Overlay, а не mirror, потому что инстанс заводит в
+  // lib/ и свои модули — mirror снёс бы их как «устаревшее».
+  'src/client/src/lib/',
+
   'docs/whg/',
   'docs/stack/',
   '.claude/skills/whg-rules/',
