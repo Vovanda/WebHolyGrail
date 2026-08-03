@@ -156,6 +156,32 @@ export function NavDrawer({
                   />
                   <span>{item.label}</span>
                 </Link>
+
+                {/* Подпункты открыты сразу. Прятать их за раскрытием — требовать
+                    лишнее касание ради того, что и так помещается, а для раздела
+                    из девяти направлений это основной способ попасть внутрь. */}
+                {item.children && item.children.length > 0 && (
+                  <ul className="pb-2">
+                    {item.children.map((child) => (
+                      <li key={child.href}>
+                        <Link
+                          href={child.href}
+                          target={child.external ? '_blank' : undefined}
+                          rel={child.external ? 'noopener noreferrer' : undefined}
+                          onClick={() => setOpen(false)}
+                          className="
+                            block py-2 pl-10 pr-6
+                            font-display text-sm text-muted
+                            hover:bg-accent/10 hover:text-accent
+                            transition-colors
+                          "
+                        >
+                          {child.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>
