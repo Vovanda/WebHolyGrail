@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
+import { renderPdfPreview } from '../lib/pdf-preview';
+
 /**
  * Media — uploaded files (images and documents).
  *
@@ -23,7 +25,16 @@ export const Media: CollectionConfig = {
     group: 'Контент',
   },
   upload: {
-    mimeTypes: ['image/*', 'application/pdf'],
+    // Видео наравне с картинками: обложка с роликом на фоне и съёмка с объекта —
+    // обычный контент, а владелец сайта не должен ради этого идти к разработчику
+    // или заливать файл в чужое хранилище мимо админки.
+    //
+    // Производные размеры и перевод в webp применяются только к изображениям —
+    // видео и PDF сохраняются как есть.
+    // Предельный размер файла задаётся не здесь, а в nginx
+    // (`client_max_body_size` в `deploy/prod/nginx/`): загрузка упирается в
+    // прокси раньше, чем доходит до приложения.
+    mimeTypes: ['image/*', 'video/mp4', 'video/webm', 'video/quicktime', 'application/pdf'],
     imageSizes: [
       { name: 'thumbnail', width: 400, height: undefined, position: 'centre' },
       { name: 'card', width: 768, height: undefined, position: 'centre' },
@@ -37,12 +48,32 @@ export const Media: CollectionConfig = {
   fields: [
     {
       name: 'alt',
-      label: 'Alt text',
+      label: 'Описание (alt)',
       type: 'text',
-      required: true,
+      // Не `required`, а проверка по типу файла: у видео и документов alt-текста
+      // нет, и требовать его — заставлять человека выдумывать строку, лишь бы
+      // форма сохранилась.
+      validate: (value: unknown, { data }: { data?: { mimeType?: string } }) => {
+        const mime = data?.mimeType ?? '';
+        if (mime.startsWith('image/') && !String(value ?? '').trim()) {
+          return 'Опишите, что на изображении — это читают скринридеры и поисковики.';
+        }
+        return true;
+      },
       admin: {
         description:
-          'Describes the image for screen readers and search engines. Do not leave empty.',
+          'Что изображено. Читают скринридеры и поисковики. Для видео и документов можно оставить пустым.',
+      },
+    },
+    {
+      name: 'preview',
+      label: 'Превью',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        readOnly: true,
+        description:
+          'Для PDF собирается само из первой страницы при загрузке. Заполнять вручную не нужно.',
       },
     },
     {
@@ -109,6 +140,55 @@ export const Media: CollectionConfig = {
               }
             : {}),
         };
+      },
+    ],
+
+    /**
+     * Превью первой страницы для загруженного PDF.
+     *
+     * @remarks
+     * Документы на сайте показываются плиткой с картинкой. Раньше её готовили
+     * руками и заливали отдельным файлом: лишний шаг, о котором забывают, и
+     * превью разъезжается с документом после его замены.
+     *
+     * Работает после создания, а не до: файл к этому моменту уже сохранён, и
+     * сбой рендера не мешает загрузить сам документ. Превью кладём отдельным
+     * медиафайлом и связываем — так оно попадает в то же хранилище и получает
+     * тот же CDN-адрес, что и всё остальное.
+     */
+    afterChange: [
+      async ({ doc, operation, req }) => {
+        if (operation !== 'create') return doc;
+        if (doc?.mimeType !== 'application/pdf' || doc?.preview) return doc;
+
+        const data = req.file?.data;
+        if (!data) return doc;
+
+        const preview = await renderPdfPreview(data as Buffer);
+        if (!preview) return doc;
+
+        try {
+          const base = String(doc.filename ?? 'document').replace(/\.pdf$/i, '');
+          const created = await req.payload.create({
+            collection: 'media',
+            data: { alt: `Первая страница документа «${base}»`, prefix: 'previews' },
+            file: {
+              data: preview,
+              name: `${base}-preview.webp`,
+              mimetype: 'image/webp',
+              size: preview.length,
+            },
+          });
+          await req.payload.update({
+            collection: 'media',
+            id: doc.id as string | number,
+            data: { preview: created.id },
+          });
+          return { ...doc, preview: created.id };
+        } catch {
+          // Документ уже сохранён — превью не критично, добавится при повторной загрузке.
+          return doc;
+        }
       },
     ],
   },

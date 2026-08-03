@@ -64,7 +64,7 @@ server {
 
     if ($block_scanner) { return 444; }
     if ($block_phpbot)  { return 444; }
-    client_max_body_size 100M;
+    client_max_body_size 512M;
 
     # --- Media (same-origin proxy на MinIO bucket <SITE_SLUG>-media) ---
     # nginx работает в host-network, MinIO на 127.0.0.1:<MINIO_PORT>.

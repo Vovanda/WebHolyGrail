@@ -6,6 +6,7 @@ import { CustomMarkupBlock } from './CustomMarkup';
 import { RequestFormBlock } from './RequestForm';
 import { SpecialistDirectoryBlock } from './SpecialistDirectory';
 import { SpecialistProfileBlock } from './SpecialistProfile';
+import { DocumentListBlock } from './DocumentList';
 import { InstallSnippetBlock } from './InstallSnippet';
 import { StackTransparencyBlock } from './StackTransparency';
 import { ComparisonTableBlock } from './ComparisonTable';
@@ -55,6 +56,7 @@ export const REUSABLE_INNER_BLOCKS = [
   RequestFormBlock,
   SpecialistDirectoryBlock,
   SpecialistProfileBlock,
+  DocumentListBlock,
   InstallSnippetBlock,
   StackTransparencyBlock,
   ComparisonTableBlock,

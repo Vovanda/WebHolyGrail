@@ -53,9 +53,12 @@ RUN pnpm --filter cms run build
 # ---------- runtime ----------
 FROM node:${NODE_VERSION}-alpine AS runtime
 # corepack prepare кеширует pnpm в image (иначе runtime пытается скачать на каждом старте)
+# poppler-utils — рендер первой страницы PDF в превью при загрузке документа.
+# Системная утилита, а не npm-пакет: `pdftoppm` предсказуем и не тянет нативный
+# модуль, который придётся пересобирать под musl при каждом обновлении Node.
 RUN corepack enable \
  && corepack prepare pnpm@11.8.0 --activate \
- && apk add --no-cache libc6-compat tini
+ && apk add --no-cache libc6-compat tini poppler-utils
 WORKDIR /app
 
 ENV NODE_ENV=production
