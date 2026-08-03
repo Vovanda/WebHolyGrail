@@ -166,6 +166,7 @@ const MIRROR = [
   // двух файлов ничем не заметен — значит ездить они должны вместе.
   'src/cms/src/admin/',
   'src/cms/scripts/check-schema-drift.ts',
+  'src/cms/scripts/ensure-importmap.mjs',
 
   // Contracts — только generic
   'contracts/src/blocks.ts',
