@@ -12,6 +12,7 @@ import * as migration_20260802_175355_directory_top from './20260802_175355_dire
 import * as migration_20260802_182254_request_form_anchor from './20260802_182254_request_form_anchor';
 import * as migration_20260802_193450_specialist_youtube from './20260802_193450_specialist_youtube';
 import * as migration_20260802_193614_drop_specialist_site from './20260802_193614_drop_specialist_site';
+import * as migration_20260803_130810_catch_up_settings_media_blocks from './20260803_130810_catch_up_settings_media_blocks';
 
 export const migrations = [
   {
@@ -83,5 +84,10 @@ export const migrations = [
     up: migration_20260802_193614_drop_specialist_site.up,
     down: migration_20260802_193614_drop_specialist_site.down,
     name: '20260802_193614_drop_specialist_site',
+  },
+  {
+    up: migration_20260803_130810_catch_up_settings_media_blocks.up,
+    down: migration_20260803_130810_catch_up_settings_media_blocks.down,
+    name: '20260803_130810_catch_up_settings_media_blocks',
   },
 ];
