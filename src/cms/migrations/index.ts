@@ -13,6 +13,7 @@ import * as migration_20260802_182254_request_form_anchor from './20260802_18225
 import * as migration_20260802_193450_specialist_youtube from './20260802_193450_specialist_youtube';
 import * as migration_20260802_193614_drop_specialist_site from './20260802_193614_drop_specialist_site';
 import * as migration_20260803_130810_catch_up_settings_media_blocks from './20260803_130810_catch_up_settings_media_blocks';
+import * as migration_20260803_164550_nav_children from './20260803_164550_nav_children';
 
 export const migrations = [
   {
@@ -89,5 +90,10 @@ export const migrations = [
     up: migration_20260803_130810_catch_up_settings_media_blocks.up,
     down: migration_20260803_130810_catch_up_settings_media_blocks.down,
     name: '20260803_130810_catch_up_settings_media_blocks',
+  },
+  {
+    up: migration_20260803_164550_nav_children.up,
+    down: migration_20260803_164550_nav_children.down,
+    name: '20260803_164550_nav_children'
   },
 ];

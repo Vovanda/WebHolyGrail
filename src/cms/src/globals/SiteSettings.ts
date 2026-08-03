@@ -150,6 +150,21 @@ export const SiteSettings: GlobalConfig = {
         { name: 'href', label: 'Ссылка', type: 'text', required: true },
         { name: 'label', label: 'Подпись', type: 'text', required: true },
         { name: 'external', label: 'Открывать в новой вкладке', type: 'checkbox' },
+        {
+          name: 'children',
+          label: 'Подпункты',
+          type: 'array',
+          labels: { singular: 'Подпункт', plural: 'Подпункты' },
+          admin: {
+            description:
+              'Раскрываются под пунктом. Сам пункт остаётся ссылкой на раздел целиком.',
+          },
+          fields: [
+            { name: 'href', label: 'Ссылка', type: 'text', required: true },
+            { name: 'label', label: 'Подпись', type: 'text', required: true },
+            { name: 'external', label: 'Открывать в новой вкладке', type: 'checkbox' },
+          ],
+        },
       ],
     },
     {
