@@ -16,11 +16,32 @@ import type { GlobalConfig } from 'payload';
  */
 export const DEFAULT_SITE_NAME = 'Новый сайт';
 
+/**
+ * Пустая строка в поле-дате блокирует настройки целиком.
+ *
+ * @remarks
+ * Payload прогоняет сохранённые даты через `new Date(...).toISOString()`. Пустая
+ * строка даёт Invalid Date, и падает не только это поле, а всё сохранение
+ * глобала — причём и в админке тоже. Значение при этом уже лежит в базе, так
+ * что настройки перестают сохраняться навсегда, до правки в обход приложения.
+ * Пустая дата — это отсутствие даты, поэтому приводим её к `null` на входе.
+ */
+const emptyDatesToNull = ({ data }: { data?: Record<string, unknown> }) => {
+  const personalData = data?.['personalData'] as Record<string, unknown> | undefined;
+  if (personalData && personalData['policyUpdatedAt'] === '') {
+    personalData['policyUpdatedAt'] = null;
+  }
+  return data;
+};
+
 export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
   label: 'Настройки сайта',
   admin: {
     group: 'Администрирование',
+  },
+  hooks: {
+    beforeValidate: [emptyDatesToNull],
   },
   fields: [
     {

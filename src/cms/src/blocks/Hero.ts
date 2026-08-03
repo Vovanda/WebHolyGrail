@@ -13,29 +13,25 @@ export const HeroBlock: Block = {
       label: 'Заголовок (используй {accent} как место для акцентного слова)',
       type: 'text',
       required: true,
-      defaultValue: 'Lorem ipsum {accent} dolor sit amet',
       admin: {
         description:
-          'Пример: «Lorem ipsum {accent} dolor» — слово на месте `{accent}` будет показано акцентным italic. Если `{accent}` нет — весь заголовок будет одного цвета.',
+          'Слово на месте `{accent}` будет показано акцентным italic. Если `{accent}` нет — весь заголовок одного цвета.',
       },
     },
     {
       name: 'titleAccent',
       label: 'Акцентное слово (заменит `{accent}` в заголовке)',
       type: 'text',
-      defaultValue: 'consectetur',
     },
     {
       name: 'subtitle',
       label: 'Подзаголовок (для больших экранов)',
       type: 'text',
-      defaultValue: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.',
     },
     {
       name: 'subtitleShort',
       label: 'Подзаголовок (для маленьких экранов, опционально)',
       type: 'text',
-      defaultValue: 'Lorem ipsum dolor sit amet.',
       admin: {
         description:
           'На mobile показывается этот вариант. Если пусто — используется обычный subtitle на всех экранах.',
