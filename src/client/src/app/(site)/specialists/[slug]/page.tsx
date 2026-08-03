@@ -235,6 +235,10 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
   if (!doc) notFound();
 
   const blocks = doc.blocks ?? [];
+  const hasProfileBlock = blocks.some(
+    (b) => (b as { blockType?: string }).blockType === 'specialist-profile',
+  );
+
   if (blocks.length > 0 && settings) {
     return (
       <>
@@ -263,14 +267,19 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
                 {
                   blockType: raw.blockType,
                   id: raw.id ?? `${slug}-${index}`,
-                  data: raw as unknown as Record<string, unknown>,
+                  // Блоку профиля подмешиваем саму карточку: поля он берёт из
+                  // неё, а не дублирует своими.
+                  data: { ...(raw as unknown as Record<string, unknown>), doc },
                 },
                 settings,
               )}
             </div>
           );
         })}
-        <ProfileSections doc={doc} />
+        {/* Профиль внизу — запасной вариант для тех, кто собрал страницу
+            блоками, но блок профиля не поставил: заполненная карточка не должна
+            пропадать. Поставил блок — секции показываются там, где он стоит. */}
+        {!hasProfileBlock && <ProfileSections doc={doc} />}
         <Contacts doc={doc} />
       </>
     );

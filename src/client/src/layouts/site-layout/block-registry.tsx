@@ -11,6 +11,7 @@ import { HeroCinematic } from '@/blocks/primitives/HeroCinematic';
 import { CustomMarkup } from '@/blocks/primitives/CustomMarkup';
 import { RequestForm } from '@/blocks/primitives/RequestForm';
 import { SpecialistDirectory } from '@/blocks/primitives/SpecialistDirectory';
+import { SpecialistProfile } from '@/blocks/primitives/SpecialistProfile';
 import { InstallSnippet } from '@/blocks/primitives/InstallSnippet';
 import { StackTransparency } from '@/blocks/primitives/StackTransparency';
 import { ComparisonTable } from '@/blocks/primitives/ComparisonTable';
@@ -56,6 +57,7 @@ const REGISTRY: Record<string, BlockRenderer> = {
   'specialist-directory': (node, settings) => (
     <SpecialistDirectory node={node} settings={settings} />
   ),
+  'specialist-profile': (node, settings) => <SpecialistProfile node={node} settings={settings} />,
   'install-snippet': (node, settings) => <InstallSnippet node={node} settings={settings} />,
   'stack-transparency': (node, settings) => <StackTransparency node={node} settings={settings} />,
   'comparison-table': (node, settings) => <ComparisonTable node={node} settings={settings} />,

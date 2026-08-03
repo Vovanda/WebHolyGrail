@@ -5,6 +5,7 @@ import { HeroCinematicBlock } from './HeroCinematic';
 import { CustomMarkupBlock } from './CustomMarkup';
 import { RequestFormBlock } from './RequestForm';
 import { SpecialistDirectoryBlock } from './SpecialistDirectory';
+import { SpecialistProfileBlock } from './SpecialistProfile';
 import { InstallSnippetBlock } from './InstallSnippet';
 import { StackTransparencyBlock } from './StackTransparency';
 import { ComparisonTableBlock } from './ComparisonTable';
@@ -53,6 +54,7 @@ export const REUSABLE_INNER_BLOCKS = [
   CustomMarkupBlock,
   RequestFormBlock,
   SpecialistDirectoryBlock,
+  SpecialistProfileBlock,
   InstallSnippetBlock,
   StackTransparencyBlock,
   ComparisonTableBlock,
