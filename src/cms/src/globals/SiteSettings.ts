@@ -64,6 +64,63 @@ export const SiteSettings: GlobalConfig = {
       ],
     },
     {
+      name: 'personalData',
+      label: 'Обработка персональных данных',
+      type: 'group',
+      admin: {
+        description:
+          'Реквизиты подставляются в текст политики вместо меток вида {{operatorName}}. Пока поле пустое, метка остаётся видимой, а над страницей висит пометка «черновик».',
+      },
+      fields: [
+        {
+          name: 'operatorName',
+          label: 'Оператор — кто именно',
+          type: 'text',
+          admin: {
+            description: 'ФИО полностью, ИП или название организации — как в документах.',
+          },
+        },
+        { name: 'operatorInn', label: 'ИНН', type: 'text' },
+        {
+          name: 'operatorAddress',
+          label: 'Адрес',
+          type: 'text',
+          admin: { description: 'Адрес, по которому оператор принимает обращения.' },
+        },
+        {
+          name: 'contactEmail',
+          label: 'Почта для обращений по данным',
+          type: 'email',
+          admin: { description: 'Сюда пишут с просьбой удалить данные или отозвать согласие.' },
+        },
+        {
+          name: 'rknRegistryNumber',
+          label: 'Номер записи в реестре операторов',
+          type: 'text',
+          admin: {
+            description:
+              'Приходит после подачи уведомления в Роскомнадзор через Госуслуги. Указывается в политике.',
+          },
+        },
+        {
+          name: 'rknNotified',
+          label: 'Уведомление в Роскомнадзор подано',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: {
+            description:
+              'Пока не отмечено, в админке висит напоминание. Уведомление подаёт оператор — это его обязанность, а не разработчика.',
+          },
+        },
+        {
+          name: 'policyUpdatedAt',
+          label: 'Дата последней редакции политики',
+          type: 'date',
+          admin: { date: { pickerAppearance: 'dayOnly', displayFormat: 'd MMMM yyyy' } },
+        },
+      ],
+    },
+    {
       name: 'mainNav',
       label: 'Основное меню (header)',
       type: 'array',

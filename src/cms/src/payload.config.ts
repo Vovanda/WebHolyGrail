@@ -81,6 +81,11 @@ export default buildConfig({
     importMap: {
       baseDir: dirname,
     },
+    components: {
+      // Напоминание об уведомлении Роскомнадзора — висит, пока владелец не
+      // отметит, что подал его. Убирается только галочкой в настройках.
+      beforeDashboard: ['/admin/components/ComplianceNotice#ComplianceNotice'],
+    },
   },
   collections: [
     Users,
