@@ -23,17 +23,20 @@ export interface HeroData {
 
 export function Hero({
   node,
+  settings,
 }: {
   readonly node: BlockNode & { data?: HeroData };
   readonly settings: SiteSettings;
 }) {
   const data = node.data ?? {};
-  // Generic placeholders — реальные значения приходят из Payload (поля title/subtitle).
-  const title = data.title ?? 'Lorem ipsum {accent} dolor sit amet';
-  const titleAccent = data.titleAccent ?? 'consectetur';
-  const subtitle = data.subtitle ?? 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.';
-  const subtitleShort = data.subtitleShort ?? 'Lorem ipsum dolor sit amet.';
+  const title = data.title?.trim() || settings.siteName;
+  const titleAccent = data.titleAccent?.trim() ?? '';
+  const subtitle = data.subtitle?.trim() ?? '';
+  const subtitleShort = data.subtitleShort?.trim() || subtitle;
 
+  // Акцентное слово встаёт строго на место метки. Без метки его вставлять некуда:
+  // приклеенное к концу заголовка, оно срастается с последним словом.
+  const hasSlot = title.includes('{accent}');
   const [titleHead, titleTail = ''] = title.split('{accent}');
 
   return (
@@ -41,13 +44,17 @@ export function Hero({
       <div className="mx-auto max-w-wide px-6 text-center">
         <h1 className="font-display text-3xl md:text-h1 font-semibold leading-tight tracking-tight text-ink">
           {titleHead}
-          <b className="text-accent font-semibold">{titleAccent}</b>
+          {hasSlot && titleAccent ? (
+            <b className="text-accent font-semibold">{titleAccent}</b>
+          ) : null}
           {titleTail}
         </h1>
-        <p className="mt-3 font-display text-muted text-base md:text-lg">
-          <span className="md:hidden">{subtitleShort}</span>
-          <span className="hidden md:inline">{subtitle}</span>
-        </p>
+        {subtitle || subtitleShort ? (
+          <p className="mt-3 font-display text-muted text-base md:text-lg">
+            <span className="md:hidden">{subtitleShort}</span>
+            <span className="hidden md:inline">{subtitle || subtitleShort}</span>
+          </p>
+        ) : null}
         <div className="mx-auto mt-4 h-[1.5px] w-16 bg-accent opacity-85 rounded-full" />
       </div>
     </section>

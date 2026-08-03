@@ -15,29 +15,30 @@ import '@/styles/globals.css';
 export async function generateMetadata(): Promise<Metadata> {
   const settings = (await getSiteSettings().catch(() => null)) ?? FALLBACK_SITE_SETTINGS;
   const siteUrl = process.env['NEXT_PUBLIC_SITE_URL'];
-  const logo = resolveMediaUrl(settings.logo) ?? '/branding/logo.png';
+  // Логотип — контент: его загружают в настройках сайта, а не кладут файлом в
+  // сборку. Пока его нет, иконкой служит нейтральная марка из `public`, а
+  // og:image не заполняется вовсе: ссылка на несуществующий файл даёт битую
+  // картинку в мессенджере, что хуже, чем превью без картинки.
+  const logo = resolveMediaUrl(settings.logo);
+  const icon = logo ?? '/favicon.svg';
 
   return {
     // Без базы относительные пути в og:image уезжают в ссылку как есть, а
     // мессенджеры и соцсети требуют абсолютный адрес — картинка не покажется.
     ...(siteUrl ? { metadataBase: new URL(siteUrl) } : {}),
     title: { default: settings.siteName, template: `%s — ${settings.siteName}` },
-    icons: {
-      icon: '/branding/logo.png',
-      shortcut: '/branding/logo.png',
-      apple: '/branding/logo.png',
-    },
+    icons: { icon, shortcut: icon, apple: icon },
     openGraph: {
       type: 'website',
       siteName: settings.siteName,
       locale: 'ru_RU',
       title: settings.siteName,
-      images: [{ url: logo, alt: settings.siteName }],
+      ...(logo ? { images: [{ url: logo, alt: settings.siteName }] } : {}),
     },
     twitter: {
       card: 'summary_large_image',
       title: settings.siteName,
-      images: [logo],
+      ...(logo ? { images: [logo] } : {}),
     },
   };
 }

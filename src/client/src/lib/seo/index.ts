@@ -16,7 +16,10 @@
  */
 
 const DEFAULT_BASE_URL = 'https://example.com';
-const DEFAULT_OG_IMAGE = '/branding/logo.png';
+// Нейтральная марка из `public`: логотип сайта живёт в настройках и в разметку
+// подставляется вызывающей стороной. Ссылка на файл, которого нет, дала бы
+// битую картинку в поисковой выдаче и мессенджерах.
+const DEFAULT_OG_IMAGE = '/favicon.svg';
 
 export function baseUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL ?? DEFAULT_BASE_URL;

@@ -52,6 +52,13 @@ export function NavDrawer({
 
   const isLeft = side === 'left';
 
+  // Кнопка без содержимого — обещание, которого панель не выполняет: посетитель
+  // жмёт бургер и получает пустоту. На свежем сайте меню и контакты ещё не
+  // заполнены, поэтому проверяем перед отрисовкой, а не полагаемся на то, что
+  // владелец успел всё внести.
+  const hasContent = nav.length > 0 || Boolean(phone || email || hours) || social.length > 0;
+  if (!hasContent) return null;
+
   return (
     // Бургер видим на всех viewport. На desktop drawer дополняет header-nav
     // (соцсети, контакты, дополнительные ссылки).

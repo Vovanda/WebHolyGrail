@@ -123,9 +123,9 @@ export function Quote({
 
   const data: QuoteData = {
     heading: node.data?.heading,
-    body: node.data?.body ?? defaultBody,
-    author: node.data?.author ?? 'Lorem Ipsum',
-    role: node.data?.role ?? 'Lorem ipsum dolor',
+    body: node.data?.body ?? '',
+    author: node.data?.author ?? '',
+    role: node.data?.role ?? '',
     authorHref: node.data?.authorHref,
     photoUrls,
     variant: node.data?.variant ?? 'card-accent-left',
@@ -215,10 +215,6 @@ function PhotoFrame({
     />
   );
 }
-
-// Generic placeholder — реальный текст приходит из Payload (поле `body`).
-const defaultBody =
-  'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.';
 
 /**
  * Full-width dark Quote — marketing manifesto на тёмном фоне в полную ширину.

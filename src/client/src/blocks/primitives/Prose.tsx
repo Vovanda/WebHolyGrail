@@ -64,7 +64,15 @@ export function Prose({
   // Реквизиты подставляются вместо меток {{operatorName}} и подобных. Так текст
   // остаётся обычной страницей, которую владелец правит сам, а данные оператора
   // лежат в одном месте и не переписываются по всему документу.
-  const { text, missing } = fillPersonalData(raw, personalDataOf(settings));
+  const personalData = personalDataOf(settings);
+  const { text, missing } = fillPersonalData(raw, personalData);
+
+  // Документ с реквизитами остаётся черновиком до подачи уведомления в
+  // Роскомнадзор: до этого момента оператор в реестре не значится, и страница,
+  // выглядящая действующей политикой, вводит посетителя в заблуждение. Признак
+  // «уведомление подано» ставит владелец в настройках — не разработчик и не
+  // скрипт, потому что подтвердить это может только тот, кто подавал.
+  const awaitingNotice = /\{\{\s*[a-zA-Z]+\s*\}\}/.test(raw) && !personalData.rknNotified;
 
   const data: ProseData = {
     body: text,
@@ -76,14 +84,24 @@ export function Prose({
 
   return (
     <section className="bg-bg pt-2 pb-10 md:pb-14">
-      {/* Незаполненные реквизиты — не мелочь: документ без них не работает, а
-          выглядит готовым. Поэтому предупреждение видно прямо на странице, а не
-          только в админке. */}
-      {missing.length > 0 && (
+      {/* Незаполненные реквизиты и неподанное уведомление — не мелочь: документ
+          без них не работает, а выглядит готовым. Поэтому предупреждение видно
+          прямо на странице, а не только в админке. */}
+      {(missing.length > 0 || awaitingNotice) && (
         <div className="mx-auto mb-6 max-w-[68ch] rounded-lg border border-[color:var(--color-danger)] bg-[color:var(--color-danger-soft)] px-4 py-3 text-sm text-ink">
-          <strong className="font-semibold">Черновик.</strong> Документ не заполнен до конца: не
-          хватает данных ({missing.join(', ')}). Заполните их в настройках сайта, раздел «Обработка
-          персональных данных».
+          <strong className="font-semibold">Черновик.</strong>{' '}
+          {missing.length > 0 && (
+            <>
+              Не хватает данных ({missing.join(', ')}) — заполните их в настройках сайта, раздел
+              «Обработка персональных данных».{' '}
+            </>
+          )}
+          {awaitingNotice && (
+            <>
+              Уведомление в Роскомнадзор пока не подано, поэтому документ силы не имеет. Подайте его
+              через «Госуслуги» и отметьте это в тех же настройках.
+            </>
+          )}
         </div>
       )}
       <ContentFrame side="both" decor="vines" className={proseRoot({ variant: data.variant })}>
