@@ -4,6 +4,26 @@ import type { ThemeConfig } from './theme';
 import type { SiteLayoutConfig } from './layout';
 
 /**
+ * Пункт меню — ссылка, у которой может быть один уровень вложенности.
+ *
+ * @remarks
+ * Отдельный тип, а не расширение {@link LinkRef}: тот описывает ссылки внутри
+ * блоков, где вложенность бессмысленна. Уровень ровно один — меню сайта,
+ * а не файловое дерево; вторая вложенность на телефоне уже не открывается
+ * пальцем и в шапке не помещается.
+ */
+export interface NavItem {
+  /** Внутренний путь (`/about`) или абсолютный URL. */
+  readonly href: string;
+  /** Подпись пункта. */
+  readonly label: string;
+  /** Открывать ли в новой вкладке. */
+  readonly external?: boolean;
+  /** Подпункты — разделы внутри направления. */
+  readonly children?: readonly LinkRef[];
+}
+
+/**
  * Глобальные настройки сайта — синглтон. Источник правды — Payload Global `SiteSettings`.
  *
  * @remarks
@@ -19,9 +39,9 @@ export interface SiteSettings {
   /** Контакты для footer и блока Contacts. */
   readonly contacts: ContactsInfo;
   /** Основная навигация в header. */
-  readonly mainNav: readonly LinkRef[];
+  readonly mainNav: readonly NavItem[];
   /** Дополнительная навигация в footer (если отличается от main). */
-  readonly footerNav?: readonly LinkRef[];
+  readonly footerNav?: readonly NavItem[];
   /** Соцсети для footer. */
   readonly social?: readonly SocialLink[];
   /** Конфигурация темы (light/dark/auto + user-toggle). */
