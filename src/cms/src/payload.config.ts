@@ -137,6 +137,17 @@ export default buildConfig({
   db: sqliteAdapter({
     client: {
       url: process.env.DATABASE_URI ?? 'file:./data/site.db',
+      // Шифрование файла базы. В базе лежат заявки с сайта — имя, телефон,
+      // почта, — то есть персональные данные, и на диске они не должны
+      // храниться открытым текстом.
+      //
+      // Ключ живёт в Infisical рядом с остальными секретами инстанса. Потерять
+      // его значит потерять базу: без ключа файл не открывается, в этом и смысл.
+      // Существующую базу переводит `scripts/encrypt-db.mjs` — зашифровать файл
+      // на месте нельзя, ключ задаётся при открытии.
+      ...(process.env.DATABASE_ENCRYPTION_KEY
+        ? { encryptionKey: process.env.DATABASE_ENCRYPTION_KEY }
+        : {}),
     },
     // Drizzle push выключен: схема меняется только через миграции.
     // Workflow — `.claude/skills/payload-migration/SKILL.md`.

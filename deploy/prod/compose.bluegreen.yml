@@ -21,6 +21,11 @@ services:
     environment:
       PAYLOAD_SECRET: ${PAYLOAD_SECRET:?required}
       DATABASE_URI: file:/data/${SITE_SLUG}.db
+      # Ключ шифрования базы. Пустой — база открывается как есть: так работают
+      # инстансы, заведённые до шифрования, пока их не перевели скриптом
+      # `scripts/encrypt-db.mjs`. Подставлять ключ к незашифрованной базе нельзя
+      # — она просто не откроется.
+      DATABASE_ENCRYPTION_KEY: ${DATABASE_ENCRYPTION_KEY:-}
       PAYLOAD_PUBLIC_SERVER_URL: ${PAYLOAD_PUBLIC_SERVER_URL:?required}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?required}
       NODE_ENV: production
