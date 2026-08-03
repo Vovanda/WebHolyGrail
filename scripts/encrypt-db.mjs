@@ -14,9 +14,43 @@
  * Ключ хранится в Infisical рядом с остальными секретами инстанса. Потерять его
  * значит потерять базу: без ключа файл не открывается — в этом и смысл.
  */
-import { createClient } from '@libsql/client';
-import { existsSync, renameSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readdirSync, renameSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
+import { resolve, join } from 'node:path';
+
+/**
+ * Находит `@libsql/client` даже когда обычный импорт его не видит.
+ *
+ * @remarks
+ * В контейнере pnpm держит пакеты в `node_modules/.pnpm/<name>@<version>` и
+ * ставит симлинки только тем пакетам, которые объявлены зависимостями рядом
+ * лежащего package.json. Скрипт запускается вне этого дерева, поэтому обычный
+ * `import '@libsql/client'` падает — приходится дойти до хранилища руками.
+ */
+async function loadClient() {
+  try {
+    return (await import('@libsql/client')).createClient;
+  } catch {
+    // Продолжаем поиск в pnpm-хранилище.
+  }
+
+  const roots = ['/app/node_modules/.pnpm', resolve('node_modules/.pnpm')];
+  for (const root of roots) {
+    if (!existsSync(root)) continue;
+    const dir = readdirSync(root).find((name) => name.startsWith('@libsql+client@'));
+    if (!dir) continue;
+    const entry = join(root, dir, 'node_modules/@libsql/client/lib-esm/node.js');
+    if (!existsSync(entry)) continue;
+    return (await import(pathToFileURL(entry).href)).createClient;
+  }
+
+  throw new Error(
+    'Не найден @libsql/client. Запустите скрипт там, где он доступен, ' +
+      'или укажите путь к node_modules через рабочую директорию.',
+  );
+}
+
+const createClient = await loadClient();
 
 const key = process.env['DATABASE_ENCRYPTION_KEY'];
 const target = process.argv[2];
