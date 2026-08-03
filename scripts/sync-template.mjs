@@ -225,6 +225,8 @@ const OVERLAY = [
   // «Cannot find module». Overlay, а не mirror, потому что инстанс заводит в
   // lib/ и свои модули — mirror снёс бы их как «устаревшее».
   'src/client/src/lib/',
+  // Чеклист деплоя — точка входа, на которую ссылается CLAUDE.md.
+  'DEPLOY.md',
 
   'docs/whg/',
   'docs/stack/',
