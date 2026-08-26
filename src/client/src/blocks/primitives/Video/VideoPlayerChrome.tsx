@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { VideoGestures } from './VideoGestures';
 
 /**
- * Плеер потокового видео: качества, скорость, перемотка, закрытый доступ.
+ * Слой управления на media-chrome - первый из двух, между ними переключает флаг.
  *
  * @remarks
  * Клиентский по необходимости (R14): работа с видео, сетью и выбором качества
@@ -28,7 +28,7 @@ import { VideoGestures } from './VideoGestures';
  * выпадающего списка. Свою конфигурацию `hls.js` она принимает целиком —
  * поэтому подмена загрузчика ключа остаётся нашей.
  */
-export interface VideoPlayerProps {
+export interface VideoPlayerChromeProps {
   /** Адрес master.m3u8. */
   readonly src: string;
   /** Токен сессии зрителя — им вскрывается конверт. */
@@ -78,7 +78,7 @@ const DENIED_TEXT: Record<string, string> = {
  */
 const PLAYBACK_RATES = '0.85 0.9 1 1.25 1.5 2';
 
-export function VideoPlayer({
+export function VideoPlayerChrome({
   src,
   token,
   mediaId,
@@ -89,7 +89,7 @@ export function VideoPlayer({
   onVideoRef,
   onPrev,
   onNext,
-}: VideoPlayerProps) {
+}: VideoPlayerChromeProps) {
   const videoRef = useRef<(HTMLVideoElement & { config?: unknown }) | null>(null);
   // Контроллер нужен жестам: у него переключается видимость управления.
   const controllerRef = useRef<HTMLElement | null>(null);

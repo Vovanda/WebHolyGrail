@@ -14,6 +14,7 @@
     "smoke": "playwright test"
   },
   "dependencies": {
+    "@vidstack/react": "^1.15.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "contracts": "workspace:*",
