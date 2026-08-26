@@ -23,6 +23,8 @@ import { Tags } from './collections/Tags';
 import { Authors } from './collections/Authors';
 import { Cities } from './collections/Cities';
 import { Specialists } from './collections/Specialists';
+import { Playlists } from './collections/Playlists';
+import { Entitlements } from './collections/Entitlements';
 import { SiteSettings } from './globals/SiteSettings';
 import { withAutoSlug } from './lib/slug';
 import { BuildHlsTask } from './jobs/build-hls.task';
@@ -117,6 +119,9 @@ export default buildConfig({
     // Каталог специалистов по городам (тренеры, мастера, врачи).
     Cities,
     Specialists,
+    // Видео: наборы роликов и права на них.
+    Playlists,
+    Entitlements,
   ].map(withAutoSlug),
   globals: [SiteSettings],
   /**

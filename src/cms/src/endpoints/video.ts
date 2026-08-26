@@ -1,6 +1,7 @@
 import type { Endpoint } from 'payload';
 
-import { signedInPolicy } from '../lib/video/access-policy';
+import { payloadEntitlements } from '../lib/video/entitlement-source';
+import { entitlementPolicy } from '../lib/video/entitlements';
 import { issueViewerToken } from '../lib/video/envelope';
 import { grantStreamAccess, type StreamRecord } from '../lib/video/grant-access';
 
@@ -205,7 +206,7 @@ export const videoAccessEndpoint: Endpoint = {
       return json({ allowed: false, reason: 'not-found', status: 'deleted' });
     }
 
-    const decision = await signedInPolicy.decide(
+    const decision = await entitlementPolicy(payloadEntitlements(req.payload)).decide(
       { id: doc.id, access: doc.access === 'private' ? 'private' : 'public' },
       { userId: req.user?.id ?? null },
     );
@@ -282,7 +283,7 @@ export const videoEnvelopeEndpoint: Endpoint = {
       video,
       viewer: { userId: req.user?.id ?? null },
       token,
-      policy: signedInPolicy,
+      policy: entitlementPolicy(payloadEntitlements(req.payload)),
       appSecret: appSecret(),
       nowSeconds: nowSeconds(),
     });

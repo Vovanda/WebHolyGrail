@@ -1,0 +1,89 @@
+import type { CollectionConfig } from 'payload';
+
+/**
+ * Entitlements — право зрителя на набор.
+ *
+ * @remarks
+ * Отдельная связь «зритель × набор», а не флаг на ролике и не свойство
+ * плейлиста. Так платный курс может содержать бесплатные вводные уроки: они
+ * открыты сами по себе, а закрытые открывает право на набор.
+ *
+ * Способ выдачи модели безразличен — оплата, подарок, промокод или рука
+ * администратора. Когда появится платёжка, она встанет сюда же и ни плеер,
+ * ни нарезка об этом не узнают.
+ */
+export const Entitlements: CollectionConfig = {
+  slug: 'entitlements',
+  labels: { singular: 'Доступ', plural: 'Доступы' },
+  admin: {
+    useAsTitle: 'id',
+    defaultColumns: ['viewer', 'playlist', 'source', 'expiresAt'],
+    group: 'Видео',
+    description: 'Кому открыт какой набор. Выдаётся оплатой, ссылкой, промокодом или вручную.',
+  },
+  fields: [
+    {
+      name: 'viewer',
+      label: 'Зритель',
+      type: 'relationship',
+      relationTo: 'users',
+      required: true,
+      index: true,
+    },
+    {
+      name: 'playlist',
+      label: 'Набор',
+      type: 'relationship',
+      relationTo: 'playlists',
+      required: true,
+      index: true,
+    },
+    {
+      name: 'source',
+      label: 'Чем выдан',
+      type: 'select',
+      defaultValue: 'manual',
+      options: [
+        { label: 'Вручную', value: 'manual' },
+        { label: 'Оплата', value: 'payment' },
+        { label: 'Ссылка-приглашение', value: 'invite' },
+        { label: 'Промокод', value: 'promo' },
+      ],
+      admin: { description: 'Нужно, чтобы понимать, откуда пришёл доступ, когда придёт биллинг.' },
+    },
+    {
+      /**
+       * До какой даты действует.
+       *
+       * @remarks
+       * Пусто — бессрочно. Срок нужен подаркам и акциям: «дать посмотреть
+       * курс на неделю» без него превращается в «отдать курс насовсем».
+       */
+      name: 'expiresAt',
+      label: 'Действует до',
+      type: 'date',
+      admin: {
+        description: 'Пусто — навсегда.',
+        date: { pickerAppearance: 'dayOnly', displayFormat: 'd MMMM yyyy' },
+      },
+    },
+    {
+      name: 'note',
+      label: 'Пометка',
+      type: 'text',
+      admin: { description: 'Для себя: за что выдан доступ.' },
+    },
+  ],
+  access: {
+    // Свои доступы видит сам зритель, чужие — администратор и автор набора.
+    // Иначе список покупателей чужого курса читался бы кем угодно.
+    read: ({ req: { user } }) => {
+      if (!user) return false;
+      if (user.role === 'admin') return true;
+      return { viewer: { equals: user.id } };
+    },
+    create: ({ req: { user } }) => Boolean(user),
+    update: ({ req: { user } }) => user?.role === 'admin',
+    delete: ({ req: { user } }) => user?.role === 'admin',
+  },
+};
