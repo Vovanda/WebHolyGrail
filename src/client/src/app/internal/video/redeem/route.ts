@@ -35,5 +35,12 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
-  return NextResponse.json(data, { status: response.status });
+  const result = NextResponse.json(data, { status: response.status });
+
+  // Токен с новым правом запоминаем в браузере: иначе оно живёт до первой же
+  // перезагрузки страницы, и зритель снова упирается в замок.
+  const savedToken = response.headers.get('set-cookie');
+  if (savedToken) result.headers.set('set-cookie', savedToken);
+
+  return result;
 }

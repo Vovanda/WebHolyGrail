@@ -38,6 +38,8 @@ export interface ViewerToken {
   readonly value: string;
   /** Ключ, которым шифруется конверт. В разметку не попадает. */
   readonly key: Buffer;
+  /** До какой секунды действует: по нему живёт и кука, хранящая токен. */
+  readonly expires: number;
 }
 
 /**
@@ -69,7 +71,7 @@ export function issueViewerToken(
 ): ViewerToken {
   const key = randomBytes(16);
   const expires = nowSeconds + TOKEN_TTL_SECONDS;
-  return { value: buildToken(key, expires, granted, appSecret), key };
+  return { value: buildToken(key, expires, granted, appSecret), key, expires };
 }
 
 /**

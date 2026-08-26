@@ -1,3 +1,5 @@
+import { cookies } from 'next/headers';
+
 import type {
   BlogArticle,
   VideoSetItem,
@@ -516,7 +518,15 @@ export async function getVideoStream(id: string | number): Promise<VideoStream |
  * незачем. `null` — если CMS недоступна; тогда блок покажет заглушку вместо
  * плеера, а не сломанный проигрыватель.
  */
+export const VIEWER_TOKEN_COOKIE = 'whg-viewer';
+
 export async function issueVideoToken(): Promise<string | null> {
+  // Токен, уже выданный этому браузеру, важнее нового: в нём лежат права,
+  // полученные по коду. Выписав свежий, мы бы их стёрли — зритель вводил код,
+  // страница обновлялась, и замок возвращался.
+  const saved = (await cookies()).get(VIEWER_TOKEN_COOKIE)?.value;
+  if (saved) return saved;
+
   const response = await fetch(`${CMS_URL}/api/video/token`, {
     method: 'POST',
     cache: 'no-store',

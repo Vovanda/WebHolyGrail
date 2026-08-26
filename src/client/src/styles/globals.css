@@ -258,3 +258,37 @@
     background: linear-gradient(to top, rgb(0 0 0 / 0.65), transparent);
   }
 }
+
+@layer components {
+  /* Замок снят: он раскрывается и исчезает, а кадр светлеет.
+   *
+   * Анимация нужна не для красоты: без неё после введённого кода на экране
+   * просто что-то меняется, и человек не понимает, сработал код или нет. */
+  @keyframes whg-unlock {
+    0% {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+    40% {
+      opacity: 1;
+      transform: scale(1.15) rotate(-18deg);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(0.6) rotate(-24deg);
+    }
+  }
+
+  .video-set-unlocked img {
+    animation: whg-brighten 0.6s ease forwards;
+  }
+
+  @keyframes whg-brighten {
+    from {
+      filter: brightness(0.5);
+    }
+    to {
+      filter: brightness(1);
+    }
+  }
+}

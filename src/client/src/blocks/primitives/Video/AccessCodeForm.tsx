@@ -21,14 +21,34 @@ export interface AccessCodeFormProps {
   readonly className?: string;
 }
 
-/** Что показать вместо кода ошибки. */
+/** Имя события: набор открыт кодом. */
+export const ACCESS_GRANTED_EVENT = 'whg:access-granted';
+
+/**
+ * Что показать вместо кода ошибки.
+ *
+ * @remarks
+ * У всех случаев «код не сработал» текст один. Разные ответы — «такого кода
+ * нет», «истёк», «израсходован» — подсказывали бы перебору, какой код
+ * существует, а какой нет.
+ *
+ * Отдельно только требование входа: оно про самого зрителя и о коде ничего
+ * не сообщает.
+ */
 const REASON: Record<string, string> = {
-  'not-found': 'Такого кода нет. Проверьте, не потерялся ли символ.',
-  expired: 'Срок кода истёк.',
-  'used-up': 'Код уже использован столько раз, сколько было можно.',
+  invalid: 'К сожалению, код уже использован разрешённое число раз или больше не действует.',
   'sign-in-required': 'Этот код работает только после входа.',
   'bad-token': 'Страница открыта слишком давно — обновите её и попробуйте снова.',
 };
+
+/**
+ * Сколько символов в коде.
+ *
+ * @remarks
+ * Короткий код отсеиваем на месте, не отправляя: это обычная опечатка, и
+ * гонять её до сервера незачем. Заодно такие попытки не расходуют лимит.
+ */
+const CODE_LENGTH = 6;
 
 export function AccessCodeForm({ token, className }: AccessCodeFormProps) {
   const [code, setCode] = useState('');
@@ -38,6 +58,12 @@ export function AccessCodeForm({ token, className }: AccessCodeFormProps) {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!code.trim() || busy) return;
+
+    // Опечатку видно сразу: до сервера такая попытка не доходит.
+    if (code.replace(/[^0-9A-Za-z]/g, '').length < CODE_LENGTH) {
+      setError(`Кода не хватает: в нём ${CODE_LENGTH} символов.`);
+      return;
+    }
 
     setBusy(true);
     setError(null);
@@ -52,13 +78,31 @@ export function AccessCodeForm({ token, className }: AccessCodeFormProps) {
 
       if (!response.ok) {
         const body = (await response.json().catch(() => ({}))) as { error?: string };
-        setError(REASON[body.error ?? ''] ?? 'Код не сработал.');
+        setError(REASON[body.error ?? ''] ?? REASON['invalid']!);
         return;
       }
 
-      // Токен обновился, и закрытое теперь открыто: страницу пересобирает
-      // сервер — так же, как он собирал её с замками.
-      window.location.reload();
+      // Признак открытого окна убираем до перезагрузки: иначе страница
+      // поднимется с ним в адресе и окно откроется снова — выглядит так,
+      // будто код не сработал.
+      if (window.location.hash.startsWith('#d=')) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+
+      const data = (await response.json()) as { playlistId?: string | number };
+
+      // Окно закрываем сразу и убираем признак из адреса, иначе оно вернётся.
+      if (window.location.hash.startsWith('#d=')) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        window.dispatchEvent(new HashChangeEvent('hashchange'));
+      }
+
+      // Дальше страница обновляется сама, без перезагрузки: наборы слушают
+      // это событие и снимают замки на месте. Адрес потока у них уже есть,
+      // а ключ сервер теперь выдаст — право лежит в токене.
+      window.dispatchEvent(
+        new CustomEvent(ACCESS_GRANTED_EVENT, { detail: { playlistId: data.playlistId } }),
+      );
     } catch {
       setError('Не получилось проверить код. Попробуйте ещё раз.');
     } finally {

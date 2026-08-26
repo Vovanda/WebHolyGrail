@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { VideoSetItem } from 'contracts';
 
 import { cn } from '@/lib/utils';
 
 import { AccessCodeDialog } from './AccessCodeDialog';
+import { ACCESS_GRANTED_EVENT } from './AccessCodeForm';
 import { VideoPlayer } from './VideoPlayer';
 import { VideoSetList } from './VideoSetList';
 
@@ -32,7 +33,37 @@ export interface VideoSetPlayerProps {
   readonly className?: string;
 }
 
-export function VideoSetPlayer({ items, token, channel, setCode, className }: VideoSetPlayerProps) {
+export function VideoSetPlayer({
+  items: initial,
+  token,
+  channel,
+  setCode,
+  className,
+}: VideoSetPlayerProps) {
+  /**
+   * Список держим в состоянии: после введённого кода замки снимаются здесь же.
+   *
+   * Адрес потока у закрытых роликов уже есть — он не секрет и приходит вместе
+   * со списком, — поэтому достаточно снять признак, и ролик играет: ключ
+   * сервер выдаст, право лежит в токене. Перезагружать страницу незачем,
+   * она сбросила бы позицию и моргнула.
+   */
+  const [items, setItems] = useState(initial);
+  const [unlocked, setUnlocked] = useState(false);
+
+  useEffect(() => {
+    function onGranted() {
+      setItems((current) => current.map((item) => ({ ...item, locked: false })));
+      // Короткая вспышка на снятых замках: без неё непонятно, что изменилось.
+      setUnlocked(true);
+      const timer = setTimeout(() => setUnlocked(false), 900);
+      return () => clearTimeout(timer);
+    }
+
+    window.addEventListener(ACCESS_GRANTED_EVENT, onGranted);
+    return () => window.removeEventListener(ACCESS_GRANTED_EVENT, onGranted);
+  }, []);
+
   // Начинаем с первого, который вообще может играть: если открыт только третий
   // ролик, показывать заглушку вместо него незачем.
   const [current, setCurrent] = useState<VideoSetItem | null>(
@@ -73,7 +104,10 @@ export function VideoSetPlayer({ items, token, channel, setCode, className }: Vi
         setCode={setCode}
         currentCode={current?.code ?? null}
         onSelect={setCurrent}
-        className="max-h-[32rem] overflow-y-auto pr-1 [scrollbar-width:thin]"
+        className={cn(
+          'max-h-[32rem] overflow-y-auto pr-1 [scrollbar-width:thin]',
+          unlocked && 'video-set-unlocked',
+        )}
       />
 
       {/* Нажатие на закрытый ролик открывает это окно — замок не должен быть тупиком. */}
