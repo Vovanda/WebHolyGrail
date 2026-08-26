@@ -1,5 +1,6 @@
 import type { TaskConfig } from 'payload';
 
+import { defaultVideoPorts } from '../lib/media/adapters';
 import { buildHls } from '../lib/media/build-hls';
 
 /**
@@ -46,8 +47,11 @@ export const BuildHlsTask: TaskConfig<'build-hls'> = {
       });
 
       const summary = await buildHls({
-        payload: req.payload,
+        ports: defaultVideoPorts(req.payload),
         mediaId,
+        // Адрес обязан совпадать с эндпоинтом выдачи: он попадает в плейлист
+        // как есть, и по нему же загрузчик плеера узнаёт запрос ключа.
+        keyUri: `${process.env['PAYLOAD_PUBLIC_SERVER_URL'] ?? ''}/api/video/${mediaId}/envelope`,
         logger: (m) => req.payload.logger.info(`[task:build-hls] ${m}`),
       });
 

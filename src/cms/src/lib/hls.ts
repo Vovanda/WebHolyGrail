@@ -80,6 +80,25 @@ export interface HlsResult {
   readonly secret: Buffer;
 }
 
+/**
+ * Ступени, которые имеет смысл собирать для исходника такой высоты.
+ *
+ * @remarks
+ * Выше исходника не поднимаемся: апскейл раздувает файлы и не добавляет ни
+ * пикселя детализации. Допуск в 10% — на нестандартную высоту вроде 1088
+ * вместо 1080, иначе HD-ролик остался бы без HD-ступени.
+ *
+ * Если не подошла ни одна (вертикальное видео с телефона, крошечный экран),
+ * берём нижнюю: без единой дорожки плеер не получит ничего.
+ */
+export function selectRungs(
+  ladder: ReadonlyArray<HlsRung>,
+  sourceHeight: number | null,
+): ReadonlyArray<HlsRung> {
+  const fitting = sourceHeight ? ladder.filter((r) => r.height <= sourceHeight * 1.1) : [...ladder];
+  return fitting.length > 0 ? fitting : [ladder[0]!];
+}
+
 /** Высота и длительность исходника; `null` — если ffprobe не смог прочитать. */
 async function probe(input: string): Promise<{ height: number | null; duration: number | null }> {
   try {
@@ -130,13 +149,7 @@ export async function transcodeToHls(
     await writeFile(input, source);
 
     const { height: sourceHeight, duration } = await probe(input);
-    // Ступени выше исходника не создаём: апскейл раздувает файлы и не
-    // добавляет ни пикселя детализации. Небольшой допуск — на случай
-    // нестандартной высоты вроде 1088 вместо 1080.
-    const fitting = sourceHeight
-      ? ladder.filter((r) => r.height <= sourceHeight * 1.1)
-      : [...ladder];
-    const rungs = fitting.length > 0 ? fitting : [ladder[0]!];
+    const rungs = selectRungs(ladder, sourceHeight);
 
     const secret = randomBytes(16);
     const keyFile = join(work, 'enc.key');
