@@ -49,15 +49,18 @@ export function VideoSetPlayer({
    * она сбросила бы позицию и моргнула.
    */
   const [items, setItems] = useState(initial);
-  const [unlocked, setUnlocked] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
 
   useEffect(() => {
     function onGranted() {
-      setItems((current) => current.map((item) => ({ ...item, locked: false })));
-      // Короткая вспышка на снятых замках: без неё непонятно, что изменилось.
-      setUnlocked(true);
-      const timer = setTimeout(() => setUnlocked(false), 900);
-      return () => clearTimeout(timer);
+      // Сначала проигрываем снятие замка, и только потом убираем его из
+      // состояния: если снять сразу, иконка исчезнет мгновенно и человек
+      // не поймёт, что именно изменилось.
+      setUnlocking(true);
+      setTimeout(() => {
+        setItems((current) => current.map((item) => ({ ...item, locked: false })));
+        setUnlocking(false);
+      }, 700);
     }
 
     window.addEventListener(ACCESS_GRANTED_EVENT, onGranted);
@@ -104,10 +107,8 @@ export function VideoSetPlayer({
         setCode={setCode}
         currentCode={current?.code ?? null}
         onSelect={setCurrent}
-        className={cn(
-          'max-h-[32rem] overflow-y-auto pr-1 [scrollbar-width:thin]',
-          unlocked && 'video-set-unlocked',
-        )}
+        unlocking={unlocking}
+        className="max-h-[32rem] overflow-y-auto pr-1 [scrollbar-width:thin]"
       />
 
       {/* Нажатие на закрытый ролик открывает это окно — замок не должен быть тупиком. */}

@@ -32,6 +32,15 @@ export interface VideoSetListProps {
   readonly setCode?: string | null;
   /** Нажатие вместо перехода — когда плеер рядом и уходить со страницы незачем. */
   readonly onSelect?: ((item: VideoSetItem) => void) | undefined;
+  /**
+   * Замки сейчас снимаются.
+   *
+   * @remarks
+   * Между вводом кода и открытием держим замки на месте, но проигрываем на них
+   * анимацию: если убрать иконку сразу, на экране просто что-то мигнёт, и
+   * человек не поймёт, сработал код или нет.
+   */
+  readonly unlocking?: boolean;
   readonly className?: string;
 }
 
@@ -42,6 +51,7 @@ export function VideoSetList({
   currentCode = null,
   setCode = null,
   onSelect,
+  unlocking = false,
   className,
 }: VideoSetListProps) {
   if (items.length === 0) {
@@ -68,6 +78,7 @@ export function VideoSetList({
           current={item.code === currentCode}
           setCode={setCode}
           onSelect={onSelect}
+          unlocking={unlocking}
         />
       ))}
     </ol>
@@ -82,6 +93,7 @@ function VideoSetRow({
   current,
   setCode,
   onSelect,
+  unlocking,
 }: {
   item: VideoSetItem;
   index: number;
@@ -90,6 +102,7 @@ function VideoSetRow({
   current: boolean;
   setCode: string | null;
   onSelect?: ((item: VideoSetItem) => void) | undefined;
+  unlocking: boolean;
 }) {
   const playable = !item.locked && item.ready;
   // Набор передаётся в адресе: ролик может состоять в нескольких, и без этого
@@ -111,7 +124,10 @@ function VideoSetRow({
             src={item.poster}
             alt=""
             loading="lazy"
-            className={cn('aspect-video w-full object-cover', playable ? '' : 'brightness-50')}
+            className={cn(
+              'aspect-video w-full object-cover transition-[filter] duration-700',
+              playable || unlocking ? '' : 'brightness-50',
+            )}
           />
         ) : (
           <div className="aspect-video w-full" aria-hidden="true" />
@@ -119,7 +135,12 @@ function VideoSetRow({
 
         {!playable && (
           <span className="absolute inset-0 flex items-center justify-center">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white">
+            <span
+              className={cn(
+                'flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white',
+                unlocking && 'video-lock--opening',
+              )}
+            >
               <LockIcon size={16} />
             </span>
           </span>

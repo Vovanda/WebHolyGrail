@@ -279,8 +279,10 @@
     }
   }
 
-  .video-set-unlocked img {
-    animation: whg-brighten 0.6s ease forwards;
+  /* Замок раскрывается и исчезает: класс держится ровно столько, сколько
+   * идёт анимация, потом иконка убирается из разметки. */
+  .video-lock--opening {
+    animation: whg-unlock 0.7s ease forwards;
   }
 
   @keyframes whg-brighten {
