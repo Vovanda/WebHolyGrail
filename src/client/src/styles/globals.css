@@ -207,6 +207,7 @@
   .video-center {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 1.5rem;
     --media-control-background: rgb(0 0 0 / 0.5);
     --media-control-hover-background: rgb(0 0 0 / 0.7);
@@ -253,9 +254,10 @@
     --media-range-track-background: rgb(255 255 255 / 0.28);
     --media-range-track-pointer-background: rgb(255 255 255 / 0.5);
     width: 100%;
-    padding-inline: 6px;
-    /* Полоса лежит над строкой управления и нажимается: до этого она
-     * перекрывалась зонами жестов. */
+    padding-inline: 8px;
+    /* Высота ровно под полосу: у media-time-range свой запас сверху и снизу,
+     * из-за которого между полосой и строкой оставался просвет. */
+    height: 22px;
     position: relative;
     z-index: 2;
   }
@@ -268,6 +270,7 @@
   .video-bar {
     --media-control-background: transparent;
     --media-control-hover-background: rgb(255 255 255 / 0.12);
+    height: 44px;
     padding-inline: 4px;
     position: relative;
     z-index: 2;
@@ -287,9 +290,31 @@
     display: none;
   }
 
-  /* Затемнение под управлением, чтобы кнопки читались на светлом кадре. */
-  media-controller::part(bottom-chrome) {
-    background: linear-gradient(to top, rgb(0 0 0 / 0.65), transparent);
+  /* Низ плеера: полоса и строка управления одним куском поверх кадра.
+   *
+   * Затемнение снизу вверх — иначе на светлом кадре белые цифры и иконки
+   * пропадают. Блок прижат к нижнему краю и не отъедает высоту у видео. */
+  .video-bottom {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding-top: 2.5rem;
+    background: linear-gradient(to top, rgb(0 0 0 / 0.75), rgb(0 0 0 / 0.35) 45%, transparent);
+    transition: opacity 0.2s ease;
+  }
+
+  /* Плеер прячет управление, когда зритель замер: вместе с ним уходит и низ. */
+  media-controller[userinactive] .video-bottom {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .video-bottom media-control-bar {
+    width: 100%;
   }
 }
 

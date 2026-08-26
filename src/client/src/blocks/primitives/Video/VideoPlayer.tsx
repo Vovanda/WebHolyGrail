@@ -317,32 +317,34 @@ export function VideoPlayer({
           </div>
 
           {/*
-            Полоса времени отдельной строкой во всю ширину: зажатая между
-            кнопками, она сжимается до пары сантиметров, и попасть пальцем
-            в нужную секунду невозможно.
+            Низ плеера — один блок: полоса времени во всю ширину и строка
+            управления под ней вплотную, как в мобильных плеерах. Порознь
+            между ними просвечивает кадр, и обе части читаются как случайные.
           */}
-          {/* @ts-expect-error — веб-компонент */}
-          <media-time-range class="video-progress" />
+          <div className="video-bottom">
+            {/* @ts-expect-error — веб-компонент */}
+            <media-time-range class="video-progress" />
 
-          {/* @ts-expect-error — веб-компонент */}
-          <media-control-bar class="video-bar">
             {/* @ts-expect-error — веб-компонент */}
-            <media-time-display showduration />
-            {/* @ts-expect-error — веб-компонент */}
-            <media-mute-button />
-            {/* Ползунок громкости только на широком экране: на телефоне
-                громкость крутят кнопками устройства. */}
-            {/* @ts-expect-error — веб-компонент */}
-            <media-volume-range class="only-wide" />
-            <span className="video-bar-gap" />
-            {/* @ts-expect-error — веб-компонент */}
-            <media-settings-menu-button />
-            {/* @ts-expect-error — веб-компонент */}
-            <media-pip-button class="only-wide" />
-            {/* @ts-expect-error — веб-компонент */}
-            <media-fullscreen-button />
-            {/* @ts-expect-error — веб-компонент */}
-          </media-control-bar>
+            <media-control-bar class="video-bar">
+              {/* @ts-expect-error — веб-компонент */}
+              <media-time-display showduration />
+              {/* @ts-expect-error — веб-компонент */}
+              <media-mute-button />
+              {/* Ползунок громкости только на широком экране: на телефоне
+                  громкость крутят кнопками устройства. */}
+              {/* @ts-expect-error — веб-компонент */}
+              <media-volume-range class="only-wide" />
+              <span className="video-bar-gap" />
+              {/* @ts-expect-error — веб-компонент */}
+              <media-settings-menu-button />
+              {/* @ts-expect-error — веб-компонент */}
+              <media-pip-button class="only-wide" />
+              {/* @ts-expect-error — веб-компонент */}
+              <media-fullscreen-button />
+              {/* @ts-expect-error — веб-компонент */}
+            </media-control-bar>
+          </div>
 
           {overlay}
           {/* @ts-expect-error — веб-компонент */}

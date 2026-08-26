@@ -11,9 +11,9 @@ import { cn } from '@/lib/utils';
  * Клиентский по необходимости (R14): человек печатает код, и ответ должен
  * появиться на месте, без перезагрузки.
  *
- * Погашенный код дописывает набор прямо в токен зрителя, поэтому страница
- * перезагружается сразу после успеха: закрытые ролики надо пересобрать на
- * сервере с новым токеном, а не подкрашивать замки в браузере.
+ * Погашенный код дописывает набор прямо в токен зрителя. Дальше окно
+ * закрывается, и уже по закрытому окну страница снимает замки анимацией,
+ * без перезагрузки.
  */
 export interface AccessCodeFormProps {
   /** Токен зрителя: в него дописывается набор. */
@@ -91,25 +91,17 @@ export function AccessCodeForm({ token, className }: AccessCodeFormProps) {
         return;
       }
 
-      // Признак открытого окна убираем до перезагрузки: иначе страница
-      // поднимется с ним в адресе и окно откроется снова — выглядит так,
-      // будто код не сработал.
-      if (window.location.hash.startsWith('#d=')) {
-        window.history.replaceState(null, '', window.location.pathname + window.location.search);
-      }
-
       const data = (await response.json()) as { playlistId?: string | number };
 
       // Порядок важен. Сначала закрывается окно и уходит затемнение, и только
       // потом снимаются замки: иначе анимация проигрывается под размытым фоном,
       // человек её не видит и решает, что ничего не произошло.
-      if (window.location.hash.startsWith('#d=')) {
-        window.history.replaceState(null, '', window.location.pathname + window.location.search);
-        // Замена адреса своих событий не порождает, поэтому шлём оба, на
-        // которые подписано окно: иначе оно остаётся открытым после успеха.
-        window.dispatchEvent(new HashChangeEvent('hashchange'));
-        window.dispatchEvent(new PopStateEvent('popstate'));
-      }
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      // Замена адреса своих событий не порождает, поэтому шлём оба, на которые
+      // подписано окно. Условие тут не ставим: адрес мог быть сброшен раньше, и
+      // тогда окно оставалось открытым, а замки снимались под затемнением.
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+      window.dispatchEvent(new PopStateEvent('popstate'));
 
       // Ждём, пока окно уедет: столько же длится его закрытие.
       setTimeout(() => {
