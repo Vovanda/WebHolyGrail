@@ -43,8 +43,8 @@ type Phase = 'loading' | 'playing' | 'denied' | 'not-ready' | 'error';
 
 /** Текст отказа. Владелец переопределяет его в настройках сайта. */
 const DENIED_TEXT: Record<string, string> = {
-  'sign-in-required': 'Видео доступно после входа',
-  'not-entitled': 'Видео доступно по подписке',
+  'sign-in-required': 'Откроется после входа',
+  'not-entitled': 'Открывается по доступу',
   'not-ready': 'Видео ещё готовится к показу',
 };
 

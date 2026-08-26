@@ -61,7 +61,9 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
               {playlist.authorName ?? `@${playlist.channel}`}
             </a>
             {` · ${playlist.items.length} ${plural(playlist.items.length, 'ролик', 'ролика', 'роликов')}`}
-            {openCount < playlist.items.length ? ` · ${openCount} открыто` : ''}
+            {openCount < playlist.items.length
+              ? ` · ${openCount} ${plural(openCount, 'открытый', 'открытых', 'открытых')}`
+              : ''}
           </p>
           {playlist.description && (
             <p className="text-body leading-relaxed text-ink/90">{playlist.description}</p>
@@ -157,7 +159,9 @@ function PlaylistItemRow({
 
 function lockText(item: PlaylistItem): string {
   if (!item.ready) return 'Готовится к показу';
-  return item.lockReason === 'not-entitled' ? 'Нужен доступ к набору' : 'Доступно после входа';
+  // «Открывается по доступу» вместо «нужен доступ»: то же самое, но без
+  // интонации отказа на входе.
+  return item.lockReason === 'not-entitled' ? 'Открывается по доступу' : 'Откроется после входа';
 }
 
 function LockIcon() {
