@@ -23,7 +23,7 @@ interface RichTextData {
   readonly width?: 'content' | 'wide';
 }
 
-export function RichTextBlock({ node, className }: RichTextBlockProps) {
+export function RichTextBlock({ node, settings, className }: RichTextBlockProps) {
   const data = (node.data ?? {}) as RichTextData;
   if (!data.content) return null;
 
@@ -35,7 +35,7 @@ export function RichTextBlock({ node, className }: RichTextBlockProps) {
         className,
       )}
     >
-      <LexicalRenderer value={data.content} className="text-lg" />
+      <LexicalRenderer value={data.content} settings={settings} className="text-lg" />
     </section>
   );
 }
