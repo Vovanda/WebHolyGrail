@@ -25,6 +25,7 @@ import { Cities } from './collections/Cities';
 import { Specialists } from './collections/Specialists';
 import { Playlists } from './collections/Playlists';
 import { Entitlements } from './collections/Entitlements';
+import { AccessCodes } from './collections/AccessCodes';
 import { SiteSettings } from './globals/SiteSettings';
 import { withAutoSlug } from './lib/slug';
 import { BuildHlsTask } from './jobs/build-hls.task';
@@ -33,6 +34,7 @@ import {
   videoAccessEndpoint,
   videoByCodeEndpoint,
   videoChannelEndpoint,
+  videoPlaylistEndpoint,
   videoEnvelopeEndpoint,
   videoTokenEndpoint,
 } from './endpoints/video';
@@ -119,9 +121,10 @@ export default buildConfig({
     // Каталог специалистов по городам (тренеры, мастера, врачи).
     Cities,
     Specialists,
-    // Видео: наборы роликов и права на них.
+    // Видео: наборы роликов, права на них и коды, которые эти права выдают.
     Playlists,
     Entitlements,
+    AccessCodes,
   ].map(withAutoSlug),
   globals: [SiteSettings],
   /**
@@ -132,6 +135,7 @@ export default buildConfig({
     videoTokenEndpoint,
     videoByCodeEndpoint,
     videoChannelEndpoint,
+    videoPlaylistEndpoint,
     videoAccessEndpoint,
     videoEnvelopeEndpoint,
   ],

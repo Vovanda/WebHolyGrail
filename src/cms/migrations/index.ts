@@ -21,6 +21,7 @@ import * as migration_20260826_124235_video_soft_delete from './20260826_124235_
 import * as migration_20260826_125952_video_author_and_code from './20260826_125952_video_author_and_code';
 import * as migration_20260826_131100_user_channel from './20260826_131100_user_channel';
 import * as migration_20260826_133934_playlists_entitlements from './20260826_133934_playlists_entitlements';
+import * as migration_20260826_144110_access_codes from './20260826_144110_access_codes';
 
 export const migrations = [
   {
@@ -137,5 +138,10 @@ export const migrations = [
     up: migration_20260826_133934_playlists_entitlements.up,
     down: migration_20260826_133934_playlists_entitlements.down,
     name: '20260826_133934_playlists_entitlements',
+  },
+  {
+    up: migration_20260826_144110_access_codes.up,
+    down: migration_20260826_144110_access_codes.down,
+    name: '20260826_144110_access_codes',
   },
 ];
