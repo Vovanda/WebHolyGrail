@@ -10,7 +10,7 @@ import type { Payload } from 'payload';
 import { DEFAULT_LADDER, transcodeToHls, type HlsRung } from '../hls';
 import type { CatalogPort, EncoderPort, StoragePort, VideoPorts } from './ports';
 import { POSTER_PREFIX } from '../../collections/Media';
-import { masterKey, wrapSecret } from '../video/secret-vault';
+import { masterKey, wrapSecret } from '../video/key-vault';
 
 /**
  * Реализации портов подготовки видео: ffmpeg, S3, Payload.

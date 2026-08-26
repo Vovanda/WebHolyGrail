@@ -4,7 +4,7 @@ import { payloadEntitlements } from '../lib/video/entitlement-source';
 import { entitlementPolicy } from '../lib/video/entitlements';
 import { issueViewerToken } from '../lib/video/envelope';
 import { grantStreamAccess, type StreamRecord } from '../lib/video/grant-access';
-import { masterKey, unwrapSecret } from '../lib/video/secret-vault';
+import { masterKey, unwrapSecret } from '../lib/video/key-vault';
 
 /**
  * Эндпоинты видео: токен зрителя и конверт с секретом потока.
