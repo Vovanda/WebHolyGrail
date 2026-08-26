@@ -1,0 +1,88 @@
+'use client';
+
+import type { VideoSetItem } from 'contracts';
+
+import { SidePanel } from '@/blocks/primitives/SidePanel';
+import { cn } from '@/lib/utils';
+
+import { VideoSetList } from './VideoSetList';
+
+/**
+ * Плейлист боковой панелью.
+ *
+ * @remarks
+ * На телефоне список рядом с плеером не помещается, а лентой под ним видно
+ * два ролика из двадцати. Поэтому здесь кнопка, а список выезжает панелью.
+ *
+ * Панель сдвигающая, а не поверх страницы: список серии — часть той же
+ * работы, что и просмотр, и накрывать им плеер значит прерывать её. Overlay
+ * оставлен навигации, где действие как раз прерывающее.
+ *
+ * Панель слева: справа живёт бургер, и две кнопки в одном углу пришлось бы
+ * различать на ощупь.
+ */
+export interface VideoSetDrawerProps {
+  readonly items: ReadonlyArray<VideoSetItem>;
+  readonly channel: string | null;
+  readonly setCode: string | null;
+  readonly currentCode?: string | null;
+  readonly title?: string | undefined;
+  readonly className?: string;
+}
+
+export function VideoSetDrawer({
+  items,
+  channel,
+  setCode,
+  currentCode = null,
+  title,
+  className,
+}: VideoSetDrawerProps) {
+  if (items.length === 0) return null;
+
+  const position = items.findIndex((item) => item.code === currentCode);
+
+  return (
+    <SidePanel
+      side="left"
+      title={title ?? 'Плейлист'}
+      trigger={({ open, isOpen }) => (
+        <button
+          type="button"
+          onClick={open}
+          className={cn(
+            'flex items-center gap-2 rounded-lg border bg-paper px-3 py-2',
+            'text-body font-medium text-ink transition-colors',
+            isOpen ? 'border-accent' : 'border-border hover:border-border-strong',
+            className,
+          )}
+        >
+          <ListIcon />
+          Плейлист
+          <span className="text-muted">
+            {position >= 0 ? `${position + 1} из ${items.length}` : `${items.length}`}
+          </span>
+        </button>
+      )}
+    >
+      <VideoSetList items={items} channel={channel} setCode={setCode} currentCode={currentCode} />
+    </SidePanel>
+  );
+}
+
+function ListIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      <path d="M4 6h11M4 12h11M4 18h7" />
+      <path d="M17 14l4 3-4 3z" />
+    </svg>
+  );
+}

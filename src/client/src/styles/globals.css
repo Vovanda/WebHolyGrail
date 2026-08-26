@@ -107,3 +107,47 @@
     object-fit: contain;
   }
 }
+
+@layer components {
+  /* Боковая панель, которая сдвигает контент.
+   *
+   * Панель сама ставит на `body` признак открытия, а центр отодвигается
+   * правилом отсюда. Так состояние остаётся внутри блока: тянуть его наружу
+   * через общий стор пришлось бы ради одного числа, а конфигурация панелей
+   * у нас сериализуемая и React-узлов не хранит.
+   *
+   * На узком экране сдвигаем весь центр целиком: панель занимает почти всю
+   * ширину, и «подвинуть на 320px» там означало бы вытолкнуть контент за край. */
+  body[data-side-panel='left'] [data-panel-slot='center'] {
+    transform: translateX(var(--side-panel-width, 20rem));
+  }
+
+  body[data-side-panel='right'] [data-panel-slot='center'] {
+    transform: translateX(calc(-1 * var(--side-panel-width, 20rem)));
+  }
+
+  [data-panel-slot='center'] {
+    transition: transform 0.3s ease;
+  }
+
+  @media (min-width: 1024px) {
+    /* На широком экране контент не выталкиваем, а ужимаем: место есть,
+     * и терять правый край страницы незачем. */
+    body[data-side-panel='left'] [data-panel-slot='center'],
+    body[data-side-panel='right'] [data-panel-slot='center'] {
+      transform: none;
+    }
+
+    body[data-side-panel='left'] [data-panel-slot='center'] {
+      margin-left: var(--side-panel-width, 20rem);
+    }
+
+    body[data-side-panel='right'] [data-panel-slot='center'] {
+      margin-right: var(--side-panel-width, 20rem);
+    }
+
+    [data-panel-slot='center'] {
+      transition: margin 0.25s ease;
+    }
+  }
+}

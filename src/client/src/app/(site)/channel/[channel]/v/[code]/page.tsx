@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 
 import { AccessCodeForm } from '@/blocks/primitives/Video/AccessCodeForm';
 import { VideoPlayer } from '@/blocks/primitives/Video/VideoPlayer';
+import { VideoSetDrawer } from '@/blocks/primitives/Video/VideoSetDrawer';
 import { VideoSetList } from '@/blocks/primitives/Video/VideoSetList';
 import {
   checkVideoAccess,
@@ -137,12 +138,27 @@ export default async function VideoPage({
             </a>
             »
           </h2>
+
+          {/*
+            На узком экране список уезжает в боковую панель: лентой там видно
+            два ролика из двадцати, а вертикалью он занял бы весь экран.
+          */}
+          <VideoSetDrawer
+            items={set.items}
+            channel={channel}
+            setCode={set.code ?? setCode}
+            currentCode={code}
+            title={set.title}
+            className="self-start md:hidden"
+          />
+
           <VideoSetList
             items={set.items}
             channel={channel}
             setCode={set.code ?? setCode}
             currentCode={code}
             orientation="horizontal"
+            className="hidden md:flex"
           />
         </section>
       )}
