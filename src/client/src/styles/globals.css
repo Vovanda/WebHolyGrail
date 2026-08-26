@@ -118,35 +118,40 @@
    *
    * На узком экране сдвигаем весь центр целиком: панель занимает почти всю
    * ширину, и «подвинуть на 320px» там означало бы вытолкнуть контент за край. */
-  body[data-side-panel='left'] [data-panel-slot='center'] {
+  /*
+    Панель отодвигает страницу целиком - вместе с шапкой и подвалом. Сдвиг
+    одной середины оставлял шапку на месте, и панель ложилась поверх неё:
+    выходило и сдвинуто, и перекрыто разом.
+  */
+  body[data-side-panel='left'] [data-site-shell] {
     transform: translateX(var(--side-panel-width, 20rem));
   }
 
-  body[data-side-panel='right'] [data-panel-slot='center'] {
+  body[data-side-panel='right'] [data-site-shell] {
     transform: translateX(calc(-1 * var(--side-panel-width, 20rem)));
   }
 
-  [data-panel-slot='center'] {
+  [data-site-shell] {
     transition: transform 0.3s ease;
   }
 
   @media (min-width: 1024px) {
     /* На широком экране контент не выталкиваем, а ужимаем: место есть,
      * и терять правый край страницы незачем. */
-    body[data-side-panel='left'] [data-panel-slot='center'],
-    body[data-side-panel='right'] [data-panel-slot='center'] {
+    body[data-side-panel='left'] [data-site-shell],
+    body[data-side-panel='right'] [data-site-shell] {
       transform: none;
     }
 
-    body[data-side-panel='left'] [data-panel-slot='center'] {
+    body[data-side-panel='left'] [data-site-shell] {
       margin-left: var(--side-panel-width, 20rem);
     }
 
-    body[data-side-panel='right'] [data-panel-slot='center'] {
+    body[data-side-panel='right'] [data-site-shell] {
       margin-right: var(--side-panel-width, 20rem);
     }
 
-    [data-panel-slot='center'] {
+    [data-site-shell] {
       transition: margin 0.25s ease;
     }
   }

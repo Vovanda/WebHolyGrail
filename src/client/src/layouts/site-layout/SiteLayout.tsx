@@ -48,7 +48,7 @@ export function SiteLayout({
     : 'flex-1 flex flex-col';
 
   return (
-    <div className="relative flex flex-col gap-6 min-h-screen text-ink">
+    <div data-site-shell className="relative flex flex-col gap-6 min-h-screen text-ink">
       {grouped.top.length > 0 && (
         <div data-slot="top" className="flex flex-col">
           {grouped.top.map((panel) => (

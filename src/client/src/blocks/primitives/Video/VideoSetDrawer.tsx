@@ -18,8 +18,7 @@ import { VideoSetList } from './VideoSetList';
  * работы, что и просмотр, и накрывать им плеер значит прерывать её. Overlay
  * оставлен навигации, где действие как раз прерывающее.
  *
- * Панель слева: справа живёт бургер, и две кнопки в одном углу пришлось бы
- * различать на ощупь.
+ * Панель справа - там её ищут по привычке, и туда же тянется большой палец.
  */
 export interface VideoSetDrawerProps {
   readonly items: ReadonlyArray<VideoSetItem>;
@@ -47,7 +46,8 @@ export function VideoSetDrawer({
 
   return (
     <SidePanel
-      side="left"
+      side="right"
+      width="min(21rem, 88vw)"
       title={title ?? 'Плейлист'}
       trigger={({ open, isOpen }) => (
         <button

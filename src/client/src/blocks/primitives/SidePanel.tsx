@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import { cn } from '@/lib/utils';
 
@@ -26,7 +27,14 @@ export interface SidePanelProps {
   readonly trigger: (props: { open: () => void; isOpen: boolean }) => React.ReactNode;
   readonly children: React.ReactNode;
   readonly side?: 'left' | 'right';
-  /** Ширина панели: она же задаёт, насколько отъезжает контент. */
+  /**
+   * Ширина панели: она же задаёт, насколько отъезжает контент.
+   *
+   * @remarks
+   * На телефоне панель занимает почти весь экран, оставляя полоску страницы
+   * сбоку. Полоска нужна: по ней видно, что страница никуда не делась и лежит
+   * рядом, а нажатие по ней возвращает обратно.
+   */
   readonly width?: string;
   readonly title?: string | undefined;
   readonly className?: string;
@@ -36,11 +44,14 @@ export function SidePanel({
   trigger,
   children,
   side = 'left',
-  width = '20rem',
+  width = 'min(20rem, 86vw)',
   title,
   className,
 }: SidePanelProps) {
   const [open, setOpen] = useState(false);
+  // Портал доступен только в браузере: на сервере узла body ещё нет.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const close = useCallback(() => setOpen(false), []);
 
@@ -70,41 +81,66 @@ export function SidePanel({
     <>
       {trigger({ open: () => setOpen((value) => !value), isOpen: open })}
 
-      <aside
-        aria-hidden={!open}
-        style={{ width }}
-        className={cn(
-          'fixed top-0 bottom-0 z-[55] flex flex-col overflow-y-auto overscroll-contain',
-          'border-border bg-bg transition-transform duration-300 ease-out',
-          side === 'left' ? 'left-0 border-r' : 'right-0 border-l',
-          open ? 'translate-x-0' : side === 'left' ? '-translate-x-full' : 'translate-x-full',
-          className,
-        )}
-      >
-        <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-          <span className="text-body font-medium text-ink">{title ?? 'Панель'}</span>
-          <button
-            type="button"
-            onClick={close}
-            aria-label="Закрыть"
-            className="grid h-9 w-9 place-items-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-ink"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              aria-hidden="true"
+      {/*
+        Панель живёт в самом низу страницы, отдельно от каркаса.
+        Каркас при открытии отъезжает целиком, а `fixed` внутри сдвинутого
+        родителя отсчитывается от него же - панель уехала бы вместе со
+        страницей и скрылась за краем экрана.
+      */}
+      {mounted &&
+        createPortal(
+          <>
+            {/*
+              Нажатие по странице рядом с панелью закрывает её. Слой прозрачный:
+              затемнение означало бы «вернись, когда закончишь», а панель со
+              сдвигом остаётся частью той же работы.
+            */}
+            {open && (
+              <button
+                type="button"
+                aria-label="Закрыть панель"
+                onClick={close}
+                className="fixed inset-0 z-[54] cursor-default bg-transparent"
+              />
+            )}
+            <aside
+              aria-hidden={!open}
+              style={{ width }}
+              className={cn(
+                'fixed top-0 bottom-0 z-[55] flex flex-col overflow-y-auto overscroll-contain',
+                'border-border bg-bg transition-transform duration-300 ease-out',
+                side === 'left' ? 'left-0 border-r' : 'right-0 border-l',
+                open ? 'translate-x-0' : side === 'left' ? '-translate-x-full' : 'translate-x-full',
+                className,
+              )}
             >
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-          </button>
-        </div>
+              <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+                <span className="text-body font-medium text-ink">{title ?? 'Панель'}</span>
+                <button
+                  type="button"
+                  onClick={close}
+                  aria-label="Закрыть"
+                  className="grid h-9 w-9 place-items-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-ink"
+                >
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    aria-hidden="true"
+                  >
+                    <path d="M6 6l12 12M18 6L6 18" />
+                  </svg>
+                </button>
+              </div>
 
-        <div className="flex-1 p-4">{children}</div>
-      </aside>
+              <div className="flex-1 p-4">{children}</div>
+            </aside>
+          </>,
+          document.body,
+        )}
     </>
   );
 }
