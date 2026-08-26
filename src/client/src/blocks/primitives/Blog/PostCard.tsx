@@ -27,26 +27,48 @@ export interface PostCardProps {
   readonly className?: string;
 }
 
+/**
+ * Ссылка, растянутая на всю карточку.
+ *
+ * @remarks
+ * Карточка выглядит как одна кнопка, и попадание мимо букв заголовка читается
+ * как поломка. Растягиваем псевдоэлемент заголовочной ссылки вместо обёртки:
+ * в разметке остаётся один осмысленный якорь (обложка и лид не дублируют его
+ * для скринридера), а текст карточки по-прежнему выделяется мышью.
+ *
+ * Требует `relative` на корне карточки. Вложенные ссылки — теги и автор —
+ * поднимаются над этим слоем через {@link ABOVE_STRETCHED}.
+ */
+const STRETCHED = "after:absolute after:inset-0 after:content-['']";
+
+/** Поднимает собственные ссылки карточки над растянутой зоной клика. */
+const ABOVE_STRETCHED = 'relative z-10';
+
 export function PostCard({ article, globalBlog, variant = 'card', className }: PostCardProps) {
   const display = resolveDisplay(article, globalBlog);
   const href = `/blog/${article.slug}`;
 
   if (variant === 'hero') {
     return (
-      <article className={cn('group', className)}>
+      <article className={cn('group relative', className)}>
         {article.cover?.url && (
-          <a href={href} className="block overflow-hidden rounded-lg mb-6">
+          <div className="overflow-hidden rounded-lg mb-6">
             <img
               src={article.cover.url}
               alt={article.cover.alt ?? article.title}
               className="w-full aspect-[16/9] object-cover transition-transform duration-300 group-hover:scale-[1.02]"
               loading="eager"
             />
-          </a>
+          </div>
         )}
-        <PostMeta article={article} display={display} byline className="mb-3" />
+        <PostMeta
+          article={article}
+          display={display}
+          byline
+          className={cn('mb-3', ABOVE_STRETCHED)}
+        />
         <h1 className="text-h2 font-display text-ink tracking-tight">
-          <a href={href} className="hover:underline">
+          <a href={href} className={cn(STRETCHED, 'group-hover:underline')}>
             {article.title}
           </a>
         </h1>
@@ -63,32 +85,40 @@ export function PostCard({ article, globalBlog, variant = 'card', className }: P
   if (variant === 'list') {
     const cover = article.cover;
     return (
-      <article className={cn('group', className)}>
+      <article className={cn('group relative', className)}>
         <div
           className={cn('flex flex-col gap-4', cover?.url && 'md:flex-row md:items-start md:gap-7')}
         >
           {cover?.url && (
-            <a href={href} className="block shrink-0 overflow-hidden rounded-md md:w-56">
+            <div className="shrink-0 overflow-hidden rounded-md md:w-56">
               <img
                 src={cover.url}
                 alt={cover.alt ?? article.title}
                 className="w-full aspect-[16/10] object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                 loading="lazy"
               />
-            </a>
+            </div>
           )}
           <div className="flex min-w-0 flex-col gap-2">
             <h3 className="text-h4 md:text-title-list font-display font-semibold text-ink tracking-tight">
-              <a href={href} className="hover:underline underline-offset-4 decoration-1">
+              <a
+                href={href}
+                className={cn(STRETCHED, 'group-hover:underline underline-offset-4 decoration-1')}
+              >
                 {article.title}
               </a>
             </h3>
             {article.lead && (
               <p className="text-sm text-muted leading-relaxed line-clamp-2">{article.lead}</p>
             )}
-            <PostMeta article={article} display={display} byline className="mt-1" />
+            <PostMeta
+              article={article}
+              display={display}
+              byline
+              className={cn('mt-1', ABOVE_STRETCHED)}
+            />
             {display.showTags && article.tags && article.tags.length > 0 && (
-              <TagList tags={article.tags} className="mt-1" />
+              <TagList tags={article.tags} className={cn('mt-1', ABOVE_STRETCHED)} />
             )}
           </div>
         </div>
@@ -98,14 +128,16 @@ export function PostCard({ article, globalBlog, variant = 'card', className }: P
 
   if (variant === 'compact') {
     return (
-      <article className={cn('flex flex-col gap-1.5', className)}>
-        <a href={href} className="text-ink hover:underline">
-          <h3 className="font-display font-semibold leading-snug">{article.title}</h3>
-        </a>
+      <article className={cn('group relative flex flex-col gap-1.5', className)}>
+        <h3 className="font-display font-semibold leading-snug text-ink">
+          <a href={href} className={cn(STRETCHED, 'group-hover:underline')}>
+            {article.title}
+          </a>
+        </h3>
         {article.lead && (
           <p className="text-sm text-muted leading-snug line-clamp-2">{article.lead}</p>
         )}
-        <PostMeta article={article} display={display} dense />
+        <PostMeta article={article} display={display} dense className={ABOVE_STRETCHED} />
       </article>
     );
   }
@@ -113,22 +145,25 @@ export function PostCard({ article, globalBlog, variant = 'card', className }: P
   // default = 'card'
   return (
     <article
-      className={cn('group flex flex-col gap-3 rounded-lg overflow-hidden bg-paper', className)}
+      className={cn(
+        'group relative flex flex-col gap-3 rounded-lg overflow-hidden bg-paper',
+        className,
+      )}
     >
       {article.cover?.url && (
-        <a href={href} className="block overflow-hidden rounded-md">
+        <div className="overflow-hidden rounded-md">
           <img
             src={article.cover.url}
             alt={article.cover.alt ?? article.title}
             className="w-full aspect-[16/9] object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             loading="lazy"
           />
-        </a>
+        </div>
       )}
       <div className="flex flex-col gap-2 px-1">
-        <PostMeta article={article} display={display} />
+        <PostMeta article={article} display={display} className={ABOVE_STRETCHED} />
         <h3 className="text-h4 font-display font-semibold text-ink leading-snug">
-          <a href={href} className="hover:underline">
+          <a href={href} className={cn(STRETCHED, 'group-hover:underline')}>
             {article.title}
           </a>
         </h3>
@@ -136,7 +171,7 @@ export function PostCard({ article, globalBlog, variant = 'card', className }: P
           <p className="text-body text-muted line-clamp-3 leading-relaxed">{article.lead}</p>
         )}
         {display.showTags && article.tags && article.tags.length > 0 && (
-          <TagList tags={article.tags} className="mt-1" />
+          <TagList tags={article.tags} className={cn('mt-1', ABOVE_STRETCHED)} />
         )}
       </div>
     </article>

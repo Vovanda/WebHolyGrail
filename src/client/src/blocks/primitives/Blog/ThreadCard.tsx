@@ -94,12 +94,14 @@ export function ThreadCard({
   return (
     <article
       className={cn(
-        'group flex flex-col overflow-hidden rounded-xl border border-border bg-paper',
+        // `relative` — якорь для растянутой ссылки заголовка (см. ниже).
+        'group relative flex flex-col overflow-hidden rounded-xl border border-border bg-paper',
         'transition-colors hover:border-border-strong',
+        'focus-within:border-border-strong focus-within:ring-2 focus-within:ring-accent/40',
         className,
       )}
     >
-      <a href={href} className="block overflow-hidden bg-surface">
+      <div className="overflow-hidden bg-surface">
         {thread.cover?.url ? (
           <img
             src={thread.cover.url}
@@ -112,10 +114,21 @@ export function ThreadCard({
           // с фото рядом с карточками без фото встанут разной высоты.
           <div className="w-full aspect-[4/3]" aria-hidden="true" />
         )}
-      </a>
+      </div>
       <div className="flex flex-1 flex-col gap-2 p-4 md:p-5">
         <Heading className="text-h4 font-display font-semibold text-ink leading-snug text-balance">
-          <a href={href} className="hover:underline underline-offset-4 decoration-1">
+          {/*
+            Кликается вся плитка, а не только заголовок: карточка целиком
+            выглядит как одна кнопка, и попадание мимо буквы заголовка
+            воспринимается как поломка. Растянутый псевдоэлемент вместо
+            обёртки-ссылки — чтобы в разметке остался один осмысленный якорь
+            (обложка и описание не дублируют его для скринридера), а текст
+            карточки можно было выделить мышью.
+          */}
+          <a
+            href={href}
+            className="after:absolute after:inset-0 after:content-[''] group-hover:underline underline-offset-4 decoration-1 focus-visible:outline-none"
+          >
             {thread.title}
           </a>
         </Heading>
