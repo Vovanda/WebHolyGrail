@@ -3,15 +3,22 @@ import { notFound } from 'next/navigation';
 import { getSiteSettings, getThreadBySlug, listArticles } from '@/lib/api-client';
 import { resolveBlogSettings } from '@/lib/blog-settings';
 import { PostList } from '@/blocks/primitives/Blog/PostList';
+import { ThreadCard } from '@/blocks/primitives/Blog/ThreadCard';
 import { Pagination } from '@/blocks/primitives/Blog/Pagination';
+import { SectionEyebrow } from '@/blocks/primitives/SectionEyebrow';
 
 /**
  * /blog/thread/[slug] — все записи одной серии. SSR (R14).
  *
  * @remarks
- * Серия — это журнал: этапы работ по проекту, части лонгрида, дневник. Поэтому
+ * Серия — это журнал: этапы работ по объекту, части лонгрида, дневник. Поэтому
  * порядок здесь хронологический (сначала старые), в отличие от ленты /blog.
  * Читатель заходит в середину и должен понять последовательность.
+ *
+ * Ширина и подача — те же, что у `/blog`: обе страницы показывают один и тот же
+ * список статей, и расходиться им не с чего. Раньше здесь была своя вёрстка —
+ * центрированная шапка над прижатым влево списком и `variant="vertical"`,
+ * рассчитанный на сайдбар: строки без обложек и лидов, растянутые на 1300px.
  */
 type Params = { slug: string };
 type SearchParams = { page?: string; sort?: string };
@@ -43,16 +50,17 @@ export default async function ThreadPage({
   if (!thread) notFound();
 
   const blogSettings = resolveBlogSettings(settings);
-  const {
-    docs,
-    totalPages,
-    page: currentPage,
-  } = await listArticles({
-    page,
-    limit: blogSettings.postsPerPage,
-    sort: sort === 'newest' ? 'newest' : 'oldest',
-    threadSlug: slug,
-  });
+  const [{ docs, totalDocs, totalPages, page: currentPage }, latest] = await Promise.all([
+    listArticles({
+      page,
+      limit: blogSettings.postsPerPage,
+      sort: sort === 'newest' ? 'newest' : 'oldest',
+      threadSlug: slug,
+    }),
+    // Дата последней записи в шапку: список отсортирован от старых к новым и
+    // разбит на страницы, так что «последнюю» из него не взять.
+    listArticles({ limit: 1, sort: 'newest', threadSlug: slug }),
+  ]);
 
   const buildHref = (p: number) => {
     const query = new URLSearchParams();
@@ -63,22 +71,29 @@ export default async function ThreadPage({
   };
 
   return (
-    <main className="mx-auto max-w-wide px-4 md:px-6 py-8 md:py-12 flex flex-col gap-8 md:gap-12">
-      <header className="text-center flex flex-col gap-3">
-        <p className="text-muted text-sm uppercase tracking-wide">Серия</p>
-        <h1 className="text-h1 font-display font-semibold text-ink tracking-tight">
-          {thread.title}
-        </h1>
-        {thread.description && (
-          <p className="text-muted max-w-prose mx-auto">{thread.description}</p>
-        )}
-      </header>
+    <main className="mx-auto max-w-content px-4 md:px-6 py-8 md:py-12 flex flex-col gap-8 md:gap-10">
+      <ThreadCard
+        thread={thread}
+        variant="hero"
+        headingLevel="h1"
+        articlesCount={totalDocs}
+        lastPublishedAt={latest.docs[0]?.publishedAt ?? null}
+      />
 
-      <PostList articles={docs} globalBlog={blogSettings} variant="vertical" />
+      <div className="flex flex-col gap-5 md:gap-6">
+        <SectionEyebrow aside={pageSubtitle(currentPage, totalPages)}>Записи</SectionEyebrow>
+        <PostList articles={docs} globalBlog={blogSettings} />
+      </div>
 
       {totalPages > 1 && (
         <Pagination currentPage={currentPage} totalPages={totalPages} hrefBuilder={buildHref} />
       )}
     </main>
   );
+}
+
+/** «Страница 2 из 5» — только когда страниц действительно несколько. */
+function pageSubtitle(currentPage: number, totalPages: number): string | null {
+  if (totalPages <= 1) return null;
+  return `Страница ${currentPage} из ${totalPages}`;
 }

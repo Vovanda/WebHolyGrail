@@ -35,3 +35,6 @@ export type { PaginationProps } from './Pagination';
 
 export { ArticlesSection } from './ArticlesSection';
 export type { ArticlesSectionProps } from './ArticlesSection';
+
+export { ThreadsSection } from './ThreadsSection';
+export type { ThreadsSectionProps } from './ThreadsSection';

@@ -3,49 +3,69 @@ import type { BlogThread } from 'contracts';
 import { cn } from '@/lib/utils';
 
 /**
- * ThreadCard — карточка треда (серия Articles). Click → /blog/thread/<slug>.
+ * ThreadCard — карточка серии (журнала записей). Click → /blog/thread/<slug>.
+ *
+ * @remarks
+ * Серия для читателя — это объект или тема, а не «серия»: журнал работ по дому,
+ * дневник ремонта, части лонгрида. Поэтому надпись «Серия» на карточке не
+ * пишется: она сообщает название сущности из админки вместо того, что читателю
+ * полезно. Вместо неё — состав журнала («5 записей») и свежесть («последняя 26
+ * августа»), то есть ровно то, по чему выбирают, открывать ли.
+ *
+ * Варианты:
+ *  - `hero`    — шапка страницы серии: обложка, заголовок, описание, состав
+ *  - `card`    — плитка для витрины объектов
+ *  - `compact` — строка-ссылка (sidebar, «из той же серии»)
  */
 export interface ThreadCardProps {
   readonly thread: BlogThread;
   readonly articlesCount?: number;
+  /** Дата последней записи — показывает, что журнал живой. */
+  readonly lastPublishedAt?: string | null;
   readonly variant?: 'card' | 'hero' | 'compact';
+  /** Уровень заголовка: на странице серии он единственный h1, в витрине — h3. */
+  readonly headingLevel?: 'h1' | 'h2' | 'h3';
   readonly className?: string;
 }
 
 export function ThreadCard({
   thread,
   articlesCount,
+  lastPublishedAt,
   variant = 'card',
+  headingLevel,
   className,
 }: ThreadCardProps) {
   const href = `/blog/thread/${thread.slug}`;
+  const meta = threadMeta(articlesCount, lastPublishedAt);
 
   if (variant === 'hero') {
+    const Heading = headingLevel ?? 'h1';
+    const cover = thread.cover;
     return (
-      <section className={cn('rounded-lg overflow-hidden bg-surface', className)}>
-        {thread.cover?.url && (
+      <section
+        className={cn(
+          'overflow-hidden rounded-xl border border-border bg-surface',
+          cover?.url && 'md:grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:items-stretch',
+          className,
+        )}
+      >
+        {cover?.url && (
           <img
-            src={thread.cover.url}
-            alt={thread.cover.alt ?? thread.title}
-            className="w-full aspect-[21/9] object-cover"
+            src={cover.url}
+            alt={cover.alt ?? thread.title}
+            className="w-full aspect-[16/10] object-cover md:h-full md:aspect-auto"
             loading="eager"
           />
         )}
-        <div className="p-6 md:p-8 flex flex-col gap-3">
-          <span className="text-xs uppercase tracking-wider text-muted font-semibold">
-            Серия
-            {articlesCount
-              ? ` · ${articlesCount} ${pluralize(articlesCount, 'статья', 'статьи', 'статей')}`
-              : ''}
-          </span>
-          <h1 className="text-h2 font-display text-ink leading-tight">
-            <a href={href} className="hover:underline">
-              {thread.title}
-            </a>
-          </h1>
+        <div className="flex flex-col justify-center gap-3 p-6 md:p-8 lg:p-10">
+          <Heading className="text-h2 font-display font-semibold text-ink leading-tight tracking-tight text-balance">
+            {thread.title}
+          </Heading>
           {thread.description && (
-            <p className="text-body text-muted leading-relaxed">{thread.description}</p>
+            <p className="text-body text-muted leading-relaxed max-w-prose">{thread.description}</p>
           )}
+          {meta && <p className="text-sm text-muted/80 tabular-nums">{meta}</p>}
         </div>
       </section>
     );
@@ -56,50 +76,73 @@ export function ThreadCard({
       <a
         href={href}
         className={cn(
-          'flex items-center gap-2 rounded-md px-3 py-2 bg-surface',
-          'hover:bg-surface-hover transition-colors',
+          'flex items-center gap-3 rounded-md border border-border px-3 py-2.5',
+          'hover:border-border-strong hover:bg-surface-hover transition-colors',
           className,
         )}
       >
-        <span className="text-xs font-semibold text-muted uppercase">Серия:</span>
-        <span className="text-ink font-semibold">{thread.title}</span>
+        <span className="min-w-0 truncate font-semibold text-ink">{thread.title}</span>
         {articlesCount !== undefined && (
-          <span className="text-xs text-muted ml-auto">{articlesCount}</span>
+          <span className="ml-auto shrink-0 text-xs text-muted tabular-nums">{articlesCount}</span>
         )}
       </a>
     );
   }
 
-  // default = card
+  // default = card — плитка витрины: обложка, название, описание, состав журнала.
+  const Heading = headingLevel ?? 'h3';
   return (
     <article
-      className={cn('group flex flex-col gap-3 rounded-lg overflow-hidden bg-paper', className)}
+      className={cn(
+        'group flex flex-col overflow-hidden rounded-xl border border-border bg-paper',
+        'transition-colors hover:border-border-strong',
+        className,
+      )}
     >
-      {thread.cover?.url && (
-        <a href={href} className="block overflow-hidden">
+      <a href={href} className="block overflow-hidden bg-surface">
+        {thread.cover?.url ? (
           <img
             src={thread.cover.url}
             alt={thread.cover.alt ?? thread.title}
-            className="w-full aspect-[16/9] object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            className="w-full aspect-[4/3] object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             loading="lazy"
           />
-        </a>
-      )}
-      <div className="px-1 flex flex-col gap-2">
-        <span className="text-xs uppercase tracking-wider text-muted font-semibold">
-          Серия{articlesCount ? ` · ${articlesCount}` : ''}
-        </span>
-        <h3 className="text-h4 font-display font-semibold text-ink">
-          <a href={href} className="hover:underline">
+        ) : (
+          // Без обложки плитка не должна схлопываться: сетка поедет, и карточки
+          // с фото рядом с карточками без фото встанут разной высоты.
+          <div className="w-full aspect-[4/3]" aria-hidden="true" />
+        )}
+      </a>
+      <div className="flex flex-1 flex-col gap-2 p-4 md:p-5">
+        <Heading className="text-h4 font-display font-semibold text-ink leading-snug text-balance">
+          <a href={href} className="hover:underline underline-offset-4 decoration-1">
             {thread.title}
           </a>
-        </h3>
+        </Heading>
         {thread.description && (
-          <p className="text-body text-muted line-clamp-2">{thread.description}</p>
+          <p className="text-body text-muted line-clamp-2 leading-relaxed">{thread.description}</p>
         )}
+        {meta && <p className="mt-auto pt-1 text-sm text-muted/80 tabular-nums">{meta}</p>}
       </div>
     </article>
   );
+}
+
+/** «5 записей · последняя 26 августа» — состав журнала одной строкой. */
+function threadMeta(count?: number, lastPublishedAt?: string | null): string | null {
+  const parts: string[] = [];
+  if (count !== undefined && count > 0) {
+    parts.push(`${count} ${pluralize(count, 'запись', 'записи', 'записей')}`);
+  }
+  if (lastPublishedAt) {
+    const date = new Date(lastPublishedAt);
+    if (!Number.isNaN(date.getTime())) {
+      parts.push(
+        `последняя ${date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}`,
+      );
+    }
+  }
+  return parts.length > 0 ? parts.join(' · ') : null;
 }
 
 function pluralize(n: number, one: string, few: string, many: string): string {

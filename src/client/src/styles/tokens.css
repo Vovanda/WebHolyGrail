@@ -21,6 +21,7 @@
   --color-ink: #0a0a0a; /* near-black — основной текст */
   --color-muted: #737373; /* mid gray — мета, subtitles */
   --color-border: #e5e5e5; /* light gray — бордеры, separator'ы */
+  --color-border-strong: #d4d4d4; /* граница карточки под курсором */
 
   /* Primary accent — deep blue (royal indigo). CTA-кнопки, ссылки. */
   --color-accent: #2563eb;
@@ -125,6 +126,7 @@
   --color-ink: #fafafa;
   --color-muted: #a3a3a3;
   --color-border: #262626;
+  --color-border-strong: #404040;
 
   /* Accent — slightly lighter blue для контраста на тёмном. */
   --color-accent: #3b82f6;

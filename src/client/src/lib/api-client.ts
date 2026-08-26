@@ -3,6 +3,7 @@ import type {
   BlogAuthor,
   BlogTag,
   BlogThread,
+  BlogThreadSummary,
   FaqGroupDoc,
   MediaRef,
   PageDoc,
@@ -396,4 +397,65 @@ export async function countSpecialistsByCity(options?: {
     counts.set(id, (counts.get(id) ?? 0) + 1);
   }
   return counts;
+}
+
+/**
+ * Серии вместе с составом журнала — для витрины серий.
+ *
+ * @remarks
+ * Число записей и дату последней Payload одним запросом по коллекции `threads`
+ * не отдаёт: это агрегат по `articles`. Поэтому на каждую серию идёт запрос за
+ * одной самой свежей записью — из него берутся сразу оба значения (`totalDocs`
+ * и её `publishedAt`). Запросы параллельны, а серий на витрине десятки, не
+ * тысячи; если их станет больше — здесь появится агрегирующий эндпоинт на
+ * стороне CMS, а не цикл побольше.
+ *
+ * `ids` задаёт и отбор, и порядок: редактор расставил карточки руками, и
+ * возвращать их в порядке коллекции нельзя.
+ */
+export async function listThreadSummaries({
+  ids,
+  limit = 12,
+}: {
+  ids?: ReadonlyArray<string | number>;
+  limit?: number;
+} = {}): Promise<ReadonlyArray<BlogThreadSummary>> {
+  const query = new URLSearchParams({
+    'where[status][equals]': 'published',
+    depth: '1',
+    limit: String(ids?.length ? ids.length : Math.min(limit, 48)),
+  });
+  if (ids?.length) query.append('where[id][in]', ids.join(','));
+
+  const response = await fetch(`${CMS_URL}/api/threads?${query.toString()}`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) return [];
+  const { docs } = (await response.json()) as { docs: BlogThread[] };
+
+  const summaries = await Promise.all(
+    docs.map(async (thread) => {
+      const latest = await listArticles({ limit: 1, sort: 'newest', threadSlug: thread.slug });
+      return {
+        thread,
+        articlesCount: latest.totalDocs,
+        lastPublishedAt: latest.docs[0]?.publishedAt ?? null,
+      } satisfies BlogThreadSummary;
+    }),
+  );
+
+  if (ids?.length) {
+    const order = new Map(ids.map((id, index) => [String(id), index]));
+    return [...summaries].sort(
+      (a, b) => (order.get(String(a.thread.id)) ?? 0) - (order.get(String(b.thread.id)) ?? 0),
+    );
+  }
+
+  // Свежие журналы вперёд, пустые — в конец: витрина должна открываться тем,
+  // где работа идёт прямо сейчас.
+  return [...summaries].sort((a, b) => {
+    if (!a.lastPublishedAt) return 1;
+    if (!b.lastPublishedAt) return -1;
+    return b.lastPublishedAt.localeCompare(a.lastPublishedAt);
+  });
 }
