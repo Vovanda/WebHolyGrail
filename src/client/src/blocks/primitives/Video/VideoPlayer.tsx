@@ -22,8 +22,18 @@ export type VideoPlayerProps = VideoPlayerChromeProps;
 
 type Ui = 'chrome' | 'vidstack';
 
-/** Слой по умолчанию: меняется переменной окружения, без сборки. */
-const DEFAULT_UI: Ui = process.env.NEXT_PUBLIC_VIDEO_UI === 'vidstack' ? 'vidstack' : 'chrome';
+/**
+ * Слой по умолчанию.
+ *
+ * @remarks
+ * Пока выбран Vidstack: он на проверке, и смотреть его удобнее сразу, без
+ * дописывания адреса. Второй слой остаётся доступен через `?player=chrome`.
+ *
+ * Значение переменной окружения перекрывает умолчание, но вшивается при
+ * сборке. Когда выбор устоится, он переедет в настройки сайта, где меняется
+ * без выкладки.
+ */
+const DEFAULT_UI: Ui = process.env.NEXT_PUBLIC_VIDEO_UI === 'chrome' ? 'chrome' : 'vidstack';
 
 export function VideoPlayer(props: VideoPlayerProps) {
   const [ui, setUi] = useState<Ui>(DEFAULT_UI);
