@@ -1,7 +1,5 @@
 import type { CollectionConfig } from 'payload';
 
-import { slugFrom } from '../lib/slug';
-
 /**
  * Tags — generic тэги для Articles (M:N через Article.tags).
  *
@@ -49,9 +47,6 @@ export const Tags: CollectionConfig = {
       admin: { description: 'Опционально — показывается на /blog/tag/<slug> вверху.' },
     },
   ],
-  hooks: {
-    beforeValidate: [slugFrom('label')],
-  },
   access: {
     read: () => true,
     create: ({ req: { user } }) => Boolean(user),

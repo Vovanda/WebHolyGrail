@@ -1,7 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
 import { PAGE_BLOCKS } from '../blocks';
-import { slugFrom } from '../lib/slug';
 
 /**
  * Pages — страницы сайта из блоков.
@@ -78,9 +77,6 @@ export const Pages: CollectionConfig = {
       ],
     },
   ],
-  hooks: {
-    beforeValidate: [slugFrom('title')],
-  },
   access: {
     read: ({ req: { user } }) => {
       // Авторизованные видят drafts, публика — только published.

@@ -1,7 +1,5 @@
 import type { CollectionConfig } from 'payload';
 
-import { slugFrom } from '../lib/slug';
-
 /**
  * Threads — серия связанных Articles (one-to-many через Article.thread).
  *
@@ -69,9 +67,6 @@ export const Threads: CollectionConfig = {
       },
     },
   ],
-  hooks: {
-    beforeValidate: [slugFrom('title')],
-  },
   access: {
     read: ({ req: { user } }) => {
       if (user) return true;

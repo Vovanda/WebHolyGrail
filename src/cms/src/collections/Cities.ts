@@ -1,7 +1,5 @@
 import type { CollectionConfig } from 'payload';
 
-import { slugFrom } from '../lib/slug';
-
 /**
  * Города — справочник для каталога специалистов.
  *
@@ -23,7 +21,6 @@ export const Cities: CollectionConfig = {
     update: ({ req: { user } }) => Boolean(user),
     delete: ({ req: { user } }) => user?.role === 'admin',
   },
-  hooks: { beforeValidate: [slugFrom('name')] },
   fields: [
     { name: 'name', label: 'Название', type: 'text', required: true },
     {

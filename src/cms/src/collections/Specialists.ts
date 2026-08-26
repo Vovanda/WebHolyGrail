@@ -1,7 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
 import { PAGE_BLOCKS } from '../blocks';
-import { translitSlug } from '../lib/slug';
 
 /**
  * Специалисты — люди, ради которых существует каталог: тренеры, мастера,
@@ -23,6 +22,7 @@ import { translitSlug } from '../lib/slug';
  */
 export const Specialists: CollectionConfig = {
   slug: 'specialists',
+  custom: { slugFrom: ['nickname', 'fullName'] },
   labels: { singular: 'Специалист', plural: 'Специалисты' },
   admin: {
     useAsTitle: 'fullName',
@@ -39,21 +39,6 @@ export const Specialists: CollectionConfig = {
       return { owner: { equals: user.id } };
     },
     delete: ({ req: { user } }) => user?.role === 'admin',
-  },
-  hooks: {
-    beforeValidate: [
-      ({ data, operation }) => {
-        if (!data || operation !== 'create') return data;
-        const current = data['slug'];
-        if (typeof current === 'string' && current.trim()) return data;
-        const source =
-          (typeof data['nickname'] === 'string' && data['nickname'].trim()) ||
-          (typeof data['fullName'] === 'string' && data['fullName'].trim()) ||
-          '';
-        if (source) data['slug'] = translitSlug(source);
-        return data;
-      },
-    ],
   },
   fields: [
     {

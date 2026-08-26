@@ -1,7 +1,5 @@
 import type { CollectionConfig } from 'payload';
 
-import { slugFrom } from '../lib/slug';
-
 /**
  * Authors — авторы статей (M:1 с Article.author).
  *
@@ -64,9 +62,6 @@ export const Authors: CollectionConfig = {
       admin: { description: 'Опционально — "Editor", "Founder", и т.п.' },
     },
   ],
-  hooks: {
-    beforeValidate: [slugFrom('name')],
-  },
   access: {
     read: () => true,
     create: ({ req: { user } }) => Boolean(user),

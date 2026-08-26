@@ -24,6 +24,7 @@ import { Authors } from './collections/Authors';
 import { Cities } from './collections/Cities';
 import { Specialists } from './collections/Specialists';
 import { SiteSettings } from './globals/SiteSettings';
+import { withAutoSlug } from './lib/slug';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -107,7 +108,7 @@ export default buildConfig({
     // Каталог специалистов по городам (тренеры, мастера, врачи).
     Cities,
     Specialists,
-  ],
+  ].map(withAutoSlug),
   globals: [SiteSettings],
   /**
    * Jobs Queue — admin UI на /admin/collections/payload-jobs. Template поставляет
