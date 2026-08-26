@@ -189,3 +189,37 @@ export interface ThreadsSectionData {
     readonly href?: string;
   };
 }
+
+/**
+ * Видео, подготовленное к показу.
+ *
+ * @remarks
+ * Секрета потока здесь нет и быть не может: он живёт в CMS и уходит зрителю
+ * только конвертом, через отдельный эндпоинт с проверкой доступа.
+ */
+export interface VideoStream {
+  readonly id: string | number;
+  /** Адрес master.m3u8. */
+  readonly playlistUrl: string;
+  readonly status: 'pending' | 'processing' | 'ready' | 'failed';
+  readonly access: 'public' | 'private';
+  readonly qualities: ReadonlyArray<number>;
+  readonly durationSeconds: number | null;
+  readonly poster?: BlogMediaRef | null;
+}
+
+/**
+ * Данные блока `video` — плеер на произвольной странице.
+ *
+ * @remarks
+ * Редактор выбирает медиафайл, остальное блок берёт сам: адрес плейлиста,
+ * качества и режим доступа приходят из карточки видео, а не задаются руками.
+ */
+export interface VideoBlockData {
+  readonly title?: string;
+  readonly description?: string;
+  readonly video?: { id: string | number } | string | number | null;
+  readonly poster?: BlogMediaRef | null;
+  /** Ширина: в колонку текста или во всю ширину секции. */
+  readonly width?: 'content' | 'wide';
+}

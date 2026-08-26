@@ -4,6 +4,7 @@ import type {
   BlogTag,
   BlogThread,
   BlogThreadSummary,
+  VideoStream,
   FaqGroupDoc,
   MediaRef,
   PageDoc,
@@ -458,4 +459,87 @@ export async function listThreadSummaries({
     if (!b.lastPublishedAt) return -1;
     return b.lastPublishedAt.localeCompare(a.lastPublishedAt);
   });
+}
+
+/**
+ * Видео, подготовленное к показу.
+ *
+ * @remarks
+ * Секрет потока сюда не приезжает: поле закрыто на чтение в самой коллекции,
+ * а зритель получает его отдельно и только конвертом.
+ */
+export async function getVideoStream(id: string | number): Promise<VideoStream | null> {
+  const response = await fetch(`${CMS_URL}/api/media/${id}?depth=1`, { cache: 'no-store' });
+  if (!response.ok) return null;
+
+  const doc = (await response.json()) as {
+    id: string | number;
+    access?: string;
+    preview?: { id?: string | number; url?: string; alt?: string } | null;
+    hls?: {
+      status?: string;
+      playlistUrl?: string | null;
+      qualities?: ReadonlyArray<{ height?: number | null }> | null;
+      durationSeconds?: number | null;
+    } | null;
+  };
+
+  const hls = doc.hls;
+  if (!hls?.playlistUrl && hls?.status !== 'failed') {
+    // Нарезки ещё нет — но и статус нужен, чтобы отличить «готовится» от
+    // «сломалось»: тексты у них разные.
+    if (!hls?.status) return null;
+  }
+
+  return {
+    id: doc.id,
+    playlistUrl: hls?.playlistUrl ?? '',
+    status: (hls?.status as VideoStream['status']) ?? 'pending',
+    access: doc.access === 'private' ? 'private' : 'public',
+    qualities: (hls?.qualities ?? []).flatMap((q) => (q?.height ? [q.height] : [])),
+    durationSeconds: hls?.durationSeconds ?? null,
+    poster: doc.preview?.url
+      ? { id: doc.preview.id ?? doc.id, url: doc.preview.url, alt: doc.preview.alt ?? '' }
+      : null,
+  };
+}
+
+/**
+ * Токен зрителя на сессию.
+ *
+ * @remarks
+ * Выдаёт CMS: подписывается он секретом приложения, и знать этот секрет фронту
+ * незачем. `null` — если CMS недоступна; тогда блок покажет заглушку вместо
+ * плеера, а не сломанный проигрыватель.
+ */
+export async function issueVideoToken(): Promise<string | null> {
+  const response = await fetch(`${CMS_URL}/api/video/token`, {
+    method: 'POST',
+    cache: 'no-store',
+  });
+  if (!response.ok) return null;
+  const data = (await response.json()) as { token?: string };
+  return data.token ?? null;
+}
+
+/**
+ * Можно ли этому зрителю смотреть ролик.
+ *
+ * @remarks
+ * Спрашивается при рендере страницы, до отрисовки плеера: иначе закрытый ролик
+ * показывал бы обычный проигрыватель, а отказ всплывал только по нажатию
+ * «play» — это читается как поломка сайта, а не как закрытый доступ.
+ *
+ * Куки зрителя пробрасываются: без них CMS увидит анонима и откажет вошедшему.
+ */
+export async function checkVideoAccess(
+  id: string | number,
+  cookie: string,
+): Promise<{ allowed: boolean; reason: string | null; status: string }> {
+  const response = await fetch(`${CMS_URL}/api/video/${id}/access`, {
+    cache: 'no-store',
+    headers: cookie ? { cookie } : {},
+  });
+  if (!response.ok) return { allowed: false, reason: 'unavailable', status: 'pending' };
+  return (await response.json()) as { allowed: boolean; reason: string | null; status: string };
 }

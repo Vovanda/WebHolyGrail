@@ -69,5 +69,7 @@ export type {
   ArticlesSectionData,
   BlogThreadSummary,
   ThreadsSectionData,
+  VideoStream,
+  VideoBlockData,
 } from './blog';
 export { resolveDisplay } from './blog';

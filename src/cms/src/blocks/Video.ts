@@ -44,7 +44,8 @@ export const VideoBlock: Block = {
       type: 'upload',
       relationTo: 'media',
       admin: {
-        description: 'Кадр до нажатия «play». Если не задать, зритель увидит чёрный прямоугольник.',
+        description:
+          'Картинка до нажатия «play». Можно не задавать: кадр из ролика снимается сам при нарезке. Своя обложка его заменяет.',
       },
     },
     {

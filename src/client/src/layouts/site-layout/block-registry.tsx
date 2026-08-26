@@ -30,6 +30,7 @@ import { PageRef } from '@/blocks/primitives/PageRef';
 import { FaqAccordion } from '@/blocks/primitives/FaqAccordion';
 import { ArticlesSection } from '@/blocks/primitives/Blog/ArticlesSection';
 import { ThreadsSection } from '@/blocks/primitives/Blog/ThreadsSection';
+import { VideoSection } from '@/blocks/primitives/Video/VideoSection';
 import { RichTextBlock } from '@/blocks/primitives/RichText';
 import { PageOutlet } from '@/blocks/system/PageOutlet';
 // WHG-specific landing blocks
@@ -76,6 +77,7 @@ const REGISTRY: Record<string, BlockRenderer> = {
   'faq-accordion': (node, settings) => <FaqAccordion node={node} settings={settings} />,
   'articles-section': (node, settings) => <ArticlesSection node={node} settings={settings} />,
   'threads-section': (node) => <ThreadsSection node={node} />,
+  video: (node) => <VideoSection node={node} />,
   'rich-text': (node, settings) => <RichTextBlock node={node} settings={settings} />,
   'reusable-ref': (node, settings) => <ReusableRef node={node} settings={settings} />,
   'page-ref': (node, settings) => <PageRef node={node} settings={settings} />,
