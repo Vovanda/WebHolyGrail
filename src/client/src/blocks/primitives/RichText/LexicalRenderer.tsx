@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
+import type { BlockNode, SiteSettings } from 'contracts';
+import { renderBlockNode } from '@/layouts/site-layout/block-registry';
 
 /**
  * LexicalRenderer — рендер Lexical AST (Payload `richText`) в React.
@@ -18,6 +20,14 @@ import { cn } from '@/lib/utils';
  * Server-only (R14), клиентского JS не добавляет. Стилизация — токены (R2).
  */
 export interface LexicalRendererProps {
+  /**
+   * Настройки сайта — нужны блокам, вставленным прямо в текст.
+   *
+   * @remarks
+   * Без них блоки не рисуются: часть читает оттуда оформление, и подсунуть
+   * пустышку значит получить вставку без темы.
+   */
+  readonly settings?: SiteSettings | undefined;
   readonly value: unknown;
   readonly className?: string;
 }
@@ -50,18 +60,18 @@ interface LexNode {
   readonly language?: string;
 }
 
-export function LexicalRenderer({ value, className }: LexicalRendererProps) {
+export function LexicalRenderer({ value, className, settings }: LexicalRendererProps) {
   const root = (value as { root?: LexNode } | null | undefined)?.root;
   if (!root?.children?.length) return null;
 
   return (
     <div className={cn('flex flex-col gap-5 text-ink leading-relaxed', className)}>
-      {root.children.map((node, index) => renderNode(node, index))}
+      {root.children.map((node, index) => renderNode(node, index, settings))}
     </div>
   );
 }
 
-function renderNode(node: LexNode, key: number): ReactNode {
+function renderNode(node: LexNode, key: number, settings?: SiteSettings): ReactNode {
   if (!node) return null;
 
   switch (node.type) {
@@ -72,17 +82,17 @@ function renderNode(node: LexNode, key: number): ReactNode {
       return <br key={key} />;
 
     case 'paragraph': {
-      const children = renderChildren(node);
+      const children = renderChildren(node, settings);
       // Пустой абзац в редакторе — это отступ, а не текст. Схлопываем.
       if (!hasContent(node)) return null;
       return <p key={key}>{children}</p>;
     }
 
     case 'heading':
-      return renderHeading(node, key);
+      return renderHeading(node, key, settings);
 
     case 'list':
-      return renderList(node, key);
+      return renderList(node, key, settings);
 
     case 'listitem':
       return (
@@ -95,7 +105,7 @@ function renderNode(node: LexNode, key: number): ReactNode {
               className="mr-2 align-middle accent-accent"
             />
           )}
-          {renderChildren(node)}
+          {renderChildren(node, settings)}
         </li>
       );
 
@@ -105,7 +115,7 @@ function renderNode(node: LexNode, key: number): ReactNode {
           key={key}
           className="border-l-2 border-accent pl-4 italic font-display text-ink/90"
         >
-          {renderChildren(node)}
+          {renderChildren(node, settings)}
         </blockquote>
       );
 
@@ -115,7 +125,7 @@ function renderNode(node: LexNode, key: number): ReactNode {
           key={key}
           className="bg-surface rounded-md p-4 overflow-x-auto text-sm font-mono text-ink"
         >
-          <code>{renderChildren(node)}</code>
+          <code>{renderChildren(node, settings)}</code>
         </pre>
       );
 
@@ -125,25 +135,54 @@ function renderNode(node: LexNode, key: number): ReactNode {
 
     case 'link':
     case 'autolink':
-      return renderLink(node, key);
+      return renderLink(node, key, settings);
 
     case 'upload':
       return renderUpload(node, key);
 
+    case 'block':
+      return renderBlock(node, key, settings);
+
     default:
       // Неизвестный узел — не теряем его содержимое.
-      return node.children?.length ? <span key={key}>{renderChildren(node)}</span> : null;
+      return node.children?.length ? <span key={key}>{renderChildren(node, settings)}</span> : null;
   }
 }
 
-function renderChildren(node: LexNode): ReactNode[] {
-  return (node.children ?? []).map((child, index) => renderNode(child, index));
+function renderChildren(node: LexNode, settings?: SiteSettings): ReactNode[] {
+  return (node.children ?? []).map((child, index) => renderNode(child, index, settings));
+}
+
+/**
+ * Блок, вставленный прямо в текст.
+ *
+ * @remarks
+ * Рендерится тем же реестром, что и блоки страницы: иначе ролик в статье и
+ * ролик на странице пришлось бы поддерживать по отдельности, и они разошлись бы
+ * на первой же правке.
+ *
+ * Блок выходит из колонки текста: видео шириной в 880 пикселей посреди статьи
+ * выглядит вставкой из другого макета.
+ */
+function renderBlock(node: LexNode, key: number, settings?: SiteSettings): ReactNode {
+  const fields = (node as { fields?: Record<string, unknown> }).fields;
+  const blockType = typeof fields?.['blockType'] === 'string' ? fields['blockType'] : null;
+  // Без настроек сайта блоки не рисуем: часть из них читает оттуда оформление,
+  // и подсунуть им пустышку значит получить страницу без темы.
+  if (!blockType || !settings) return null;
+
+  return (
+    <div key={key} className="my-6 -mx-4 md:-mx-8 lg:-mx-16">
+      {renderBlockNode({ blockType, id: String(key), data: fields } as BlockNode, settings)}
+    </div>
+  );
 }
 
 /** Есть ли в поддереве хоть какой-то видимый контент. */
 function hasContent(node: LexNode): boolean {
   if (node.type === 'text') return (node.text ?? '').trim().length > 0;
-  if (node.type === 'upload' || node.type === 'horizontalrule') return true;
+  if (node.type === 'upload' || node.type === 'horizontalrule' || node.type === 'block')
+    return true;
   return (node.children ?? []).some(hasContent);
 }
 
@@ -179,33 +218,33 @@ const HEADING_CLASS: Record<string, string> = {
   h6: 'text-base font-semibold mt-2',
 };
 
-function renderHeading(node: LexNode, key: number): ReactNode {
+function renderHeading(node: LexNode, key: number, settings?: SiteSettings): ReactNode {
   const tag = (node.tag ?? 'h2').toLowerCase();
   const Tag = (['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tag) ? tag : 'h2') as 'h2';
   return (
     <Tag key={key} className={HEADING_CLASS[Tag] ?? HEADING_CLASS.h2}>
-      {renderChildren(node)}
+      {renderChildren(node, settings)}
     </Tag>
   );
 }
 
-function renderList(node: LexNode, key: number): ReactNode {
+function renderList(node: LexNode, key: number, settings?: SiteSettings): ReactNode {
   if (node.listType === 'number') {
     return (
       <ol key={key} className="list-decimal pl-6 flex flex-col gap-1.5">
-        {renderChildren(node)}
+        {renderChildren(node, settings)}
       </ol>
     );
   }
   const isCheck = node.listType === 'check';
   return (
     <ul key={key} className={cn('pl-6 flex flex-col gap-1.5', isCheck ? 'list-none' : 'list-disc')}>
-      {renderChildren(node)}
+      {renderChildren(node, settings)}
     </ul>
   );
 }
 
-function renderLink(node: LexNode, key: number): ReactNode {
+function renderLink(node: LexNode, key: number, settings?: SiteSettings): ReactNode {
   const fields = node.fields ?? {};
   const doc = fields.doc?.value;
   const internalSlug = typeof doc === 'object' && doc ? doc.slug : undefined;
@@ -220,7 +259,7 @@ function renderLink(node: LexNode, key: number): ReactNode {
       {...(newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
       className="text-accent underline underline-offset-2 hover:no-underline"
     >
-      {renderChildren(node)}
+      {renderChildren(node, settings)}
     </a>
   );
 }

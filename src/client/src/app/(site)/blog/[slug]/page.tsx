@@ -150,7 +150,7 @@ export default async function BlogArticlePage({ params }: { params: Promise<Para
         </p>
       )}
 
-      <LexicalRenderer value={article.body} className="text-lg" />
+      <LexicalRenderer value={article.body} settings={settings ?? undefined} className="text-lg" />
 
       {threadSiblings.length > 0 && article.thread && (
         <section className="mt-12 pt-8 border-t border-border flex flex-col gap-6">

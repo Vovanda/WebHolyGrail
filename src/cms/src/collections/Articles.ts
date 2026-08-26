@@ -1,4 +1,7 @@
 import type { CollectionConfig } from 'payload';
+import { BlocksFeature, lexicalEditor } from '@payloadcms/richtext-lexical';
+import { VideoBlock } from '../blocks/Video';
+import { VideoSetBlock } from '../blocks/VideoSet';
 
 /**
  * Articles — основная сущность блога (Posts в терминологии Ghost / Substack).
@@ -71,10 +74,28 @@ export const Articles: CollectionConfig = {
       relationTo: 'media',
     },
     {
+      /**
+       * Текст статьи с блоками внутри.
+       *
+       * @remarks
+       * Ролик и набор вставляются прямо в текст: разбор на видео посреди статьи
+       * — обычное дело, а отправлять читателя на другую страницу за ним значит
+       * терять его на полпути.
+       *
+       * Список блоков намеренно короткий. Полный набор страничных блоков внутри
+       * текста превращает статью во вторую страницу, у которой своя вёрстка
+       * спорит с типографикой вокруг.
+       */
       name: 'body',
       label: 'Текст',
       type: 'richText',
       required: true,
+      editor: lexicalEditor({
+        features: ({ defaultFeatures }) => [
+          ...defaultFeatures,
+          BlocksFeature({ blocks: [VideoBlock, VideoSetBlock] }),
+        ],
+      }),
     },
     {
       name: 'status',
