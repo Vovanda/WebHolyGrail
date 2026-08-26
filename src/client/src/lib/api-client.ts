@@ -618,9 +618,7 @@ export interface ChannelVideo {
  * Закрытые ролики сюда не приходят: канал открыт всем, включая поисковик,
  * и список закрытого стал бы оглавлением курса для тех, кто его не покупал.
  */
-export async function getChannel(
-  channel: string,
-): Promise<{
+export async function getChannel(channel: string): Promise<{
   channel: string;
   authorName: string | null;
   videos: ReadonlyArray<ChannelVideo>;
@@ -634,4 +632,49 @@ export async function getChannel(
     authorName: string | null;
     videos: ReadonlyArray<ChannelVideo>;
   };
+}
+
+/** Урок набора. */
+export interface PlaylistItem {
+  readonly code: string;
+  readonly title: string;
+  readonly poster: string | null;
+  readonly durationSeconds: number | null;
+  readonly ready: boolean;
+  readonly locked: boolean;
+  readonly lockReason: 'sign-in-required' | 'not-entitled' | null;
+}
+
+/** Набор целиком: чем он является и что в нём. */
+export interface PlaylistView {
+  readonly code: string;
+  readonly channel: string;
+  readonly authorName: string | null;
+  readonly title: string;
+  readonly description: string | null;
+  readonly cover: string | null;
+  readonly items: ReadonlyArray<PlaylistItem>;
+}
+
+/**
+ * Набор по адресу канала и короткому коду.
+ *
+ * @remarks
+ * Закрытые уроки приходят вместе с открытыми, но с признаком замка: набор и
+ * есть витрина курса, скрывать его оглавление незачем.
+ *
+ * Куки зрителя пробрасываются — иначе у вошедшего с правом на набор все уроки
+ * выглядели бы закрытыми.
+ */
+export async function getPlaylistByCode(
+  channel: string,
+  code: string,
+  cookie: string,
+): Promise<PlaylistView | null> {
+  const response = await fetch(
+    `${CMS_URL}/api/video/playlist/${encodeURIComponent(channel)}/${encodeURIComponent(code)}`,
+    { cache: 'no-store', headers: cookie ? { cookie } : {} },
+  );
+  if (!response.ok) return null;
+  return (await response.json()) as PlaylistView;
 }
