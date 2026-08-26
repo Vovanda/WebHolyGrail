@@ -25,6 +25,7 @@ import { Cities } from './collections/Cities';
 import { Specialists } from './collections/Specialists';
 import { SiteSettings } from './globals/SiteSettings';
 import { withAutoSlug } from './lib/slug';
+import { BuildHlsTask } from './jobs/build-hls.task';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -121,7 +122,10 @@ export default buildConfig({
    * рядом с "Редакторы" вместо скрытой технической collection.
    */
   jobs: {
-    tasks: [],
+    tasks: [BuildHlsTask],
+    // Один воркер за раз: ffmpeg живёт на той же машине, что и сайт, и
+    // параллельное кодирование нескольких роликов придушит выдачу страниц.
+    autoRun: [{ cron: '* * * * *', allQueues: true, limit: 1 }],
     workflows: [],
     jobsCollectionOverrides: ({ defaultJobsCollection }) => ({
       ...defaultJobsCollection,

@@ -54,11 +54,13 @@ RUN pnpm --filter cms run build
 FROM node:${NODE_VERSION}-alpine AS runtime
 # corepack prepare кеширует pnpm в image (иначе runtime пытается скачать на каждом старте)
 # poppler-utils — рендер первой страницы PDF в превью при загрузке документа.
-# Системная утилита, а не npm-пакет: `pdftoppm` предсказуем и не тянет нативный
-# модуль, который придётся пересобирать под musl при каждом обновлении Node.
+# ffmpeg — нарезка загруженного видео на HLS-лесенку качеств.
+# Системные утилиты, а не npm-пакеты: `pdftoppm` и `ffmpeg` предсказуемы и не
+# тянут нативный модуль, который придётся пересобирать под musl при каждом
+# обновлении Node.
 RUN corepack enable \
  && corepack prepare pnpm@11.8.0 --activate \
- && apk add --no-cache libc6-compat tini poppler-utils
+ && apk add --no-cache libc6-compat tini poppler-utils ffmpeg
 WORKDIR /app
 
 ENV NODE_ENV=production

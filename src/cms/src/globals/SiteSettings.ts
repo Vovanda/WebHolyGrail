@@ -156,8 +156,7 @@ export const SiteSettings: GlobalConfig = {
           type: 'array',
           labels: { singular: 'Подпункт', plural: 'Подпункты' },
           admin: {
-            description:
-              'Раскрываются под пунктом. Сам пункт остаётся ссылкой на раздел целиком.',
+            description: 'Раскрываются под пунктом. Сам пункт остаётся ссылкой на раздел целиком.',
           },
           fields: [
             { name: 'href', label: 'Ссылка', type: 'text', required: true },
@@ -511,6 +510,34 @@ export const SiteSettings: GlobalConfig = {
           Field: '/admin/components/LayoutJsonField',
         },
       },
+    },
+    {
+      name: 'video',
+      label: 'Видео',
+      type: 'group',
+      admin: {
+        description:
+          'Во сколько качеств резать загруженное видео. Меняется без разработчика; уже нарезанные ролики не пересобираются.',
+      },
+      fields: [
+        {
+          name: 'qualities',
+          label: 'Качества',
+          type: 'select',
+          hasMany: true,
+          defaultValue: ['480', '720'],
+          options: [
+            { label: '360p — совсем слабый интернет', value: '360' },
+            { label: '480p', value: '480' },
+            { label: '720p (HD)', value: '720' },
+            { label: '1080p (Full HD)', value: '1080' },
+          ],
+          admin: {
+            description:
+              'Каждое качество — отдельный проход по ролику при нарезке и место в хранилище. Ступени выше исходника не создаются.',
+          },
+        },
+      ],
     },
     {
       name: 'blog',

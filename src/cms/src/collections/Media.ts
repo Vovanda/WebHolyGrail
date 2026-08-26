@@ -94,6 +94,97 @@ export const Media: CollectionConfig = {
       label: 'Caption (optional)',
       type: 'text',
     },
+    {
+      name: 'access',
+      label: 'Кто может смотреть',
+      type: 'select',
+      defaultValue: 'public',
+      options: [
+        { label: 'Все', value: 'public' },
+        { label: 'Только авторизованные', value: 'private' },
+      ],
+      admin: {
+        position: 'sidebar',
+        condition: (data) => String(data?.mimeType ?? '').startsWith('video/'),
+        description:
+          'Переключается в любой момент: видео зашифровано в обоих режимах, меняется только то, кому выдаётся ключ. Перенарезка не требуется.',
+      },
+    },
+    {
+      name: 'hls',
+      label: 'Потоковое видео',
+      type: 'group',
+      admin: {
+        condition: (data) => String(data?.mimeType ?? '').startsWith('video/'),
+        description: 'Заполняется само после нарезки. Руками менять не нужно.',
+      },
+      fields: [
+        {
+          name: 'status',
+          label: 'Состояние',
+          type: 'select',
+          defaultValue: 'pending',
+          options: [
+            { label: 'В очереди', value: 'pending' },
+            { label: 'Нарезается', value: 'processing' },
+            { label: 'Готово', value: 'ready' },
+            { label: 'Ошибка', value: 'failed' },
+          ],
+          admin: { readOnly: true },
+        },
+        {
+          name: 'playlistUrl',
+          label: 'Плейлист',
+          type: 'text',
+          admin: { readOnly: true, description: 'Адрес master.m3u8 — его открывает плеер.' },
+        },
+        {
+          // Хранится отдельно от адреса плейлиста: у закрытого видео это
+          // случайный UUID, и по номеру медиафайла его уже не вычислить, а
+          // чистить прошлую нарезку при перезаливке по чему-то надо.
+          name: 'prefix',
+          label: 'Папка в хранилище',
+          type: 'text',
+          admin: { readOnly: true, hidden: true },
+        },
+        {
+          name: 'qualities',
+          label: 'Качества',
+          type: 'array',
+          admin: { readOnly: true },
+          fields: [{ name: 'height', type: 'number' }],
+        },
+        {
+          name: 'durationSeconds',
+          label: 'Длительность, с',
+          type: 'number',
+          admin: { readOnly: true },
+        },
+        {
+          // Секрет держим в базе, а не в хранилище: иначе он лежал бы рядом
+          // с сегментами и шифрование не защищало бы ни от чего.
+          name: 'secret',
+          label: 'Секрет потока',
+          type: 'text',
+          admin: { readOnly: true, hidden: true },
+          access: {
+            // Секрет не приезжает в выдачу API вместе с документом — за ним
+            // ходят в отдельный эндпоинт, который решает, кому можно. Здесь
+            // его не видит никто, включая администратора.
+            read: () => false,
+          },
+        },
+        {
+          name: 'error',
+          label: 'Причина ошибки',
+          type: 'textarea',
+          admin: {
+            readOnly: true,
+            condition: (_data, siblingData) => siblingData?.status === 'failed',
+          },
+        },
+      ],
+    },
   ],
   access: {
     read: () => true, // Публичный URL для медиа — без авторизации.
@@ -144,19 +235,60 @@ export const Media: CollectionConfig = {
     ],
 
     /**
-     * Превью первой страницы для загруженного PDF.
+     * Нарезка загруженного видео ставится в очередь сама.
      *
      * @remarks
-     * Документы на сайте показываются плиткой с картинкой. Раньше её готовили
-     * руками и заливали отдельным файлом: лишний шаг, о котором забывают, и
-     * превью разъезжается с документом после его замены.
+     * От человека в админке не требуется ничего, кроме «выбрать файл»: кнопок
+     * «подготовить видео» нет и быть не должно — про них забывают, и ролик
+     * молча остаётся неиграбельным.
      *
-     * Работает после создания, а не до: файл к этому моменту уже сохранён, и
-     * сбой рендера не мешает загрузить сам документ. Превью кладём отдельным
-     * медиафайлом и связываем — так оно попадает в то же хранилище и получает
-     * тот же CDN-адрес, что и всё остальное.
+     * Ставится только на загрузку файла, а не на любое сохранение: правка
+     * подписи или переключение доступа перенарезки не требуют. Признак —
+     * наличие `req.file`; служебные обновления самой задачи помечены
+     * `context.skipHlsQueue`, иначе запись результата запустила бы новый круг.
      */
     afterChange: [
+      async ({ doc, req, context }) => {
+        if (context?.['skipHlsQueue']) return doc;
+        if (!req.file) return doc;
+        if (!String(doc?.mimeType ?? '').startsWith('video/')) return doc;
+
+        try {
+          await req.payload.jobs.queue({
+            task: 'build-hls',
+            input: { mediaId: String(doc.id) },
+          });
+          await req.payload.update({
+            collection: 'media',
+            id: doc.id as string | number,
+            data: { hls: { status: 'pending', error: null } },
+            context: { skipHlsQueue: true },
+          });
+        } catch (error) {
+          // Файл уже сохранён — ронять загрузку из-за очереди нельзя.
+          // Нарезку можно запустить кнопкой в списке задач.
+          req.payload.logger.error(
+            `[media] не удалось поставить нарезку для ${doc.id}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+        return doc;
+      },
+
+      /**
+       * Превью первой страницы для загруженного PDF.
+       *
+       * @remarks
+       * Документы на сайте показываются плиткой с картинкой. Раньше её готовили
+       * руками и заливали отдельным файлом: лишний шаг, о котором забывают, и
+       * превью разъезжается с документом после его замены.
+       *
+       * Работает после создания, а не до: файл к этому моменту уже сохранён, и
+       * сбой рендера не мешает загрузить сам документ. Превью кладём отдельным
+       * медиафайлом и связываем — так оно попадает в то же хранилище и получает
+       * тот же CDN-адрес, что и всё остальное.
+       */
       async ({ doc, operation, req }) => {
         if (operation !== 'create') return doc;
         if (doc?.mimeType !== 'application/pdf' || doc?.preview) return doc;
