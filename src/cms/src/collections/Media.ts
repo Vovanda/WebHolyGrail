@@ -48,8 +48,13 @@ export const Media: CollectionConfig = {
      *
      * Скрыты только из списка. Связь с роликом, ссылка и сам файл на месте,
      * и по прямому адресу обложка открывается как обычно.
+     *
+     * Признаком служит отдельное поле, а не имя папки: папку человек может
+     * поменять руками, и список тут же наполнился бы служебными кадрами.
      */
-    baseListFilter: () => ({ prefix: { not_equals: POSTER_PREFIX } }),
+    baseListFilter: () => ({
+      or: [{ derived: { equals: false } }, { derived: { exists: false } }],
+    }),
   },
   upload: {
     // Видео наравне с картинками: обложка с роликом на фоне и съёмка с объекта —
@@ -88,6 +93,21 @@ export const Media: CollectionConfig = {
        */
       name: 'title',
       type: 'text',
+      index: true,
+      admin: { hidden: true, readOnly: true },
+    },
+    {
+      /**
+       * Файл создан системой, а не загружен человеком.
+       *
+       * @remarks
+       * Такие файлы — обложки роликов — существуют отдельными записями только
+       * потому, что на них нужно ссылаться. Для владельца сайта это не контент,
+       * а свойство ролика, поэтому в медиатеке они не показываются.
+       */
+      name: 'derived',
+      type: 'checkbox',
+      defaultValue: false,
       index: true,
       admin: { hidden: true, readOnly: true },
     },

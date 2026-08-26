@@ -23,6 +23,7 @@ import * as migration_20260826_131100_user_channel from './20260826_131100_user_
 import * as migration_20260826_133934_playlists_entitlements from './20260826_133934_playlists_entitlements';
 import * as migration_20260826_144110_access_codes from './20260826_144110_access_codes';
 import * as migration_20260826_183023_media_title from './20260826_183023_media_title';
+import * as migration_20260826_191836_media_derived from './20260826_191836_media_derived';
 
 export const migrations = [
   {
@@ -149,5 +150,10 @@ export const migrations = [
     up: migration_20260826_183023_media_title.up,
     down: migration_20260826_183023_media_title.down,
     name: '20260826_183023_media_title',
+  },
+  {
+    up: migration_20260826_191836_media_derived.up,
+    down: migration_20260826_191836_media_derived.down,
+    name: '20260826_191836_media_derived',
   },
 ];

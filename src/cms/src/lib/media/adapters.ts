@@ -185,7 +185,7 @@ export function payloadCatalog(payload: Payload): CatalogPort {
     async savePoster(id, poster) {
       const created = await payload.create({
         collection: 'media',
-        data: { alt: 'Кадр из видео', prefix: POSTER_PREFIX },
+        data: { alt: 'Кадр из видео', prefix: POSTER_PREFIX, derived: true },
         file: {
           data: poster,
           name: `video-${id}-poster.jpg`,
