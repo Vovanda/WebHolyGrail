@@ -101,6 +101,78 @@ export const videoByCodeEndpoint: Endpoint = {
 };
 
 /**
+ * Отдаёт канал: сведения об авторе и его ролики.
+ *
+ * @remarks
+ * Тем же эндпоинтом, а не запросом к медиа с фильтром: чтение участников
+ * закрыто для посторонних, и снаружи по автору не отфильтровать.
+ *
+ * Закрытые ролики в список не попадают. Показывать их с замком заманчиво —
+ * это витрина платного, — но канал открыт всем, включая поисковик, и список
+ * закрытого превратился бы в оглавление курса для тех, кто его не покупал.
+ */
+export const videoChannelEndpoint: Endpoint = {
+  path: '/video/channel/:channel',
+  method: 'get',
+  handler: async (req) => {
+    const channel = String(req.routeParams?.['channel'] ?? '');
+    if (!channel) return json({ error: 'Не указан канал.' }, 400);
+
+    const owners = await req.payload.find({
+      collection: 'users',
+      where: { channel: { equals: channel } },
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+    });
+    const owner = owners.docs[0] as { id: string | number; name?: string } | undefined;
+    if (!owner) return json({ error: 'not-found' }, 404);
+
+    const videos = await req.payload.find({
+      collection: 'media',
+      where: {
+        and: [
+          { uploadedBy: { equals: owner.id } },
+          { 'hls.status': { equals: 'ready' } },
+          { access: { equals: 'public' } },
+        ],
+      },
+      sort: '-createdAt',
+      depth: 1,
+      limit: 60,
+      overrideAccess: true,
+    });
+
+    return json({
+      channel,
+      authorName: owner.name ?? null,
+      videos: videos.docs.flatMap((raw) => {
+        const doc = raw as {
+          id: string | number;
+          caption?: string;
+          alt?: string;
+          filename?: string;
+          shortCode?: string | null;
+          createdAt?: string;
+          preview?: { url?: string } | null;
+          hls?: { durationSeconds?: number | null; deletedAt?: string | null } | null;
+        };
+        if (!doc.shortCode || doc.hls?.deletedAt) return [];
+        return [
+          {
+            code: doc.shortCode,
+            title: doc.caption?.trim() || doc.alt?.trim() || doc.filename || 'Видео',
+            poster: doc.preview?.url ?? null,
+            durationSeconds: doc.hls?.durationSeconds ?? null,
+            createdAt: doc.createdAt ?? null,
+          },
+        ];
+      }),
+    });
+  },
+};
+
+/**
  * Говорит, откроется ли ролик у этого зрителя.
  *
  * @remarks

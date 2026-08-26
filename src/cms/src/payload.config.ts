@@ -30,6 +30,7 @@ import { PurgeVideosTask } from './jobs/purge-videos.task';
 import {
   videoAccessEndpoint,
   videoByCodeEndpoint,
+  videoChannelEndpoint,
   videoEnvelopeEndpoint,
   videoTokenEndpoint,
 } from './endpoints/video';
@@ -122,7 +123,13 @@ export default buildConfig({
    * Выдача доступа к видео. Живёт рядом с коллекциями, а не внутри `media`:
    * токен зрителя к конкретному медиафайлу не относится, он общий на сессию.
    */
-  endpoints: [videoTokenEndpoint, videoByCodeEndpoint, videoAccessEndpoint, videoEnvelopeEndpoint],
+  endpoints: [
+    videoTokenEndpoint,
+    videoByCodeEndpoint,
+    videoChannelEndpoint,
+    videoAccessEndpoint,
+    videoEnvelopeEndpoint,
+  ],
   /**
    * Jobs Queue — admin UI на /admin/collections/payload-jobs. Template поставляет
    * пустой набор tasks/workflows — downstream добавляет свои задачи (sync

@@ -601,3 +601,37 @@ export async function getVideoByCode(
     authorName: doc.authorName,
   };
 }
+
+/** Ролик в списке канала. */
+export interface ChannelVideo {
+  readonly code: string;
+  readonly title: string;
+  readonly poster: string | null;
+  readonly durationSeconds: number | null;
+  readonly createdAt: string | null;
+}
+
+/**
+ * Канал участника: кто он и что у него есть.
+ *
+ * @remarks
+ * Закрытые ролики сюда не приходят: канал открыт всем, включая поисковик,
+ * и список закрытого стал бы оглавлением курса для тех, кто его не покупал.
+ */
+export async function getChannel(
+  channel: string,
+): Promise<{
+  channel: string;
+  authorName: string | null;
+  videos: ReadonlyArray<ChannelVideo>;
+} | null> {
+  const response = await fetch(`${CMS_URL}/api/video/channel/${encodeURIComponent(channel)}`, {
+    cache: 'no-store',
+  });
+  if (!response.ok) return null;
+  return (await response.json()) as {
+    channel: string;
+    authorName: string | null;
+    videos: ReadonlyArray<ChannelVideo>;
+  };
+}
