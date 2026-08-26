@@ -14,6 +14,7 @@ import * as migration_20260802_193450_specialist_youtube from './20260802_193450
 import * as migration_20260802_193614_drop_specialist_site from './20260802_193614_drop_specialist_site';
 import * as migration_20260803_130810_catch_up_settings_media_blocks from './20260803_130810_catch_up_settings_media_blocks';
 import * as migration_20260803_164550_nav_children from './20260803_164550_nav_children';
+import * as migration_20260826_072342_threads_section_block from './20260826_072342_threads_section_block';
 
 export const migrations = [
   {
@@ -94,6 +95,11 @@ export const migrations = [
   {
     up: migration_20260803_164550_nav_children.up,
     down: migration_20260803_164550_nav_children.down,
-    name: '20260803_164550_nav_children'
+    name: '20260803_164550_nav_children',
+  },
+  {
+    up: migration_20260826_072342_threads_section_block.up,
+    down: migration_20260826_072342_threads_section_block.down,
+    name: '20260826_072342_threads_section_block',
   },
 ];
