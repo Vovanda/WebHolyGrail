@@ -32,6 +32,37 @@ function appSecret(): string {
 const nowSeconds = (): number => Math.floor(Date.now() / 1000);
 
 /**
+ * Кто смотрит: учётная запись, роль и владение этим роликом.
+ *
+ * @remarks
+ * Владение и роль решают доступ к закрытому наравне с покупкой, поэтому
+ * собираются в одном месте — иначе один эндпоинт учитывал бы их, а соседний
+ * молча нет.
+ */
+function viewerOf(
+  req: { user?: { id?: string | number; role?: string | null } | null },
+  uploadedBy: unknown,
+): {
+  userId: string | number | null;
+  ownsVideo: boolean;
+  isAdmin: boolean;
+  grantedPlaylists?: ReadonlyArray<string | number>;
+} {
+  const userId = req.user?.id ?? null;
+  // Автор приходит номером при depth=0 и документом при depth=1 — сверяем оба вида.
+  const ownerId =
+    typeof uploadedBy === 'object' && uploadedBy
+      ? ((uploadedBy as { id?: string | number }).id ?? null)
+      : ((uploadedBy as string | number | null) ?? null);
+
+  return {
+    userId,
+    ownsVideo: userId !== null && ownerId !== null && String(ownerId) === String(userId),
+    isAdmin: req.user?.role === 'admin',
+  };
+}
+
+/**
  * Отдаёт ролик по адресу канала и короткому коду.
  *
  * @remarks
@@ -301,6 +332,7 @@ export const videoAccessEndpoint: Endpoint = {
     })) as {
       id: string | number;
       access?: string;
+      uploadedBy?: unknown;
       hls?: { status?: string; deletedAt?: string | null };
     };
 
@@ -310,7 +342,7 @@ export const videoAccessEndpoint: Endpoint = {
 
     const decision = await entitlementPolicy(payloadEntitlements(req.payload)).decide(
       { id: doc.id, access: doc.access === 'private' ? 'private' : 'public' },
-      { userId: req.user?.id ?? null },
+      viewerOf(req, doc.uploadedBy),
     );
 
     return json({
@@ -367,6 +399,7 @@ export const videoEnvelopeEndpoint: Endpoint = {
     })) as {
       id: string | number;
       access?: string;
+      uploadedBy?: unknown;
       hls?: { status?: string; secret?: string | null; deletedAt?: string | null };
     };
 
@@ -383,7 +416,7 @@ export const videoEnvelopeEndpoint: Endpoint = {
 
     const result = await grantStreamAccess({
       video,
-      viewer: { userId: req.user?.id ?? null },
+      viewer: viewerOf(req, doc.uploadedBy),
       token,
       policy: entitlementPolicy(payloadEntitlements(req.payload)),
       appSecret: appSecret(),

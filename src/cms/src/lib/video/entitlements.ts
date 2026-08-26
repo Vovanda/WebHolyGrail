@@ -43,6 +43,10 @@ export function entitlementPolicy(
     async decide(video: RequestedVideo, viewer: Viewer): Promise<AccessDecision> {
       if (video.access === 'public') return { allowed: true };
 
+      // Своё и администраторское — без проверки прав: покупать доступ
+      // к собственному ролику не у кого.
+      if (viewer.ownsVideo || viewer.isAdmin) return { allowed: true };
+
       // Погашенный код проверяется первым и работает без входа: он и нужен
       // тем, у кого учётной записи нет.
       const granted = viewer.grantedPlaylists ?? [];

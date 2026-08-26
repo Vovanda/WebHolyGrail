@@ -69,4 +69,29 @@ describe('доступ с правами на наборы', () => {
     await policy.decide(closedVideo, { userId: 42 });
     expect(source.entitledPlaylistsFor).toHaveBeenCalledWith(2, 42, NOW);
   });
+
+  it('владелец смотрит своё', async () => {
+    // Иначе перед публикацией нельзя убедиться, что залит нужный файл.
+    const { policy, source } = policyWith([]);
+    expect(await policy.decide(closedVideo, { userId: 42, ownsVideo: true })).toEqual({
+      allowed: true,
+    });
+    // За правами при этом не ходим: покупать доступ к своему не у кого.
+    expect(source.entitledPlaylistsFor).not.toHaveBeenCalled();
+  });
+
+  it('чужое владение не открывает', async () => {
+    const { policy } = policyWith([]);
+    expect(await policy.decide(closedVideo, { userId: 42, ownsVideo: false })).toEqual({
+      allowed: false,
+      reason: 'not-entitled',
+    });
+  });
+
+  it('администратор смотрит чужое закрытое', async () => {
+    const { policy } = policyWith([]);
+    expect(await policy.decide(closedVideo, { userId: 1, isAdmin: true })).toEqual({
+      allowed: true,
+    });
+  });
 });
