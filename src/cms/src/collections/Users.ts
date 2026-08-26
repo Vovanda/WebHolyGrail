@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
+import { translitSlug } from '../lib/slug';
+
 /**
  * Users — редакторы CMS (admin-домен).
  *
@@ -37,12 +39,67 @@ export const Users: CollectionConfig = {
         return data;
       },
     ],
+
+    /**
+     * Заполняет адрес канала, если участник его не задал.
+     *
+     * @remarks
+     * Транслит имени, а при пустом имени — часть почты до собаки. Совпадения
+     * разводим номером: адрес уникален, и без этого второй Иван Петров не
+     * смог бы сохраниться вовсе.
+     *
+     * Только при создании: у существующего участника адрес не переписываем,
+     * даже если он сменил имя — ссылки на канал уже разошлись.
+     */
+    beforeValidate: [
+      async ({ req, operation, data }) => {
+        if (!data || operation !== 'create' || data['channel']) return data;
+
+        const source =
+          String(data['name'] ?? '').trim() || String(data['email'] ?? '').split('@')[0] || '';
+        const base = translitSlug(source, 24) || 'user';
+
+        let candidate = base;
+        for (let n = 2; n < 100; n += 1) {
+          const taken = await req.payload.count({
+            collection: 'users',
+            where: { channel: { equals: candidate } },
+          });
+          if (taken.totalDocs === 0) break;
+          candidate = `${base}-${n}`;
+        }
+
+        data['channel'] = candidate;
+        return data;
+      },
+    ],
   },
   fields: [
     {
       name: 'name',
       label: 'Имя',
       type: 'text',
+    },
+    {
+      /**
+       * Имя канала в адресе: `/@<канал>`.
+       *
+       * @remarks
+       * Отдельно от `name`: имя человека меняется свободно, а адрес канала —
+       * это ссылка, которая уже разошлась. Заполняется само транслитом имени
+       * при первом сохранении, дальше правится руками осознанно.
+       *
+       * Хранилище на него не завязано: файлы лежат под номером участника,
+       * поэтому переименование канала не трогает ни один сегмент.
+       */
+      name: 'channel',
+      label: 'Адрес канала',
+      type: 'text',
+      unique: true,
+      index: true,
+      admin: {
+        description: 'Часть адреса: /@<канал>. Менять после того, как ссылки разошлись, не стоит.',
+      },
     },
     {
       name: 'role',

@@ -546,3 +546,58 @@ export async function checkVideoAccess(
   if (!response.ok) return { allowed: false, reason: 'unavailable', status: 'pending' };
   return (await response.json()) as { allowed: boolean; reason: string | null; status: string };
 }
+
+/**
+ * Ролик по адресу канала и короткому коду.
+ *
+ * @remarks
+ * Через отдельный эндпоинт CMS, а не запросом к медиа с фильтром: чтение
+ * участников закрыто для посторонних, поэтому в обычной выдаче автор приходит
+ * номером и сверить адрес канала нечем.
+ */
+export async function getVideoByCode(
+  channel: string,
+  code: string,
+): Promise<
+  | (VideoStream & {
+      title: string;
+      description: string | null;
+      channel: string;
+      authorName: string | null;
+    })
+  | null
+> {
+  const response = await fetch(
+    `${CMS_URL}/api/video/by-code/${encodeURIComponent(channel)}/${encodeURIComponent(code)}`,
+    { cache: 'no-store' },
+  );
+  if (!response.ok) return null;
+
+  const doc = (await response.json()) as {
+    id: string | number;
+    channel: string;
+    authorName: string | null;
+    title: string;
+    description: string | null;
+    access: 'public' | 'private';
+    status: VideoStream['status'];
+    playlistUrl: string;
+    qualities: ReadonlyArray<number>;
+    durationSeconds: number | null;
+    poster: string | null;
+  };
+
+  return {
+    id: doc.id,
+    playlistUrl: doc.playlistUrl,
+    status: doc.status,
+    access: doc.access,
+    qualities: doc.qualities,
+    durationSeconds: doc.durationSeconds,
+    poster: doc.poster ? { id: doc.id, url: doc.poster, alt: '' } : null,
+    title: doc.title,
+    description: doc.description,
+    channel: doc.channel,
+    authorName: doc.authorName,
+  };
+}

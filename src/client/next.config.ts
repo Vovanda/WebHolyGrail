@@ -28,6 +28,23 @@ const nextConfig: NextConfig = {
   experimental: {
     // Next 15 Server Components are the default. Add future flags here.
   },
+  /**
+   * Адреса каналов в стиле `/@имя`.
+   *
+   * @remarks
+   * Папкой это не сделать: `@` в начале сегмента Next трактует как
+   * параллельный маршрут, а не как символ адреса. Поэтому наружу отдаём
+   * `/@имя/...`, а внутри живёт обычный сегмент `/channel/имя/...`.
+   *
+   * Именно перезапись, а не переадресация: адрес в строке браузера должен
+   * остаться тем, который человек скопирует и отправит.
+   */
+  async rewrites() {
+    return [
+      { source: '/@:channel', destination: '/channel/:channel' },
+      { source: '/@:channel/:path*', destination: '/channel/:channel/:path*' },
+    ];
+  },
 };
 
 export default nextConfig;

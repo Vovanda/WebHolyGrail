@@ -31,6 +31,76 @@ function appSecret(): string {
 const nowSeconds = (): number => Math.floor(Date.now() / 1000);
 
 /**
+ * Отдаёт ролик по адресу канала и короткому коду.
+ *
+ * @remarks
+ * Отдельным эндпоинтом, а не запросом к `media` с фильтром: чтение участников
+ * закрыто для посторонних, поэтому в обычной выдаче автор приходит номером и
+ * сверить адрес канала нечем.
+ *
+ * Наружу уходит только то, что нужно странице. Ни секрета, ни почты автора,
+ * ни прочего содержимого учётной записи здесь нет.
+ */
+export const videoByCodeEndpoint: Endpoint = {
+  path: '/video/by-code/:channel/:code',
+  method: 'get',
+  handler: async (req) => {
+    const channel = String(req.routeParams?.['channel'] ?? '');
+    const code = String(req.routeParams?.['code'] ?? '');
+    if (!channel || !code) return json({ error: 'Не указан адрес.' }, 400);
+
+    const found = await req.payload.find({
+      collection: 'media',
+      where: { shortCode: { equals: code } },
+      depth: 1,
+      limit: 1,
+      overrideAccess: true,
+    });
+
+    const doc = found.docs[0] as
+      | {
+          id: string | number;
+          alt?: string;
+          caption?: string;
+          filename?: string;
+          access?: string;
+          uploadedBy?: { channel?: string; name?: string } | string | number | null;
+          preview?: { url?: string; alt?: string } | null;
+          hls?: {
+            status?: string;
+            playlistUrl?: string | null;
+            qualities?: ReadonlyArray<{ height?: number | null }> | null;
+            durationSeconds?: number | null;
+            deletedAt?: string | null;
+          } | null;
+        }
+      | undefined;
+
+    if (!doc || doc.hls?.deletedAt) return json({ error: 'not-found' }, 404);
+
+    // Адрес должен совпасть целиком: код уникален сам по себе, но без сверки
+    // канала один ролик открывался бы с любым именем в ссылке, и поисковик
+    // видел бы десяток дублей одной страницы.
+    const owner = typeof doc.uploadedBy === 'object' && doc.uploadedBy ? doc.uploadedBy : null;
+    if ((owner?.channel ?? '') !== channel) return json({ error: 'not-found' }, 404);
+
+    return json({
+      id: doc.id,
+      channel,
+      authorName: owner?.name ?? null,
+      title: doc.caption?.trim() || doc.alt?.trim() || doc.filename || 'Видео',
+      description: doc.alt?.trim() || null,
+      access: doc.access === 'private' ? 'private' : 'public',
+      status: doc.hls?.status ?? 'pending',
+      playlistUrl: doc.hls?.playlistUrl ?? '',
+      qualities: (doc.hls?.qualities ?? []).flatMap((q) => (q?.height ? [q.height] : [])),
+      durationSeconds: doc.hls?.durationSeconds ?? null,
+      poster: doc.preview?.url ?? null,
+    });
+  },
+};
+
+/**
  * Говорит, откроется ли ролик у этого зрителя.
  *
  * @remarks
