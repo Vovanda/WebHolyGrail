@@ -15,6 +15,15 @@
 export interface Viewer {
   /** `null` — не вошёл. */
   readonly userId: string | number | null;
+  /**
+   * Наборы, открытые погашенными кодами.
+   *
+   * @remarks
+   * Приходят из токена зрителя, записи в базе у них нет. Вход они не требуют:
+   * промо-доступ по коду для того и существует, чтобы человек не заводил
+   * учётную запись ради одного ролика.
+   */
+  readonly grantedPlaylists?: ReadonlyArray<string | number> | undefined;
 }
 
 /** Что известно о ролике. */

@@ -15,6 +15,7 @@ const NOW = new Date('2026-08-26T12:00:00Z');
 const policyWith = (entitled: ReadonlyArray<string | number>) => {
   const source: EntitlementSource = {
     entitledPlaylistsFor: vi.fn(async () => entitled),
+    playlistsContaining: vi.fn(async () => []),
   };
   return { policy: entitlementPolicy(source, () => NOW), source };
 };

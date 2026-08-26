@@ -132,7 +132,28 @@
 
 ; Право зрителя на набор. Способ выдачи (код, оплата, рука администратора)
 ; модели безразличен — важен сам факт.
-(declare-fun entitled (Viewer Playlist) Bool)
+;
+; Источников два, и они не равнозначны по хранению. Купленное право — запись
+; в базе за учётной записью: его видно, продлевают и отзывают. Право из
+; погашенного кода записи не имеет: оно лежит в токене зрителя и живёт ровно
+; столько же, сколько токен. Для доступа разницы нет, поэтому итоговое
+; entitled — их объединение.
+(declare-fun purchased      (Viewer Playlist) Bool)
+(declare-fun grantedInToken (Viewer Playlist) Bool)
+
+(define-fun entitled ((z Viewer) (p Playlist)) Bool
+  (or (purchased z p) (grantedInToken z p)))
+
+; Право из токена принадлежит токену, а не человеку: у другого зрителя токен
+; другой, и то же самое право в нём не появляется само.
+(assert (forall ((a Viewer) (b Viewer) (p Playlist))
+  (=> (and (grantedInToken a p) (not (= a b)))
+      (or (= (token a) (token b)) (not (grantedInToken b p))))))
+
+; Купленное право закрепляется за учётной записью: анониму его не за кем
+; удержать. Право из кода вход не требует — в этом и смысл промо-доступа.
+(assert (forall ((z Viewer) (p Playlist))
+  (=> (purchased z p) (signedIn z))))
 
 ; Ролику нужен доступ. Бесплатные вводные уроки признака не имеют и открыты
 ; всем, даже находясь в платном наборе.
@@ -366,6 +387,44 @@
 (assert (inPlaylist v p))
 (assert (entitled z p))
 (assert (envelopeIssuedWithEntitlements v z))
+(check-sat)
+(pop)
+
+;@TEST          Код открывает закрытый урок без учётной записи
+;@EXPECT        sat
+;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::код открывает без входа
+(push)
+(declare-const v Video)
+(declare-const p Playlist)
+(declare-const z Viewer)
+(assert (= (status v) Ready))
+(assert (needsEntitlement v))
+(assert (inPlaylist v p))
+(assert (not (signedIn z)))
+(assert (grantedInToken z p))
+(assert (envelopeIssuedWithEntitlements v z))
+(check-sat)
+(pop)
+
+;@TEST          Право из кода не достаётся другому зрителю
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::чужой токен не открывает
+(push)
+(declare-const v Video)
+(declare-const p Playlist)
+(declare-const first Viewer)
+(declare-const second Viewer)
+(assert (needsEntitlement v))
+(assert (inPlaylist v p))
+(assert (not (= first second)))
+(assert (grantedInToken first p))
+; У второго зрителя нет ни покупки, ни своего погашенного кода на этот набор,
+; и права первого он не наследует.
+(assert (forall ((q Playlist)) (not (purchased second q))))
+; Ни в одном наборе с этим уроком у второго зрителя своего кода нет: иначе
+; отказ не про наследование права, а про другой набор.
+(assert (forall ((q Playlist)) (=> (inPlaylist v q) (not (grantedInToken second q)))))
+(assert (envelopeIssuedWithEntitlements v second))
 (check-sat)
 (pop)
 

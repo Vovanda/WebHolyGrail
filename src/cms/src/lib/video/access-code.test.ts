@@ -14,7 +14,7 @@ describe('код доступа', () => {
   it('только заглавные и цифры, без похожих символов', () => {
     // Код диктуют по телефону: ноль с буквой O и единица с I путаются.
     const codes = Array.from({ length: 300 }, () => generateAccessCode()).join('');
-    expect(codes).toMatch(/^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]+$/);
+    expect(codes).toMatch(/^[0-9ABCDEFGHJKMNPQRSTVWXYZ]+$/);
   });
 
   it('не повторяется на большом наборе', () => {
@@ -27,8 +27,15 @@ describe('код доступа', () => {
   });
 
   it('привычные опечатки исправляются, а не отвергаются', () => {
-    // Человек написал ноль вместо O и единицу вместо J — это тот же код.
-    expect(normalizeAccessCode('0BC1DE')).toBe(normalizeAccessCode('OBCJDE'));
+    // Человек написал букву O вместо нуля и I вместо единицы — тот же код.
+    expect(normalizeAccessCode('OBC1DE')).toBe('0BC1DE');
+    expect(normalizeAccessCode('0BCIDE')).toBe('0BC1DE');
+    expect(normalizeAccessCode('0BCLDE')).toBe('0BC1DE');
+  });
+
+  it('исправленный код остаётся в алфавите выдачи', () => {
+    // Иначе выданный код с «L» после исправления не совпал бы сам с собой.
+    expect(normalizeAccessCode(generateAccessCode(8))).toMatch(/^[0-9ABCDEFGHJKMNPQRSTVWXYZ]+$/);
   });
 
   it('лишние символы отбрасываются', () => {

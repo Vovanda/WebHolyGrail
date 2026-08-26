@@ -14,24 +14,28 @@ import type { EntitlementSource } from './entitlements';
  * работал бы вечно.
  */
 export function payloadEntitlements(payload: Payload): EntitlementSource {
+  const playlistsContaining = async (videoId: string | number) => {
+    const found = await payload.find({
+      collection: 'playlists',
+      where: { 'items.video': { equals: videoId } },
+      depth: 0,
+      limit: 50,
+      overrideAccess: true,
+    });
+    return found.docs.map((doc) => doc.id);
+  };
+
   return {
+    playlistsContaining,
+
     async entitledPlaylistsFor(videoId, viewerId, now) {
-      const playlists = await payload.find({
-        collection: 'playlists',
-        where: { 'items.video': { equals: videoId } },
-        depth: 0,
-        limit: 50,
-        overrideAccess: true,
-      });
-      if (playlists.docs.length === 0) return [];
+      const ids = await playlistsContaining(videoId);
+      if (ids.length === 0) return [];
 
       const grants = await payload.find({
         collection: 'entitlements',
         where: {
-          and: [
-            { viewer: { equals: viewerId } },
-            { playlist: { in: playlists.docs.map((p) => p.id).join(',') } },
-          ],
+          and: [{ viewer: { equals: viewerId } }, { playlist: { in: ids.join(',') } }],
         },
         depth: 0,
         limit: 50,

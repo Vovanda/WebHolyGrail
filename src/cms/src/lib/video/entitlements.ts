@@ -24,6 +24,15 @@ export interface EntitlementSource {
     viewerId: string | number,
     now: Date,
   ): Promise<ReadonlyArray<string | number>>;
+
+  /**
+   * Наборы, куда входит ролик.
+   *
+   * @remarks
+   * Нужны, чтобы сверить их с наборами из токена: право, выданное кодом,
+   * записи в базе не имеет, и спросить о нём базу нельзя.
+   */
+  playlistsContaining(videoId: string | number): Promise<ReadonlyArray<string | number>>;
 }
 
 export function entitlementPolicy(
@@ -34,7 +43,18 @@ export function entitlementPolicy(
     async decide(video: RequestedVideo, viewer: Viewer): Promise<AccessDecision> {
       if (video.access === 'public') return { allowed: true };
 
-      // Не вошёл — права быть не может: оно всегда чьё-то.
+      // Погашенный код проверяется первым и работает без входа: он и нужен
+      // тем, у кого учётной записи нет.
+      const granted = viewer.grantedPlaylists ?? [];
+      if (granted.length > 0) {
+        const containing = await source.playlistsContaining(video.id);
+        // Идентификаторы приходят из токена строкой, из базы — числом.
+        const asText = new Set(containing.map(String));
+        if (granted.some((id) => asText.has(String(id)))) return { allowed: true };
+      }
+
+      // Купленное право закреплено за учётной записью: анониму его не за кем
+      // удержать.
       if (viewer.userId === null) return { allowed: false, reason: 'sign-in-required' };
 
       const entitled = await source.entitledPlaylistsFor(video.id, viewer.userId, now());
