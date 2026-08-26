@@ -7,9 +7,9 @@ import { getPlaylistByCode, type PlaylistItem } from '@/lib/api-client';
  * Страница набора: `/@<канал>/p/<код>`.
  *
  * @remarks
- * Оглавление курса — его продающая часть, поэтому закрытые уроки здесь видны,
- * но с замком: название и обложка говорят, за что платят, а играть урок не
- * начнёт — конверт выдаётся отдельно и по тем же правилам.
+ * Состав набора — его витрина, поэтому закрытые ролики здесь видны, но с
+ * замком: название и обложка говорят, что внутри, а играть ролик не начнёт —
+ * конверт выдаётся отдельно и по тем же правилам.
  *
  * Рендерится на сервере (R14): замок зависит от прав конкретного зрителя, и
  * собранная в браузере страница показала бы всем одно и то же.
@@ -60,7 +60,7 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
             <a href={`/@${playlist.channel}`} className="hover:text-ink hover:underline">
               {playlist.authorName ?? `@${playlist.channel}`}
             </a>
-            {` · ${playlist.items.length} ${plural(playlist.items.length, 'урок', 'урока', 'уроков')}`}
+            {` · ${playlist.items.length} ${plural(playlist.items.length, 'ролик', 'ролика', 'роликов')}`}
             {openCount < playlist.items.length ? ` · ${openCount} открыто` : ''}
           </p>
           {playlist.description && (
@@ -70,11 +70,16 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
       </header>
 
       {playlist.items.length === 0 ? (
-        <p className="text-body text-muted">В наборе пока нет уроков.</p>
+        <p className="text-body text-muted">В наборе пока нет роликов.</p>
       ) : (
         <ol className="flex flex-col gap-3">
           {playlist.items.map((item, index) => (
-            <LessonRow key={item.code} item={item} index={index + 1} channel={playlist.channel} />
+            <PlaylistItemRow
+              key={item.code}
+              item={item}
+              index={index + 1}
+              channel={playlist.channel}
+            />
           ))}
         </ol>
       )}
@@ -83,13 +88,13 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
 }
 
 /**
- * Строка урока.
+ * Строка ролика в наборе.
  *
  * @remarks
- * Закрытый урок не ссылка: вести на страницу, где вместо плеера заглушка, —
+ * Закрытый ролик не ссылка: вести на страницу, где вместо плеера заглушка, —
  * значит обещать просмотр и не давать его. Причина замка написана прямо здесь.
  */
-function LessonRow({
+function PlaylistItemRow({
   item,
   index,
   channel,
@@ -151,8 +156,8 @@ function LessonRow({
 }
 
 function lockText(item: PlaylistItem): string {
-  if (!item.ready) return 'Урок готовится к показу';
-  return item.lockReason === 'not-entitled' ? 'Входит в платный набор' : 'Доступно после входа';
+  if (!item.ready) return 'Готовится к показу';
+  return item.lockReason === 'not-entitled' ? 'Нужен доступ к набору' : 'Доступно после входа';
 }
 
 function LockIcon() {
@@ -178,7 +183,7 @@ function formatDuration(seconds: number): string {
   return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
-/** «3 урока», «5 уроков» — иначе счётчик читается как машинный. */
+/** «3 ролика», «5 роликов» — иначе счётчик читается как машинный. */
 function plural(count: number, one: string, few: string, many: string): string {
   const mod100 = count % 100;
   if (mod100 >= 11 && mod100 <= 14) return many;

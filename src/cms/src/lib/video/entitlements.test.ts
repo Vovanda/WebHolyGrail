@@ -24,12 +24,12 @@ const openVideo = { id: 1, access: 'public' as const };
 const closedVideo = { id: 2, access: 'private' as const };
 
 describe('доступ с правами на наборы', () => {
-  it('бесплатный урок открыт всем даже в платном наборе', async () => {
+  it('открытый ролик виден всем даже в платном наборе', async () => {
     const { policy } = policyWith([]);
     expect(await policy.decide(openVideo, { userId: null })).toEqual({ allowed: true });
   });
 
-  it('открытый урок не требует похода за правами', async () => {
+  it('открытый ролик не требует похода за правами', async () => {
     // Лишний запрос к базе на каждый открытый ролик — это нагрузка ради
     // случая, который решается сразу.
     const { policy, source } = policyWith([]);
@@ -37,7 +37,7 @@ describe('доступ с правами на наборы', () => {
     expect(source.entitledPlaylistsFor).not.toHaveBeenCalled();
   });
 
-  it('закрытый урок без входа просит войти', async () => {
+  it('закрытый ролик без входа просит войти', async () => {
     const { policy } = policyWith([]);
     expect(await policy.decide(closedVideo, { userId: null })).toEqual({
       allowed: false,
@@ -54,12 +54,12 @@ describe('доступ с правами на наборы', () => {
     });
   });
 
-  it('право на набор открывает закрытый урок', async () => {
+  it('право на набор открывает закрытый ролик', async () => {
     const { policy } = policyWith([7]);
     expect(await policy.decide(closedVideo, { userId: 42 })).toEqual({ allowed: true });
   });
 
-  it('урок в двух курсах открывается правом на любой', async () => {
+  it('ролик в двух наборах открывается правом на любой', async () => {
     const { policy } = policyWith([9]);
     expect(await policy.decide(closedVideo, { userId: 42 })).toEqual({ allowed: true });
   });

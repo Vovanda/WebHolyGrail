@@ -155,12 +155,12 @@
 (assert (forall ((z Viewer) (p Playlist))
   (=> (purchased z p) (signedIn z))))
 
-; Ролику нужен доступ. Бесплатные вводные уроки признака не имеют и открыты
-; всем, даже находясь в платном наборе.
+; Ролику нужен доступ. Открытые ролики признака не имеют и доступны всем,
+; даже находясь в платном наборе.
 (define-fun needsEntitlement ((v Video)) Bool (= (access v) Private))
 
 ; Итог: закрытый ролик открывается, если у зрителя есть право хотя бы на один
-; набор, куда этот ролик входит. Купил любой курс с этим уроком — смотришь.
+; набор, куда этот ролик входит. Есть право на любой из них — смотришь.
 (define-fun mayWatch ((v Video) (z Viewer)) Bool
   (or (not (needsEntitlement v))
       (exists ((p Playlist)) (and (inPlaylist v p) (entitled z p)))))
@@ -348,9 +348,9 @@
 (check-sat)
 (pop)
 
-;@TEST          Бесплатный урок открыт всем даже в платном наборе
+;@TEST          Открытый ролик доступен всем даже в платном наборе
 ;@EXPECT        sat
-;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::бесплатный урок
+;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::открытый ролик
 (push)
 (declare-const v Video)
 (declare-const p Playlist)
@@ -363,7 +363,7 @@
 (check-sat)
 (pop)
 
-;@TEST          Закрытый урок без права не открывается
+;@TEST          Закрытый ролик без права не открывается
 ;@EXPECT        unsat
 ;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::нет права
 (push)
@@ -375,9 +375,9 @@
 (check-sat)
 (pop)
 
-;@TEST          Право на набор открывает все его закрытые уроки
+;@TEST          Право на набор открывает всё закрытое в нём
 ;@EXPECT        sat
-;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::оплата открывает набор
+;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::право на набор
 (push)
 (declare-const v Video)
 (declare-const p Playlist)
@@ -390,9 +390,9 @@
 (check-sat)
 (pop)
 
-;@TEST          Код открывает закрытый урок без учётной записи
+;@TEST          Код открывает закрытый ролик без учётной записи
 ;@EXPECT        sat
-;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::код открывает без входа
+;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::код открывает закрытый ролик без входа
 (push)
 (declare-const v Video)
 (declare-const p Playlist)
@@ -428,7 +428,7 @@
 (check-sat)
 (pop)
 
-;@TEST          Право на чужой набор не открывает урок
+;@TEST          Право на чужой набор не открывает ролик
 ;@EXPECT        unsat
 ;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::право на другой курс
 (push)
@@ -445,9 +445,9 @@
 (check-sat)
 (pop)
 
-;@TEST          Урок в двух курсах открывается правом на любой из них
+;@TEST          Ролик в двух наборах открывается правом на любой из них
 ;@EXPECT        sat
-;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::урок в двух курсах
+;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::ролик в двух наборах
 (push)
 (declare-const v Video)
 (declare-const first Playlist)
