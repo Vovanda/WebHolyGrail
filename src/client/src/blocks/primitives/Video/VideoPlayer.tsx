@@ -63,6 +63,17 @@ export function VideoPlayer({ src, token, mediaId, poster, className, title }: V
   const [reason, setReason] = useState<string>('sign-in-required');
 
   /**
+   * Соотношение сторон ролика.
+   *
+   * @remarks
+   * До загрузки метаданных стоит 16:9 — иначе страница прыгает, когда кадр
+   * наконец приходит. Дальше плеер принимает форму самого ролика: вертикальное
+   * видео в горизонтальной рамке живёт в чёрных полях, а на телефоне от него
+   * остаётся полоска посреди экрана.
+   */
+  const [ratio, setRatio] = useState('16 / 9');
+
+  /**
    * Плеер собирается только в браузере.
    *
    * @remarks
@@ -148,8 +159,23 @@ export function VideoPlayer({ src, token, mediaId, poster, className, title }: V
       startLevel: 0,
       loader: EnvelopeAwareLoader,
     };
+    // Размеры известны только из самого потока: в плейлисте их нет, а до
+    // метаданных браузер о ролике ничего не знает.
+    const applyRatio = () => {
+      if (video.videoWidth > 0 && video.videoHeight > 0) {
+        setRatio(`${video.videoWidth} / ${video.videoHeight}`);
+      }
+    };
+    video.addEventListener('loadedmetadata', applyRatio);
+    video.addEventListener('resize', applyRatio);
+
     video.setAttribute('src', src);
     setPhase('playing');
+
+    return () => {
+      video.removeEventListener('loadedmetadata', applyRatio);
+      video.removeEventListener('resize', applyRatio);
+    };
   }, [src, token, mediaId, mounted]);
 
   if (phase === 'denied' || phase === 'not-ready') {
@@ -178,11 +204,12 @@ export function VideoPlayer({ src, token, mediaId, poster, className, title }: V
           playsInline
           preload="none"
           title={title}
-          className="block aspect-video h-full w-full"
+          className="block h-full w-full"
+          style={{ aspectRatio: ratio }}
         />
       ) : (
         /* @ts-expect-error — веб-компоненты media-chrome не типизированы для JSX */
-        <media-controller class="block w-full aspect-video">
+        <media-controller class="block w-full" style={{ aspectRatio: ratio }}>
           {/* @ts-expect-error — веб-компонент */}
           <hls-video
             ref={videoRef}

@@ -51,7 +51,13 @@ export default async function VideoPage({ params }: { params: Promise<Params> })
   const token = access.allowed && video.status === 'ready' ? await issueVideoToken() : null;
 
   return (
-    <main className="mx-auto flex max-w-content flex-col gap-5 px-4 py-8 md:px-6 md:py-12">
+    /*
+      Плеер идёт в широком контейнере, а описание под ним — в узком: страница
+      ролика это в первую очередь картинка, и зажимать её в колонку под текст
+      значит оставить вокруг пустые поля. Текст же в широкой колонке нечитаем,
+      поэтому ширины у них разные.
+    */
+    <main className="mx-auto flex max-w-wide flex-col gap-5 px-4 py-6 md:px-6 md:py-8">
       {token ? (
         <VideoPlayer
           src={video.playlistUrl}
@@ -72,7 +78,7 @@ export default async function VideoPage({ params }: { params: Promise<Params> })
         </div>
       )}
 
-      <header className="flex flex-col gap-2">
+      <header className="flex max-w-content flex-col gap-2">
         <h1 className="text-h2 font-display font-semibold tracking-tight text-ink text-balance">
           {video.title}
         </h1>
@@ -82,9 +88,7 @@ export default async function VideoPage({ params }: { params: Promise<Params> })
           </a>
           {video.durationSeconds ? ` · ${formatDuration(video.durationSeconds)}` : ''}
         </p>
-        {video.description && (
-          <p className="text-body leading-relaxed text-ink/90">{video.description}</p>
-        )}
+        {video.description && <Description text={video.description} />}
       </header>
 
       {/*
@@ -113,6 +117,56 @@ export default async function VideoPage({ params }: { params: Promise<Params> })
       )}
     </main>
   );
+}
+
+/**
+ * Описание ролика с раскрытием.
+ *
+ * @remarks
+ * Длинное описание занимает пол-экрана и отодвигает всё, что под ним, поэтому
+ * показывается началом, а остаток раскрывается по нажатию.
+ *
+ * Без JS (R14): `details` умеет это сам. Текст при этом не дублируется —
+ * начало живёт в заголовке, продолжение в теле, — иначе поисковик видел бы
+ * описание дважды.
+ */
+function Description({ text }: { text: string }) {
+  const { head, tail } = splitForPreview(text, 240);
+
+  if (!tail) {
+    return <p className="whitespace-pre-line text-body leading-relaxed text-ink/90">{text}</p>;
+  }
+
+  return (
+    <details className="group">
+      <summary className="cursor-pointer list-none whitespace-pre-line text-body leading-relaxed text-ink/90 [&::-webkit-details-marker]:hidden">
+        {head}
+        <span className="group-open:hidden">…</span>
+        <span className="ml-1 whitespace-nowrap text-sm font-medium text-muted group-hover:text-ink group-open:hidden">
+          ещё
+        </span>
+      </summary>
+      <p className="whitespace-pre-line text-body leading-relaxed text-ink/90">{tail}</p>
+      <span className="mt-1 inline-block cursor-pointer text-sm font-medium text-muted">
+        свернуть
+      </span>
+    </details>
+  );
+}
+
+/**
+ * Делит текст на видимое начало и остаток.
+ *
+ * @remarks
+ * Режем по границе слова: обрыв посреди слова читается как поломка вёрстки.
+ * Если остаток совсем короткий, деление не имеет смысла — текст отдаётся целиком.
+ */
+function splitForPreview(text: string, limit: number): { head: string; tail: string } {
+  if (text.length <= limit + 40) return { head: text, tail: '' };
+
+  const space = text.lastIndexOf(' ', limit);
+  const cut = space > limit / 2 ? space : limit;
+  return { head: text.slice(0, cut), tail: text.slice(cut).trimStart() };
 }
 
 /** «12:05» — привычный вид длительности рядом с названием. */
