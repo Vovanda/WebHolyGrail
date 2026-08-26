@@ -9,6 +9,7 @@ import type { Payload } from 'payload';
 
 import { DEFAULT_LADDER, transcodeToHls, type HlsRung } from '../hls';
 import type { CatalogPort, EncoderPort, StoragePort, VideoPorts } from './ports';
+import { POSTER_PREFIX } from '../../collections/Media';
 
 /**
  * Реализации портов подготовки видео: ffmpeg, S3, Payload.
@@ -181,7 +182,7 @@ export function payloadCatalog(payload: Payload): CatalogPort {
     async savePoster(id, poster) {
       const created = await payload.create({
         collection: 'media',
-        data: { alt: 'Кадр из видео', prefix: 'previews' },
+        data: { alt: 'Кадр из видео', prefix: POSTER_PREFIX },
         file: {
           data: poster,
           name: `video-${id}-poster.jpg`,

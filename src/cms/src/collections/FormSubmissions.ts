@@ -18,7 +18,7 @@ export const FormSubmissions: CollectionConfig = {
   admin: {
     useAsTitle: 'formType',
     defaultColumns: ['formType', 'status', 'createdAt', 'source'],
-    group: 'Заявки',
+    group: 'Обращения',
   },
   hooks: {
     afterChange: [

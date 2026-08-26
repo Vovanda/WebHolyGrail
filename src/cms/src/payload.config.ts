@@ -101,30 +101,40 @@ export default buildConfig({
       beforeDashboard: ['/admin/components/ComplianceNotice#ComplianceNotice'],
     },
   },
+  /**
+   * Порядок здесь задаёт порядок разделов в админке.
+   *
+   * @remarks
+   * Сверху то, куда заходят каждый день, снизу служебное. Поэтому первым идёт
+   * контент, за ним обращения от посетителей: непрочитанная заявка стоит
+   * дороже, чем ненаписанная статья. Настройки и учётные записи — последними:
+   * их трогают редко, а место наверху они занимали постоянно.
+   */
   collections: [
-    Users,
-    Media,
+    // Контент — то, из чего состоит сайт.
     Pages,
-    FormSubmissions,
+    Media,
     ReusableBlocks,
-    SocialPosts,
-    Comments,
     FaqGroups,
-    // Блог (#43): Articles, Threads, Tags, Authors. Имя `Articles` теперь
-    // постоянное — слот `posts` свободен (после #49), можно использовать
-    // если хотим единый naming с Ghost/Substack, но `articles` более
-    // конкретно отражает функцию.
+    // Обращения — то, ради чего сайт обычно и заводят.
+    FormSubmissions,
+    // Блог (#43): Articles, Threads, Tags, Authors. Имя `Articles` постоянное —
+    // слот `posts` свободен (после #49), но `articles` конкретнее отражает функцию.
     Articles,
     Threads,
     Tags,
     Authors,
-    // Каталог специалистов по городам (тренеры, мастера, врачи).
-    Cities,
-    Specialists,
-    // Видео: наборы роликов, права на них и коды, которые эти права выдают.
+    // Доступ к видео: наборы роликов, права на них и коды, которые эти права
+    // выдают. Сами ролики лежат в медиа — здесь только управление доступом.
     Playlists,
     Entitlements,
     AccessCodes,
+    // Каталог специалистов по городам (тренеры, мастера, врачи).
+    Cities,
+    Specialists,
+    SocialPosts,
+    Comments,
+    Users,
   ].map(withAutoSlug),
   globals: [SiteSettings],
   /**

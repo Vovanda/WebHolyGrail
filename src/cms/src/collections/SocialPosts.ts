@@ -20,7 +20,7 @@ export const SocialPosts: CollectionConfig = {
   admin: {
     useAsTitle: 'previewTitle',
     defaultColumns: ['source', 'date', 'previewTitle', 'metrics_likes', 'metrics_comments'],
-    group: 'Лента',
+    group: 'Соцсети',
     description:
       'Посты из соц-сетей (VK / Telegram). Наполняется автоматически — синхронизация запускается командой sync:vk-posts.',
   },

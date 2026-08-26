@@ -18,13 +18,38 @@ import { renderPdfPreview } from '../lib/pdf-preview';
  * Derived image sizes are produced by sharp on upload. The variant names match
  * the keys of `MediaDoc.sizes` in `contracts`.
  */
+/**
+ * Папка, в которой лежат обложки роликов.
+ *
+ * @remarks
+ * По ней же они отсеиваются из списка медиа, поэтому значение общее с тем
+ * местом, где обложка создаётся: разъехавшись, они снова засорят медиатеку.
+ */
+export const POSTER_PREFIX = 'previews';
+
 export const Media: CollectionConfig = {
   slug: 'media',
   labels: { singular: 'Медиафайл', plural: 'Медиа' },
   admin: {
     useAsTitle: 'filename',
-    defaultColumns: ['filename', 'alt', 'mimeType', 'filesize'],
+    // Название впереди имени файла: в списке ищут глазами по названию, а
+    // `lesson-4.mp4` о содержимом не говорит ничего. Описание из колонок убрано —
+    // у видео оно в несколько строк и разносит таблицу.
+    defaultColumns: ['preview', 'filename', 'caption', 'mimeType', 'updatedAt'],
     group: 'Контент',
+    /**
+     * Обложки роликов не показываются в общем списке.
+     *
+     * @remarks
+     * Они создаются сами при нарезке и лежат отдельными файлами, потому что
+     * иначе их не на что сослаться. Но для человека это не контент: на каждый
+     * загруженный ролик в списке появлялась вторая строка, и медиатека
+     * наполовину состояла из служебных кадров.
+     *
+     * Скрыты только из списка. Связь с роликом, ссылка и сам файл на месте,
+     * и по прямому адресу обложка открывается как обычно.
+     */
+    baseListFilter: () => ({ prefix: { not_equals: POSTER_PREFIX } }),
   },
   upload: {
     // Видео наравне с картинками: обложка с роликом на фоне и съёмка с объекта —
@@ -74,6 +99,11 @@ export const Media: CollectionConfig = {
       relationTo: 'media',
       admin: {
         readOnly: true,
+        components: {
+          // В списке вместо ссылки на документ показываем сам кадр: у видео
+          // штатная миниатюра Payload — серая иконка на все строки подряд.
+          Cell: '/admin/components/MediaThumbCell#MediaThumbCell',
+        },
         description:
           'Для PDF собирается само из первой страницы при загрузке. Заполнять вручную не нужно.',
       },
@@ -82,12 +112,22 @@ export const Media: CollectionConfig = {
       // The field name `prefix` is the convention of `@payloadcms/storage-s3` (it
       // reads the field with exactly that slug, no extra setup needed).
       name: 'prefix',
-      label: 'Bucket folder (optional)',
+      label: 'Папка в хранилище',
       type: 'text',
-      defaultValue: 'media',
+      /**
+       * По умолчанию пусто, то есть файл лежит в корне бакета.
+       *
+       * @remarks
+       * Раньше здесь стояло `media`, и адрес получался с удвоением:
+       * публичный корень хранилища уже заканчивается на `/media`, а к ключу
+       * добавлялась папка с тем же именем — выходило `/media/media/файл`.
+       *
+       * Разложить по папкам по-прежнему можно, вписав своё имя; служебные
+       * обложки роликов так и живут в собственной папке.
+       */
+      defaultValue: '',
       admin: {
-        description:
-          'Sub-folder inside the S3 bucket. Default `media` (no sub-folder). With `useCompositePrefixes` the resulting key is `<this prefix>/<filename>`.',
+        description: 'Пусто — файл лежит в корне хранилища. Имя папки задаётся вручную.',
         position: 'sidebar',
       },
     },
@@ -123,6 +163,17 @@ export const Media: CollectionConfig = {
       admin: {
         components: {
           Field: '/admin/components/VideoPreviewField#VideoPreviewField',
+        },
+      },
+    },
+    {
+      // Возврат помеченного к удалению. Стоит рядом с превью, а не в служебной
+      // группе: это единственное действие среди её полей, а сама группа скрыта.
+      name: 'videoRestore',
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '/admin/components/RestoreVideoField#RestoreVideoField',
         },
       },
     },
@@ -188,9 +239,21 @@ export const Media: CollectionConfig = {
       name: 'hls',
       label: 'Потоковое видео',
       type: 'group',
+      /**
+       * Из формы группа скрыта целиком.
+       *
+       * @remarks
+       * Все её поля заполняются нарезкой и доступны только для чтения, то есть
+       * повлиять на них нельзя ничем. При этом заголовок с пояснением занимал
+       * пол-карточки, а состояние, качества и длительность и так показаны
+       * строкой под кадром.
+       *
+       * Данные никуда не делись: их читают эндпоинты и плеер, а единственное
+       * действие — возврат удалённого ролика — вынесено кнопкой к превью.
+       */
       admin: {
+        hidden: true,
         condition: (data) => String(data?.mimeType ?? '').startsWith('video/'),
-        description: 'Заполняется само после нарезки. Руками менять не нужно.',
       },
       fields: [
         {
@@ -208,12 +271,14 @@ export const Media: CollectionConfig = {
         },
         {
           name: 'playlistUrl',
-          label: 'Плейлист',
+          label: 'Манифест потока',
           type: 'text',
-          admin: { readOnly: true, description: 'Адрес master.m3u8 — его открывает плеер.' },
+          // Технический адрес `master.m3u8`: человеку он ничего не говорит,
+          // а плеер берёт его сам.
+          admin: { readOnly: true, hidden: true },
         },
         {
-          // Хранится отдельно от адреса плейлиста: у закрытого видео это
+          // Хранится отдельно от адреса манифеста: у закрытого видео это
           // случайный UUID, и по номеру медиафайла его уже не вычислить, а
           // чистить прошлую нарезку при перезаливке по чему-то надо.
           name: 'prefix',
@@ -225,14 +290,18 @@ export const Media: CollectionConfig = {
           name: 'qualities',
           label: 'Качества',
           type: 'array',
-          admin: { readOnly: true },
+          // Показаны строкой в карточке ролика. Здесь это массив, где значение
+          // спрятано за раскрытием: чтобы увидеть «480p», нужно развернуть
+          // «Quality 01» — на каждое качество по нажатию.
+          admin: { readOnly: true, hidden: true },
           fields: [{ name: 'height', type: 'number' }],
         },
         {
           name: 'durationSeconds',
           label: 'Длительность, с',
           type: 'number',
-          admin: { readOnly: true },
+          // Показана в карточке ролика рядом с качествами.
+          admin: { readOnly: true, hidden: true },
         },
         {
           // Секрет держим в базе, а не в хранилище: иначе он лежал бы рядом
@@ -381,6 +450,32 @@ export const Media: CollectionConfig = {
      * (touches `updatedAt`) so the CDN picks up the new version.
      */
     afterRead: [
+      /**
+       * У нарезанного ролика адресом становится его манифест потока.
+       *
+       * @remarks
+       * Исходник удаляется сразу после успешной нарезки, а адрес в базе
+       * оставался прежним — и любая ссылка на видео вела в «NoSuchKey»: и
+       * плашка файла в админке, и «скопировать ссылку», и обращение по API.
+       *
+       * Манифест (`master.m3u8`) — оглавление кусков этого же ролика, оно есть
+       * у каждого нарезанного видео. К наборам роликов отношения не имеет:
+       * набор — это подборка, и её у ролика может не быть вовсе.
+       */
+      ({ doc }) => {
+        const hls = doc?.hls as { status?: string; playlistUrl?: string | null } | undefined;
+        if (hls?.status === 'ready' && hls.playlistUrl) {
+          const preview = doc?.preview as { url?: string } | undefined;
+          return {
+            ...doc,
+            url: hls.playlistUrl,
+            // Миниатюрой служит снятый кадр: исходника, из которого Payload
+            // рисовал бы своё превью, больше нет.
+            ...(preview?.url ? { thumbnailURL: preview.url } : {}),
+          };
+        }
+        return doc;
+      },
       ({ doc }) => {
         if (!doc?.url) return doc;
         const v = doc.updatedAt ? new Date(doc.updatedAt as string | Date).getTime() : Date.now();

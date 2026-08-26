@@ -121,11 +121,24 @@ function PlaylistItemRow({
             src={item.poster}
             alt=""
             loading="lazy"
-            className="aspect-video w-full object-cover"
+            className={`aspect-video w-full object-cover ${playable ? '' : 'brightness-50'}`}
           />
         ) : (
           <div className="aspect-video w-full" aria-hidden="true" />
         )}
+
+        {/*
+          Замок лежит поверх обложки, а не строкой под названием: закрытость
+          видна там же, где взгляд ищет картинку, и её не нужно вычитывать.
+        */}
+        {!playable && (
+          <span className="absolute inset-0 flex items-center justify-center">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white">
+              <LockIcon size={16} />
+            </span>
+          </span>
+        )}
+
         {item.durationSeconds ? (
           <span className="absolute bottom-1 right-1 rounded bg-black/75 px-1.5 py-0.5 text-xs tabular-nums text-white">
             {formatDuration(item.durationSeconds)}
@@ -164,11 +177,11 @@ function lockText(item: PlaylistItem): string {
   return item.lockReason === 'not-entitled' ? 'Открывается по доступу' : 'Откроется после входа';
 }
 
-function LockIcon() {
+function LockIcon({ size = 14 }: { size?: number }) {
   return (
     <svg
-      width="14"
-      height="14"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

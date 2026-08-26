@@ -263,7 +263,13 @@ export const videoPlaylistEndpoint: Endpoint = {
       authorName: author?.name ?? null,
       title: doc.title ?? 'Набор',
       description: doc.description ?? null,
-      cover: doc.cover?.url ?? null,
+      // Своя обложка набора важнее, но если её не выбрали — берём кадр первого
+      // ролика. Пустое место на витрине выглядит недоделкой, а кадр у ролика
+      // и так снят при нарезке.
+      //
+      // Подставляется при выдаче, а не пишется в базу: иначе автоподстановка
+      // однажды затрёт обложку, которую владелец выбрал руками.
+      cover: doc.cover?.url ?? items.find((item) => item.poster)?.poster ?? null,
       items,
     });
   },

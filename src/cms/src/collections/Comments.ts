@@ -21,7 +21,7 @@ export const Comments: CollectionConfig = {
   admin: {
     useAsTitle: 'previewTitle',
     defaultColumns: ['source', 'date', 'authorName', 'likes', 'post'],
-    group: 'Лента',
+    group: 'Соцсети',
     description:
       'Комменты к постам из соц-сетей. Подкачиваются автоматически вместе с постом — синхронизация через sync:vk-posts.',
   },

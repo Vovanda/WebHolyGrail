@@ -23,7 +23,7 @@ export const Playlists: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'author', 'access', 'updatedAt'],
-    group: 'Видео',
+    group: 'Доступ к видео',
     description: 'Подборки роликов. Доступ к закрытым из них даёт право на набор.',
   },
   fields: [
@@ -96,7 +96,14 @@ export const Playlists: CollectionConfig = {
       label: 'Ролики',
       type: 'array',
       labels: { singular: 'Ролик', plural: 'Ролики' },
-      admin: { description: 'Порядок здесь — порядок просмотра.' },
+      admin: {
+        description: 'Порядок здесь — порядок просмотра.',
+        components: {
+          // В свёрнутой строке — кадр и название вместо «Ролик 01»: два похожих
+          // ролика иначе не различить, не открыв каждый.
+          RowLabel: '/admin/components/PlaylistItemRowLabel#PlaylistItemRowLabel',
+        },
+      },
       fields: [
         {
           name: 'video',

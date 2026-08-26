@@ -21,7 +21,7 @@ export const AccessCodes: CollectionConfig = {
   admin: {
     useAsTitle: 'code',
     defaultColumns: ['code', 'playlist', 'requiresSignIn', 'usedCount', 'expiresAt'],
-    group: 'Видео',
+    group: 'Доступ к видео',
     description: 'Открывают набор по коду или ссылке. Превращаются в обычное право доступа.',
   },
   fields: [
