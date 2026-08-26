@@ -32,20 +32,20 @@ function appSecret(): string {
 const nowSeconds = (): number => Math.floor(Date.now() / 1000);
 
 /**
- * Кто смотрит: учётная запись, роль и владение этим роликом.
+ * Кто смотрит: учётная запись и владение этим роликом.
  *
  * @remarks
- * Владение и роль решают доступ к закрытому наравне с покупкой, поэтому
- * собираются в одном месте — иначе один эндпоинт учитывал бы их, а соседний
- * молча нет.
+ * Владение решает доступ к закрытому наравне с покупкой, поэтому собирается
+ * в одном месте — иначе один эндпоинт учитывал бы его, а соседний молча нет.
+ *
+ * Роли администратора здесь нет: для чужого платного материала он посторонний.
  */
 function viewerOf(
-  req: { user?: { id?: string | number; role?: string | null } | null },
+  req: { user?: { id?: string | number } | null },
   uploadedBy: unknown,
 ): {
   userId: string | number | null;
   ownsVideo: boolean;
-  isAdmin: boolean;
   grantedPlaylists?: ReadonlyArray<string | number>;
 } {
   const userId = req.user?.id ?? null;
@@ -58,7 +58,6 @@ function viewerOf(
   return {
     userId,
     ownsVideo: userId !== null && ownerId !== null && String(ownerId) === String(userId),
-    isAdmin: req.user?.role === 'admin',
   };
 }
 

@@ -150,17 +150,23 @@
   (=> (and (grantedInToken a p) (not (= a b)))
       (or (= (token a) (token b)) (not (grantedInToken b p))))))
 
-; Владелец ролика и администратор смотрят его всегда.
+; Свой закрытый ролик автор смотрит всегда.
 ;
 ; Это не поблажка, а рабочая необходимость: перед публикацией нужно убедиться,
 ; что залит нужный файл, а закрытый ролик иначе не откроется даже тому, кто его
-; загрузил, - и владелец публикует вслепую.
+; загрузил, - и автор публикует вслепую.
 (declare-fun owns (Viewer Video) Bool)
+
+; Роль администратора площадки доступа к чужому закрытому НЕ даёт.
+;
+; На площадке с несколькими авторами администратор посторонний для чужого
+; материала: иначе он молча выкачивает чужие платные подборки. Полностью от него
+; это не защищает - ключи от базы у него, - но выдать себе право придётся явно,
+; и запись об этом останется.
 (declare-fun isAdmin (Viewer) Bool)
 
-; Обе роли живут в учётной записи, поэтому и владелец, и администратор вошли.
+; Владение живёт в учётной записи, поэтому автор всегда вошедший.
 (assert (forall ((z Viewer) (v Video)) (=> (owns z v) (signedIn z))))
-(assert (forall ((z Viewer)) (=> (isAdmin z) (signedIn z))))
 
 ; Купленное право закрепляется за учётной записью: анониму его не за кем
 ; удержать. Право из кода вход не требует — в этом и смысл промо-доступа.
@@ -176,7 +182,6 @@
 (define-fun mayWatch ((v Video) (z Viewer)) Bool
   (or (not (needsEntitlement v))
       (owns z v)
-      (isAdmin z)
       (exists ((p Playlist)) (and (inPlaylist v p) (entitled z p)))))
 
 (define-fun envelopeIssuedWithEntitlements ((v Video) (z Viewer)) Bool
@@ -385,9 +390,8 @@
 (declare-const z Viewer)
 (assert (needsEntitlement v))
 (assert (forall ((p Playlist)) (not (entitled z p))))
-; Ни владелец, ни администратор: им ролик открыт независимо от прав.
+; Не автор ролика: своё он смотрит независимо от прав.
 (assert (not (owns z v)))
-(assert (not (isAdmin z)))
 (assert (envelopeIssuedWithEntitlements v z))
 (check-sat)
 (pop)
@@ -441,10 +445,24 @@
 ; Ни в одном наборе с этим уроком у второго зрителя своего кода нет: иначе
 ; отказ не про наследование права, а про другой набор.
 (assert (forall ((q Playlist)) (=> (inPlaylist v q) (not (grantedInToken second q)))))
-; Второй зритель посторонний: не владелец ролика и не администратор.
+; Второй зритель посторонний: ролик не его.
 (assert (not (owns second v)))
-(assert (not (isAdmin second)))
 (assert (envelopeIssuedWithEntitlements v second))
+(check-sat)
+(pop)
+
+;@TEST          Администратор площадки чужое закрытое не открывает
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::администратор не смотрит чужое
+(push)
+(declare-const v Video)
+(declare-const z Viewer)
+(assert (needsEntitlement v))
+(assert (isAdmin z))
+(assert (not (owns z v)))
+(assert (forall ((p Playlist)) (not (purchased z p))))
+(assert (forall ((q Playlist)) (=> (inPlaylist v q) (not (grantedInToken z q)))))
+(assert (envelopeIssuedWithEntitlements v z))
 (check-sat)
 (pop)
 
@@ -474,7 +492,6 @@
 (assert (not (= mine other)))
 (assert (owns z mine))
 (assert (not (owns z other)))
-(assert (not (isAdmin z)))
 (assert (forall ((p Playlist)) (not (purchased z p))))
 (assert (forall ((q Playlist)) (=> (inPlaylist other q) (not (grantedInToken z q)))))
 (assert (envelopeIssuedWithEntitlements other z))
@@ -494,9 +511,8 @@
 (assert (not (inPlaylist v other)))
 (assert (entitled z other))
 (assert (forall ((p Playlist)) (=> (entitled z p) (= p other))))
-; Зритель посторонний: владение и права администратора открыли бы ролик сами.
+; Зритель посторонний: своё он смотрел бы и без права.
 (assert (not (owns z v)))
-(assert (not (isAdmin z)))
 (assert (envelopeIssuedWithEntitlements v z))
 (check-sat)
 (pop)

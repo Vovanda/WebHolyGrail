@@ -88,10 +88,13 @@ describe('доступ с правами на наборы', () => {
     });
   });
 
-  it('администратор смотрит чужое закрытое', async () => {
+  it('администратор не смотрит чужое', async () => {
+    // Управление площадкой не должно означать возможность выкачать чужую
+    // платную подборку.
     const { policy } = policyWith([]);
-    expect(await policy.decide(closedVideo, { userId: 1, isAdmin: true })).toEqual({
-      allowed: true,
+    expect(await policy.decide(closedVideo, { userId: 1, ownsVideo: false })).toEqual({
+      allowed: false,
+      reason: 'not-entitled',
     });
   });
 });
