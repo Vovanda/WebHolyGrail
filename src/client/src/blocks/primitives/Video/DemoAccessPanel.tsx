@@ -4,7 +4,7 @@ import { useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
-import { AccessCodeForm } from './AccessCodeForm';
+import { openAccessCodeDialog } from './AccessCodeDialog';
 
 /**
  * Демонстрация доступа по коду: получить код и тут же его ввести.
@@ -19,15 +19,13 @@ import { AccessCodeForm } from './AccessCodeForm';
  * иначе посторонний печатал бы себе ключи от платного.
  */
 export interface DemoAccessPanelProps {
-  /** Токен зрителя: в него дописывается набор при погашении. */
-  readonly token: string;
   /** Подписи задаёт владелец в блоке; здесь только разумные значения по умолчанию. */
   readonly heading?: string | undefined;
   readonly text?: string | undefined;
   readonly className?: string | undefined;
 }
 
-export function DemoAccessPanel({ token, heading, text, className }: DemoAccessPanelProps) {
+export function DemoAccessPanel({ heading, text, className }: DemoAccessPanelProps) {
   const [code, setCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -67,9 +65,18 @@ export function DemoAccessPanel({ token, heading, text, className }: DemoAccessP
       </div>
 
       {code ? (
-        <p className="text-body text-ink">
-          Ваш код: <strong className="tracking-widest">{code}</strong>
-        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-body text-ink">
+            Ваш код: <strong className="tracking-widest">{code}</strong>
+          </p>
+          <button
+            type="button"
+            onClick={openAccessCodeDialog}
+            className="rounded-lg bg-accent px-4 py-2 text-body font-medium text-accent-fg transition-colors hover:bg-accent-hover"
+          >
+            Ввести код
+          </button>
+        </div>
       ) : (
         <button
           type="button"
@@ -82,8 +89,6 @@ export function DemoAccessPanel({ token, heading, text, className }: DemoAccessP
       )}
 
       {failed && <p className="text-sm text-muted">Код сейчас не выдаётся, попробуйте позже.</p>}
-
-      <AccessCodeForm token={token} />
     </section>
   );
 }

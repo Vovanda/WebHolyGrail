@@ -210,6 +210,12 @@ export function VideoPlayer({ src, token, mediaId, poster, className, title }: V
       ) : (
         /* @ts-expect-error — веб-компоненты media-chrome не типизированы для JSX */
         <media-controller class="block w-full" style={{ aspectRatio: ratio }}>
+          {/*
+            Собственную высоту видео не задаём: media-chrome раскладывает слот
+            сам и кладёт панель управления поверх нижней кромки кадра. С
+            растянутым на всю высоту видео панель оказывалась под кадром
+            отдельной полосой — на телефоне это съедало пол-экрана.
+          */}
           {/* @ts-expect-error — веб-компонент */}
           <hls-video
             ref={videoRef}
@@ -218,7 +224,6 @@ export function VideoPlayer({ src, token, mediaId, poster, className, title }: V
             playsinline
             preload="metadata"
             title={title}
-            class="h-full w-full"
           />
           {/* @ts-expect-error — веб-компонент */}
           <media-settings-menu hidden anchor="auto">

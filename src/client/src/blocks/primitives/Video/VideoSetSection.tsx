@@ -4,6 +4,7 @@ import type { BlockNode, VideoSetBlockData } from 'contracts';
 import { getPlaylistById, issueVideoToken } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 
+import { AccessCodeDialog } from './AccessCodeDialog';
 import { VideoSetList } from './VideoSetList';
 import { VideoSetPlayer } from './VideoSetPlayer';
 
@@ -46,9 +47,9 @@ export async function VideoSetSection({ node, className }: VideoSetSectionProps)
   const hidden = playlist.items.length - items.length;
 
   const withPlayer = data.mode !== 'list';
-  // Токен выписывается только там, где есть чему играть: на странице со
-  // списком он бесполезен.
-  const token = withPlayer ? await issueVideoToken() : null;
+  // Токен нужен и списку без плеера: в него дописывается набор, когда зритель
+  // вводит код в окне.
+  const token = await issueVideoToken();
 
   return (
     <section
@@ -79,12 +80,15 @@ export async function VideoSetSection({ node, className }: VideoSetSectionProps)
           setCode={playlist.code}
         />
       ) : (
-        <VideoSetList
-          items={items}
-          channel={playlist.channel}
-          setCode={playlist.code}
-          orientation={data.layout === 'grid' ? 'horizontal' : 'vertical'}
-        />
+        <>
+          <VideoSetList
+            items={items}
+            channel={playlist.channel}
+            setCode={playlist.code}
+            orientation={data.layout === 'grid' ? 'horizontal' : 'vertical'}
+          />
+          {token && <AccessCodeDialog token={token} />}
+        </>
       )}
 
       {data.showLink !== false && setUrl && (

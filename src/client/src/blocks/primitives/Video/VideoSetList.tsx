@@ -177,6 +177,18 @@ function VideoSetRow({
     );
   }
 
+  // Закрытый ролик — не тупик: нажатие открывает окно ввода кода. Ссылка
+  // остаётся настоящей, поэтому без JS и в новой вкладке человек попадает
+  // на страницу ролика, где написано то же самое.
+  if (!playable && item.ready && href) {
+    return (
+      <li className={shell}>
+        <a href={href} data-access-code className="absolute inset-0 z-10" aria-label={item.title} />
+        {body}
+      </li>
+    );
+  }
+
   return (
     <li className={shell}>
       {playable && href ? (

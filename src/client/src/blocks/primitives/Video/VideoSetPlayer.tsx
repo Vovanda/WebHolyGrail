@@ -5,6 +5,7 @@ import type { VideoSetItem } from 'contracts';
 
 import { cn } from '@/lib/utils';
 
+import { AccessCodeDialog } from './AccessCodeDialog';
 import { VideoPlayer } from './VideoPlayer';
 import { VideoSetList } from './VideoSetList';
 
@@ -74,6 +75,9 @@ export function VideoSetPlayer({ items, token, channel, setCode, className }: Vi
         onSelect={setCurrent}
         className="max-h-[32rem] overflow-y-auto pr-1 [scrollbar-width:thin]"
       />
+
+      {/* Нажатие на закрытый ролик открывает это окно — замок не должен быть тупиком. */}
+      <AccessCodeDialog token={token} />
     </div>
   );
 }
