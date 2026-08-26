@@ -144,3 +144,48 @@ export interface BlogFilterState {
   readonly dateMonth?: number;
   readonly sort?: 'newest' | 'oldest';
 }
+
+/**
+ * Серия вместе с составом журнала — то, что нужно витрине.
+ *
+ * @remarks
+ * Само по себе `BlogThread` не отвечает на вопрос «стоит ли открывать»: у
+ * названия объекта нет ни числа записей, ни свежести. Витрине они нужны в
+ * каждой карточке, поэтому считаются один раз при сборке страницы и едут
+ * рядом, а не тянутся отдельным запросом из компонента карточки.
+ */
+export interface BlogThreadSummary {
+  readonly thread: BlogThread;
+  readonly articlesCount: number;
+  /** ISO-дата последней опубликованной записи; `null` — журнал ещё пуст. */
+  readonly lastPublishedAt: string | null;
+}
+
+/**
+ * Данные блока `threads-section` — витрина серий на произвольной странице.
+ *
+ * @remarks
+ * Парный к `articles-section`: тот показывает записи, этот — сами журналы.
+ * Нужен там, где у сайта несколько параллельных серий (объекты подрядчика,
+ * рубрики дневника, линейки продуктов) и на странице ожидается их перечень,
+ * а не общая лента.
+ *
+ * Как и у соседа, блок хранит только параметры выборки — серии докачивает
+ * компонент (R0).
+ */
+export interface ThreadsSectionData {
+  readonly title?: string;
+  readonly description?: string;
+  /** `all` — все опубликованные серии, `manual` — выбранные руками и в их порядке. */
+  readonly source: 'all' | 'manual';
+  readonly items?: ReadonlyArray<BlogThread | string | number>;
+  readonly limit?: number;
+  /** `grid` — плитки с обложками, `list` — компактные строки. */
+  readonly layout?: 'grid' | 'list';
+  /** Прятать серии без единой записи: пустая карточка на витрине бесполезна. */
+  readonly hideEmpty?: boolean;
+  readonly cta?: {
+    readonly label?: string;
+    readonly href?: string;
+  };
+}

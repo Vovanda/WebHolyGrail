@@ -67,5 +67,7 @@ export type {
   BlogGlobalSettings,
   BlogFilterState,
   ArticlesSectionData,
+  BlogThreadSummary,
+  ThreadsSectionData,
 } from './blog';
 export { resolveDisplay } from './blog';
