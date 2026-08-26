@@ -80,7 +80,7 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
               key={item.code}
               item={item}
               index={index + 1}
-              channel={playlist.channel}
+              channel={playlist.channel ?? channel}
             />
           ))}
         </ol>

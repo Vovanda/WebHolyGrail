@@ -647,8 +647,8 @@ export interface PlaylistItem {
 
 /** Набор целиком: чем он является и что в нём. */
 export interface PlaylistView {
-  readonly code: string;
-  readonly channel: string;
+  readonly code: string | null;
+  readonly channel: string | null;
   readonly authorName: string | null;
   readonly title: string;
   readonly description: string | null;
@@ -666,6 +666,25 @@ export interface PlaylistView {
  * Куки зрителя пробрасываются — иначе у вошедшего с правом на набор всё
  * выглядело бы закрытым.
  */
+/**
+ * Набор по его номеру — для блока на произвольной странице.
+ *
+ * @remarks
+ * Блоку известен только выбранный набор, короткого адреса и канала у него нет.
+ * Куки зрителя пробрасываются, иначе замки посчитаются для анонима.
+ */
+export async function getPlaylistById(
+  id: string | number,
+  cookie: string,
+): Promise<PlaylistView | null> {
+  const response = await fetch(
+    `${CMS_URL}/api/video/playlist-by-id/${encodeURIComponent(String(id))}`,
+    { cache: 'no-store', headers: cookie ? { cookie } : {} },
+  );
+  if (!response.ok) return null;
+  return (await response.json()) as PlaylistView;
+}
+
 export async function getPlaylistByCode(
   channel: string,
   code: string,
