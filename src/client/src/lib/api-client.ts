@@ -481,10 +481,13 @@ export async function getVideoStream(id: string | number): Promise<VideoStream |
       playlistUrl?: string | null;
       qualities?: ReadonlyArray<{ height?: number | null }> | null;
       durationSeconds?: number | null;
+      deletedAt?: string | null;
     } | null;
   };
 
   const hls = doc.hls;
+  // Помеченный к удалению с сайта пропадает сразу, хотя файлы ещё лежат.
+  if (hls?.deletedAt) return null;
   if (!hls?.playlistUrl && hls?.status !== 'failed') {
     // Нарезки ещё нет — но и статус нужен, чтобы отличить «готовится» от
     // «сломалось»: тексты у них разные.

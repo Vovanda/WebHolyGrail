@@ -53,7 +53,15 @@ export const videoAccessEndpoint: Endpoint = {
       id: String(id),
       depth: 0,
       overrideAccess: true,
-    })) as { id: string | number; access?: string; hls?: { status?: string } };
+    })) as {
+      id: string | number;
+      access?: string;
+      hls?: { status?: string; deletedAt?: string | null };
+    };
+
+    if (doc.hls?.deletedAt) {
+      return json({ allowed: false, reason: 'not-found', status: 'deleted' });
+    }
 
     const decision = await signedInPolicy.decide(
       { id: doc.id, access: doc.access === 'private' ? 'private' : 'public' },
@@ -114,8 +122,12 @@ export const videoEnvelopeEndpoint: Endpoint = {
     })) as {
       id: string | number;
       access?: string;
-      hls?: { status?: string; secret?: string | null };
+      hls?: { status?: string; secret?: string | null; deletedAt?: string | null };
     };
+
+    // Помеченный к удалению не играет: файлы ещё лежат, и без этой проверки
+    // прямая ссылка продолжала бы показывать то, что владелец убрал.
+    if (doc.hls?.deletedAt) return json({ error: 'not-found' }, 404);
 
     const video: StreamRecord = {
       id: doc.id,

@@ -1,4 +1,4 @@
-import type { CollectionConfig } from 'payload';
+import { APIError, type CollectionConfig } from 'payload';
 
 import { renderPdfPreview } from '../lib/pdf-preview';
 
@@ -254,8 +254,11 @@ export const Media: CollectionConfig = {
           context: { skipHlsQueue: true },
         });
 
-        throw new Error(
+        // APIError, а не обычная ошибка: иначе Payload отвечает «Something went
+        // wrong», и человек не понимает, удалилось вообще или нет.
+        throw new APIError(
           'Ролик скрыт с сайта. Файлы будут стёрты автоматически по истечении срока из настроек — до тех пор его можно вернуть.',
+          400,
         );
       },
     ],
