@@ -521,6 +521,18 @@ export const SiteSettings: GlobalConfig = {
       },
       fields: [
         {
+          name: 'purgeAfterDays',
+          label: 'Через сколько дней стирать удалённые ролики',
+          type: 'number',
+          defaultValue: 30,
+          min: 1,
+          max: 365,
+          admin: {
+            description:
+              'Удалённый ролик сразу пропадает с сайта, а файлы лежат ещё столько дней — на случай, если удалили по ошибке.',
+          },
+        },
+        {
           name: 'qualities',
           label: 'Качества',
           type: 'select',

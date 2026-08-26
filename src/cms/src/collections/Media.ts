@@ -95,6 +95,18 @@ export const Media: CollectionConfig = {
       type: 'text',
     },
     {
+      // Показывает обложку и состояние нарезки вместо штатного превью: после
+      // нарезки исходник удаляется, и Payload рисует крестик — человек читает
+      // это как «видео пропало» и идёт перезаливать.
+      name: 'videoPreview',
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '/admin/components/VideoPreviewField#VideoPreviewField',
+        },
+      },
+    },
+    {
       name: 'access',
       label: 'Кто может смотреть',
       type: 'select',
@@ -175,6 +187,23 @@ export const Media: CollectionConfig = {
           },
         },
         {
+          /**
+           * Пометка удаления.
+           *
+           * @remarks
+           * Ролик пропадает с сайта сразу, а файлы стираются отложенно: удаление —
+           * единственное необратимое действие, потому что оригинала уже нет.
+           * Отсрочка превращает «нажал не туда» из катастрофы в мелочь.
+           */
+          name: 'deletedAt',
+          label: 'Помечен к удалению',
+          type: 'date',
+          admin: {
+            readOnly: true,
+            description: 'Ролик скрыт с сайта. Файлы будут стёрты по истечении срока из настроек.',
+          },
+        },
+        {
           name: 'error',
           label: 'Причина ошибки',
           type: 'textarea',
@@ -193,6 +222,44 @@ export const Media: CollectionConfig = {
     delete: ({ req: { user } }) => user?.role === 'admin',
   },
   hooks: {
+    /**
+     * Удаление видео — пометка, а не стирание.
+     *
+     * @remarks
+     * Оригинал стёрт сразу после нарезки, восстановить ролик неоткуда. Поэтому
+     * «удалить» означает скрыть: с сайта он пропадает немедленно, а файлы лежат
+     * до срока из настроек и уходят отдельной задачей.
+     *
+     * Картинок и документов это не касается — они удаляются как раньше.
+     */
+    beforeDelete: [
+      async ({ id, req, context }) => {
+        // Уборщик стирает по истечении срока — ему перехват не нужен.
+        if (context?.['skipDeleteGuard']) return;
+        const doc = (await req.payload.findByID({
+          collection: 'media',
+          id,
+          depth: 0,
+          overrideAccess: true,
+        })) as { mimeType?: string; hls?: { deletedAt?: string | null } };
+
+        if (!String(doc?.mimeType ?? '').startsWith('video/')) return;
+        // Уже помечен — значит стирает задача уборки, ей мешать не нужно.
+        if (doc?.hls?.deletedAt) return;
+
+        await req.payload.update({
+          collection: 'media',
+          id,
+          data: { hls: { deletedAt: new Date().toISOString() } },
+          context: { skipHlsQueue: true },
+        });
+
+        throw new Error(
+          'Ролик скрыт с сайта. Файлы будут стёрты автоматически по истечении срока из настроек — до тех пор его можно вернуть.',
+        );
+      },
+    ],
+
     /**
      * Cache-busting via `?v=<updatedAt>` appended to the public URL.
      *

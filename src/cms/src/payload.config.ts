@@ -26,6 +26,7 @@ import { Specialists } from './collections/Specialists';
 import { SiteSettings } from './globals/SiteSettings';
 import { withAutoSlug } from './lib/slug';
 import { BuildHlsTask } from './jobs/build-hls.task';
+import { PurgeVideosTask } from './jobs/purge-videos.task';
 import { videoAccessEndpoint, videoEnvelopeEndpoint, videoTokenEndpoint } from './endpoints/video';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -128,7 +129,7 @@ export default buildConfig({
    * рядом с "Редакторы" вместо скрытой технической collection.
    */
   jobs: {
-    tasks: [BuildHlsTask],
+    tasks: [BuildHlsTask, PurgeVideosTask],
     // Один воркер за раз: ffmpeg живёт на той же машине, что и сайт, и
     // параллельное кодирование нескольких роликов придушит выдачу страниц.
     autoRun: [{ cron: '* * * * *', allQueues: true, limit: 1 }],
