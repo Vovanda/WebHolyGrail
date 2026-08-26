@@ -142,6 +142,7 @@ export function payloadCatalog(payload: Payload): CatalogPort {
         filename?: string;
         url?: string;
         preview?: string | number | null;
+        uploadedBy?: string | number | null;
         hls?: { prefix?: string | null };
       };
       return {
@@ -152,6 +153,7 @@ export function payloadCatalog(payload: Payload): CatalogPort {
         url: String(doc.url ?? '').split('?')[0] ?? '',
         previousPrefix: doc.hls?.prefix ?? null,
         hasPoster: Boolean(doc.preview),
+        ownerId: doc.uploadedBy ?? null,
       };
     },
 

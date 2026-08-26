@@ -1,5 +1,7 @@
 import { APIError, type CollectionConfig } from 'payload';
 
+import { generateShortCode } from '../lib/video/short-code';
+
 import { renderPdfPreview } from '../lib/pdf-preview';
 
 /**
@@ -105,6 +107,48 @@ export const Media: CollectionConfig = {
           Field: '/admin/components/VideoPreviewField#VideoPreviewField',
         },
       },
+    },
+    {
+      /**
+       * Короткий адрес ролика: `/@автор/v/<код>`.
+       *
+       * @remarks
+       * Номер медиафайла в адрес не годится — по нему ролики перебираются
+       * подряд, и закрытые обнаруживаются простым увеличением числа. Заодно
+       * номер выдаёт, сколько всего загружено.
+       *
+       * Код выдаётся один раз и не меняется: ссылка расходится по мессенджерам
+       * и поисковой выдаче, переезд адреса её обнулит.
+       */
+      name: 'shortCode',
+      label: 'Код в адресе',
+      type: 'text',
+      unique: true,
+      index: true,
+      admin: {
+        position: 'sidebar',
+        readOnly: true,
+        condition: (data) => String(data?.mimeType ?? '').startsWith('video/'),
+      },
+    },
+    {
+      /**
+       * Кто залил файл.
+       *
+       * @remarks
+       * Это факт, а не право: заполняется само из текущего пользователя и
+       * руками не меняется. Права даёт роль — отдельно.
+       *
+       * Нужно для канала (`/@автор`), для области хранения и для того, чтобы
+       * каждый участник видел статистику только по своему. Проставляется
+       * сразу, а не «когда понадобится»: расставлять авторство задним числом
+       * по накопившемуся архиву будет нечем.
+       */
+      name: 'uploadedBy',
+      label: 'Загрузил',
+      type: 'relationship',
+      relationTo: 'users',
+      admin: { position: 'sidebar', readOnly: true },
     },
     {
       name: 'access',
@@ -233,6 +277,32 @@ export const Media: CollectionConfig = {
     delete: ({ req: { user } }) => user?.role === 'admin',
   },
   hooks: {
+    /**
+     * Проставляет автора при загрузке.
+     *
+     * @remarks
+     * Только при создании: у существующего файла автор не меняется, даже если
+     * запись правит кто-то другой. Иначе первая же правка чужой подписи
+     * переписала бы историю загрузок.
+     */
+    beforeChange: [
+      ({ data, req, operation }) => {
+        if (operation === 'create' && req.user && !data['uploadedBy']) {
+          data['uploadedBy'] = req.user.id;
+        }
+        // Код выдаём только видео и только один раз: у остальных файлов
+        // своей страницы нет, а у существующего ролика адрес не меняется.
+        if (
+          operation === 'create' &&
+          !data['shortCode'] &&
+          String(data['mimeType'] ?? '').startsWith('video/')
+        ) {
+          data['shortCode'] = generateShortCode();
+        }
+        return data;
+      },
+    ],
+
     /**
      * Удаление видео — пометка, а не стирание.
      *

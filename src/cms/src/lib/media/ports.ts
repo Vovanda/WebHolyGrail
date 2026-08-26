@@ -54,6 +54,8 @@ export interface VideoRecord {
   readonly previousPrefix: string | null;
   /** Обложка уже задана — своя не перетирается. */
   readonly hasPoster: boolean;
+  /** Автор: задаёт область хранения. `null` — файл залит без учётной записи. */
+  readonly ownerId: string | number | null;
 }
 
 /** Итог нарезки, который сохраняется в каталог. */

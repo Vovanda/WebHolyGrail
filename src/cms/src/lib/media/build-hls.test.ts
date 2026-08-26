@@ -17,7 +17,12 @@ const SOURCE_URL = 'https://cdn.example/media/clip.mp4';
 
 /** Порты-заглушки: пишут в журнал, чтобы был виден порядок вызовов. */
 function makePorts(
-  overrides: { previousPrefix?: string | null; mimeType?: string; hasPoster?: boolean } = {},
+  overrides: {
+    previousPrefix?: string | null;
+    mimeType?: string;
+    hasPoster?: boolean;
+    ownerId?: string | number | null;
+  } = {},
 ) {
   const calls: string[] = [];
   const saved: RenditionResult[] = [];
@@ -29,6 +34,8 @@ function makePorts(
     url: SOURCE_URL,
     previousPrefix: overrides.previousPrefix ?? null,
     hasPoster: overrides.hasPoster ?? false,
+    // Именно проверка на undefined: `??` подменил бы осознанный null.
+    ownerId: overrides.ownerId === undefined ? 7 : overrides.ownerId,
   };
 
   const ports: VideoPorts = {
@@ -135,8 +142,8 @@ describe('подготовка видео', () => {
   it('адрес раздачи не выводится из номера медиафайла', async () => {
     const { ports, saved } = makePorts();
     await run(ports);
-    expect(saved[0]!.prefix).toMatch(/^hls\/[0-9a-f-]{36}$/);
-    expect(saved[0]!.prefix).not.toContain('/1');
+    expect(saved[0]!.prefix).toMatch(/^u7\/hls\/[0-9a-f-]{36}$/);
+    expect(saved[0]!.prefix).not.toContain('/1/');
   });
 
   it('две нарезки одного ролика получают разные адреса', async () => {
@@ -145,6 +152,21 @@ describe('подготовка видео', () => {
     await run(first.ports);
     await run(second.ports);
     expect(first.saved[0]!.prefix).not.toBe(second.saved[0]!.prefix);
+  });
+
+  it('файлы разных авторов лежат в разных областях', async () => {
+    const first = makePorts({ ownerId: 7 });
+    const second = makePorts({ ownerId: 9 });
+    await run(first.ports);
+    await run(second.ports);
+    expect(first.saved[0]!.prefix.startsWith('u7/')).toBe(true);
+    expect(second.saved[0]!.prefix.startsWith('u9/')).toBe(true);
+  });
+
+  it('файл без автора уходит в общую область', async () => {
+    const { ports, saved } = makePorts({ ownerId: null });
+    await run(ports);
+    expect(saved[0]!.prefix.startsWith('shared/')).toBe(true);
   });
 
   it('секрет уходит в каталог, а не в раздачу', async () => {
