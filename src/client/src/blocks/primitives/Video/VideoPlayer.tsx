@@ -8,6 +8,8 @@ import 'hls-video-element';
 
 import { cn } from '@/lib/utils';
 
+import { VideoGestures } from './VideoGestures';
+
 /**
  * Плеер потокового видео: качества, скорость, перемотка, закрытый доступ.
  *
@@ -249,26 +251,45 @@ export function VideoPlayer({ src, token, mediaId, poster, className, title }: V
             </media-settings-menu-item>
             {/* @ts-expect-error — веб-компонент */}
           </media-settings-menu>
-          {/* @ts-expect-error — веб-компонент */}
-          <media-control-bar>
-            {/* @ts-expect-error — веб-компонент */}
-            <media-play-button />
+          {/* Тап по кадру играет и ставит на паузу, двойной по краю перематывает. */}
+          <VideoGestures videoRef={videoRef} />
+
+          {/*
+            Управление посередине кадра: середина — самая доступная пальцу
+            область, а нижние кнопки мелкие, и на ходу в них не попасть.
+          */}
+          <div slot="centered-chrome" className="video-center">
             {/* @ts-expect-error — веб-компонент */}
             <media-seek-backward-button seekoffset="10" />
             {/* @ts-expect-error — веб-компонент */}
-            <media-seek-forward-button seekoffset="10" />
+            <media-play-button />
             {/* @ts-expect-error — веб-компонент */}
-            <media-time-range />
+            <media-seek-forward-button seekoffset="10" />
+          </div>
+
+          {/*
+            Полоса времени отдельной строкой во всю ширину: зажатая между
+            кнопками, она сжимается до пары сантиметров, и попасть пальцем
+            в нужную секунду невозможно.
+          */}
+          {/* @ts-expect-error — веб-компонент */}
+          <media-time-range slot="bottom-chrome" class="video-progress" />
+
+          {/* @ts-expect-error — веб-компонент */}
+          <media-control-bar slot="bottom-chrome" class="video-bar">
             {/* @ts-expect-error — веб-компонент */}
             <media-time-display showduration />
             {/* @ts-expect-error — веб-компонент */}
             <media-mute-button />
+            {/* Ползунок громкости только на широком экране: на телефоне
+                громкость крутят кнопками устройства. */}
             {/* @ts-expect-error — веб-компонент */}
-            <media-volume-range />
+            <media-volume-range class="only-wide" />
+            <span className="video-bar-gap" />
             {/* @ts-expect-error — веб-компонент */}
             <media-settings-menu-button />
             {/* @ts-expect-error — веб-компонент */}
-            <media-pip-button />
+            <media-pip-button class="only-wide" />
             {/* @ts-expect-error — веб-компонент */}
             <media-fullscreen-button />
             {/* @ts-expect-error — веб-компонент */}

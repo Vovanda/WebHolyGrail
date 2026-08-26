@@ -151,3 +151,110 @@
     }
   }
 }
+
+@layer components {
+  /* Плеер: раскладка привычная зрителю, а не изобретённая нами.
+   *
+   * Кнопки и полоса лежат поверх кадра на затемнении, а не отдельной полосой
+   * под ним: на телефоне такая полоса съедает заметную часть экрана. */
+
+  /* Зоны жестов: две трети по краям перематывают двойным тапом, середина
+   * ставит на паузу. Кнопки прозрачные — они ловят нажатие, а не рисуются. */
+  .video-gestures {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    z-index: 1;
+  }
+
+  .video-gestures > button {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    height: 100%;
+    width: 100%;
+  }
+
+  .video-gesture-hint {
+    position: absolute;
+    top: 50%;
+    display: grid;
+    place-items: center;
+    height: 3.5rem;
+    width: 3.5rem;
+    transform: translateY(-50%);
+    border-radius: 999px;
+    background: rgb(0 0 0 / 0.55);
+    color: #fff;
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+  }
+
+  .video-gesture-hint--back {
+    left: 12%;
+  }
+
+  .video-gesture-hint--forward {
+    right: 12%;
+  }
+
+  /* Управление посередине: три кнопки в ряд, крупные под палец. */
+  .video-center {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    --media-control-background: rgb(0 0 0 / 0.5);
+    --media-control-hover-background: rgb(0 0 0 / 0.7);
+    --media-button-icon-width: 28px;
+  }
+
+  .video-center media-play-button {
+    border-radius: 999px;
+    --media-button-icon-width: 34px;
+    --media-control-padding: 14px;
+  }
+
+  .video-center media-seek-backward-button,
+  .video-center media-seek-forward-button {
+    border-radius: 999px;
+    --media-control-padding: 10px;
+  }
+
+  /* Полоса времени во всю ширину, тонкая в покое и толще под курсором. */
+  .video-progress {
+    --media-range-track-height: 3px;
+    --media-range-thumb-height: 12px;
+    --media-range-thumb-width: 12px;
+    --media-range-bar-color: var(--color-accent);
+    width: 100%;
+    padding-inline: 6px;
+  }
+
+  .video-progress:hover {
+    --media-range-track-height: 5px;
+  }
+
+  /* Нижняя строка: время слева, звук рядом, остальное справа. */
+  .video-bar {
+    --media-control-background: transparent;
+    --media-control-hover-background: rgb(255 255 255 / 0.12);
+    padding-inline: 4px;
+  }
+
+  .video-bar-gap {
+    flex: 1;
+  }
+
+  /* Часть кнопок только на широком экране: на телефоне они лишние и мельчат. */
+  media-controller:not([breakpointmd]) .only-wide {
+    display: none;
+  }
+
+  /* Затемнение под управлением, чтобы кнопки читались на светлом кадре. */
+  media-controller::part(bottom-chrome) {
+    background: linear-gradient(to top, rgb(0 0 0 / 0.65), transparent);
+  }
+}
