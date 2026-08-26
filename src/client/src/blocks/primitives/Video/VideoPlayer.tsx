@@ -37,6 +37,16 @@ export interface VideoPlayerProps {
   readonly mediaId: string | number;
   readonly poster?: string | undefined;
   readonly className?: string | undefined;
+  /**
+   * Что показать поверх кадра: карточку «дальше», подсказку, что угодно.
+   *
+   * @remarks
+   * Плеер не знает про наборы и очередь — это дело того, кто его поставил.
+   * Поэтому содержимое приходит снаружи, а сюда попадает только место для него.
+   */
+  readonly overlay?: React.ReactNode;
+  /** Кадр наружу: тому, кто рисует поверх, нужно знать, когда ролик кончился. */
+  readonly onVideoRef?: ((video: HTMLVideoElement | null) => void) | undefined;
   /** Заголовок для скринридера — у видео без подписи иначе только «video». */
   readonly title?: string | undefined;
 }
@@ -59,7 +69,16 @@ const DENIED_TEXT: Record<string, string> = {
  */
 const PLAYBACK_RATES = '0.85 0.9 1 1.25 1.5 2';
 
-export function VideoPlayer({ src, token, mediaId, poster, className, title }: VideoPlayerProps) {
+export function VideoPlayer({
+  src,
+  token,
+  mediaId,
+  poster,
+  className,
+  title,
+  overlay,
+  onVideoRef,
+}: VideoPlayerProps) {
   const videoRef = useRef<(HTMLVideoElement & { config?: unknown }) | null>(null);
   // Контроллер нужен жестам: у него переключается видимость управления.
   const controllerRef = useRef<HTMLElement | null>(null);
@@ -174,6 +193,7 @@ export function VideoPlayer({ src, token, mediaId, poster, className, title }: V
     video.addEventListener('resize', applyRatio);
 
     video.setAttribute('src', src);
+    onVideoRef?.(video);
     setPhase('playing');
 
     return () => {
@@ -275,10 +295,10 @@ export function VideoPlayer({ src, token, mediaId, poster, className, title }: V
             в нужную секунду невозможно.
           */}
           {/* @ts-expect-error — веб-компонент */}
-          <media-time-range slot="bottom-chrome" class="video-progress" />
+          <media-time-range class="video-progress" />
 
           {/* @ts-expect-error — веб-компонент */}
-          <media-control-bar slot="bottom-chrome" class="video-bar">
+          <media-control-bar class="video-bar">
             {/* @ts-expect-error — веб-компонент */}
             <media-time-display showduration />
             {/* @ts-expect-error — веб-компонент */}
@@ -296,6 +316,8 @@ export function VideoPlayer({ src, token, mediaId, poster, className, title }: V
             <media-fullscreen-button />
             {/* @ts-expect-error — веб-компонент */}
           </media-control-bar>
+
+          {overlay}
           {/* @ts-expect-error — веб-компонент */}
         </media-controller>
       )}

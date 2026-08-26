@@ -128,4 +128,35 @@ describe('выдача доступа', () => {
       reason: 'bad-token',
     });
   });
+
+  it('право из погашенного кода открывает закрытый ролик', async () => {
+    // Раньше политика спрашивалась до разбора токена и права из кода не видела:
+    // зритель вводил код, а плеер продолжал требовать вход.
+    const appSecret = 'секрет-приложения';
+    const now = 1_000_000;
+    const token = issueViewerToken(appSecret, now, [7]);
+
+    const result = await grantStreamAccess({
+      video: {
+        id: 2,
+        access: 'private',
+        status: 'ready',
+        secret: Buffer.from('0123456789abcdef').toString('base64'),
+      },
+      viewer: { userId: null },
+      token: token.value,
+      policy: {
+        async decide(_video, viewer) {
+          // Из токена наборы приходят строками — так они туда и записаны.
+          return viewer.grantedPlaylists?.map(String).includes('7')
+            ? { allowed: true }
+            : { allowed: false, reason: 'sign-in-required' };
+        },
+      },
+      appSecret,
+      nowSeconds: now,
+    });
+
+    expect(result.ok).toBe(true);
+  });
 });

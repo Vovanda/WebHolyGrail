@@ -48,16 +48,18 @@ export async function grantStreamAccess({
   appSecret,
   nowSeconds,
 }: GrantArgs): Promise<GrantResult> {
-  // Порядок проверок важен: право спрашиваем раньше, чем разбираем токен, —
-  // иначе ответ отличался бы для «нет доступа» и «плохой токен» ещё до того,
-  // как выяснено, положен ли зрителю этот ролик вообще.
-  const decision = await policy.decide({ id: video.id, access: video.access }, viewer);
+  // Токен разбираем первым: погашенный код дописывает право прямо в него, и
+  // без этого политика не увидела бы того, что зритель только что открыл.
+  const checked = readViewerToken(token, appSecret, nowSeconds);
+  if (!checked.ok) return { ok: false, reason: 'bad-token' };
+
+  const decision = await policy.decide(
+    { id: video.id, access: video.access },
+    { ...viewer, grantedPlaylists: checked.granted },
+  );
   if (!decision.allowed) return { ok: false, reason: decision.reason };
 
   if (video.status !== 'ready' || !video.secret) return { ok: false, reason: 'not-ready' };
-
-  const checked = readViewerToken(token, appSecret, nowSeconds);
-  if (!checked.ok) return { ok: false, reason: 'bad-token' };
 
   return { ok: true, envelope: sealEnvelope(Buffer.from(video.secret, 'base64'), checked.key) };
 }
