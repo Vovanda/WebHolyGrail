@@ -4,6 +4,7 @@ import type { BlockNode, SiteSettings } from 'contracts';
 import { Header } from '@/blocks/layout/Header';
 import { Footer } from '@/blocks/layout/Footer';
 import { BannerSliderBlock } from '@/blocks/primitives/BannerSliderBlock';
+import { CarouselSection } from '@/blocks/primitives/CarouselSection';
 import { NavDrawer } from '@/blocks/layout/NavDrawer';
 import { Hero } from '@/blocks/primitives/Hero';
 import { HeroSplit } from '@/blocks/primitives/HeroSplit';
@@ -53,6 +54,7 @@ const REGISTRY: Record<string, BlockRenderer> = {
   header: (node, settings) => <Header node={node} settings={settings} />,
   footer: (node, settings) => <Footer node={node} settings={settings} />,
   'banner-slider': (node, settings) => <BannerSliderBlock node={node} settings={settings} />,
+  carousel: (node, settings) => <CarouselSection node={node} settings={settings} />,
   'nav-drawer': (node, settings) => <NavDrawer node={node} settings={settings} />,
   hero: (node, settings) => <Hero node={node} settings={settings} />,
   'hero-split': (node, settings) => <HeroSplit node={node} settings={settings} />,

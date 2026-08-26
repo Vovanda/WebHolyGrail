@@ -1,4 +1,5 @@
 import { BannerSliderBlock } from './BannerSlider';
+import { CarouselBlock } from './Carousel';
 import { HeroBlock } from './Hero';
 import { HeroSplitBlock } from './HeroSplit';
 import { HeroCinematicBlock } from './HeroCinematic';
@@ -53,6 +54,7 @@ import { withVisibility } from './_visibility';
  */
 export const REUSABLE_INNER_BLOCKS = [
   BannerSliderBlock,
+  CarouselBlock,
   HeroBlock,
   HeroSplitBlock,
   HeroCinematicBlock,

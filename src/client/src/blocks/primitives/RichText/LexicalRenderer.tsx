@@ -163,6 +163,10 @@ function renderChildren(node: LexNode, settings?: SiteSettings): ReactNode[] {
  *
  * Блок выходит из колонки текста: видео шириной в 880 пикселей посреди статьи
  * выглядит вставкой из другого макета.
+ *
+ * Вертикальные поля задаёт обёртка. Собственные поля секции здесь снимаются:
+ * на странице они отделяют её от соседних секций, а внутри статьи складываются
+ * с отступами абзацев, и вокруг видео образуется пустая полоса.
  */
 function renderBlock(node: LexNode, key: number, settings?: SiteSettings): ReactNode {
   const fields = (node as { fields?: Record<string, unknown> }).fields;
@@ -172,7 +176,7 @@ function renderBlock(node: LexNode, key: number, settings?: SiteSettings): React
   if (!blockType || !settings) return null;
 
   return (
-    <div key={key} className="my-6 -mx-4 md:-mx-8 lg:-mx-16">
+    <div key={key} className="my-6 -mx-4 md:-mx-8 lg:-mx-16 [&>section]:py-0">
       {renderBlockNode({ blockType, id: String(key), data: fields } as BlockNode, settings)}
     </div>
   );

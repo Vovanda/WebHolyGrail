@@ -14,7 +14,15 @@
 
 export type { MediaDoc, MediaSize, MediaRef } from './media';
 
-export type { BlockNode, LayoutBlock, ImageRef, LinkRef } from './blocks';
+export type {
+  BlockNode,
+  LayoutBlock,
+  ImageRef,
+  LinkRef,
+  BlockSource,
+  CarouselCard,
+  CarouselBlockData,
+} from './blocks';
 
 export type { PageDoc, PageSeo } from './pages';
 

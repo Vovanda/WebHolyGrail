@@ -58,3 +58,61 @@ export interface LinkRef {
   /** Открывать ли в новой вкладке. */
   readonly external?: boolean;
 }
+
+/**
+ * Карточка ленты: то, что человек заводит в админке.
+ *
+ * @remarks
+ * Ровно то, из чего собирается плитка - картинка, подпись, пояснение и куда
+ * ведёт. React-узлов здесь нет: описание блока сериализуемое (R5+), и его
+ * читает как сайт, так и будущий редактор страниц.
+ */
+export interface CarouselCard {
+  readonly image?: ImageRef;
+  readonly title?: string;
+  readonly text?: string;
+  readonly link?: LinkRef;
+}
+
+/**
+ * Откуда лента берёт карточки.
+ *
+ * @remarks
+ * `manual` - карточки заведены руками. Остальные значения - живые коллекции
+ * сайта: лента показывает последние записи и обновляется сама, без правки
+ * страницы.
+ *
+ * Отбор описан здесь же, а не в самой ленте: список и плитка получат тот же
+ * набор значений, когда до них дойдёт (R9).
+ */
+export interface BlockSource {
+  readonly kind: 'manual' | 'articles' | 'videos' | 'playlists';
+  /** Сколько показать. */
+  readonly limit?: number;
+  /** Порядок: свежие сверху или как задано вручную. */
+  readonly order?: 'newest' | 'oldest' | 'manual';
+  /** Отбор по метке или разделу, когда коллекция это поддерживает. */
+  readonly tag?: string;
+}
+
+/** Данные блока «Карусель». */
+export interface CarouselBlockData {
+  readonly heading?: string;
+  readonly subtitle?: string;
+  /** Кадром во всю ширину или лентой карточек. */
+  readonly mode?: 'single' | 'row';
+  readonly source?: BlockSource;
+  readonly cards?: readonly CarouselCard[];
+  /** Стрелки по краям. */
+  readonly arrows?: boolean;
+  /** Точки под лентой. */
+  readonly dots?: boolean;
+  /** Идти по кругу. */
+  readonly loop?: boolean;
+  /** Пауза между кадрами в секундах. Ноль - листать только руками. */
+  readonly autoplaySeconds?: number;
+  /** Ширина карточки: значение CSS. */
+  readonly cardWidth?: string;
+  /** Пропорции кадра, например `16 / 9`. */
+  readonly aspect?: string;
+}
