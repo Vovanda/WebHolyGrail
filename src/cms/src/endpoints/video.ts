@@ -4,6 +4,7 @@ import { payloadEntitlements } from '../lib/video/entitlement-source';
 import { entitlementPolicy } from '../lib/video/entitlements';
 import { issueViewerToken } from '../lib/video/envelope';
 import { grantStreamAccess, type StreamRecord } from '../lib/video/grant-access';
+import { masterKey, unwrapSecret } from '../lib/video/secret-vault';
 
 /**
  * Эндпоинты видео: токен зрителя и конверт с секретом потока.
@@ -406,11 +407,15 @@ export const videoEnvelopeEndpoint: Endpoint = {
     // прямая ссылка продолжала бы показывать то, что владелец убрал.
     if (doc.hls?.deletedAt) return json({ error: 'not-found' }, 404);
 
+    // Секрет лежит в базе завёрнутым в мастер-ключ — разворачиваем перед тем,
+    // как запечатать его в конверт зрителя. Ролики, залитые до включения ключа,
+    // читаются как есть.
+    const stored = doc.hls?.secret ?? null;
     const video: StreamRecord = {
       id: doc.id,
       access: doc.access === 'private' ? 'private' : 'public',
       status: (doc.hls?.status as StreamRecord['status']) ?? 'pending',
-      secret: doc.hls?.secret ?? null,
+      secret: stored ? unwrapSecret(stored, masterKey()).toString('base64') : null,
     };
 
     const result = await grantStreamAccess({

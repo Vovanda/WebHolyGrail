@@ -10,6 +10,7 @@ import type { Payload } from 'payload';
 import { DEFAULT_LADDER, transcodeToHls, type HlsRung } from '../hls';
 import type { CatalogPort, EncoderPort, StoragePort, VideoPorts } from './ports';
 import { POSTER_PREFIX } from '../../collections/Media';
+import { masterKey, wrapSecret } from '../video/secret-vault';
 
 /**
  * Реализации портов подготовки видео: ffmpeg, S3, Payload.
@@ -170,7 +171,9 @@ export function payloadCatalog(payload: Payload): CatalogPort {
             durationSeconds: result.durationSeconds,
             status: 'ready',
             error: null,
-            secret: result.secret,
+            // Секрет уходит в базу завёрнутым в мастер-ключ: расшифрованный
+            // дамп иначе равен ключам от всего закрытого.
+            secret: wrapSecret(Buffer.from(result.secret, 'base64'), masterKey()),
           },
         },
         // Служебное обновление: без этой отметки запись результата запустила бы

@@ -26,6 +26,10 @@ services:
       # `scripts/encrypt-db.mjs`. Подставлять ключ к незашифрованной базе нельзя
       # — она просто не откроется.
       DATABASE_ENCRYPTION_KEY: ${DATABASE_ENCRYPTION_KEY:-}
+      # Мастер-ключ, которым завёрнуты секреты потоков в базе. Пустое значение
+      # допустимо: тогда секреты хранятся как раньше, открытым текстом, и
+      # ролики, залитые до его появления, продолжают играть.
+      VIDEO_MASTER_KEY: ${VIDEO_MASTER_KEY:-}
       PAYLOAD_PUBLIC_SERVER_URL: ${PAYLOAD_PUBLIC_SERVER_URL:?required}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?required}
       NODE_ENV: production
