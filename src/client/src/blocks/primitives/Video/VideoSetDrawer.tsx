@@ -27,6 +27,8 @@ export interface VideoSetDrawerProps {
   readonly setCode: string | null;
   readonly currentCode?: string | null;
   readonly title?: string | undefined;
+  /** Выбор видео в панели: без него список уводит на отдельную страницу. */
+  readonly onSelect?: ((item: VideoSetItem) => void) | undefined;
   readonly className?: string;
 }
 
@@ -36,6 +38,7 @@ export function VideoSetDrawer({
   setCode,
   currentCode = null,
   title,
+  onSelect,
   className,
 }: VideoSetDrawerProps) {
   if (items.length === 0) return null;
@@ -65,7 +68,13 @@ export function VideoSetDrawer({
         </button>
       )}
     >
-      <VideoSetList items={items} channel={channel} setCode={setCode} currentCode={currentCode} />
+      <VideoSetList
+        items={items}
+        channel={channel}
+        setCode={setCode}
+        currentCode={currentCode}
+        onSelect={onSelect}
+      />
     </SidePanel>
   );
 }

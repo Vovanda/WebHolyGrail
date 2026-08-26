@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { AccessCodeDialog } from './AccessCodeDialog';
 import { ACCESS_GRANTED_EVENT } from './AccessCodeForm';
 import { VideoPlayer } from './VideoPlayer';
+import { VideoSetDrawer } from './VideoSetDrawer';
 import { VideoSetList } from './VideoSetList';
 
 /**
@@ -73,9 +74,50 @@ export function VideoSetPlayer({
     () => items.find((item) => !item.locked && item.ready && item.playlistUrl) ?? null,
   );
 
+  /*
+    Вид списка переключается на месте: рядом с плеером или боковой панелью,
+    которая сдвигает страницу. На узком экране колонка рядом не помещается,
+    и панель оказывается единственным способом добраться до набора, не
+    прокручивая всё видео.
+  */
+  const [asPanel, setAsPanel] = useState(false);
+
+  /*
+    Соседи текущего видео среди тех, что вообще могут играть. Закрытые и ещё
+    не нарезанные пропускаем: стрелка, ведущая на замок, обрывает просмотр.
+  */
+  const playable = items.filter((item) => !item.locked && item.ready && item.playlistUrl);
+  const at = current ? playable.findIndex((item) => item.id === current.id) : -1;
+  const prev = at > 0 ? playable[at - 1] : undefined;
+  const next = at >= 0 && at < playable.length - 1 ? playable[at + 1] : undefined;
+
   return (
-    <div className={cn('grid gap-5 pb-6 lg:grid-cols-[minmax(0,1fr)_20rem]', className)}>
+    <div
+      className={cn(
+        'grid gap-5 pb-6',
+        asPanel ? 'grid-cols-1' : 'lg:grid-cols-[minmax(0,1fr)_20rem]',
+        className,
+      )}
+    >
       <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {asPanel && (
+            <VideoSetDrawer
+              items={items}
+              channel={channel}
+              setCode={setCode}
+              currentCode={current?.code ?? null}
+              onSelect={setCurrent}
+            />
+          )}
+          <button
+            type="button"
+            onClick={() => setAsPanel((value) => !value)}
+            className="ml-auto rounded-lg border border-border bg-paper px-3 py-2 text-sm text-muted transition-colors hover:border-border-strong hover:text-ink"
+          >
+            {asPanel ? 'Список рядом' : 'Список панелью'}
+          </button>
+        </div>
         {current?.playlistUrl ? (
           <>
             <VideoPlayer
@@ -85,6 +127,8 @@ export function VideoSetPlayer({
               mediaId={current.id}
               poster={current.poster ?? undefined}
               title={current.title}
+              onPrev={prev ? () => setCurrent(prev) : undefined}
+              onNext={next ? () => setCurrent(next) : undefined}
             />
             <h3 className="text-body font-medium text-ink text-balance">{current.title}</h3>
           </>
@@ -101,15 +145,17 @@ export function VideoSetPlayer({
         Список ограничен высотой плеера и прокручивается: иначе длинный набор
         растягивает страницу, и до того, что под ним, никто не доходит.
       */}
-      <VideoSetList
-        items={items}
-        channel={channel}
-        setCode={setCode}
-        currentCode={current?.code ?? null}
-        onSelect={setCurrent}
-        unlocking={unlocking}
-        className="max-h-[32rem] overflow-y-auto pr-1 [scrollbar-width:thin]"
-      />
+      {!asPanel && (
+        <VideoSetList
+          items={items}
+          channel={channel}
+          setCode={setCode}
+          currentCode={current?.code ?? null}
+          onSelect={setCurrent}
+          unlocking={unlocking}
+          className="max-h-[32rem] overflow-y-auto pr-1 [scrollbar-width:thin]"
+        />
+      )}
 
       {/* Нажатие на закрытый ролик открывает это окно — замок не должен быть тупиком. */}
       <AccessCodeDialog token={token} />
