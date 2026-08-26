@@ -28,6 +28,8 @@ export function VideoPreviewField() {
   const { id } = useDocumentInfo();
   const [doc, setDoc] = useState<{
     mimeType?: string;
+    shortCode?: string | null;
+    uploadedBy?: { channel?: string | null } | string | number | null;
     preview?: { url?: string } | string | number | null;
     hls?: {
       status?: Status;
@@ -70,6 +72,22 @@ export function VideoPreviewField() {
   const qualities = (doc.hls?.qualities ?? []).flatMap((q) => (q?.height ? [`${q.height}p`] : []));
   const duration = doc.hls?.durationSeconds;
 
+  /**
+   * Ссылка на страницу ролика.
+   *
+   * @remarks
+   * Кадра мало: у двух похожих роликов он одинаковый, и перед публикацией
+   * человек всё равно не знает, тот ли файл залит. Поэтому даём открыть ролик
+   * там, где его увидит зритель, — свой закрытый ролик автору открывается.
+   *
+   * Отдельный проигрыватель в админке заводить не стали: он повторял бы то же
+   * самое, но со своими ошибками, и показывал бы не то, что видит зритель.
+   */
+  const author = typeof doc.uploadedBy === 'object' && doc.uploadedBy ? doc.uploadedBy : null;
+  const siteUrl = process.env['NEXT_PUBLIC_SITE_URL'] ?? '';
+  const watchUrl =
+    doc.shortCode && author?.channel ? `${siteUrl}/@${author.channel}/v/${doc.shortCode}` : null;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
       <div
@@ -99,6 +117,17 @@ export function VideoPreviewField() {
           {LABEL[status]}
         </span>
       </div>
+
+      {status === 'ready' && watchUrl ? (
+        <a
+          href={watchUrl}
+          target="_blank"
+          rel="noreferrer"
+          style={{ fontSize: 13, alignSelf: 'flex-start' }}
+        >
+          Посмотреть на сайте ↗
+        </a>
+      ) : null}
 
       <p style={{ margin: 0, fontSize: 13, opacity: 0.75 }}>
         {status === 'ready'
