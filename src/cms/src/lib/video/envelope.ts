@@ -41,6 +41,19 @@ export interface ViewerToken {
 }
 
 /**
+ * Наборы, открытые этому токену по коду.
+ *
+ * @remarks
+ * Погашенный код не пишет ничего в базу: он дописывает право прямо в токен и
+ * пересобирает подпись. Отсюда простота — нет записи о доступе, нет привязки
+ * к браузеру, нечего отзывать: право живёт ровно столько, сколько токен.
+ *
+ * За деньги так нельзя: покупку надо видеть, продлевать и отзывать, — там
+ * право остаётся отдельной записью.
+ */
+export type GrantedPlaylists = ReadonlyArray<string | number>;
+
+/**
  * Выдаёт токен зрителя.
  *
  * @remarks
@@ -49,16 +62,59 @@ export interface ViewerToken {
  * не экономия, а требование: инстансов может быть два (blue и green), и
  * хранимая на одном сессия не нашлась бы на другом.
  */
-export function issueViewerToken(appSecret: string, nowSeconds: number): ViewerToken {
+export function issueViewerToken(
+  appSecret: string,
+  nowSeconds: number,
+  granted: GrantedPlaylists = [],
+): ViewerToken {
   const key = randomBytes(16);
   const expires = nowSeconds + TOKEN_TTL_SECONDS;
-  const payload = `${base64url(key)}${SEPARATOR}${expires}`;
-  return { value: `${payload}${SEPARATOR}${sign(payload, appSecret)}`, key };
+  return { value: buildToken(key, expires, granted, appSecret), key };
+}
+
+/**
+ * Пересобирает токен с добавленным набором.
+ *
+ * @remarks
+ * Ключ и срок сохраняются: у зрителя уже идёт просмотр, и подмена ключа
+ * посреди сеанса оборвала бы воспроизведение.
+ */
+export function withGrantedPlaylist(
+  token: string,
+  playlistId: string | number,
+  appSecret: string,
+  nowSeconds: number,
+): string | null {
+  const parsed = readViewerToken(token, appSecret, nowSeconds);
+  if (!parsed.ok) return null;
+
+  const granted = parsed.granted.includes(playlistId)
+    ? parsed.granted
+    : [...parsed.granted, playlistId];
+  return buildToken(parsed.key, parsed.expires, granted, appSecret);
+}
+
+function buildToken(
+  key: Buffer,
+  expires: number,
+  granted: GrantedPlaylists,
+  appSecret: string,
+): string {
+  // Наборы через запятую внутри одной части: разделитель токена другой,
+  // поэтому разбор не ломается даже при пустом списке.
+  const payload = `${base64url(key)}${SEPARATOR}${expires}${SEPARATOR}${granted.join(',')}`;
+  return `${payload}${SEPARATOR}${sign(payload, appSecret)}`;
 }
 
 /** Проверенный токен: ключ конверта или отказ с причиной. */
 export type TokenCheck =
-  | { readonly ok: true; readonly key: Buffer }
+  | {
+      readonly ok: true;
+      readonly key: Buffer;
+      readonly expires: number;
+      /** Наборы, открытые погашенными кодами. */
+      readonly granted: GrantedPlaylists;
+    }
   | { readonly ok: false; readonly reason: 'malformed' | 'signature' | 'expired' };
 
 /**
@@ -71,10 +127,10 @@ export type TokenCheck =
  */
 export function readViewerToken(token: string, appSecret: string, nowSeconds: number): TokenCheck {
   const parts = token.split(SEPARATOR);
-  if (parts.length !== 3) return { ok: false, reason: 'malformed' };
+  if (parts.length !== 4) return { ok: false, reason: 'malformed' };
 
-  const [rawKey, rawExpires, signature] = parts as [string, string, string];
-  const expected = sign(`${rawKey}${SEPARATOR}${rawExpires}`, appSecret);
+  const [rawKey, rawExpires, rawGranted, signature] = parts as [string, string, string, string];
+  const expected = sign(`${rawKey}${SEPARATOR}${rawExpires}${SEPARATOR}${rawGranted}`, appSecret);
 
   const given = Buffer.from(signature);
   const wanted = Buffer.from(expected);
@@ -90,7 +146,8 @@ export function readViewerToken(token: string, appSecret: string, nowSeconds: nu
   const key = Buffer.from(rawKey, 'base64url');
   if (key.length !== 16) return { ok: false, reason: 'malformed' };
 
-  return { ok: true, key };
+  const granted = rawGranted ? rawGranted.split(',').filter(Boolean) : [];
+  return { ok: true, key, expires, granted };
 }
 
 /**

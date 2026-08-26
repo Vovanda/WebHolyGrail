@@ -521,6 +521,43 @@ export const SiteSettings: GlobalConfig = {
       },
       fields: [
         {
+          name: 'codeLength',
+          label: 'Длина кода доступа',
+          type: 'select',
+          defaultValue: '6',
+          options: [
+            { label: '6 символов', value: '6' },
+            { label: '8 символов', value: '8' },
+          ],
+          admin: {
+            description:
+              'Код вводят руками и диктуют по телефону. Шести хватает, пока код живёт минуты; для долгих промокодов лучше восемь.',
+          },
+        },
+        {
+          name: 'codeTtlMinutes',
+          label: 'Сколько минут живёт код',
+          type: 'number',
+          defaultValue: 5,
+          min: 1,
+          max: 43200,
+          admin: {
+            description:
+              'Для персональной выдачи — минуты. Рекламному промокоду можно поставить недели.',
+          },
+        },
+        {
+          name: 'accessDays',
+          label: 'На сколько дней открывает доступ',
+          type: 'number',
+          defaultValue: 30,
+          min: 1,
+          admin: {
+            description:
+              'Срок самого доступа после ввода кода. Не путать со сроком кода: код живёт минуты, доступ — месяцами.',
+          },
+        },
+        {
           name: 'purgeAfterDays',
           label: 'Через сколько дней стирать удалённые ролики',
           type: 'number',

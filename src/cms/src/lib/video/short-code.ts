@@ -36,3 +36,52 @@ export function looksLikeShortCode(value: string): boolean {
   if (value.length !== LENGTH) return false;
   return [...value].every((char) => ALPHABET.includes(char));
 }
+
+/**
+ * Алфавит кода доступа: заглавные и цифры без похожих начертаний.
+ *
+ * @remarks
+ * Этот код человек вводит руками, диктует по телефону и переписывает из смс,
+ * поэтому регистр один, а символы, которые путаются на слух и на вид,
+ * исключены целиком.
+ */
+const CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+
+/**
+ * Код доступа к набору.
+ *
+ * @remarks
+ * Шесть символов — около миллиарда вариантов. Этого достаточно, только пока
+ * код живёт минуты и попытки погашения ограничены по частоте: без лимита
+ * перебор становится делом времени.
+ */
+export function generateAccessCode(length = 6): string {
+  const limit = Math.floor(256 / CODE_ALPHABET.length) * CODE_ALPHABET.length;
+  let code = '';
+  while (code.length < length) {
+    for (const byte of randomBytes(length * 2)) {
+      if (byte >= limit) continue;
+      code += CODE_ALPHABET[byte % CODE_ALPHABET.length];
+      if (code.length === length) break;
+    }
+  }
+  return code;
+}
+
+/**
+ * Приводит введённый код к тому виду, в каком он выдан.
+ *
+ * @remarks
+ * Человек диктует и переписывает с ошибками ровно в тех местах, где символы
+ * похожи: ноль вместо буквы «O», единица вместо «I» и «L». Раз таких символов
+ * в алфавите нет, подменяем их на то, что имелось в виду, вместо того чтобы
+ * отвечать «код неверен».
+ */
+export function normalizeAccessCode(value: string): string {
+  return value
+    .trim()
+    .toUpperCase()
+    .replace(/[0O]/g, 'O')
+    .replace(/[1IL]/g, 'J')
+    .replace(/[^0-9A-Z]/g, '');
+}
