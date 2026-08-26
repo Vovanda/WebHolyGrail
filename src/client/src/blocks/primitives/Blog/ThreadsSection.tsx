@@ -60,10 +60,11 @@ export async function ThreadsSection({ node, className }: ThreadsSectionProps) {
         className={cn(
           list
             ? 'flex flex-col gap-3'
-            : // `auto-fit` вместо фиксированных трёх колонок: одна серия не
-              // должна растягиваться на треть экрана с пустотой справа, а
-              // четыре — сжиматься в нечитаемые полоски.
-              'grid gap-5 md:gap-6 [grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr))]',
+            : // `auto-fit` вместо фиксированных трёх колонок: сетка сама
+              // подстраивается под число серий. Верхняя граница колонки
+              // обязательна — без неё единственная карточка растягивается на
+              // всю ширину и обложка занимает пол-экрана.
+              'grid justify-center gap-5 md:gap-6 [grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),22rem))]',
         )}
       >
         {visible.map(({ thread, articlesCount, lastPublishedAt }) => (
