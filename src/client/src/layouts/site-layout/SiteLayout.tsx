@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { PanelConfig, SiteLayoutConfig, SiteSettings, SlotName } from 'contracts';
 
 import { renderPanelContent } from './renderPanelContent';
+import { SidePanel } from '@/blocks/primitives/SidePanel';
 
 /**
  * Универсальный layout-движок Holy Grail (Panel/Slot composition).
@@ -136,6 +137,45 @@ function PanelHost({
   readonly pageChildren?: ReactNode;
 }) {
   if (panel.slot === 'left' || panel.slot === 'right') {
+    /*
+      Панель, которая отодвигает страницу, собирается лейаутом целиком: портал,
+      сдвиг каркаса, закрытие крестиком, клавишей и нажатием мимо лежат в одном
+      примитиве, и любой новой панели это достаётся даром. Блоку остаётся
+      только его содержимое.
+
+      Панель поверх страницы рисует блок сам: у навигации своя кнопка в шапке и
+      своё поведение, загонять её в общий примитив значило бы ломать
+      работающее (R9).
+    */
+    if (panel.mobile === 'push') {
+      const width = typeof panel.size === 'number' ? `${panel.size}px` : panel.size;
+      return (
+        <section data-panel-id={panel.id} data-panel-slot={panel.slot}>
+          <SidePanel
+            side={panel.slot}
+            {...(width ? { width } : {})}
+            title={panel.meta?.title}
+            trigger={({ open, isOpen }) => (
+              <button
+                type="button"
+                onClick={open}
+                aria-expanded={isOpen}
+                className={[
+                  'fixed top-1/2 z-[53] -translate-y-1/2 border border-border bg-paper',
+                  'px-2 py-4 text-sm text-muted shadow-sm transition-colors hover:text-ink',
+                  panel.slot === 'left' ? 'left-0 rounded-r-lg' : 'right-0 rounded-l-lg',
+                ].join(' ')}
+              >
+                <span className="[writing-mode:vertical-rl]">{panel.meta?.title ?? 'Панель'}</span>
+              </button>
+            )}
+          >
+            {renderPanelContent(panel.content, settings, pageChildren)}
+          </SidePanel>
+        </section>
+      );
+    }
+
     return (
       <section data-panel-id={panel.id} data-panel-slot={panel.slot}>
         {renderPanelContent(panel.content, settings, pageChildren)}

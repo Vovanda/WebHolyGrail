@@ -102,6 +102,7 @@ Self-hosted, MIT. Конструктор будет частью того же �
 - [`15-vision.md`](15-vision.md) — почему именно эти технологии, что отвергнуто и почему.
 - [`30-philosophy.md`](30-philosophy.md) — R-rules R1–R9 целиком.
 - [`32-structure.md`](32-structure.md) — структура монорепо, 4 уровня компонентов, growth models.
+- [`34-layout.md`](34-layout.md) — каркас сайта: слоты, режимы боковых панелей, две оси ширины.
 - [`35-frontend-stack.md`](35-frontend-stack.md) — фронт-стек и блочная модель.
 - [`36-block-coverage.md`](36-block-coverage.md) — что покрывает Payload-блочная модель, что нет.
 - [`37-scaffolding.md`](37-scaffolding.md) — workflow создания нового сайта.
