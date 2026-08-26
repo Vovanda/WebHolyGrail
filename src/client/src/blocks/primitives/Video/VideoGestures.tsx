@@ -51,8 +51,16 @@ export function VideoGestures({ videoRef, controllerRef, seekSeconds = 10 }: Vid
   const toggleControls = () => {
     const controller = controllerRef.current;
     if (!controller) return;
-    if (controller.hasAttribute('userinactive')) controller.removeAttribute('userinactive');
-    else controller.setAttribute('userinactive', '');
+
+    if (controller.hasAttribute('userinactive')) {
+      controller.removeAttribute('userinactive');
+      // Плеер прячет управление по своему таймеру бездействия, поэтому вместе
+      // со снятием метки сообщаем ему, что зритель здесь: иначе оверлей
+      // исчезает через мгновение после того, как его показали.
+      controller.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }));
+    } else {
+      controller.setAttribute('userinactive', '');
+    }
   };
 
   const seek = (direction: -1 | 1) => {

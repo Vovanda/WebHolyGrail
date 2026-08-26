@@ -165,7 +165,9 @@
     inset: 0;
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
-    z-index: 1;
+    /* Ниже управления: иначе зоны перехватывают нажатия по полосе времени
+     * и кнопкам, и плеер кажется сломанным. */
+    z-index: 0;
   }
 
   .video-gestures > button {
@@ -217,20 +219,45 @@
     --media-control-padding: 14px;
   }
 
-  .video-center media-seek-backward-button,
-  .video-center media-seek-forward-button {
+  .video-center__side {
+    display: grid;
+    place-items: center;
+    height: 3rem;
+    width: 3rem;
+    border: 0;
     border-radius: 999px;
-    --media-control-padding: 10px;
+    background: rgb(0 0 0 / 0.5);
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .video-center__side:hover:not(:disabled) {
+    background: rgb(0 0 0 / 0.7);
+  }
+
+  .video-center__side:disabled {
+    opacity: 0.35;
+    cursor: default;
   }
 
   /* Полоса времени во всю ширину, тонкая в покое и толще под курсором. */
   .video-progress {
     --media-range-track-height: 3px;
-    --media-range-thumb-height: 12px;
-    --media-range-thumb-width: 12px;
+    --media-range-thumb-height: 13px;
+    --media-range-thumb-width: 13px;
+    /* Просмотренная часть — акцентом сайта: полоса заодно показывает бренд,
+     * а не остаётся серой чужой деталью. */
     --media-range-bar-color: var(--color-accent);
+    --media-range-thumb-background: var(--color-accent);
+    --media-range-track-background: rgb(255 255 255 / 0.28);
+    --media-range-track-pointer-background: rgb(255 255 255 / 0.5);
     width: 100%;
     padding-inline: 6px;
+    /* Полоса лежит над строкой управления и нажимается: до этого она
+     * перекрывалась зонами жестов. */
+    position: relative;
+    z-index: 2;
   }
 
   .video-progress:hover {
@@ -242,6 +269,13 @@
     --media-control-background: transparent;
     --media-control-hover-background: rgb(255 255 255 / 0.12);
     padding-inline: 4px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .video-center {
+    position: relative;
+    z-index: 2;
   }
 
   .video-bar-gap {

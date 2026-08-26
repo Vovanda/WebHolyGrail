@@ -45,8 +45,17 @@ export interface VideoPlayerProps {
    * Поэтому содержимое приходит снаружи, а сюда попадает только место для него.
    */
   readonly overlay?: React.ReactNode;
-  /** Кадр наружу: тому, кто рисует поверх, нужно знать, когда ролик кончился. */
+  /** Кадр наружу: тому, кто рисует поверх, нужно знать, когда видео кончилось. */
   readonly onVideoRef?: ((video: HTMLVideoElement | null) => void) | undefined;
+  /**
+   * Переход к соседнему видео набора.
+   *
+   * @remarks
+   * Кнопки стоят на оверлее рядом с паузой — там, где зритель их и ищет.
+   * Пусто — значит листать нечего, и кнопка не рисуется.
+   */
+  readonly onPrev?: (() => void) | undefined;
+  readonly onNext?: (() => void) | undefined;
   /** Заголовок для скринридера — у видео без подписи иначе только «video». */
   readonly title?: string | undefined;
 }
@@ -78,6 +87,8 @@ export function VideoPlayer({
   title,
   overlay,
   onVideoRef,
+  onPrev,
+  onNext,
 }: VideoPlayerProps) {
   const videoRef = useRef<(HTMLVideoElement & { config?: unknown }) | null>(null);
   // Контроллер нужен жестам: у него переключается видимость управления.
@@ -281,12 +292,28 @@ export function VideoPlayer({
             область, а нижние кнопки мелкие, и на ходу в них не попасть.
           */}
           <div slot="centered-chrome" className="video-center">
-            {/* @ts-expect-error — веб-компонент */}
-            <media-seek-backward-button seekoffset="10" />
+            <button
+              type="button"
+              onClick={onPrev}
+              disabled={!onPrev}
+              aria-label="Предыдущее видео"
+              className="video-center__side"
+            >
+              <PrevIcon />
+            </button>
+
             {/* @ts-expect-error — веб-компонент */}
             <media-play-button />
-            {/* @ts-expect-error — веб-компонент */}
-            <media-seek-forward-button seekoffset="10" />
+
+            <button
+              type="button"
+              onClick={onNext}
+              disabled={!onNext}
+              aria-label="Следующее видео"
+              className="video-center__side"
+            >
+              <NextIcon />
+            </button>
           </div>
 
           {/*
@@ -358,4 +385,20 @@ function base64urlToBytes(value: string): ArrayBuffer {
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
   return bytes.buffer;
+}
+
+function PrevIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M6 6h2v12H6zM20 6v12l-9-6z" />
+    </svg>
+  );
+}
+
+function NextIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M16 6h2v12h-2zM4 6l9 6-9 6z" />
+    </svg>
+  );
 }
