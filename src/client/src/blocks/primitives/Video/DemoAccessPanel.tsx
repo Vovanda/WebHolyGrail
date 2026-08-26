@@ -81,12 +81,7 @@ export function DemoAccessPanel({ token, heading, text, className }: DemoAccessP
         </button>
       )}
 
-      {failed && (
-        <p className="text-sm text-muted">
-          Код сейчас не выдаётся. На обычном сайте эту кнопку не показывают вовсе — ключи от
-          платного выдаёт владелец, а не страница.
-        </p>
-      )}
+      {failed && <p className="text-sm text-muted">Код сейчас не выдаётся, попробуйте позже.</p>}
 
       <AccessCodeForm token={token} />
     </section>
