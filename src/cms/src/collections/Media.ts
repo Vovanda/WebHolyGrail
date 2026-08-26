@@ -187,6 +187,17 @@ export const Media: CollectionConfig = {
           },
         },
         {
+          // Кнопка возврата рядом с пометкой: срок отсрочки бессмыслен, если
+          // вернуть ролик можно только запросом в базу.
+          name: 'restore',
+          type: 'ui',
+          admin: {
+            components: {
+              Field: '/admin/components/RestoreVideoField#RestoreVideoField',
+            },
+          },
+        },
+        {
           /**
            * Пометка удаления.
            *
