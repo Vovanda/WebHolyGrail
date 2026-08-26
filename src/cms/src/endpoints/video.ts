@@ -173,6 +173,102 @@ export const videoChannelEndpoint: Endpoint = {
   },
 };
 
+/** Ролик набора в том виде, в каком он приходит из связи. */
+type PlaylistVideo = {
+  id: string | number;
+  alt?: string;
+  caption?: string;
+  filename?: string;
+  shortCode?: string | null;
+  access?: string;
+  preview?: { url?: string } | null;
+  hls?: { status?: string; durationSeconds?: number | null; deletedAt?: string | null } | null;
+};
+
+/**
+ * Отдаёт набор: сведения о курсе и его уроки по порядку.
+ *
+ * @remarks
+ * Закрытые уроки, в отличие от канала, из списка не убираются: набор и есть
+ * витрина курса, и оглавление — его продающая часть. Наружу от закрытого урока
+ * уходит только название и обложка; играть он не начнёт, конверт выдаётся
+ * отдельно и по тем же правилам.
+ *
+ * Замок считается по зрителю: куки страница пробрасывает, поэтому у вошедшего
+ * с правом на набор уроки открыты, а у постороннего закрыты.
+ */
+export const videoPlaylistEndpoint: Endpoint = {
+  path: '/video/playlist/:channel/:code',
+  method: 'get',
+  handler: async (req) => {
+    const channel = String(req.routeParams?.['channel'] ?? '');
+    const code = String(req.routeParams?.['code'] ?? '');
+    if (!channel || !code) return json({ error: 'Не указан адрес.' }, 400);
+
+    const found = await req.payload.find({
+      collection: 'playlists',
+      where: { shortCode: { equals: code } },
+      depth: 2,
+      limit: 1,
+      overrideAccess: true,
+    });
+
+    const doc = found.docs[0] as
+      | {
+          id: string | number;
+          title?: string;
+          description?: string | null;
+          cover?: { url?: string } | null;
+          author?:
+            | { id?: string | number; channel?: string; name?: string }
+            | string
+            | number
+            | null;
+          items?: ReadonlyArray<{ video?: PlaylistVideo | string | number | null }> | null;
+        }
+      | undefined;
+    if (!doc) return json({ error: 'not-found' }, 404);
+
+    // Адрес сверяется целиком, как у ролика: иначе один набор открывался бы с
+    // любым каналом в ссылке и поисковик видел бы дубли одной страницы.
+    const author = typeof doc.author === 'object' && doc.author ? doc.author : null;
+    if ((author?.channel ?? '') !== channel) return json({ error: 'not-found' }, 404);
+
+    const policy = entitlementPolicy(payloadEntitlements(req.payload));
+    const viewer = { userId: req.user?.id ?? null };
+
+    const items = [];
+    for (const entry of doc.items ?? []) {
+      const video = typeof entry?.video === 'object' && entry.video ? entry.video : null;
+      // Помеченный к удалению из набора пропадает сразу, как и с сайта.
+      if (!video || !video.shortCode || video.hls?.deletedAt) continue;
+
+      const access = video.access === 'private' ? 'private' : 'public';
+      const decision = await policy.decide({ id: video.id, access }, viewer);
+
+      items.push({
+        code: video.shortCode,
+        title: video.caption?.trim() || video.alt?.trim() || video.filename || 'Видео',
+        poster: video.preview?.url ?? null,
+        durationSeconds: video.hls?.durationSeconds ?? null,
+        ready: video.hls?.status === 'ready',
+        locked: !decision.allowed,
+        lockReason: decision.allowed ? null : decision.reason,
+      });
+    }
+
+    return json({
+      code,
+      channel,
+      authorName: author?.name ?? null,
+      title: doc.title ?? 'Набор',
+      description: doc.description ?? null,
+      cover: doc.cover?.url ?? null,
+      items,
+    });
+  },
+};
+
 /**
  * Говорит, откроется ли ролик у этого зрителя.
  *
