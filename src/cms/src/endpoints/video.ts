@@ -217,7 +217,12 @@ type PlaylistVideo = {
   // Нужен, чтобы автор видел свои закрытые ролики в списке набора без замка.
   uploadedBy?: unknown;
   preview?: { url?: string } | null;
-  hls?: { status?: string; durationSeconds?: number | null; deletedAt?: string | null } | null;
+  hls?: {
+    status?: string;
+    playlistUrl?: string | null;
+    durationSeconds?: number | null;
+    deletedAt?: string | null;
+  } | null;
 };
 
 /**
@@ -268,7 +273,11 @@ async function describePlaylist(
     const decision = await policy.decide({ id: video.id, access }, viewerOf(req, video.uploadedBy));
 
     items.push({
+      id: video.id,
       code: video.shortCode,
+      // Адрес потока только у тех, кому он положен: закрытому ролику он
+      // всё равно бесполезен без ключа.
+      playlistUrl: decision.allowed ? (video.hls?.playlistUrl ?? null) : null,
       title: video.caption?.trim() || video.alt?.trim() || video.filename || 'Видео',
       poster: video.preview?.url ?? null,
       durationSeconds: video.hls?.durationSeconds ?? null,

@@ -3,7 +3,13 @@ import { notFound } from 'next/navigation';
 
 import { AccessCodeForm } from '@/blocks/primitives/Video/AccessCodeForm';
 import { VideoPlayer } from '@/blocks/primitives/Video/VideoPlayer';
-import { checkVideoAccess, getVideoByCode, issueVideoToken } from '@/lib/api-client';
+import { VideoSetList } from '@/blocks/primitives/Video/VideoSetList';
+import {
+  checkVideoAccess,
+  getPlaylistByCode,
+  getVideoByCode,
+  issueVideoToken,
+} from '@/lib/api-client';
 
 /**
  * Страница ролика: `/@<канал>/v/<код>`.
@@ -42,7 +48,13 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
   };
 }
 
-export default async function VideoPage({ params }: { params: Promise<Params> }) {
+export default async function VideoPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<Params>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { channel, code } = await params;
   const video = await getVideoByCode(channel, code);
   if (!video) notFound();
@@ -52,6 +64,17 @@ export default async function VideoPage({ params }: { params: Promise<Params> })
   // Токен нужен и для отказа: в него дописывается набор, когда зритель вводит код.
   const token = video.status === 'ready' ? await issueVideoToken() : null;
   const playable = access.allowed && video.status === 'ready';
+
+  /*
+    Набор, из которого пришли, показывается под роликом: смотрят подряд, и
+    возвращаться назад за следующим — лишний шаг.
+
+    Какой именно набор, знает адрес: ролик может состоять в нескольких, и без
+    этого пришлось бы выбирать наугад.
+  */
+  const setParam = (await searchParams)['set'];
+  const setCode = typeof setParam === 'string' ? setParam : null;
+  const set = setCode ? await getPlaylistByCode(channel, setCode, cookie) : null;
 
   return (
     /*
@@ -101,6 +124,28 @@ export default async function VideoPage({ params }: { params: Promise<Params> })
         </p>
         {video.description && <Description text={video.description} />}
       </header>
+
+      {set && set.items.length > 1 && (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-body font-medium text-ink">
+            Из набора «
+            <a
+              href={`/@${channel}/p/${set.code ?? setCode}`}
+              className="hover:underline underline-offset-4"
+            >
+              {set.title}
+            </a>
+            »
+          </h2>
+          <VideoSetList
+            items={set.items}
+            channel={channel}
+            setCode={set.code ?? setCode}
+            currentCode={code}
+            orientation="horizontal"
+          />
+        </section>
+      )}
 
       {/*
         Разметка для поисковика. Без неё прямая ссылка выглядит в выдаче

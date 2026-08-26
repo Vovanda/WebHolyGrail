@@ -27,6 +27,16 @@ export interface DetailDrawerProps {
   readonly children: React.ReactNode;
   /** Класс на сам drawer (по умолчанию 380px). */
   readonly className?: string;
+  /**
+   * Где показать окно.
+   *
+   * @remarks
+   * `left` — панель на всю высоту: для длинного содержимого, когда полезно
+   * видеть список за ней. `center` — диалог посередине: для короткого, где
+   * нужно решение, например ввода кода. На узком экране разница исчезает,
+   * окно всё равно занимает почти всё место.
+   */
+  readonly placement?: 'left' | 'center';
 }
 
 function parseHash(): string | null {
@@ -51,7 +61,7 @@ export function openDetail(slug: string): void {
   }
 }
 
-export function DetailDrawer({ slug, children, className }: DetailDrawerProps) {
+export function DetailDrawer({ slug, children, className, placement = 'left' }: DetailDrawerProps) {
   const [open, setOpen] = useState(false);
 
   const close = useCallback(() => {
@@ -132,11 +142,19 @@ export function DetailDrawer({ slug, children, className }: DetailDrawerProps) {
         aria-modal="true"
         aria-hidden={!open}
         className={cn(
-          'fixed top-0 left-0 z-[61] h-full w-full max-w-[440px]',
-          'bg-bg shadow-[8px_0_32px_rgba(43,34,26,0.18)]',
-          'transition-transform duration-300 ease-out',
-          'overflow-y-auto overscroll-contain',
-          open ? 'translate-x-0' : '-translate-x-full',
+          'fixed z-[61] overflow-y-auto overscroll-contain bg-bg',
+          'transition-all duration-300 ease-out',
+          placement === 'center'
+            ? cn(
+                'left-1/2 top-1/2 w-[min(92vw,560px)] max-h-[85vh] -translate-x-1/2 -translate-y-1/2',
+                'rounded-2xl border border-border shadow-[0_24px_64px_rgba(43,34,26,0.28)]',
+                open ? 'opacity-100 scale-100' : 'pointer-events-none opacity-0 scale-95',
+              )
+            : cn(
+                'top-0 left-0 h-full w-full max-w-[440px]',
+                'shadow-[8px_0_32px_rgba(43,34,26,0.18)]',
+                open ? 'translate-x-0' : '-translate-x-full',
+              ),
           className,
         )}
       >
@@ -148,7 +166,10 @@ export function DetailDrawer({ slug, children, className }: DetailDrawerProps) {
           onClick={close}
           aria-label="Закрыть"
           className={cn(
-            'fixed top-3 right-[max(24px,calc((100vw-1300px)/2+24px))] z-[62]',
+            'z-[62] grid place-items-center',
+            placement === 'center'
+              ? 'absolute top-3 right-3'
+              : 'fixed top-3 right-[max(24px,calc((100vw-1300px)/2+24px))]',
             'grid place-items-center h-11 w-11 md:h-12 md:w-12 rounded-lg',
             'bg-surface text-ink shadow-sm border border-border',
             // hover-фон совпадает с бургером (#d1c69f).

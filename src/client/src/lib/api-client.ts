@@ -1,5 +1,6 @@
 import type {
   BlogArticle,
+  VideoSetItem,
   BlogAuthor,
   BlogTag,
   BlogThread,
@@ -634,17 +635,6 @@ export async function getChannel(channel: string): Promise<{
   };
 }
 
-/** Урок набора. */
-export interface PlaylistItem {
-  readonly code: string;
-  readonly title: string;
-  readonly poster: string | null;
-  readonly durationSeconds: number | null;
-  readonly ready: boolean;
-  readonly locked: boolean;
-  readonly lockReason: 'sign-in-required' | 'not-entitled' | null;
-}
-
 /** Набор целиком: чем он является и что в нём. */
 export interface PlaylistView {
   readonly code: string | null;
@@ -653,7 +643,7 @@ export interface PlaylistView {
   readonly title: string;
   readonly description: string | null;
   readonly cover: string | null;
-  readonly items: ReadonlyArray<PlaylistItem>;
+  readonly items: ReadonlyArray<VideoSetItem>;
 }
 
 /**

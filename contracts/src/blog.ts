@@ -226,8 +226,11 @@ export interface VideoBlockData {
 
 /** Ролик в наборе: то, что нужно строке списка, и ничего сверх. */
 export interface VideoSetItem {
+  readonly id: string | number;
   readonly code: string;
   readonly title: string;
+  /** Адрес потока: пусто у закрытых и ещё не готовых. */
+  readonly playlistUrl: string | null;
   readonly poster: string | null;
   readonly durationSeconds: number | null;
   readonly ready: boolean;
@@ -261,6 +264,18 @@ export interface DemoAccessBlockData {
 export interface VideoSetBlockData {
   readonly heading?: string;
   readonly subtitle?: string;
+  /**
+   * Как показать набор.
+   *
+   * @remarks
+   * `player` — плеер и список рядом: ролики смотрят подряд, не уходя со
+   * страницы. `list` — только список, каждый ролик открывается на своей
+   * странице.
+   */
+  readonly mode?: 'player' | 'list';
+  readonly showCover?: boolean;
+  readonly showTitle?: boolean;
+  readonly showDescription?: boolean;
   readonly layout?: 'rows' | 'grid';
   readonly limit?: number | null;
   readonly showLink?: boolean;

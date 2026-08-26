@@ -26,6 +26,7 @@ import * as migration_20260826_183023_media_title from './20260826_183023_media_
 import * as migration_20260826_191836_media_derived from './20260826_191836_media_derived';
 import * as migration_20260826_193016_video_set_block from './20260826_193016_video_set_block';
 import * as migration_20260826_194734_demo_access_block from './20260826_194734_demo_access_block';
+import * as migration_20260826_201412_video_set_modes from './20260826_201412_video_set_modes';
 
 export const migrations = [
   {
@@ -167,5 +168,10 @@ export const migrations = [
     up: migration_20260826_194734_demo_access_block.up,
     down: migration_20260826_194734_demo_access_block.down,
     name: '20260826_194734_demo_access_block',
+  },
+  {
+    up: migration_20260826_201412_video_set_modes.up,
+    down: migration_20260826_201412_video_set_modes.down,
+    name: '20260826_201412_video_set_modes',
   },
 ];

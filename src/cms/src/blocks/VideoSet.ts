@@ -32,15 +32,51 @@ export const VideoSetBlock: Block = {
     },
     {
       name: 'heading',
-      label: 'Заголовок',
+      label: 'Свой заголовок',
       type: 'text',
       admin: { description: 'Пусто — возьмётся название набора.' },
     },
     {
       name: 'subtitle',
-      label: 'Подзаголовок',
+      label: 'Своё описание',
       type: 'textarea',
       admin: { description: 'Пусто — возьмётся описание набора.' },
+    },
+    {
+      /**
+       * Плеер рядом со списком или только список.
+       *
+       * @remarks
+       * По умолчанию плеер: набор для того и собирают, чтобы смотреть подряд,
+       * не уходя со страницы. Только список нужен там, где плеер не к месту —
+       * в статье или на посадочной странице.
+       */
+      name: 'mode',
+      label: 'Что показывать',
+      type: 'select',
+      defaultValue: 'player',
+      options: [
+        { label: 'Плеер и список рядом', value: 'player' },
+        { label: 'Только список, ролики открываются на своих страницах', value: 'list' },
+      ],
+    },
+    {
+      name: 'showCover',
+      label: 'Показывать обложку набора',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+    {
+      name: 'showTitle',
+      label: 'Показывать название набора',
+      type: 'checkbox',
+      defaultValue: true,
+    },
+    {
+      name: 'showDescription',
+      label: 'Показывать описание набора',
+      type: 'checkbox',
+      defaultValue: true,
     },
     {
       /**
@@ -51,7 +87,8 @@ export const VideoSetBlock: Block = {
        * плитками — когда важнее обложки, например на посадочной странице.
        */
       name: 'layout',
-      label: 'Вид',
+      label: 'Вид списка',
+      admin: { condition: (_data, sibling) => sibling?.['mode'] === 'list' },
       type: 'select',
       defaultValue: 'rows',
       options: [
