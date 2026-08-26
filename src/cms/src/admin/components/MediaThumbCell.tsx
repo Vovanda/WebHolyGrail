@@ -27,8 +27,11 @@ export function MediaThumbCell({ rowData }: DefaultCellComponentProps) {
   const row = (rowData ?? {}) as Row;
 
   const isVideo = String(row.mimeType ?? '').startsWith('video/');
+  // В списке связь приходит идентификатором, а не документом, поэтому кадр
+  // берём из миниатюры: у нарезанного ролика она и есть снятая обложка.
   const preview = typeof row.preview === 'object' && row.preview ? row.preview.url : undefined;
-  const src = isVideo ? preview : (row.thumbnailURL ?? row.url);
+  // У видео `url` ведёт на манифест потока — картинкой он не откроется.
+  const src = preview ?? row.thumbnailURL ?? (isVideo ? undefined : row.url);
 
   if (!src) {
     // Обложки ещё нет: ролик в очереди или нарезка не удалась. Пустая рамка

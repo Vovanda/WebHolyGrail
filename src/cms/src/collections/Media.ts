@@ -31,7 +31,7 @@ export const Media: CollectionConfig = {
   slug: 'media',
   labels: { singular: 'Медиафайл', plural: 'Медиа' },
   admin: {
-    useAsTitle: 'filename',
+    useAsTitle: 'title',
     // Название впереди имени файла: в списке ищут глазами по названию, а
     // `lesson-4.mp4` о содержимом не говорит ничего. Описание из колонок убрано —
     // у видео оно в несколько строк и разносит таблицу.
@@ -73,6 +73,24 @@ export const Media: CollectionConfig = {
     },
   },
   fields: [
+    {
+      /**
+       * Имя документа в интерфейсе.
+       *
+       * @remarks
+       * Заголовок карточки, крошки и подписи в выпадающих списках Payload
+       * берёт из одного поля. Раньше это было имя файла, и человек видел
+       * `lesson-4.mp4` там, где ожидал название ролика.
+       *
+       * Заполняется само: название, а если его нет — имя файла, поэтому
+       * у картинок и документов ничего не меняется. Руками не правится,
+       * чтобы не разъезжалось с названием.
+       */
+      name: 'title',
+      type: 'text',
+      index: true,
+      admin: { hidden: true, readOnly: true },
+    },
     {
       name: 'alt',
       label: 'Описание (alt)',
@@ -386,6 +404,13 @@ export const Media: CollectionConfig = {
         ) {
           data['shortCode'] = generateShortCode();
         }
+
+        // Имя документа держим в актуальном виде: название могли только что
+        // поменять, а имя файла — единственное, что есть у картинок.
+        const caption = String(data['caption'] ?? '').trim();
+        const filename = String(data['filename'] ?? '').trim();
+        if (caption || filename) data['title'] = caption || filename;
+
         return data;
       },
     ],
