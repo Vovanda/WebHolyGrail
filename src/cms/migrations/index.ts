@@ -16,6 +16,7 @@ import * as migration_20260803_130810_catch_up_settings_media_blocks from './202
 import * as migration_20260803_164550_nav_children from './20260803_164550_nav_children';
 import * as migration_20260826_072342_threads_section_block from './20260826_072342_threads_section_block';
 import * as migration_20260826_112035_video_hls from './20260826_112035_video_hls';
+import * as migration_20260826_115716_video_block from './20260826_115716_video_block';
 
 export const migrations = [
   {
@@ -107,5 +108,10 @@ export const migrations = [
     up: migration_20260826_112035_video_hls.up,
     down: migration_20260826_112035_video_hls.down,
     name: '20260826_112035_video_hls',
+  },
+  {
+    up: migration_20260826_115716_video_block.up,
+    down: migration_20260826_115716_video_block.down,
+    name: '20260826_115716_video_block',
   },
 ];

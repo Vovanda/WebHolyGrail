@@ -26,7 +26,7 @@ import { Specialists } from './collections/Specialists';
 import { SiteSettings } from './globals/SiteSettings';
 import { withAutoSlug } from './lib/slug';
 import { BuildHlsTask } from './jobs/build-hls.task';
-import { videoEnvelopeEndpoint, videoTokenEndpoint } from './endpoints/video';
+import { videoAccessEndpoint, videoEnvelopeEndpoint, videoTokenEndpoint } from './endpoints/video';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -116,7 +116,7 @@ export default buildConfig({
    * Выдача доступа к видео. Живёт рядом с коллекциями, а не внутри `media`:
    * токен зрителя к конкретному медиафайлу не относится, он общий на сессию.
    */
-  endpoints: [videoTokenEndpoint, videoEnvelopeEndpoint],
+  endpoints: [videoTokenEndpoint, videoAccessEndpoint, videoEnvelopeEndpoint],
   /**
    * Jobs Queue — admin UI на /admin/collections/payload-jobs. Template поставляет
    * пустой набор tasks/workflows — downstream добавляет свои задачи (sync

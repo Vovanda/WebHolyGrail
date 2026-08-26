@@ -113,6 +113,41 @@
   (ite (< n lim) (+ n 1) lim))
 
 ; ---------------------------------------------------------------------------
+; СЕКЦИЯ C2 — НАБОРЫ И ПРАВА
+; ---------------------------------------------------------------------------
+; Курсы продаёт не один владелец сайта, а участники сообщества: у каждого свои
+; наборы и свои покупатели. Поэтому право — отдельная связь «зритель × набор»,
+; а не флаг на ролике и не свойство плейлиста.
+;
+; Почему не каскад «закрытый плейлист закрывает свои ролики»: тогда платный
+; набор с бесплатными вводными уроками невозможен — они закрылись бы вместе
+; с остальными. Ролик сам говорит, нужен ли для него доступ; набор говорит,
+; чем этот доступ выдаётся.
+
+(declare-sort Playlist 0)
+(declare-sort Author 0)
+
+(declare-fun playlistOwner (Playlist) Author)
+(declare-fun inPlaylist (Video Playlist) Bool)
+
+; Право зрителя на набор. Способ выдачи (код, оплата, рука администратора)
+; модели безразличен — важен сам факт.
+(declare-fun entitled (Viewer Playlist) Bool)
+
+; Ролику нужен доступ. Бесплатные вводные уроки признака не имеют и открыты
+; всем, даже находясь в платном наборе.
+(define-fun needsEntitlement ((v Video)) Bool (= (access v) Private))
+
+; Итог: закрытый ролик открывается, если у зрителя есть право хотя бы на один
+; набор, куда этот ролик входит. Купил любой курс с этим уроком — смотришь.
+(define-fun mayWatch ((v Video) (z Viewer)) Bool
+  (or (not (needsEntitlement v))
+      (exists ((p Playlist)) (and (inPlaylist v p) (entitled z p)))))
+
+(define-fun envelopeIssuedWithEntitlements ((v Video) (z Viewer)) Bool
+  (and (= (status v) Ready) (mayWatch v z)))
+
+; ---------------------------------------------------------------------------
 ; СЕКЦИЯ D — ТЕСТЫ
 ; ---------------------------------------------------------------------------
 ; Схема блока:
@@ -289,6 +324,97 @@
 (declare-const last Int)
 (assert (> (- now last) staleAfter))
 (assert (watchAlive now last))
+(check-sat)
+(pop)
+
+;@TEST          Бесплатный урок открыт всем даже в платном наборе
+;@EXPECT        sat
+;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::бесплатный урок
+(push)
+(declare-const v Video)
+(declare-const p Playlist)
+(declare-const z Viewer)
+(assert (= (status v) Ready))
+(assert (= (access v) Public))
+(assert (inPlaylist v p))
+(assert (not (entitled z p)))
+(assert (envelopeIssuedWithEntitlements v z))
+(check-sat)
+(pop)
+
+;@TEST          Закрытый урок без права не открывается
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::нет права
+(push)
+(declare-const v Video)
+(declare-const z Viewer)
+(assert (needsEntitlement v))
+(assert (forall ((p Playlist)) (not (entitled z p))))
+(assert (envelopeIssuedWithEntitlements v z))
+(check-sat)
+(pop)
+
+;@TEST          Право на набор открывает все его закрытые уроки
+;@EXPECT        sat
+;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::оплата открывает набор
+(push)
+(declare-const v Video)
+(declare-const p Playlist)
+(declare-const z Viewer)
+(assert (= (status v) Ready))
+(assert (needsEntitlement v))
+(assert (inPlaylist v p))
+(assert (entitled z p))
+(assert (envelopeIssuedWithEntitlements v z))
+(check-sat)
+(pop)
+
+;@TEST          Право на чужой набор не открывает урок
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::право на другой курс
+(push)
+(declare-const v Video)
+(declare-const mine Playlist)
+(declare-const other Playlist)
+(declare-const z Viewer)
+(assert (needsEntitlement v))
+(assert (inPlaylist v mine))
+(assert (not (inPlaylist v other)))
+(assert (entitled z other))
+(assert (forall ((p Playlist)) (=> (entitled z p) (= p other))))
+(assert (envelopeIssuedWithEntitlements v z))
+(check-sat)
+(pop)
+
+;@TEST          Урок в двух курсах открывается правом на любой из них
+;@EXPECT        sat
+;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::урок в двух курсах
+(push)
+(declare-const v Video)
+(declare-const first Playlist)
+(declare-const second Playlist)
+(declare-const z Viewer)
+(assert (distinct first second))
+(assert (= (status v) Ready))
+(assert (needsEntitlement v))
+(assert (inPlaylist v first))
+(assert (inPlaylist v second))
+(assert (entitled z second))
+(assert (envelopeIssuedWithEntitlements v z))
+(check-sat)
+(pop)
+
+;@TEST          Наборы разных продавцов не смешиваются
+;@EXPECT        sat
+;@COVERED-BY    n/a — проверка модели
+(push)
+(declare-const trainer Author)
+(declare-const member Author)
+(declare-const first Playlist)
+(declare-const second Playlist)
+(assert (distinct trainer member))
+(assert (= (playlistOwner first) trainer))
+(assert (= (playlistOwner second) member))
 (check-sat)
 (pop)
 

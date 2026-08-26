@@ -89,6 +89,13 @@ export async function buildHls({
     secret: result.secret.toString('base64'),
   });
 
+  // Обложку ставим только если редактор не задал свою: его кадр важнее
+  // автоматически выбранного.
+  if (result.poster && !video.hasPoster) {
+    await catalog.savePoster(mediaId, result.poster);
+    log('обложка снята из ролика');
+  }
+
   return {
     qualities: result.rungs.map((rung) => rung.height),
     files: result.files.length,

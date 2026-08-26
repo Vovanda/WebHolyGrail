@@ -23,6 +23,8 @@ export interface EncoderPort {
     rungs: ReadonlyArray<HlsRung>;
     durationSeconds: number | null;
     secret: Buffer;
+    /** Кадр для обложки; `null` — если вытащить не удалось. */
+    poster: Buffer | null;
   }>;
 }
 
@@ -50,6 +52,8 @@ export interface VideoRecord {
   readonly url: string;
   /** Адрес прошлой нарезки, если она была. */
   readonly previousPrefix: string | null;
+  /** Обложка уже задана — своя не перетирается. */
+  readonly hasPoster: boolean;
 }
 
 /** Итог нарезки, который сохраняется в каталог. */
@@ -66,6 +70,14 @@ export interface CatalogPort {
   read(id: string | number): Promise<VideoRecord>;
   saveRendition(id: string | number, result: RenditionResult): Promise<void>;
   ladder(): Promise<ReadonlyArray<HlsRung>>;
+  /**
+   * Сохраняет кадр обложкой ролика.
+   *
+   * @remarks
+   * Отдельным медиафайлом, а не полем с картинкой: так обложка попадает в то же
+   * хранилище и получает тот же адрес раздачи, что и всё остальное.
+   */
+  savePoster(id: string | number, poster: Buffer): Promise<void>;
 }
 
 export interface VideoPorts {

@@ -141,6 +141,7 @@ export function payloadCatalog(payload: Payload): CatalogPort {
         mimeType?: string;
         filename?: string;
         url?: string;
+        preview?: string | number | null;
         hls?: { prefix?: string | null };
       };
       return {
@@ -150,6 +151,7 @@ export function payloadCatalog(payload: Payload): CatalogPort {
         // Метка версии в адресе нужна CDN, а для скачивания только мешает.
         url: String(doc.url ?? '').split('?')[0] ?? '',
         previousPrefix: doc.hls?.prefix ?? null,
+        hasPoster: Boolean(doc.preview),
       };
     },
 
@@ -170,6 +172,25 @@ export function payloadCatalog(payload: Payload): CatalogPort {
         },
         // Служебное обновление: без этой отметки запись результата запустила бы
         // новый круг нарезки.
+        context: { skipHlsQueue: true },
+      });
+    },
+
+    async savePoster(id, poster) {
+      const created = await payload.create({
+        collection: 'media',
+        data: { alt: 'Кадр из видео', prefix: 'previews' },
+        file: {
+          data: poster,
+          name: `video-${id}-poster.jpg`,
+          mimetype: 'image/jpeg',
+          size: poster.length,
+        },
+      });
+      await payload.update({
+        collection: 'media',
+        id,
+        data: { preview: created.id },
         context: { skipHlsQueue: true },
       });
     },

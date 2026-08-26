@@ -31,6 +31,44 @@ function appSecret(): string {
 const nowSeconds = (): number => Math.floor(Date.now() / 1000);
 
 /**
+ * Говорит, откроется ли ролик у этого зрителя.
+ *
+ * @remarks
+ * Нужен странице: она решает, рисовать плеер или заглушку, ещё до того как
+ * браузер что-то загрузит. Без этого закрытый ролик показывал бы обычный
+ * плеер, а отказ всплывал только по нажатию «play» — то есть выглядел бы
+ * поломкой, а не закрытым доступом.
+ *
+ * Секрета в ответе нет: только решение и его причина.
+ */
+export const videoAccessEndpoint: Endpoint = {
+  path: '/video/:id/access',
+  method: 'get',
+  handler: async (req) => {
+    const id = req.routeParams?.['id'];
+    if (!id) return json({ error: 'Не указан ролик.' }, 400);
+
+    const doc = (await req.payload.findByID({
+      collection: 'media',
+      id: String(id),
+      depth: 0,
+      overrideAccess: true,
+    })) as { id: string | number; access?: string; hls?: { status?: string } };
+
+    const decision = await signedInPolicy.decide(
+      { id: doc.id, access: doc.access === 'private' ? 'private' : 'public' },
+      { userId: req.user?.id ?? null },
+    );
+
+    return json({
+      allowed: decision.allowed,
+      reason: decision.allowed ? null : decision.reason,
+      status: doc.hls?.status ?? 'pending',
+    });
+  },
+};
+
+/**
  * Выдаёт токен зрителя.
  *
  * @remarks

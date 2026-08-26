@@ -23,6 +23,7 @@ import { CertifiedNoticeBlock } from './CertifiedNotice';
 import { SocialFeedBlock } from './SocialFeed';
 import { ArticlesSectionBlock } from './ArticlesSection';
 import { ThreadsSectionBlock } from './ThreadsSection';
+import { VideoBlock } from './Video';
 import { FaqAccordionBlock } from './FaqAccordion';
 import { ReusableRefBlock } from './ReusableRef';
 import { PageRefBlock } from './PageRef';
@@ -74,6 +75,7 @@ export const REUSABLE_INNER_BLOCKS = [
   SocialFeedBlock,
   ArticlesSectionBlock,
   ThreadsSectionBlock,
+  VideoBlock,
   FaqAccordionBlock,
   // WHG-specific:
   ProjectTypesGridBlock,

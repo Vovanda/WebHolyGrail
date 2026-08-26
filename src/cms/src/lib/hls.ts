@@ -72,6 +72,15 @@ export interface HlsFile {
 
 export interface HlsResult {
   readonly files: ReadonlyArray<HlsFile>;
+  /**
+   * Кадр из ролика — обложка до нажатия «play».
+   *
+   * @remarks
+   * Снимается тем же проходом: отдельная утилита ради одного кадра не нужна.
+   * `null` — если кадр вытащить не удалось; тогда обложку задаёт редактор,
+   * а плеер обходится без неё.
+   */
+  readonly poster: Buffer | null;
   /** Ступени, которые реально собрались (без тех, что выше исходника). */
   readonly rungs: ReadonlyArray<HlsRung>;
   /** Длительность ролика в секундах, если ffprobe её отдал. */
@@ -236,6 +245,7 @@ export async function transcodeToHls(
       rungs,
       durationSeconds: duration,
       secret,
+      poster: await grabPoster(input, work, duration),
     };
   } finally {
     await rm(work, { recursive: true, force: true });
@@ -281,6 +291,44 @@ const contentTypeOf = (name: string): string =>
 function normalizePlaylist(name: string, body: Buffer): Buffer {
   if (!name.endsWith('.m3u8')) return body;
   return Buffer.from(body.toString('utf8').split('\\').join('/'), 'utf8');
+}
+
+/**
+ * Снимает кадр для обложки.
+ *
+ * @remarks
+ * Берём из середины ролика, а не с первой секунды: начало часто чёрное или
+ * с наплывом, и обложкой становится пустой кадр.
+ *
+ * Сбой здесь не должен ронять всю нарезку: ролик уже готов, а обложку можно
+ * задать руками.
+ */
+async function grabPoster(
+  input: string,
+  work: string,
+  duration: number | null,
+): Promise<Buffer | null> {
+  const at = duration && duration > 2 ? Math.floor(duration / 2) : 0;
+  const file = join(work, 'poster.jpg');
+  try {
+    await run('ffmpeg', [
+      '-y',
+      '-ss',
+      String(at),
+      '-i',
+      input,
+      '-frames:v',
+      '1',
+      '-vf',
+      'scale=1280:-2',
+      '-q:v',
+      '3',
+      file,
+    ]);
+    return await readFile(file);
+  } catch {
+    return null;
+  }
 }
 
 /** Запуск утилиты со сбором stdout; отказ — с текстом stderr, иначе причину не найти. */

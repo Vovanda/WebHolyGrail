@@ -16,7 +16,9 @@ import type { RenditionResult, VideoPorts, VideoRecord } from './ports.js';
 const SOURCE_URL = 'https://cdn.example/media/clip.mp4';
 
 /** Порты-заглушки: пишут в журнал, чтобы был виден порядок вызовов. */
-function makePorts(overrides: { previousPrefix?: string | null; mimeType?: string } = {}) {
+function makePorts(
+  overrides: { previousPrefix?: string | null; mimeType?: string; hasPoster?: boolean } = {},
+) {
   const calls: string[] = [];
   const saved: RenditionResult[] = [];
 
@@ -26,6 +28,7 @@ function makePorts(overrides: { previousPrefix?: string | null; mimeType?: strin
     filename: 'clip.mp4',
     url: SOURCE_URL,
     previousPrefix: overrides.previousPrefix ?? null,
+    hasPoster: overrides.hasPoster ?? false,
   };
 
   const ports: VideoPorts = {
@@ -44,6 +47,7 @@ function makePorts(overrides: { previousPrefix?: string | null; mimeType?: strin
           rungs: [{ height: 480, videoKbps: 1200, audioKbps: 96 }],
           durationSeconds: 42,
           secret: Buffer.from('0123456789abcdef'),
+          poster: Buffer.from('кадр'),
         };
       }),
     },
@@ -74,6 +78,9 @@ function makePorts(overrides: { previousPrefix?: string | null; mimeType?: strin
         saved.push(result);
       }),
       ladder: vi.fn(async () => [{ height: 480, videoKbps: 1200, audioKbps: 96 }]),
+      savePoster: vi.fn(async () => {
+        calls.push('savePoster');
+      }),
     },
   };
 
@@ -148,6 +155,18 @@ describe('подготовка видео', () => {
     const uploaded = (ports.storage.put as unknown as { mock: { calls: unknown[][] } }).mock.calls;
     const bodies = uploaded.map((call) => String((call[1] as { body: Buffer }).body));
     expect(bodies.some((body) => body.includes('0123456789abcdef'))).toBe(false);
+  });
+
+  it('обложка снимается сама, когда своей нет', async () => {
+    const { ports, calls } = makePorts({ hasPoster: false });
+    await run(ports);
+    expect(calls).toContain('savePoster');
+  });
+
+  it('заданная редактором обложка не перетирается', async () => {
+    const { ports, calls } = makePorts({ hasPoster: true });
+    await run(ports);
+    expect(calls).not.toContain('savePoster');
   });
 
   it('не видео до кодирования не доходит', async () => {
