@@ -1,7 +1,8 @@
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
-import { getPlaylistByCode, type PlaylistItem } from '@/lib/api-client';
+import { AccessCodeForm } from '@/blocks/primitives/Video/AccessCodeForm';
+import { getPlaylistByCode, issueVideoToken, type PlaylistItem } from '@/lib/api-client';
 
 /**
  * Страница набора: `/@<канал>/p/<код>`.
@@ -41,6 +42,10 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
   if (!playlist) notFound();
 
   const openCount = playlist.items.filter((item) => !item.locked).length;
+  const hasLocked = openCount < playlist.items.length;
+  // Токен нужен только там, где есть что открывать: погашенный код дописывает
+  // набор именно в него.
+  const token = hasLocked ? await issueVideoToken() : null;
 
   return (
     <main className="mx-auto flex max-w-wide flex-col gap-8 px-4 py-8 md:px-6 md:py-12">
@@ -84,6 +89,17 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
             />
           ))}
         </ol>
+      )}
+
+      {/*
+        Форма стоит под списком, а не над ним: сначала человек видит, что
+        внутри, и только потом способ это открыть.
+      */}
+      {hasLocked && token && (
+        <section className="flex max-w-content flex-col gap-2 rounded-xl border border-border bg-surface p-4">
+          <p className="text-body text-ink">Есть код доступа? Введите его — набор откроется.</p>
+          <AccessCodeForm token={token} />
+        </section>
       )}
     </main>
   );

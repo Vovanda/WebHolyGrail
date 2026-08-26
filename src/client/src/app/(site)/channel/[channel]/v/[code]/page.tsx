@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
+import { AccessCodeForm } from '@/blocks/primitives/Video/AccessCodeForm';
 import { VideoPlayer } from '@/blocks/primitives/Video/VideoPlayer';
 import { checkVideoAccess, getVideoByCode, issueVideoToken } from '@/lib/api-client';
 
@@ -48,7 +49,9 @@ export default async function VideoPage({ params }: { params: Promise<Params> })
 
   const cookie = (await headers()).get('cookie') ?? '';
   const access = await checkVideoAccess(video.id, cookie);
-  const token = access.allowed && video.status === 'ready' ? await issueVideoToken() : null;
+  // Токен нужен и для отказа: в него дописывается набор, когда зритель вводит код.
+  const token = video.status === 'ready' ? await issueVideoToken() : null;
+  const playable = access.allowed && video.status === 'ready';
 
   return (
     /*
@@ -58,7 +61,7 @@ export default async function VideoPage({ params }: { params: Promise<Params> })
       поэтому ширины у них разные.
     */
     <main className="mx-auto flex max-w-wide flex-col gap-5 px-4 py-6 md:px-6 md:py-8">
-      {token ? (
+      {playable && token ? (
         <VideoPlayer
           src={video.playlistUrl}
           token={token}
@@ -67,14 +70,22 @@ export default async function VideoPage({ params }: { params: Promise<Params> })
           title={video.title}
         />
       ) : (
-        <div className="flex aspect-video items-center justify-center rounded-xl border border-border bg-surface px-6 text-center">
-          <p className="text-body text-muted">
+        <div className="flex aspect-video flex-col items-center justify-center gap-4 rounded-xl border border-border bg-surface px-6 text-center">
+          <p className="text-body text-ink">
             {video.status !== 'ready'
               ? 'Видео готовится к показу'
               : access.reason === 'not-entitled'
-                ? 'Видео входит в платный набор'
-                : 'Видео доступно после входа'}
+                ? 'Ролик открывается по доступу'
+                : 'Ролик откроется после входа'}
           </p>
+
+          {/*
+            Код принимается прямо здесь: человек упёрся в замок именно тут,
+            и отправлять его на другую страницу за тем же действием незачем.
+          */}
+          {video.status === 'ready' && token && (
+            <AccessCodeForm token={token} className="w-full max-w-sm" />
+          )}
         </div>
       )}
 
