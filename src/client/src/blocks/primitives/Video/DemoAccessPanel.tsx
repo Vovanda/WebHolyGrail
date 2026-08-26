@@ -29,6 +29,18 @@ export function DemoAccessPanel({ heading, text, className }: DemoAccessPanelPro
   const [code, setCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Буфер недоступен — код виден на экране, перепишут руками.
+    }
+  };
 
   const request = async () => {
     if (busy) return;
@@ -69,6 +81,18 @@ export function DemoAccessPanel({ heading, text, className }: DemoAccessPanelPro
           <p className="text-body text-ink">
             Ваш код: <strong className="tracking-widest">{code}</strong>
           </p>
+
+          {/* Копирование, а не выделение пальцем: код вводят в поле рядом
+              или переносят на другое устройство. */}
+          <button
+            type="button"
+            onClick={() => void copy()}
+            aria-label={copied ? 'Код скопирован' : 'Скопировать код'}
+            className="grid h-9 w-9 place-items-center rounded-lg border border-border text-muted transition-colors hover:border-border-strong hover:text-ink"
+          >
+            {copied ? <CheckIcon /> : <CopyIcon />}
+          </button>
+
           <button
             type="button"
             onClick={openAccessCodeDialog}
@@ -90,5 +114,38 @@ export function DemoAccessPanel({ heading, text, className }: DemoAccessPanelPro
 
       {failed && <p className="text-sm text-muted">Код сейчас не выдаётся, попробуйте позже.</p>}
     </section>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      <rect x="9" y="9" width="12" height="12" rx="2" />
+      <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      aria-hidden="true"
+    >
+      <path d="M20 6L9 17l-5-5" />
+    </svg>
   );
 }

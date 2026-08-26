@@ -21,6 +21,15 @@ export interface AccessCodeFormProps {
   readonly className?: string;
 }
 
+/**
+ * Сколько уезжает окно.
+ *
+ * @remarks
+ * Совпадает с длительностью его закрытия: замки снимаются после того, как
+ * затемнение ушло, иначе анимацию просто не видно.
+ */
+const CLOSE_ANIMATION_MS = 320;
+
 /** Имя события: набор открыт кодом. */
 export const ACCESS_GRANTED_EVENT = 'whg:access-granted';
 
@@ -91,18 +100,23 @@ export function AccessCodeForm({ token, className }: AccessCodeFormProps) {
 
       const data = (await response.json()) as { playlistId?: string | number };
 
-      // Окно закрываем сразу и убираем признак из адреса, иначе оно вернётся.
+      // Порядок важен. Сначала закрывается окно и уходит затемнение, и только
+      // потом снимаются замки: иначе анимация проигрывается под размытым фоном,
+      // человек её не видит и решает, что ничего не произошло.
       if (window.location.hash.startsWith('#d=')) {
         window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        // Замена адреса своих событий не порождает, поэтому шлём оба, на
+        // которые подписано окно: иначе оно остаётся открытым после успеха.
         window.dispatchEvent(new HashChangeEvent('hashchange'));
+        window.dispatchEvent(new PopStateEvent('popstate'));
       }
 
-      // Дальше страница обновляется сама, без перезагрузки: наборы слушают
-      // это событие и снимают замки на месте. Адрес потока у них уже есть,
-      // а ключ сервер теперь выдаст — право лежит в токене.
-      window.dispatchEvent(
-        new CustomEvent(ACCESS_GRANTED_EVENT, { detail: { playlistId: data.playlistId } }),
-      );
+      // Ждём, пока окно уедет: столько же длится его закрытие.
+      setTimeout(() => {
+        window.dispatchEvent(
+          new CustomEvent(ACCESS_GRANTED_EVENT, { detail: { playlistId: data.playlistId } }),
+        );
+      }, CLOSE_ANIMATION_MS);
     } catch {
       setError('Не получилось проверить код. Попробуйте ещё раз.');
     } finally {
