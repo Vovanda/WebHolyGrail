@@ -61,6 +61,8 @@ const PLAYBACK_RATES = '0.85 0.9 1 1.25 1.5 2';
 
 export function VideoPlayer({ src, token, mediaId, poster, className, title }: VideoPlayerProps) {
   const videoRef = useRef<(HTMLVideoElement & { config?: unknown }) | null>(null);
+  // Контроллер нужен жестам: у него переключается видимость управления.
+  const controllerRef = useRef<HTMLElement | null>(null);
   const [phase, setPhase] = useState<Phase>('loading');
   const [reason, setReason] = useState<string>('sign-in-required');
 
@@ -211,7 +213,7 @@ export function VideoPlayer({ src, token, mediaId, poster, className, title }: V
         />
       ) : (
         /* @ts-expect-error — веб-компоненты media-chrome не типизированы для JSX */
-        <media-controller class="block w-full" style={{ aspectRatio: ratio }}>
+        <media-controller ref={controllerRef} class="block w-full" style={{ aspectRatio: ratio }}>
           {/*
             Собственную высоту видео не задаём: media-chrome раскладывает слот
             сам и кладёт панель управления поверх нижней кромки кадра. С
@@ -252,7 +254,7 @@ export function VideoPlayer({ src, token, mediaId, poster, className, title }: V
             {/* @ts-expect-error — веб-компонент */}
           </media-settings-menu>
           {/* Тап по кадру играет и ставит на паузу, двойной по краю перематывает. */}
-          <VideoGestures videoRef={videoRef} />
+          <VideoGestures videoRef={videoRef} controllerRef={controllerRef} />
 
           {/*
             Управление посередине кадра: середина — самая доступная пальцу

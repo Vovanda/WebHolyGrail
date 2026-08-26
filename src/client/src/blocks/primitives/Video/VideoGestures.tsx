@@ -3,31 +3,33 @@
 import { useRef, useState } from 'react';
 
 /**
- * Жесты по кадру: тап играет и ставит на паузу, двойной по краю перематывает.
+ * Жесты по кадру: показать управление, перемотать двойным тапом, поставить паузу.
  *
  * @remarks
- * Так устроены все плееры, к которым привык зритель, и спорить с этой привычкой
- * нечем: кнопки перемотки на телефоне мелкие, а попадать в них приходится на
- * ходу и одной рукой.
+ * Одиночное нажатие показывает и прячет управление, двойное по краю
+ * перематывает, пауза ставится кнопкой. Так это работает и пальцем, и мышью:
+ * одинаковое поведение запоминается один раз, а разное приходится
+ * переучивать при каждой смене устройства.
  *
- * Одиночный тап отрабатывает с задержкой в четверть секунды — ровно столько
- * ждём второго. Без задержки двойной тап успевал бы поставить на паузу до
- * перемотки, и видео замирало на каждом перемотанном отрезке.
+ * Пауза по одиночному нажатию не годится: экран трогают, чтобы посмотреть,
+ * сколько осталось, и видео останавливалось бы каждый раз.
  *
- * Середина кадра оставлена только под паузу: перематывать оттуда неудобно
- * обеими руками, а промах по краю стоил бы случайного прыжка по времени.
+ * Одиночное нажатие отрабатывает с задержкой в четверть секунды: ровно столько
+ * ждём второго. Без задержки двойной тап успевал бы сработать как одиночный.
  */
 export interface VideoGesturesProps {
   /** Кадр, которым управляем. */
   readonly videoRef: React.RefObject<HTMLVideoElement | null>;
+  /** Контроллер плеера: у него переключается видимость управления. */
+  readonly controllerRef: React.RefObject<HTMLElement | null>;
   /** На сколько прыгать двойным тапом. */
   readonly seekSeconds?: number;
 }
 
-/** Сколько ждать второго тапа. Больше — заметная задержка паузы, меньше — двойной не ловится. */
+/** Сколько ждать второго нажатия. Больше — заметная задержка, меньше — двойной не ловится. */
 const DOUBLE_TAP_MS = 250;
 
-export function VideoGestures({ videoRef, seekSeconds = 10 }: VideoGesturesProps) {
+export function VideoGestures({ videoRef, controllerRef, seekSeconds = 10 }: VideoGesturesProps) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hint, setHint] = useState<'back' | 'forward' | null>(null);
 
@@ -38,13 +40,28 @@ export function VideoGestures({ videoRef, seekSeconds = 10 }: VideoGesturesProps
     else video.pause();
   };
 
+  /**
+   * Показать или спрятать управление.
+   *
+   * @remarks
+   * `media-chrome` прячет его по бездействию, помечая контроллер атрибутом.
+   * Снимаем и ставим его же, чтобы не заводить второй источник правды
+   * о видимости.
+   */
+  const toggleControls = () => {
+    const controller = controllerRef.current;
+    if (!controller) return;
+    if (controller.hasAttribute('userinactive')) controller.removeAttribute('userinactive');
+    else controller.setAttribute('userinactive', '');
+  };
+
   const seek = (direction: -1 | 1) => {
     const video = videoRef.current;
     if (!video) return;
     const next = video.currentTime + direction * seekSeconds;
     video.currentTime = Math.min(Math.max(next, 0), video.duration || next);
 
-    // Короткая подсказка: без неё непонятно, сработал жест или промахнулся.
+    // Короткая подсказка: без неё непонятно, сработал жест или палец промахнулся.
     setHint(direction < 0 ? 'back' : 'forward');
     setTimeout(() => setHint(null), 450);
   };
@@ -61,14 +78,14 @@ export function VideoGestures({ videoRef, seekSeconds = 10 }: VideoGesturesProps
 
     timer.current = setTimeout(() => {
       timer.current = null;
-      togglePlay();
+      toggleControls();
     }, DOUBLE_TAP_MS);
   };
 
   return (
     <div className="video-gestures" slot="gestures-chrome">
       <button type="button" aria-label="Назад" onClick={handle('left')} />
-      <button type="button" aria-label="Пауза" onClick={handle('center')} />
+      <button type="button" aria-label="Показать управление" onClick={handle('center')} />
       <button type="button" aria-label="Вперёд" onClick={handle('right')} />
 
       {hint && (
