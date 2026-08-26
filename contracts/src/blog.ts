@@ -246,6 +246,18 @@ export interface VideoSetItem {
  * Замок у каждого ролика считается по зрителю, поэтому блок собирается на
  * сервере при каждом показе, а не берётся из кеша страницы.
  */
+/**
+ * Данные блока `demoAccess` — проба доступа по коду на витрине.
+ *
+ * @remarks
+ * Ничего, кроме подписей: код выдаёт сервер, и только когда генератор включён
+ * флагом окружения.
+ */
+export interface DemoAccessBlockData {
+  readonly heading?: string;
+  readonly text?: string;
+}
+
 export interface VideoSetBlockData {
   readonly heading?: string;
   readonly subtitle?: string;

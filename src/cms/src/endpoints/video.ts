@@ -5,7 +5,7 @@ import { entitlementPolicy } from '../lib/video/entitlements';
 import { issueViewerToken, withGrantedPlaylist } from '../lib/video/envelope';
 import { grantStreamAccess, type StreamRecord } from '../lib/video/grant-access';
 import { masterKey, unwrapSecret } from '../lib/video/key-vault';
-import { normalizeAccessCode } from '../lib/video/short-code';
+import { generateAccessCode, normalizeAccessCode } from '../lib/video/short-code';
 import { redeemCode } from '../lib/video/redeem';
 
 /**
@@ -396,6 +396,51 @@ export const videoAccessEndpoint: Endpoint = {
       reason: decision.allowed ? null : decision.reason,
       status: doc.hls?.status ?? 'pending',
     });
+  },
+};
+
+/**
+ * Выдаёт демонстрационный код на набор.
+ *
+ * @remarks
+ * Витрина обязана давать потрогать: иначе про доступ по коду приходится верить
+ * на слово. Посетитель нажимает кнопку, получает код и тут же вводит его —
+ * и закрытые ролики набора открываются у него на глазах.
+ *
+ * Включается флагом окружения и по умолчанию молчит. В обычном инстансе такой
+ * генератор печатал бы посторонним ключи от платного, поэтому это не настройка
+ * в админке, которую можно случайно включить, а решение при развёртывании.
+ *
+ * Код одноразовый и живёт минуты: он нужен ровно на один показ, а не на то,
+ * чтобы разойтись по чатам.
+ */
+export const videoDemoCodeEndpoint: Endpoint = {
+  path: '/video/demo-code',
+  method: 'post',
+  handler: async (req) => {
+    const playlistId = process.env['DEMO_CODE_PLAYLIST'];
+    if (!playlistId) return json({ error: 'disabled' }, 404);
+
+    const minutes = Number(process.env['DEMO_CODE_TTL_MINUTES'] ?? 15);
+    const expiresAt = new Date(Date.now() + minutes * 60 * 1000).toISOString();
+
+    const code = generateAccessCode(6);
+    await req.payload.create({
+      collection: 'access-codes',
+      data: {
+        code,
+        playlist: Number(playlistId),
+        // Без входа: посетитель витрины не должен заводить учётную запись,
+        // чтобы посмотреть, как работает доступ.
+        requiresSignIn: false,
+        maxUses: 1,
+        expiresAt,
+        grantDays: 1,
+      },
+      overrideAccess: true,
+    });
+
+    return json({ code, expiresAt });
   },
 };
 

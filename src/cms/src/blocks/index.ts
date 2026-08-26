@@ -25,6 +25,7 @@ import { ArticlesSectionBlock } from './ArticlesSection';
 import { ThreadsSectionBlock } from './ThreadsSection';
 import { VideoBlock } from './Video';
 import { VideoSetBlock } from './VideoSet';
+import { DemoAccessBlock } from './DemoAccess';
 import { FaqAccordionBlock } from './FaqAccordion';
 import { ReusableRefBlock } from './ReusableRef';
 import { PageRefBlock } from './PageRef';
@@ -78,6 +79,7 @@ export const REUSABLE_INNER_BLOCKS = [
   ThreadsSectionBlock,
   VideoBlock,
   VideoSetBlock,
+  DemoAccessBlock,
   FaqAccordionBlock,
   // WHG-specific:
   ProjectTypesGridBlock,

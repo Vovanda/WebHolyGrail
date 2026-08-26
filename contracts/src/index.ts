@@ -72,6 +72,7 @@ export type {
   VideoStream,
   VideoBlockData,
   VideoSetBlockData,
+  DemoAccessBlockData,
   VideoSetItem,
 } from './blog';
 export { resolveDisplay } from './blog';

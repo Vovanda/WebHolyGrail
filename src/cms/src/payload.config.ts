@@ -39,6 +39,7 @@ import {
   videoEnvelopeEndpoint,
   videoTokenEndpoint,
   videoRedeemEndpoint,
+  videoDemoCodeEndpoint,
 } from './endpoints/video';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -146,7 +147,11 @@ export default buildConfig({
   endpoints: [
     videoTokenEndpoint,
     videoRedeemEndpoint,
+    videoDemoCodeEndpoint,
+    videoDemoCodeEndpoint,
     videoRedeemEndpoint,
+    videoDemoCodeEndpoint,
+    videoDemoCodeEndpoint,
     videoByCodeEndpoint,
     videoChannelEndpoint,
     videoPlaylistEndpoint,

@@ -30,6 +30,7 @@ import { PageRef } from '@/blocks/primitives/PageRef';
 import { FaqAccordion } from '@/blocks/primitives/FaqAccordion';
 import { ArticlesSection } from '@/blocks/primitives/Blog/ArticlesSection';
 import { ThreadsSection } from '@/blocks/primitives/Blog/ThreadsSection';
+import { DemoAccessSection } from '@/blocks/primitives/Video/DemoAccessSection';
 import { VideoSetSection } from '@/blocks/primitives/Video/VideoSetSection';
 import { VideoSection } from '@/blocks/primitives/Video/VideoSection';
 import { RichTextBlock } from '@/blocks/primitives/RichText';
@@ -80,6 +81,7 @@ const REGISTRY: Record<string, BlockRenderer> = {
   'threads-section': (node) => <ThreadsSection node={node} />,
   video: (node) => <VideoSection node={node} />,
   videoSet: (node) => <VideoSetSection node={node} />,
+  demoAccess: (node) => <DemoAccessSection node={node} />,
   'rich-text': (node, settings) => <RichTextBlock node={node} settings={settings} />,
   'reusable-ref': (node, settings) => <ReusableRef node={node} settings={settings} />,
   'page-ref': (node, settings) => <PageRef node={node} settings={settings} />,
