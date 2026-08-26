@@ -57,7 +57,6 @@ export default async function VideoPage({ params }: { params: Promise<Params> })
           src={video.playlistUrl}
           token={token}
           mediaId={video.id}
-          cmsUrl={process.env['NEXT_PUBLIC_CMS_URL'] ?? ''}
           poster={video.poster?.url}
           title={video.title}
         />

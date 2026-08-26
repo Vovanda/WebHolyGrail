@@ -71,7 +71,6 @@ export async function VideoSection({ node, className }: VideoSectionProps) {
           src={stream.playlistUrl}
           token={token}
           mediaId={stream.id}
-          cmsUrl={process.env['NEXT_PUBLIC_CMS_URL'] ?? ''}
           poster={poster}
           title={data.title}
         />

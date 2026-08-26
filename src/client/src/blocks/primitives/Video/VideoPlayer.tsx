@@ -33,8 +33,6 @@ export interface VideoPlayerProps {
   readonly token: string;
   /** Идентификатор медиафайла: по нему запрашивается конверт. */
   readonly mediaId: string | number;
-  /** Базовый адрес CMS. */
-  readonly cmsUrl: string;
   readonly poster?: string | undefined;
   readonly className?: string | undefined;
   /** Заголовок для скринридера — у видео без подписи иначе только «video». */
@@ -59,15 +57,7 @@ const DENIED_TEXT: Record<string, string> = {
  */
 const PLAYBACK_RATES = '0.85 0.9 1 1.25 1.5 2';
 
-export function VideoPlayer({
-  src,
-  token,
-  mediaId,
-  cmsUrl,
-  poster,
-  className,
-  title,
-}: VideoPlayerProps) {
+export function VideoPlayer({ src, token, mediaId, poster, className, title }: VideoPlayerProps) {
   const videoRef = useRef<(HTMLVideoElement & { config?: unknown }) | null>(null);
   const [phase, setPhase] = useState<Phase>('loading');
   const [reason, setReason] = useState<string>('sign-in-required');
@@ -93,24 +83,34 @@ export function VideoPlayer({
      *
      * @remarks
      * Отдельной точки для ключей у движка нет — есть один загрузчик на все
-     * запросы. Поэтому оборачиваем штатный: адрес ключа узнаём по совпадению
-     * с эндпоинтом выдачи (он же стоит в плейлисте), всё остальное —
-     * плейлисты и сегменты — уходит дальше без изменений, прямо на CDN.
+     * запросы. Поэтому оборачиваем штатный: запрос ключа узнаём по пути, всё
+     * остальное — плейлисты и сегменты — уходит дальше без изменений, прямо
+     * на CDN.
+     *
+     * Именно по пути, а не по полному адресу: снаружи известен только тот
+     * адрес, что стоит в плейлисте, и он собран из публичного имени сайта.
+     * Сверка с адресом CMS ломалась на проде — контейнеру он известен под
+     * внутренним именем, совпадения не было, и ключ уходил без токена.
      */
-    const envelopeUrl = `${cmsUrl}/api/video/${mediaId}/envelope`;
+    const envelopePath = `/api/video/${mediaId}/envelope`;
     const DefaultLoader = Hls.DefaultConfig.loader;
 
     class EnvelopeAwareLoader extends DefaultLoader {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- контракт загрузчика задан библиотекой
       load(context: any, config: any, callbacks: any): void {
-        if (!String(context?.url ?? '').startsWith(envelopeUrl)) {
+        const url = String(context?.url ?? '');
+        if (!url.includes(envelopePath)) {
           super.load(context, config, callbacks);
           return;
         }
 
+        // Идём по тому же адресу, что стоит в плейлисте, дописав токен: он
+        // публичный и заведомо доступен зрителю.
+        //
         // Куку шлём явно: без неё эндпоинт увидит анонима, и закрытое видео
         // не откроется даже у вошедшего зрителя.
-        fetch(`${envelopeUrl}?token=${encodeURIComponent(token)}`, { credentials: 'include' })
+        const separator = url.includes('?') ? '&' : '?';
+        fetch(`${url}${separator}token=${encodeURIComponent(token)}`, { credentials: 'include' })
           .then(async (response) => {
             if (!response.ok) {
               const body = (await response.json().catch(() => ({}))) as { error?: string };
@@ -150,7 +150,7 @@ export function VideoPlayer({
     };
     video.setAttribute('src', src);
     setPhase('playing');
-  }, [src, token, mediaId, cmsUrl, mounted]);
+  }, [src, token, mediaId, mounted]);
 
   if (phase === 'denied' || phase === 'not-ready') {
     return (
