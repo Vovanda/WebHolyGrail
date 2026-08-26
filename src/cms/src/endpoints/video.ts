@@ -2,9 +2,11 @@ import type { Endpoint } from 'payload';
 
 import { payloadEntitlements } from '../lib/video/entitlement-source';
 import { entitlementPolicy } from '../lib/video/entitlements';
-import { issueViewerToken } from '../lib/video/envelope';
+import { issueViewerToken, withGrantedPlaylist } from '../lib/video/envelope';
 import { grantStreamAccess, type StreamRecord } from '../lib/video/grant-access';
 import { masterKey, unwrapSecret } from '../lib/video/key-vault';
+import { normalizeAccessCode } from '../lib/video/short-code';
+import { redeemCode } from '../lib/video/redeem';
 
 /**
  * Эндпоинты видео: токен зрителя и конверт с секретом потока.
@@ -394,6 +396,103 @@ export const videoAccessEndpoint: Endpoint = {
       reason: decision.allowed ? null : decision.reason,
       status: doc.hls?.status ?? 'pending',
     });
+  },
+};
+
+/**
+ * Погашает код доступа.
+ *
+ * @remarks
+ * Код не хранит доступ, а выдаёт его: сработав, он дописывает набор прямо
+ * в токен зрителя. Поэтому в ответе новый токен — старый заменяется им на
+ * странице, и закрытые ролики набора начинают играть без перезагрузки.
+ *
+ * Ключ шифрования конвертов внутри токена сохраняется прежним: подмена его
+ * посреди сеанса оборвала бы уже идущий просмотр.
+ */
+export const videoRedeemEndpoint: Endpoint = {
+  path: '/video/redeem',
+  method: 'post',
+  handler: async (req) => {
+    const body = (await req.json?.()) as { code?: string; token?: string } | undefined;
+    const raw = String(body?.code ?? '');
+    const token = String(body?.token ?? '');
+    if (!raw || !token) return json({ error: 'Не указан код.' }, 400);
+
+    // Приводим к виду выдачи: человек диктует и переписывает с ошибками ровно
+    // там, где символы похожи.
+    const code = normalizeAccessCode(raw);
+    if (!code) return json({ error: 'not-found' }, 404);
+
+    const found = await req.payload.find({
+      collection: 'access-codes',
+      where: { code: { equals: code } },
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+    });
+
+    const doc = found.docs[0] as
+      | {
+          id: string | number;
+          playlist?: string | number;
+          requiresSignIn?: boolean;
+          maxUses?: number | null;
+          usedCount?: number | null;
+          expiresAt?: string | null;
+          grantDays?: number | null;
+        }
+      | undefined;
+
+    const result = redeemCode({
+      code: doc
+        ? {
+            id: doc.id,
+            playlistId: doc.playlist ?? '',
+            requiresSignIn: doc.requiresSignIn !== false,
+            maxUses: doc.maxUses ?? null,
+            usedCount: doc.usedCount ?? 0,
+            expiresAt: doc.expiresAt ?? null,
+            grantDays: doc.grantDays ?? null,
+          }
+        : null,
+      viewerId: req.user?.id ?? null,
+      now: new Date(),
+    });
+
+    if (!result.ok)
+      return json({ error: result.reason }, result.reason === 'not-found' ? 404 : 403);
+
+    const next = withGrantedPlaylist(token, result.playlistId, appSecret(), nowSeconds());
+    // Токен просрочен или испорчен: выдавать право в него бессмысленно, а
+    // погашение засчитывать нечестно — код должен остаться рабочим.
+    if (!next) return json({ error: 'bad-token' }, 403);
+
+    // Счётчик срабатываний растёт только после того, как право реально выдано.
+    await req.payload.update({
+      collection: 'access-codes',
+      id: doc!.id,
+      data: { usedCount: (doc!.usedCount ?? 0) + 1 },
+      overrideAccess: true,
+    });
+
+    // Право, выданное вошедшему, закрепляется за учётной записью: иначе оно
+    // пропадёт вместе с токеном, а покупку нужно видеть и продлевать.
+    if (result.bind === 'account' && req.user?.id) {
+      await req.payload.create({
+        collection: 'entitlements',
+        data: {
+          viewer: req.user.id,
+          playlist: Number(result.playlistId),
+          source: 'promo',
+          expiresAt: result.expiresAt,
+          note: `Код ${code}`,
+        },
+        overrideAccess: true,
+      });
+    }
+
+    return json({ token: next, playlistId: result.playlistId });
   },
 };
 
