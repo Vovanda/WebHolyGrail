@@ -3,23 +3,28 @@
 import Hls from 'hls.js';
 import { useEffect, useRef, useState } from 'react';
 import 'media-chrome';
+import 'media-chrome/menu';
+import 'hls-video-element';
 
 import { cn } from '@/lib/utils';
 
 /**
- * Плеер потокового видео: качества, перемотка, закрытый доступ.
+ * Плеер потокового видео: качества, скорость, перемотка, закрытый доступ.
  *
  * @remarks
- * Клиентский по необходимости (R14): работа с `<video>`, сетью и выбором
- * качества живёт только в браузере.
+ * Клиентский по необходимости (R14): работа с видео, сетью и выбором качества
+ * живёт только в браузере.
  *
- * Интерфейс — `media-chrome`, движок — `hls.js`. Своей верстки органов
- * управления здесь нет намеренно: перемотка, громкость, полный экран и
- * клавиатура — это чужая решённая задача, а собственная реализация означала бы
- * собственные же баги в них.
+ * Ничего из органов управления здесь не написано своими руками. Движок —
+ * `hls-video-element` (обёртка над `hls.js` от тех же авторов, что и
+ * интерфейс), органы — `media-chrome`: перемотка, скорость, качество,
+ * громкость, картинка в картинке, полный экран и клавиатура у них готовые и
+ * отлаженные.
  *
- * Ключ шифрования плеер сам не запрашивает: его загрузчик подменён на наш,
- * который берёт конверт и вскрывает его токеном сессии.
+ * Обёртка выбрана не ради краткости: она отдаёт список качеств потока наружу
+ * (`videoRenditions`), и меню качества становится штатным вместо самодельного
+ * выпадающего списка. Свою конфигурацию `hls.js` она принимает целиком —
+ * поэтому подмена загрузчика ключа остаётся нашей.
  */
 export interface VideoPlayerProps {
   /** Адрес master.m3u8. */
@@ -45,6 +50,15 @@ const DENIED_TEXT: Record<string, string> = {
   'not-ready': 'Видео ещё готовится к показу',
 };
 
+/**
+ * Скорости воспроизведения.
+ *
+ * @remarks
+ * Медленные ступени близко к единице: в уроке ими разбирают сложное место, а
+ * половинная скорость там уже неразборчива.
+ */
+const PLAYBACK_RATES = '0.85 0.9 1 1.25 1.5 2';
+
 export function VideoPlayer({
   src,
   token,
@@ -54,25 +68,25 @@ export function VideoPlayer({
   className,
   title,
 }: VideoPlayerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<(HTMLVideoElement & { config?: unknown }) | null>(null);
   const [phase, setPhase] = useState<Phase>('loading');
   const [reason, setReason] = useState<string>('sign-in-required');
-  const [levels, setLevels] = useState<ReadonlyArray<{ index: number; height: number }>>([]);
-  const [current, setCurrent] = useState<number>(-1);
-  const hlsRef = useRef<Hls | null>(null);
+
+  /**
+   * Плеер собирается только в браузере.
+   *
+   * @remarks
+   * `media-chrome` и `hls-video` — веб-компоненты: браузер дописывает им свои
+   * атрибуты раньше, чем React сверяет разметку, и гидрация падает с
+   * «attributes didn't match». Без JS они всё равно не работают, поэтому на
+   * сервере остаётся постер.
+   */
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-
-    // Safari играет HLS сам, без сторонних движков. Там подменить загрузчик
-    // ключа нечем, поэтому закрытое видео в этом пути работать не будет —
-    // и это осознанно: своего движка ради одного браузера мы не пишем.
-    if (!Hls.isSupported()) {
-      video.src = src;
-      setPhase('playing');
-      return;
-    }
 
     /**
      * Загрузчик с подменой на запросах ключа.
@@ -126,28 +140,17 @@ export function VideoPlayer({
       }
     }
 
-    const hls = new Hls({
+    // Конфигурация уходит в обёртку до источника: она разворачивает её в свой
+    // экземпляр hls.js.
+    video.config = {
       // Стартуем с нижней ступени: первый кадр появляется быстрее, дальше
       // движок сам поднимется, увидев запас по каналу.
       startLevel: 0,
       loader: EnvelopeAwareLoader,
-    });
-
-    hls.loadSource(src);
-    hls.attachMedia(video);
-    hlsRef.current = hls;
-
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      setLevels(hls.levels.map((level, index) => ({ index, height: level.height })));
-      setPhase('playing');
-    });
-    hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => setCurrent(data.level));
-
-    return () => {
-      hls.destroy();
-      hlsRef.current = null;
     };
-  }, [src, token, mediaId, cmsUrl]);
+    video.setAttribute('src', src);
+    setPhase('playing');
+  }, [src, token, mediaId, cmsUrl, mounted]);
 
   if (phase === 'denied' || phase === 'not-ready') {
     return (
@@ -169,69 +172,88 @@ export function VideoPlayer({
     <div
       className={cn('relative overflow-hidden rounded-xl border border-border bg-black', className)}
     >
-      {/* @ts-expect-error — веб-компоненты media-chrome не типизированы для JSX */}
-      <media-controller class="block w-full aspect-video">
+      {!mounted ? (
         <video
-          ref={videoRef}
-          slot="media"
           poster={poster}
           playsInline
-          preload="metadata"
+          preload="none"
           title={title}
-          className="h-full w-full"
+          className="block aspect-video h-full w-full"
         />
-        {/* @ts-expect-error — веб-компонент */}
-        <media-control-bar>
+      ) : (
+        /* @ts-expect-error — веб-компоненты media-chrome не типизированы для JSX */
+        <media-controller class="block w-full aspect-video">
           {/* @ts-expect-error — веб-компонент */}
-          <media-play-button />
+          <hls-video
+            ref={videoRef}
+            slot="media"
+            poster={poster}
+            playsinline
+            preload="metadata"
+            title={title}
+            class="h-full w-full"
+          />
           {/* @ts-expect-error — веб-компонент */}
-          <media-time-range />
+          <media-settings-menu hidden anchor="auto">
+            {/* @ts-expect-error — веб-компонент */}
+            <media-settings-menu-item>
+              Скорость
+              {/* @ts-expect-error — веб-компонент */}
+              <media-playback-rate-menu slot="submenu" rates={PLAYBACK_RATES} hidden>
+                <div slot="title">Скорость</div>
+                {/* @ts-expect-error — веб-компонент */}
+              </media-playback-rate-menu>
+              {/* @ts-expect-error — веб-компонент */}
+            </media-settings-menu-item>
+            {/* @ts-expect-error — веб-компонент */}
+            <media-settings-menu-item>
+              Качество
+              {/* @ts-expect-error — веб-компонент */}
+              <media-rendition-menu slot="submenu" hidden>
+                <div slot="title">Качество</div>
+                {/* @ts-expect-error — веб-компонент */}
+              </media-rendition-menu>
+              {/* @ts-expect-error — веб-компонент */}
+            </media-settings-menu-item>
+            {/* @ts-expect-error — веб-компонент */}
+          </media-settings-menu>
           {/* @ts-expect-error — веб-компонент */}
-          <media-time-display showduration />
+          <media-control-bar>
+            {/* @ts-expect-error — веб-компонент */}
+            <media-play-button />
+            {/* @ts-expect-error — веб-компонент */}
+            <media-seek-backward-button seekoffset="10" />
+            {/* @ts-expect-error — веб-компонент */}
+            <media-seek-forward-button seekoffset="10" />
+            {/* @ts-expect-error — веб-компонент */}
+            <media-time-range />
+            {/* @ts-expect-error — веб-компонент */}
+            <media-time-display showduration />
+            {/* @ts-expect-error — веб-компонент */}
+            <media-mute-button />
+            {/* @ts-expect-error — веб-компонент */}
+            <media-volume-range />
+            {/* @ts-expect-error — веб-компонент */}
+            <media-settings-menu-button />
+            {/* @ts-expect-error — веб-компонент */}
+            <media-pip-button />
+            {/* @ts-expect-error — веб-компонент */}
+            <media-fullscreen-button />
+            {/* @ts-expect-error — веб-компонент */}
+          </media-control-bar>
           {/* @ts-expect-error — веб-компонент */}
-          <media-mute-button />
-          {/* @ts-expect-error — веб-компонент */}
-          <media-volume-range />
-          {/* @ts-expect-error — веб-компонент */}
-          <media-fullscreen-button />
-          {/* @ts-expect-error — веб-компонент */}
-        </media-control-bar>
-        {/* @ts-expect-error — веб-компонент */}
-      </media-controller>
-
-      {levels.length > 1 && (
-        <label className="absolute right-3 top-3 flex items-center gap-2 rounded-md bg-black/70 px-2 py-1 text-xs text-white">
-          <span className="sr-only">Качество</span>
-          <select
-            className="bg-transparent outline-none"
-            value={current}
-            onChange={(event) => {
-              const level = Number(event.target.value);
-              // -1 возвращает выбор движку: он снова подстраивается под канал.
-              if (hlsRef.current) hlsRef.current.currentLevel = level;
-              setCurrent(level);
-            }}
-          >
-            <option value={-1}>Авто</option>
-            {levels.map((level) => (
-              <option key={level.index} value={level.index}>
-                {level.height}p
-              </option>
-            ))}
-          </select>
-        </label>
+        </media-controller>
       )}
     </div>
   );
 }
 
 /**
- * Вскрывает конверт: возвращает секрет потока для плеера.
+ * Вскрывает конверт ключом из токена зрителя.
  *
  * @remarks
- * Ключ конверта лежит внутри токена сессии — первой его частью. Разбираем её
- * здесь, а не тащим отдельным полем: так в разметке страницы одна строка,
- * которую нельзя случайно раскомплектовать наполовину.
+ * Ключ лежит в самом токене и отдельно нигде не хранится: сервер собирает его
+ * при проверке подписи, браузер берёт из своей же строки.
  */
 async function openEnvelope(envelope: string, token: string): Promise<ArrayBuffer> {
   const [rawKey] = token.split('.');
