@@ -146,7 +146,14 @@ echo "════════════════════════�
 
 # Idempotency — skip если запрошенный SHA уже задеплоен на active.
 # (актуально при workflow rerun / повторных triggers того же commit'а)
-if [ "$TAG" != "latest" ] && [ "$ACTIVE" != "" ]; then
+#
+# FORCE_REDEPLOY=1 отменяет пропуск. Нужен, когда изменился не код, а секреты:
+# ротация ключа или новая переменная в Infisical доезжают до приложения только
+# при пересоздании контейнеров, а нового коммита при этом нет.
+if [ "${FORCE_REDEPLOY:-}" = "1" ]; then
+  echo
+  echo "→ FORCE_REDEPLOY=1 — перекатываем тот же SHA (обычно ради новых секретов)"
+elif [ "$TAG" != "latest" ] && [ "$ACTIVE" != "" ]; then
   if [ "$ACTIVE" = blue ]; then
     ACTIVE_CLIENT_PORT=$PORT_BASE
   else
