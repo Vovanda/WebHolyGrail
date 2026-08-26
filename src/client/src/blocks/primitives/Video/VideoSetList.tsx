@@ -45,7 +45,7 @@ export function VideoSetList({
   className,
 }: VideoSetListProps) {
   if (items.length === 0) {
-    return <p className="text-body text-muted">В наборе пока нет роликов.</p>;
+    return <p className="text-body text-muted">В наборе пока нет видео.</p>;
   }
 
   return (
@@ -201,7 +201,7 @@ function VideoSetRow({
 
 function lockText(item: VideoSetItem): string {
   if (!item.ready) return 'Готовится к показу';
-  return item.lockReason === 'not-entitled' ? 'Открывается по доступу' : 'Откроется после входа';
+  return 'Откроется по коду доступа';
 }
 
 function LockIcon({ size = 14 }: { size?: number }) {

@@ -37,7 +37,7 @@ export const ACCESS_GRANTED_EVENT = 'whg:access-granted';
  */
 const REASON: Record<string, string> = {
   invalid: 'К сожалению, код уже использован разрешённое число раз или больше не действует.',
-  'sign-in-required': 'Этот код работает только после входа.',
+  'sign-in-required': 'Этот код выдан для другого способа доступа.',
   'bad-token': 'Страница открыта слишком давно — обновите её и попробуйте снова.',
 };
 

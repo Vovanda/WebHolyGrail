@@ -60,7 +60,7 @@ export function DemoAccessPanel({ heading, text, className }: DemoAccessPanelPro
         <h3 className="text-body font-medium text-ink">{heading ?? 'Попробуйте сами'}</h3>
         <p className="text-sm text-muted">
           {text ??
-            'Закрытые ролики открываются доступом, а доступ выдаётся кодом. Возьмите код и введите его, и увидите ровно то, что видит зритель, которому его прислали.'}
+            'Закрытые видео открываются кодом. Возьмите код и введите его, и увидите ровно то, что видит зритель, которому его прислали.'}
         </p>
       </div>
 

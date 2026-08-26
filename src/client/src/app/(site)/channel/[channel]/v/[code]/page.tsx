@@ -98,9 +98,7 @@ export default async function VideoPage({
           <p className="text-body text-ink">
             {video.status !== 'ready'
               ? 'Видео готовится к показу'
-              : access.reason === 'not-entitled'
-                ? 'Ролик открывается по доступу'
-                : 'Ролик откроется после входа'}
+              : 'Видео открывается по коду доступа'}
           </p>
 
           {/*

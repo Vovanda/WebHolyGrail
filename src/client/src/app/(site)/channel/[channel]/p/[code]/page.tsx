@@ -62,7 +62,7 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
           <a href={`/@${playlist.channel ?? channel}`} className="hover:text-ink hover:underline">
             {playlist.authorName ?? `@${playlist.channel ?? channel}`}
           </a>
-          {` · ${playlist.items.length} ${plural(playlist.items.length, 'ролик', 'ролика', 'роликов')}`}
+          {` · ${playlist.items.length} ${plural(playlist.items.length, 'видео', 'видео', 'видео')}`}
           {openCount < playlist.items.length
             ? ` · ${openCount} ${plural(openCount, 'открытый', 'открытых', 'открытых')}`
             : ''}

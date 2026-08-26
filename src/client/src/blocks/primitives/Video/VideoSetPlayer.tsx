@@ -71,7 +71,7 @@ export function VideoSetPlayer({
   );
 
   return (
-    <div className={cn('grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]', className)}>
+    <div className={cn('grid gap-5 pb-6 lg:grid-cols-[minmax(0,1fr)_20rem]', className)}>
       <div className="flex flex-col gap-3">
         {current?.playlistUrl ? (
           <>
@@ -88,7 +88,7 @@ export function VideoSetPlayer({
         ) : (
           <div className="flex aspect-video items-center justify-center rounded-xl border border-border bg-surface px-6 text-center">
             <p className="text-body text-muted">
-              В наборе нет ролика, доступного к показу прямо сейчас.
+              В наборе нет видео, доступного к показу прямо сейчас.
             </p>
           </div>
         )}

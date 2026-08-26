@@ -24,8 +24,8 @@ export interface VideoSectionProps {
 
 /** Текст отказа. Позже задаётся владельцем в настройках сайта. */
 const DENIAL: Record<string, string> = {
-  'sign-in-required': 'Видео доступно после входа',
-  'not-entitled': 'Видео входит в платный набор',
+  'sign-in-required': 'Откроется по коду доступа',
+  'not-entitled': 'Откроется по коду доступа',
   unavailable: 'Видео сейчас недоступно',
 };
 
