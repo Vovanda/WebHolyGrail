@@ -9,7 +9,6 @@ import { PublishedDateBadge } from '@/blocks/primitives/Blog/PublishedDateBadge'
 import { ReadingTimeBadge } from '@/blocks/primitives/Blog/ReadingTimeBadge';
 import { AuthorBadge } from '@/blocks/primitives/Blog/AuthorBadge';
 import { TagList } from '@/blocks/primitives/Blog/TagList';
-import { ThreadCard } from '@/blocks/primitives/Blog/ThreadCard';
 import { PostList } from '@/blocks/primitives/Blog/PostList';
 import { LexicalRenderer } from '@/blocks/primitives/RichText';
 
@@ -92,8 +91,25 @@ export default async function BlogArticlePage({ params }: { params: Promise<Para
 
   return (
     <article className="mx-auto max-w-content px-4 md:px-6 py-8 md:py-12 flex flex-col gap-6">
+      {/*
+        Переход к серии, в которую входит запись. Раньше здесь стояла карточка
+        с рамкой: у плашки над заголовком не читалось назначение — кнопка
+        неизвестно куда. Обычная строка мелким кеглем говорит и что это, и
+        куда ведёт, до клика.
+      */}
       {article.thread && (
-        <ThreadCard thread={article.thread} variant="compact" className="self-start" />
+        <a
+          href={`/blog/thread/${article.thread.slug}`}
+          className="group self-start text-sm text-muted transition-colors hover:text-ink"
+        >
+          Читать серию статей:{' '}
+          {/* Название отделено кеглем и цветом, а не кавычками: в самих
+              названиях объектов ёлочки уже встречаются, и вложенные пары
+              читаются как опечатка. */}
+          <span className="font-medium text-ink underline-offset-4 group-hover:underline">
+            {article.thread.title}
+          </span>
+        </a>
       )}
 
       <header className="flex flex-col gap-3">
