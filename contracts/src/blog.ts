@@ -223,3 +223,34 @@ export interface VideoBlockData {
   /** Ширина: в колонку текста или во всю ширину секции. */
   readonly width?: 'content' | 'wide';
 }
+
+/** Ролик в наборе: то, что нужно строке списка, и ничего сверх. */
+export interface VideoSetItem {
+  readonly code: string;
+  readonly title: string;
+  readonly poster: string | null;
+  readonly durationSeconds: number | null;
+  readonly ready: boolean;
+  readonly locked: boolean;
+  readonly lockReason: 'sign-in-required' | 'not-entitled' | null;
+}
+
+/**
+ * Данные блока `videoSet` — набор роликов на произвольной странице.
+ *
+ * @remarks
+ * Состав приходит из самого набора и здесь не дублируется: ролики в него
+ * добавляют и убирают, и вторая копия списка разошлась бы с ним на первой же
+ * правке.
+ *
+ * Замок у каждого ролика считается по зрителю, поэтому блок собирается на
+ * сервере при каждом показе, а не берётся из кеша страницы.
+ */
+export interface VideoSetBlockData {
+  readonly heading?: string;
+  readonly subtitle?: string;
+  readonly layout?: 'rows' | 'grid';
+  readonly limit?: number | null;
+  readonly showLink?: boolean;
+  readonly playlist?: { id: string | number } | string | number | null;
+}

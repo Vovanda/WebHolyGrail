@@ -35,6 +35,7 @@ import {
   videoByCodeEndpoint,
   videoChannelEndpoint,
   videoPlaylistEndpoint,
+  videoPlaylistByIdEndpoint,
   videoEnvelopeEndpoint,
   videoTokenEndpoint,
 } from './endpoints/video';
@@ -146,6 +147,8 @@ export default buildConfig({
     videoByCodeEndpoint,
     videoChannelEndpoint,
     videoPlaylistEndpoint,
+    videoPlaylistByIdEndpoint,
+    videoPlaylistByIdEndpoint,
     videoAccessEndpoint,
     videoEnvelopeEndpoint,
   ],

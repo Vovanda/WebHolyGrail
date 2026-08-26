@@ -71,5 +71,7 @@ export type {
   ThreadsSectionData,
   VideoStream,
   VideoBlockData,
+  VideoSetBlockData,
+  VideoSetItem,
 } from './blog';
 export { resolveDisplay } from './blog';
