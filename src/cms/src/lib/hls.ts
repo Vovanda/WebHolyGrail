@@ -242,7 +242,16 @@ export async function transcodeToHls(
   }
 }
 
-/** Собирает готовую раздачу: мастер-плейлист в корне, дорожки по папкам. */
+/**
+ * Собирает готовую раздачу: мастер-плейлист в корне, дорожки по папкам.
+ *
+ * @remarks
+ * Пути внутри плейлистов нормализуются: ffmpeg подставляет в них разделитель
+ * своей системы, и на Windows мастер-плейлист получает `480p\index.m3u8`.
+ * В адресе это обычный символ, а не разделитель, поэтому плеер такую дорожку
+ * не найдёт. В Linux-контейнере проблема не проявляется — тем она и опасна:
+ * ломается только у того, кто разрабатывает под Windows.
+ */
 async function collect(root: string): Promise<HlsFile[]> {
   const files: HlsFile[] = [];
   for (const entry of await readdir(root, { withFileTypes: true })) {
@@ -250,14 +259,14 @@ async function collect(root: string): Promise<HlsFile[]> {
       for (const name of await readdir(join(root, entry.name))) {
         files.push({
           path: `${entry.name}/${name}`,
-          body: await readFile(join(root, entry.name, name)),
+          body: normalizePlaylist(name, await readFile(join(root, entry.name, name))),
           contentType: contentTypeOf(name),
         });
       }
     } else {
       files.push({
         path: entry.name,
-        body: await readFile(join(root, entry.name)),
+        body: normalizePlaylist(entry.name, await readFile(join(root, entry.name))),
         contentType: contentTypeOf(entry.name),
       });
     }
@@ -267,6 +276,12 @@ async function collect(root: string): Promise<HlsFile[]> {
 
 const contentTypeOf = (name: string): string =>
   name.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/mp2t';
+
+/** Приводит разделители путей внутри плейлиста к тем, что понимает плеер. */
+function normalizePlaylist(name: string, body: Buffer): Buffer {
+  if (!name.endsWith('.m3u8')) return body;
+  return Buffer.from(body.toString('utf8').split('\\').join('/'), 'utf8');
+}
 
 /** Запуск утилиты со сбором stdout; отказ — с текстом stderr, иначе причину не найти. */
 function run(command: string, args: ReadonlyArray<string>): Promise<string> {
