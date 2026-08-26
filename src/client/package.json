@@ -20,6 +20,7 @@
     "contracts": "workspace:*",
     "embla-carousel-auto-scroll": "^8.6.0",
     "embla-carousel-autoplay": "^8.6.0",
+    "embla-carousel-fade": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
     "geist": "^1.7.2",
     "hls-video-element": "^1.5.11",

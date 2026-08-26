@@ -1,6 +1,9 @@
 import type { VideoSetItem } from 'contracts';
 
-import { cn } from '@/lib/utils';
+import { CarouselDeck, CarouselItem } from '@/blocks/primitives/Carousel';
+import { ScrollList } from '@/blocks/primitives/ScrollList';
+
+import { VideoSetCard } from './VideoSetCard';
 
 /**
  * Список роликов набора.
@@ -26,6 +29,16 @@ export interface VideoSetListProps {
    * `horizontal` — лентой: под плеером, где вертикаль отняла бы всю высоту.
    */
   readonly orientation?: 'vertical' | 'horizontal';
+  /**
+   * Потолок высоты колонки.
+   *
+   * @remarks
+   * Рядом с плеером список равняется по нему, в панели занимает её целиком.
+   * Без значения растёт по содержимому.
+   */
+  readonly maxHeight?: string | undefined;
+  /** Сколько карточек показать сразу; остальные подгружаются при прокрутке. */
+  readonly limit?: number | undefined;
   /** Отмеченный ролик — тот, что играет сейчас. */
   readonly currentCode?: string | null;
   /** Набор, из которого пришли: чтобы на странице ролика показать его же. */
@@ -48,6 +61,8 @@ export function VideoSetList({
   items,
   channel,
   orientation = 'vertical',
+  maxHeight,
+  limit,
   currentCode = null,
   setCode = null,
   onSelect,
@@ -58,192 +73,60 @@ export function VideoSetList({
     return <p className="text-body text-muted">В наборе пока нет видео.</p>;
   }
 
-  return (
-    <ol
-      className={cn(
-        orientation === 'horizontal'
-          ? // Лента с прокруткой: под плеером высота дороже ширины.
-            'flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]'
-          : 'flex flex-col gap-2',
-        className,
-      )}
-    >
-      {items.map((item, index) => (
-        <VideoSetRow
-          key={item.code}
-          item={item}
-          index={index + 1}
-          channel={channel}
-          orientation={orientation}
-          current={item.code === currentCode}
-          setCode={setCode}
-          onSelect={onSelect}
-          unlocking={unlocking}
-        />
-      ))}
-    </ol>
-  );
-}
+  // Какое видео сейчас играет: и лента, и колонка подъезжают к нему сами.
+  const active = items.findIndex((item) => item.code === currentCode);
+  const activeIndex = active >= 0 ? active : undefined;
 
-function VideoSetRow({
-  item,
-  index,
-  channel,
-  orientation,
-  current,
-  setCode,
-  onSelect,
-  unlocking,
-}: {
-  item: VideoSetItem;
-  index: number;
-  channel: string | null;
-  orientation: 'vertical' | 'horizontal';
-  current: boolean;
-  setCode: string | null;
-  onSelect?: ((item: VideoSetItem) => void) | undefined;
-  unlocking: boolean;
-}) {
-  const playable = !item.locked && item.ready;
-  // Набор передаётся в адресе: ролик может состоять в нескольких, и без этого
-  // на его странице пришлось бы выбирать наугад, какой показать под плеером.
-  const href = channel
-    ? `/@${channel}/v/${item.code}${setCode ? `?set=${encodeURIComponent(setCode)}` : ''}`
-    : null;
+  const rows = items.map((item, index) => (
+    <VideoSetCard
+      key={item.code}
+      item={item}
+      index={index + 1}
+      channel={channel}
+      orientation={orientation}
+      current={item.code === currentCode}
+      setCode={setCode}
+      onSelect={onSelect}
+      unlocking={unlocking}
+    />
+  ));
 
-  const body = (
-    <>
-      <div
-        className={cn(
-          'relative shrink-0 overflow-hidden rounded-lg bg-surface',
-          orientation === 'horizontal' ? 'w-full' : 'w-32 sm:w-40',
-        )}
-      >
-        {item.poster ? (
-          <img
-            src={item.poster}
-            alt=""
-            loading="lazy"
-            className={cn(
-              'aspect-video w-full object-cover transition-[filter] duration-700',
-              playable || unlocking ? '' : 'brightness-50',
-            )}
-          />
-        ) : (
-          <div className="aspect-video w-full" aria-hidden="true" />
-        )}
-
-        {!playable && (
-          <span className="absolute inset-0 flex items-center justify-center">
-            <span
-              className={cn(
-                'flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white',
-                unlocking && 'video-lock--opening',
-              )}
-            >
-              <LockIcon size={16} />
-            </span>
-          </span>
-        )}
-
-        {item.durationSeconds ? (
-          <span className="absolute bottom-1 right-1 rounded bg-black/75 px-1.5 py-0.5 text-xs tabular-nums text-white">
-            {formatDuration(item.durationSeconds)}
-          </span>
-        ) : null}
-      </div>
-
-      <div className="flex min-w-0 flex-col gap-1">
-        <span
-          className={cn(
-            'text-body font-medium leading-snug text-balance',
-            current ? 'text-accent' : 'text-ink',
-          )}
-        >
-          {index}. {item.title}
-        </span>
-        {!playable && (
-          <span className="flex items-center gap-1.5 text-sm text-muted">
-            <LockIcon />
-            {lockText(item)}
-          </span>
-        )}
-        {current && <span className="text-sm text-muted">Играет сейчас</span>}
-      </div>
-    </>
-  );
-
-  const shell = cn(
-    'group relative rounded-xl border bg-paper p-3 transition-colors',
-    orientation === 'horizontal'
-      ? 'flex w-56 shrink-0 snap-start flex-col gap-2'
-      : 'flex items-center gap-3',
-    current ? 'border-accent' : 'border-border',
-    playable ? 'hover:border-border-strong' : 'opacity-70',
-  );
-
-  // Нажатие переключает плеер, если он рядом; иначе это обычная ссылка —
-  // так работает и без JS, и при открытии в новой вкладке.
-  if (playable && onSelect) {
+  /*
+    Лентой набор листается пальцем и стрелками - той же каруселью, что и
+    остальные ленты сайта. Своей прокрутки здесь нет: инерция, прилипание и
+    поведение на телефоне уже собраны в примитиве.
+  */
+  if (orientation === 'horizontal') {
     return (
-      <li className={shell}>
-        <button
-          type="button"
-          onClick={() => onSelect(item)}
-          className="absolute inset-0 z-10 cursor-pointer"
-          aria-label={item.title}
-        />
-        {body}
-      </li>
+      <CarouselDeck mode="row" gap="md" arrows label="Видео набора" className={className}>
+        {rows.map((row) => (
+          <CarouselItem key={row.key} width="min(16rem, 78vw)">
+            {row}
+          </CarouselItem>
+        ))}
+      </CarouselDeck>
     );
   }
 
-  // Закрытый ролик — не тупик: нажатие открывает окно ввода кода. Ссылка
-  // остаётся настоящей, поэтому без JS и в новой вкладке человек попадает
-  // на страницу ролика, где написано то же самое.
-  if (!playable && item.ready && href) {
-    return (
-      <li className={shell}>
-        <a href={href} data-access-code className="absolute inset-0 z-10" aria-label={item.title} />
-        {body}
-      </li>
-    );
-  }
+  /*
+    Колонкой набор показывается списком: у него своя прокрутка с потолком по
+    высоте и порции. Длинная серия иначе утаскивает вниз всю страницу, а сотня
+    карточек разом заметно дольше рисуется.
 
+    Память места привязана к самому набору: вернувшись, зритель видит список
+    там же, где оставил.
+  */
   return (
-    <li className={shell}>
-      {playable && href ? (
-        <a href={href} className="absolute inset-0 z-10" aria-label={item.title} />
-      ) : null}
-      {body}
-    </li>
-  );
-}
-
-function lockText(item: VideoSetItem): string {
-  if (!item.ready) return 'Готовится к показу';
-  return 'Откроется по коду доступа';
-}
-
-function LockIcon({ size = 14 }: { size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
+    <ScrollList
+      maxHeight={maxHeight}
+      limit={limit}
+      more="scroll"
+      activeIndex={activeIndex}
+      rememberKey={setCode ? `set:${setCode}` : undefined}
+      label="Видео набора"
+      className={className}
     >
-      <rect x="4" y="10" width="16" height="11" rx="2" />
-      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-    </svg>
+      {rows}
+    </ScrollList>
   );
-}
-
-/** «12:05» — привычный вид длительности. */
-function formatDuration(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
 }
