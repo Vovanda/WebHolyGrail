@@ -290,6 +290,16 @@ else
 fi
 CERT_LIVE="$CERTS_ROOT/live/$CERT_NAME"
 
+# Общие счётчики частоты. Лежат рядом с vhost'ами и подключаются в том же
+# http-контексте, поэтому едут обычной раскаткой и не требуют правки общего
+# nginx.conf, который делят все сайты на сервере.
+#
+# Кладём до vhost'а: тот на зоны ссылается, и без них nginx не примет конфиг
+# целиком - упадут все сайты разом, а не один.
+if [ -f "$TEMPLATE_DIR/conf.d/00-limits.conf" ]; then
+  sudo cp "$TEMPLATE_DIR/conf.d/00-limits.conf" "$NGINX_CONFD/00-limits.conf"
+fi
+
 # /opt/proxy/certs и conf.d принадлежат root — от пользователя deploy обычный
 # `[ -f ]` возвращает false даже когда файл есть. Без sudo скрипт «не видит»
 # свежевыпущенный серт и оставляет сайт на http-only vhost: домен отвечает
