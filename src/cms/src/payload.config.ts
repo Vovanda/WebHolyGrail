@@ -26,6 +26,7 @@ import { Specialists } from './collections/Specialists';
 import { Playlists } from './collections/Playlists';
 import { Entitlements } from './collections/Entitlements';
 import { AccessCodes } from './collections/AccessCodes';
+import { FeatureToggles } from './collections/FeatureToggles';
 import { SiteSettings } from './globals/SiteSettings';
 import { withAutoSlug } from './lib/slug';
 import { BuildHlsTask } from './jobs/build-hls.task';
@@ -41,6 +42,7 @@ import {
   videoRedeemEndpoint,
   videoDemoCodeEndpoint,
 } from './endpoints/video';
+import { togglesEndpoint } from './endpoints/toggles';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -137,6 +139,8 @@ export default buildConfig({
     Specialists,
     SocialPosts,
     Comments,
+    // Что на сайте включено: значения по окружениям, меняются без выкладки.
+    FeatureToggles,
     Users,
   ].map(withAutoSlug),
   globals: [SiteSettings],
@@ -145,6 +149,7 @@ export default buildConfig({
    * токен зрителя к конкретному медиафайлу не относится, он общий на сессию.
    */
   endpoints: [
+    togglesEndpoint,
     videoTokenEndpoint,
     videoRedeemEndpoint,
     videoDemoCodeEndpoint,

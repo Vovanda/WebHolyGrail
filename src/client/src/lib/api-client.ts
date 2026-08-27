@@ -687,6 +687,25 @@ export async function getViewerName(cookie: string): Promise<string | null> {
   return user.email?.trim() || user.name?.trim() || null;
 }
 
+/**
+ * Что на сайте включено.
+ *
+ * @remarks
+ * Спрашивается при отрисовке страницы: значения меняются в админке и должны
+ * доходить до сайта без выкладки.
+ *
+ * Сбой не должен ломать страницу: не ответили - считаем всё выключенным.
+ * Показать привычное вместо нового безопаснее, чем белый экран.
+ */
+export async function getToggles(): Promise<Record<string, boolean>> {
+  const response = await fetch(`${CMS_URL}/api/toggles`, { cache: 'no-store' }).catch(() => null);
+  if (!response?.ok) return {};
+  const doc = (await response.json().catch(() => null)) as {
+    toggles?: Record<string, boolean>;
+  } | null;
+  return doc?.toggles ?? {};
+}
+
 /** Плейлист в списке канала. */
 export interface ChannelSet {
   readonly id: string | number;
