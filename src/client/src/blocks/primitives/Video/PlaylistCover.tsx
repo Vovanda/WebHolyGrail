@@ -28,7 +28,14 @@ const STEP = 7;
 
 export function PlaylistCover({ cover, covers = [], className }: PlaylistCoverProps) {
   if (cover) {
-    return <img src={cover} alt="" className={cn('aspect-video w-full object-cover', className)} />;
+    return (
+      <img
+        data-part="card-thumb"
+        src={cover}
+        alt=""
+        className={cn('aspect-video w-full object-cover', className)}
+      />
+    );
   }
 
   if (covers.length === 0) {
@@ -50,6 +57,7 @@ export function PlaylistCover({ cover, covers = [], className }: PlaylistCoverPr
         return (
           <img
             key={url}
+            data-part="card-thumb"
             src={url}
             alt=""
             className="absolute inset-0 h-full w-full rounded-lg object-cover shadow-sm transition-transform"

@@ -69,8 +69,10 @@ export function DemoAccessPanel({ heading, text, className }: DemoAccessPanelPro
       )}
     >
       <div className="flex flex-col gap-1">
-        <h3 className="text-body font-medium text-ink">{heading ?? 'Попробуйте сами'}</h3>
-        <p className="text-sm text-muted">
+        <h3 data-part="title" className="text-body font-medium text-ink">
+          {heading ?? 'Попробуйте сами'}
+        </h3>
+        <p data-part="subtitle" className="text-sm text-muted">
           {text ??
             'Закрытые видео открываются кодом. Возьмите код и введите его, и увидите ровно то, что видит зритель, которому его прислали.'}
         </p>
@@ -86,9 +88,10 @@ export function DemoAccessPanel({ heading, text, className }: DemoAccessPanelPro
               или переносят на другое устройство. */}
           <button
             type="button"
+            data-part="action"
             onClick={() => void copy()}
             aria-label={copied ? 'Код скопирован' : 'Скопировать код'}
-            className="grid h-9 w-9 place-items-center rounded-lg border border-border text-muted transition-colors hover:border-border-strong hover:text-ink"
+            className="icon-button icon-button--outlined"
           >
             {copied ? <CheckIcon /> : <CopyIcon />}
           </button>
@@ -96,6 +99,7 @@ export function DemoAccessPanel({ heading, text, className }: DemoAccessPanelPro
           <button
             type="button"
             onClick={openAccessCodeDialog}
+            data-part="action"
             className="rounded-lg bg-accent px-4 py-2 text-body font-medium text-accent-fg transition-colors hover:bg-accent-hover"
           >
             Ввести код
@@ -104,6 +108,7 @@ export function DemoAccessPanel({ heading, text, className }: DemoAccessPanelPro
       ) : (
         <button
           type="button"
+          data-part="action"
           onClick={() => void request()}
           disabled={busy}
           className="self-start rounded-lg border border-border-strong px-4 py-2 text-body font-medium text-ink transition-colors hover:bg-surface-hover disabled:opacity-50"

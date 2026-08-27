@@ -48,23 +48,37 @@ export function VideoDenied({ reason, settings, poster, className }: VideoDenied
     >
       {poster && (
         <>
-          <img src={poster} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <img
+            data-part="media"
+            src={poster}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
           {/* Затемнение: поверх светлой обложки текст иначе не читается. */}
           <span className="absolute inset-0 bg-ink/55" aria-hidden="true" />
         </>
       )}
 
-      <p className={cn('relative text-body font-medium', poster ? 'text-paper' : 'text-ink')}>
+      <p
+        data-part="title"
+        className={cn('relative text-body font-medium', poster ? 'text-paper' : 'text-ink')}
+      >
         {title}
       </p>
 
       {note && (
-        <p className={cn('relative text-sm', poster ? 'text-paper/80' : 'text-muted')}>{note}</p>
+        <p
+          data-part="subtitle"
+          className={cn('relative text-sm', poster ? 'text-paper/80' : 'text-muted')}
+        >
+          {note}
+        </p>
       )}
 
       {actionLabel && actionHref && (
         <a
           href={actionHref}
+          data-part="action"
           className="relative rounded-lg bg-accent px-4 py-2 text-body font-medium text-accent-fg transition-colors hover:bg-accent-hover"
         >
           {actionLabel}

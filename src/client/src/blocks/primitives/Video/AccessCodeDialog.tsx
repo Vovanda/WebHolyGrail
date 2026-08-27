@@ -55,10 +55,13 @@ export function AccessCodeDialog({ token }: AccessCodeDialogProps) {
   return (
     <DetailDrawer slug={SLUG} placement="center" className="p-6">
       <div className="flex flex-col gap-3">
-        <h2 className="text-h4 font-display font-semibold tracking-tight text-ink">
+        <h2
+          data-part="title"
+          className="text-h4 font-display font-semibold tracking-tight text-ink"
+        >
           Видео открывается по коду.
         </h2>
-        <p className="text-body text-muted">
+        <p data-part="subtitle" className="text-body text-muted">
           Введите код, который вам прислали, и закрытые видео плейлиста заиграют.
         </p>
         <AccessCodeForm token={token} />

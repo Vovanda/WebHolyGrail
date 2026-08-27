@@ -48,12 +48,12 @@ export function VideoSetDrawer({
     <SidePanel
       side="right"
       width="min(25rem, 88vw)"
-      alignTop="trigger"
       title="Плейлист"
       trigger={({ open, isOpen }) => (
         <button
           type="button"
           onClick={open}
+          data-part="action"
           className={cn(
             'flex items-center gap-2 rounded-lg border bg-paper px-3 py-2',
             'text-body font-medium text-ink transition-colors',
@@ -74,9 +74,11 @@ export function VideoSetDrawer({
         именно листаешь. Родовое слово с крестиком остаётся сверху и уезжает
         вместе с прокруткой - оно про панель, а не про плейлист.
 
-        Заливка нужна, иначе карточки просвечивают под прилипшим именем.
+        Заливка берётся у самой панели: своя делала из имени отдельную плашку,
+        хотя это та же поверхность. Без заливки карточки просвечивали бы под
+        прилипшим именем.
       */}
-      <div className="sticky top-0 z-[1] -mx-4 mb-3 flex flex-col gap-1 border-b border-border bg-surface px-4 pb-3 pt-1">
+      <div className="sticky top-0 z-[1] -mx-4 mb-3 flex flex-col gap-1 border-b border-border bg-[var(--side-panel-bg)] px-4 pb-3 pt-1">
         {title && <p className="text-body font-medium text-ink text-balance">{title}</p>}
         <p className="text-sm text-muted">
           {position >= 0 ? `${position + 1} из ${items.length}` : `${items.length} видео`}

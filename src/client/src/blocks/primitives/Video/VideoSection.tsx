@@ -62,11 +62,18 @@ export async function VideoSection({ node, settings, className }: VideoSectionPr
       {(data.title || data.description) && (
         <header className="mb-4 flex flex-col gap-2">
           {data.title && (
-            <h2 className="text-h3 font-display font-semibold text-ink text-balance">
+            <h2
+              data-part="title"
+              className="text-h3 font-display font-semibold text-ink text-balance"
+            >
               {data.title}
             </h2>
           )}
-          {data.description && <p className="text-body text-muted">{data.description}</p>}
+          {data.description && (
+            <p data-part="subtitle" className="text-body text-muted">
+              {data.description}
+            </p>
+          )}
         </header>
       )}
 
@@ -107,7 +114,13 @@ function VideoNotice({ poster, text }: { poster?: string | undefined; text: stri
   return (
     <div className="relative overflow-hidden rounded-xl border border-border bg-surface">
       {poster && (
-        <img src={poster} alt="" aria-hidden="true" className="h-full w-full object-cover" />
+        <img
+          data-part="media"
+          src={poster}
+          alt=""
+          aria-hidden="true"
+          className="h-full w-full object-cover"
+        />
       )}
       <div
         className={cn(
@@ -115,7 +128,9 @@ function VideoNotice({ poster, text }: { poster?: string | undefined; text: stri
           poster ? 'absolute inset-0 bg-black/60 text-white' : 'aspect-video text-muted',
         )}
       >
-        <p className="text-body font-medium">{text}</p>
+        <p data-part="caption" className="text-body font-medium">
+          {text}
+        </p>
       </div>
     </div>
   );

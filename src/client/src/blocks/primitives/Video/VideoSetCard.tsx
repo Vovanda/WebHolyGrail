@@ -42,9 +42,14 @@ export function VideoSetCard({
   const body = (
     <>
       <div
+        data-part="card-thumb"
         className={cn(
           'relative shrink-0 overflow-hidden rounded-lg bg-surface',
-          orientation === 'horizontal' ? 'w-full' : 'w-32 sm:w-40',
+          // Кадр занимает долю ширины, а не заданное число точек: в узкой
+          // колонке - в панели плейлиста - заданная ширина не оставляла месту
+          // под название, и оно рвалось на четыре строки. Потолок держит кадр
+          // от разрастания там, где колонка широкая.
+          orientation === 'horizontal' ? 'w-full' : 'w-2/5 min-w-24 max-w-40',
         )}
       >
         {item.poster ? (
@@ -117,7 +122,7 @@ export function VideoSetCard({
   // так работает и без JS, и при открытии в новой вкладке.
   if (playable && onSelect) {
     return (
-      <li className={shell}>
+      <li data-part="card" className={shell}>
         <button
           type="button"
           onClick={() => onSelect(item)}
@@ -134,7 +139,7 @@ export function VideoSetCard({
   // на страницу видео, где написано то же самое.
   if (!playable && item.ready && href) {
     return (
-      <li className={shell}>
+      <li data-part="card" className={shell}>
         <a href={href} data-access-code className="absolute inset-0 z-10" aria-label={item.title} />
         {body}
       </li>
@@ -142,7 +147,7 @@ export function VideoSetCard({
   }
 
   return (
-    <li className={shell}>
+    <li data-part="card" className={shell}>
       {playable && href ? (
         <a href={href} className="absolute inset-0 z-10" aria-label={item.title} />
       ) : null}

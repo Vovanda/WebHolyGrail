@@ -162,6 +162,7 @@ export function ScrollList({
     <div className={cn('flex min-h-0 flex-col', className)}>
       <ol
         ref={boxRef}
+        data-part="list"
         onScroll={onScroll}
         aria-label={label}
         className={cn(
@@ -178,6 +179,7 @@ export function ScrollList({
         <button
           type="button"
           onClick={showMore}
+          data-part="action"
           className="mt-3 self-start rounded-lg border border-border bg-paper px-3 py-2 text-body text-muted transition-colors hover:border-border-strong hover:text-ink"
         >
           Показать ещё {Math.min(step ?? limit ?? hidden, hidden)} из {hidden}

@@ -60,6 +60,14 @@ export interface VideoSetPlayerProps {
   /** Как показывать список: задаётся в настройках блока. */
   readonly view?: SetView | undefined;
   /**
+   * Сколько карточек видно сразу.
+   *
+   * @remarks
+   * Это не потолок списка: остальные достаются прокруткой, а в ленте свайпом.
+   * Число задаёт владелец в поле блока.
+   */
+  readonly visible?: number | undefined;
+  /**
    * Дать зрителю переключать вид.
    *
    * @remarks
@@ -84,6 +92,7 @@ export function VideoSetPlayer({
   playerUi,
   deniedSettings,
   className,
+  visible,
 }: VideoSetPlayerProps) {
   // Замки снимаются после введённого кода общим хуком: то же самое нужно
   // списку в боковой панели, а два одинаковых слушателя разъезжаются.
@@ -97,21 +106,23 @@ export function VideoSetPlayer({
   const { current, select: setCurrent } = useSelectedVideo(items);
 
   /*
-    Вид задаёт владелец в настройках блока. Переключатель на странице бывает
-    только на витрине шаблона, и там выбор запоминается: посетитель,
-    переключившийся на панель, ждёт её и на следующей странице.
+    Начальный вид задаёт владелец в настройках блока, а выбор зрителя ложится
+    поверх и живёт только у него: человек, переключившийся на панель, ждёт её
+    и когда вернётся к этому же плейлисту.
+
+    Память читается после первой отрисовки: на сервере хранилища нет, и вид
+    там всегда владельческий.
   */
   const [view, setViewState] = useState<SetView>(asked ?? 'column');
 
   useEffect(() => {
-    if (!showViewSwitch) return;
-    const saved = readView();
+    const saved = readView(setCode ?? null);
     if (saved) setViewState(saved);
-  }, [showViewSwitch]);
+  }, [setCode]);
 
   const setView = (next: SetView) => {
     setViewState(next);
-    rememberView(next);
+    rememberView(setCode ?? null, next);
   };
   // Кадр нужен карточке «дальше»: она следит за окончанием видео.
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -123,56 +134,70 @@ export function VideoSetPlayer({
   const { prev, next } = neighboursOf(items, current);
 
   return (
+    /*
+      Кадр и список к нему лежат на одной подложке: без неё список висел
+      в воздухе, будто случайно оказался под видео. Панелью список уезжает
+      сбоку - подложке там не на чем держаться, и она не нужна.
+    */
     <div
-      className={cn(
-        'grid gap-5 pb-6',
-        view === 'column' ? 'lg:grid-cols-[minmax(0,1fr)_20rem]' : 'grid-cols-1',
-        className,
-      )}
+      className={cn('flex flex-col gap-3', view === 'panel' ? 'pb-6' : 'media-shell', className)}
     >
-      <div className="flex flex-col gap-3">
-        {/*
+      {/*
           Слева выбор вида - только на витрине шаблона. Справа кнопка панели:
           она стоит над плеером, там же, откуда панель выезжает, и подписана
           номером текущего видео.
         */}
-        {(showViewSwitch || view === 'panel') && (
-          <div className="flex flex-wrap items-center gap-2">
-            {showViewSwitch && (
-              <div className="flex rounded-lg border border-border bg-paper p-1">
-                {VIEWS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setView(option.value)}
-                    aria-pressed={view === option.value}
-                    className={cn(
-                      'rounded-md px-3 py-1.5 text-sm transition-colors',
-                      view === option.value
-                        ? 'bg-surface font-medium text-ink'
-                        : 'text-muted hover:text-ink',
-                    )}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            )}
+      {(showViewSwitch || view === 'panel') && (
+        <div className="flex flex-wrap items-center gap-2">
+          {showViewSwitch && (
+            <div
+              data-part="viewswitch"
+              className="flex rounded-lg border border-border bg-paper p-1"
+            >
+              {VIEWS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setView(option.value)}
+                  aria-pressed={view === option.value}
+                  className={cn(
+                    'rounded-md px-3 py-1.5 text-sm transition-colors',
+                    view === option.value
+                      ? 'bg-surface font-medium text-ink'
+                      : 'text-muted hover:text-ink',
+                  )}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          )}
 
-            {view === 'panel' && (
-              <div className="ml-auto">
-                <VideoSetDrawer
-                  items={items}
-                  channel={channel}
-                  setCode={setCode}
-                  currentCode={current?.code ?? null}
-                  title={title}
-                  onSelect={setCurrent}
-                />
-              </div>
-            )}
-          </div>
+          {view === 'panel' && (
+            <div className="ml-auto">
+              <VideoSetDrawer
+                items={items}
+                channel={channel}
+                setCode={setCode}
+                currentCode={current?.code ?? null}
+                title={title}
+                onSelect={setCurrent}
+              />
+            </div>
+          )}
+        </div>
+      )}
+      {/*
+          В ряду только видео и колонка списка: подпись и переключатель стоят
+          снаружи. Иначе колонка равнялась бы по всей левой ячейке, а не
+          по самому видео - владелец просил именно по видео.
+        */}
+      <div
+        className={cn(
+          'grid gap-5',
+          view === 'column' ? 'lg:grid-cols-[minmax(0,1fr)_20rem]' : 'grid-cols-1',
         )}
+      >
         {current?.playlistUrl ? (
           <>
             {/*
@@ -199,7 +224,6 @@ export function VideoSetPlayer({
                 ) : undefined
               }
             />
-            <h3 className="text-body font-medium text-ink text-balance">{current.title}</h3>
           </>
         ) : (
           <div className="flex aspect-video items-center justify-center rounded-xl border border-border bg-surface px-6 text-center">
@@ -208,12 +232,38 @@ export function VideoSetPlayer({
             </p>
           </div>
         )}
+
+        {view === 'column' && (
+          /*
+            Колонка равняется по самому видео: она соседняя ячейка того же ряда,
+            а карточки внутри прокручиваются.
+
+            Числом «сколько видно» колонка не ограничивается: место здесь задаёт
+            высота видео, и обрезка по числу оставляла бы внизу пустоту при
+            непоказанных карточках.
+          */
+          <div className="relative min-h-0">
+            <VideoSetList
+              items={items}
+              channel={channel}
+              setCode={setCode}
+              currentCode={current?.code ?? null}
+              onSelect={setCurrent}
+              unlocking={unlocking}
+              className="max-h-[32rem] overflow-y-auto pr-1 [scrollbar-width:thin] lg:absolute lg:inset-0 lg:max-h-none"
+            />
+          </div>
+        )}
       </div>
 
-      {/*
-        Список ограничен высотой плеера и прокручивается: иначе длинный плейлист
-        растягивает страницу, и до того, что под ним, никто не доходит.
-      */}
+      {/* Подпись под видео - вне ряда, чтобы не растягивать колонку. */}
+      {current?.playlistUrl && (
+        <h3 data-part="caption" className="text-body font-medium text-ink text-balance">
+          {current.title}
+        </h3>
+      )}
+
+      {/* Лентой список идёт под видео и равняется по его ширине. */}
       {view === 'row' && (
         <VideoSetList
           items={items}
@@ -223,18 +273,7 @@ export function VideoSetPlayer({
           orientation="horizontal"
           onSelect={setCurrent}
           unlocking={unlocking}
-        />
-      )}
-
-      {view === 'column' && (
-        <VideoSetList
-          items={items}
-          channel={channel}
-          setCode={setCode}
-          currentCode={current?.code ?? null}
-          onSelect={setCurrent}
-          unlocking={unlocking}
-          className="max-h-[32rem] overflow-y-auto pr-1 [scrollbar-width:thin]"
+          limit={visible}
         />
       )}
 
@@ -244,13 +283,24 @@ export function VideoSetPlayer({
   );
 }
 
-/** Ключ памяти: у каждого зрителя свой выбор вида. */
-const VIEW_KEY = 'whg:set-view';
+/**
+ * Ключ памяти о выбранном виде - на каждый плейлист свой.
+ *
+ * @remarks
+ * Человек привыкает смотреть конкретный курс лентой, а другой - колонкой,
+ * и на любой странице того же плейлиста ждёт того же вида. Общий ключ на весь
+ * сайт переносил бы выбор туда, где он не к месту.
+ *
+ * Без кода плейлиста память общая: другого признака у списка нет.
+ */
+function viewKey(setCode: string | null): string {
+  return setCode ? `whg:set-view:${setCode}` : 'whg:set-view';
+}
 
-function readView(): SetView | null {
+function readView(setCode: string | null): SetView | null {
   try {
-    const raw = window.localStorage.getItem(VIEW_KEY);
-    return raw === 'column' || raw === 'row' ? raw : null;
+    const raw = window.localStorage.getItem(viewKey(setCode));
+    return raw === 'column' || raw === 'row' || raw === 'panel' ? raw : null;
   } catch {
     // Хранилище бывает закрыто настройками браузера: плейлист от этого работает
     // как обычно, просто без памяти о выборе.
@@ -258,9 +308,9 @@ function readView(): SetView | null {
   }
 }
 
-function rememberView(view: SetView): void {
+function rememberView(setCode: string | null, view: SetView): void {
   try {
-    window.localStorage.setItem(VIEW_KEY, view);
+    window.localStorage.setItem(viewKey(setCode), view);
   } catch {
     // см. выше
   }

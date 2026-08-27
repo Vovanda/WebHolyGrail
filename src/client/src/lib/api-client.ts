@@ -733,6 +733,15 @@ export interface PlaylistView {
   readonly title: string;
   readonly description: string | null;
   readonly cover: string | null;
+  /**
+   * Тёмная ли обложка.
+   *
+   * @remarks
+   * По ней выбирается цвет текста поверх: на светлой он тёмный, на тёмной
+   * белый. Считает CMS при загрузке файла - в браузере холст с чужого домена
+   * не прочитать.
+   */
+  readonly coverIsDark?: boolean | null;
   readonly items: ReadonlyArray<VideoSetItem>;
 }
 

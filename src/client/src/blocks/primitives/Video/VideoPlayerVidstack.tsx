@@ -227,6 +227,13 @@ export function VideoPlayerVidstack({
           <DefaultVideoLayout
             icons={defaultLayoutIcons}
             translations={RU}
+            /*
+              На узком экране плеер по умолчанию поднимает меню настроек
+              отдельной панелью снизу окна - вне самого плеера. Оно оказывается
+              далеко от шестерёнки, которой его вызвали, и читается как чужое
+              окно поверх страницы. Открываем меню там же, где кнопка.
+            */
+            noModal
             {...(thumbnails ? { thumbnails } : {})}
           />
         </MediaPlayer>

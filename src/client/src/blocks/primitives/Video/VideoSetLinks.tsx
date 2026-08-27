@@ -2,6 +2,8 @@ import type { VideoSetRef } from 'contracts';
 
 import { cn } from '@/lib/utils';
 
+import { PlaylistCard } from './PlaylistCard';
+
 /**
  * Плейлисты, в которые входит это видео.
  *
@@ -27,26 +29,19 @@ export function VideoSetLinks({ sets, channel, currentSetCode, className }: Vide
 
   return (
     <section className={cn('flex flex-col gap-3', className)}>
-      <h2 className="text-body font-medium text-ink">Это видео входит в плейлисты</h2>
+      <h2 data-part="title" className="text-body font-medium text-ink">
+        Это видео входит в плейлисты
+      </h2>
 
-      <ul className="flex flex-wrap gap-2">
+      {/* Та же сетка, что на канале: карточки не расходятся по ширине от места
+          к месту. */}
+      <ul className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,18rem),1fr))]">
         {others.map((set) => (
-          <li key={set.id}>
-            <a
-              href={`/@${channel}/p/${set.code}`}
-              className="flex items-center gap-2 rounded-lg border border-border bg-paper px-3 py-2 text-body text-ink transition-colors hover:border-border-strong"
-            >
-              {set.title}
-              <span className="text-sm text-muted">{plural(set.count)}</span>
-            </a>
+          <li key={set.id} className="contents">
+            <PlaylistCard set={set} channel={channel} />
           </li>
         ))}
       </ul>
     </section>
   );
-}
-
-/** «1 видео», «2 видео», «5 видео» - слово не меняется, меняется только число. */
-function plural(count: number): string {
-  return `${count} видео`;
 }

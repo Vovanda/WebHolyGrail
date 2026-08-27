@@ -305,6 +305,15 @@ export interface VideoSetRef {
   readonly title: string;
   /** Сколько видео внутри. */
   readonly count: number;
+  /** Своя обложка плейлиста, если задана. */
+  readonly cover?: string | null;
+  /**
+   * Кадры видео из плейлиста - ими он показывается, когда своей обложки нет.
+   *
+   * @remarks
+   * Не больше трёх: в стопке остальные всё равно не видны.
+   */
+  readonly covers?: ReadonlyArray<string>;
 }
 
 /**

@@ -100,7 +100,7 @@ export default async function VideoPage({
       значит оставить вокруг пустые поля. Текст же в широкой колонке нечитаем,
       поэтому ширины у них разные.
     */
-    <main className="mx-auto flex max-w-wide flex-col gap-5 px-4 py-6 md:px-6 md:py-8">
+    <main className="mx-auto flex max-w-wide flex-col gap-8 px-4 py-8 md:gap-10 md:px-6 md:py-12">
       {/*
         Путь до записи: канал, плейлист, сама запись. Пришедший по прямой ссылке
         иначе не понимает, где оказался и что рядом.

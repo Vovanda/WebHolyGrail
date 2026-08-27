@@ -6,56 +6,53 @@ import { panelClasses } from './SidePanel';
  * Панель слева и справа обязана вести себя одинаково и выглядеть зеркально.
  * Проверяем это правилом, а не глазами: правка одной стороны иначе легко
  * расходится с другой.
+ *
+ * Слой, сдвиг и движение живут в стилях: классы-утилиты лежат слоем выше
+ * и перебивали правило для широкого экрана. Здесь проверяется то, что
+ * осталось за классами, - сторона и привязка по высоте.
  */
 
-function classes(side: 'left' | 'right', open: boolean, alignTop: 'screen' | 'trigger' = 'screen') {
-  return panelClasses({ side, open, alignTop }).split(' ');
+function classes(side: 'left' | 'right', alignTop: 'screen' | 'trigger' = 'screen') {
+  return panelClasses({ side, alignTop }).split(' ');
 }
 
 /** Всё, что не про сторону: должно совпадать у обеих панелей. */
 function common(list: string[]): string[] {
-  return list.filter((c) => !/^(left|right)-0$|^border-(l|r)$|translate-x/.test(c));
+  return list.filter((c) => !/^(left|right)-0$|^border-(l|r)$/.test(c));
 }
 
 describe('panelClasses', () => {
-  it('оформление и движение одинаковые с обеих сторон', () => {
-    expect(common(classes('left', true))).toEqual(common(classes('right', true)));
-    expect(common(classes('left', false))).toEqual(common(classes('right', false)));
+  it('оформление одинаковое с обеих сторон', () => {
+    expect(common(classes('left'))).toEqual(common(classes('right')));
+    expect(common(classes('left', 'trigger'))).toEqual(common(classes('right', 'trigger')));
   });
 
   it('стороны зеркальны: край экрана и граница напротив него', () => {
-    expect(classes('left', true)).toContain('left-0');
-    expect(classes('left', true)).toContain('border-r');
-    expect(classes('right', true)).toContain('right-0');
-    expect(classes('right', true)).toContain('border-l');
+    expect(classes('left')).toContain('left-0');
+    expect(classes('left')).toContain('border-r');
+    expect(classes('right')).toContain('right-0');
+    expect(classes('right')).toContain('border-l');
   });
 
-  it('закрытая панель уезжает в свою сторону', () => {
-    expect(classes('left', false)).toContain('-translate-x-full');
-    expect(classes('right', false)).toContain('translate-x-full');
-    expect(classes('left', false)).not.toContain('translate-x-0');
-  });
-
-  it('открытая панель стоит на месте с обеих сторон', () => {
-    expect(classes('left', true)).toContain('translate-x-0');
-    expect(classes('right', true)).toContain('translate-x-0');
-  });
-
-  it('движение берёт длительность и кривую страницы', () => {
+  it('сдвиг задан стилями, а не классом', () => {
     for (const side of ['left', 'right'] as const) {
-      const list = classes(side, true).join(' ');
-      expect(list).toContain('var(--panel-motion-duration)');
-      expect(list).toContain('var(--panel-motion-ease)');
+      expect(classes(side).join(' ')).not.toMatch(/translate-x/);
     }
   });
 
-  it('панель на уровне кнопки не прижимается к верху экрана', () => {
-    expect(classes('left', true, 'trigger')).not.toContain('top-0');
-    expect(classes('right', true, 'screen')).toContain('top-0');
+  it('верх задан стилями: панель начинается ниже шапки сайта', () => {
+    for (const alignTop of ['screen', 'trigger'] as const) {
+      expect(classes('left', alignTop)).not.toContain('top-0');
+    }
+  });
+
+  it('начатая от кнопки панель отделена кромкой сверху', () => {
+    expect(classes('left', 'trigger')).toContain('border-t');
+    expect(classes('left', 'screen')).not.toContain('border-t');
   });
 
   it('угол не скругляется: скруглённый край читается как обрезанный кусок', () => {
-    expect(classes('left', true, 'trigger')).not.toContain('rounded');
-    expect(classes('right', true, 'trigger')).not.toContain('rounded');
+    expect(classes('left', 'trigger')).not.toContain('rounded');
+    expect(classes('right', 'trigger')).not.toContain('rounded');
   });
 });

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 
-import { PlaylistCover } from '@/blocks/primitives/Video/PlaylistCover';
+import { PlaylistCard } from '@/blocks/primitives/Video/PlaylistCard';
 import { getChannel } from '@/lib/api-client';
 
 /**
@@ -33,7 +33,7 @@ export default async function ChannelPage({ params }: { params: Promise<Params> 
   if (!data) notFound();
 
   return (
-    <main className="mx-auto flex max-w-wide flex-col gap-8 px-4 py-8 md:px-6 md:py-12">
+    <main className="mx-auto flex max-w-wide flex-col gap-8 px-4 py-8 md:gap-10 md:px-6 md:py-12">
       <header className="flex flex-col gap-1">
         <h1 className="text-h2 font-display font-semibold tracking-tight text-ink">
           {data.authorName ?? `@${data.channel}`}
@@ -51,23 +51,12 @@ export default async function ChannelPage({ params }: { params: Promise<Params> 
 
           <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,18rem),1fr))]">
             {data.sets.map((set) => (
-              <a
+              <PlaylistCard
                 key={set.code}
-                href={`/@${data.channel}/p/${set.code}`}
-                className="group flex flex-col overflow-hidden rounded-xl border border-border bg-paper transition-colors hover:border-border-strong"
-              >
-                <PlaylistCover cover={set.cover} covers={set.covers ?? []} />
-
-                <span className="flex flex-col gap-1 p-4">
-                  <span className="text-body font-medium leading-snug text-ink text-balance">
-                    {set.title}
-                  </span>
-                  <span className="text-sm text-muted">{set.count} видео</span>
-                  {set.description && (
-                    <span className="line-clamp-2 text-sm text-muted">{set.description}</span>
-                  )}
-                </span>
-              </a>
+                set={set}
+                channel={data.channel}
+                description={set.description}
+              />
             ))}
           </div>
         </section>

@@ -42,12 +42,14 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
   const playlist = await getPlaylistById(playlistId, cookie);
   if (!playlist) return null;
 
-  const items = data.limit ? playlist.items.slice(0, data.limit) : playlist.items;
+  // Список отдаётся целиком: число в поле блока говорит, сколько карточек
+  // видно сразу, а не сколько их всего. Остальные достаются прокруткой,
+  // а в ленте - свайпом.
+  const items = playlist.items;
   const heading = data.heading?.trim() || playlist.title;
   const subtitle = data.subtitle?.trim() || playlist.description;
   const setUrl =
     playlist.channel && playlist.code ? `/@${playlist.channel}/p/${playlist.code}` : null;
-  const hidden = playlist.items.length - items.length;
 
   const withPlayer = data.mode !== 'list';
   // Токен нужен и списку без плеера: в него дописывается плейлист, когда зритель
@@ -59,7 +61,12 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
       className={cn('mx-auto flex w-full max-w-wide flex-col gap-5 px-4 md:px-6', className)}
     >
       {data.showCover !== false && playlist.cover && (
-        <img src={playlist.cover} alt="" className="aspect-[21/6] w-full rounded-xl object-cover" />
+        <img
+          data-part="media"
+          src={playlist.cover}
+          alt=""
+          className="aspect-[21/6] w-full rounded-xl object-cover"
+        />
       )}
 
       {/*
@@ -70,21 +77,27 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
         <header className="flex flex-col gap-2">
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
             {data.showTitle !== false && (
-              <h2 className="text-h3 font-display font-semibold tracking-tight text-ink text-balance">
+              <h2
+                data-part="title"
+                className="text-h3 font-display font-semibold tracking-tight text-ink text-balance"
+              >
                 {heading}
               </h2>
             )}
             {data.showLink !== false && setUrl && (
               <a
                 href={setUrl}
+                data-part="action"
                 className="shrink-0 text-sm font-medium text-muted hover:text-ink hover:underline"
               >
-                {hidden > 0 ? `Ещё ${hidden} в плейлисте →` : 'Весь плейлист →'}
+                {'Страница плейлиста →'}
               </a>
             )}
           </div>
           {data.showDescription !== false && subtitle && (
-            <p className="max-w-content text-body leading-relaxed text-ink/90">{subtitle}</p>
+            <p data-part="subtitle" className="max-w-content text-body leading-relaxed text-ink/90">
+              {subtitle}
+            </p>
           )}
         </header>
       )}
@@ -100,6 +113,7 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
           token={token}
           channel={playlist.channel}
           setCode={playlist.code}
+          visible={data.limit ?? undefined}
         />
       ) : (
         <>
@@ -108,6 +122,7 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
             channel={playlist.channel}
             setCode={playlist.code}
             orientation={data.layout === 'grid' ? 'horizontal' : 'vertical'}
+            limit={data.limit ?? undefined}
           />
           {token && <AccessCodeDialog token={token} />}
         </>

@@ -150,21 +150,54 @@ export function SidePanel({
   }, [open, side, width]);
 
   /*
+    Пока тянут край окна, движение выключено.
+
+    Ширина панели и отступ страницы считаются от ширины окна, а на них висит
+    переход - при плавном растягивании каркас догонял окно с задержкой и всё
+    дёргалось. Признак снимается через мгновение после последнего изменения,
+    и обычное открытие панели снова идёт с движением.
+  */
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    function onResize() {
+      document.body.dataset['resizing'] = 'true';
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        delete document.body.dataset['resizing'];
+      }, 160);
+    }
+
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      if (timer) clearTimeout(timer);
+      delete document.body.dataset['resizing'];
+    };
+  }, []);
+
+  /*
     Нажатие мимо панели её закрывает, и при этом доходит до того, на что
     нажали: кнопки в шапке - тема, меню - остаются рабочими с первого раза.
     Прозрачный слой поверх страницы съедал бы это первое нажатие.
+
+    Закрываем по нажатию целиком, а не по его началу. На узком окне страница
+    возвращается на всю ширину панели, и кнопка, которая едет вместе с ней,
+    успевала уйти из-под пальца между началом нажатия и его концом: панель
+    закрывалась, а меню не открывалось - приходилось нажимать второй раз.
+    К концу нажатия кнопка своё уже отработала.
   */
   useEffect(() => {
     if (!open) return;
-    function onPointerDown(event: PointerEvent) {
+    function onClick(event: MouseEvent) {
       const target = event.target as Node | null;
       if (!target) return;
       if (panelRef.current?.contains(target)) return;
       if (triggerRef.current?.contains(target)) return;
       setOpen(false);
     }
-    document.addEventListener('pointerdown', onPointerDown);
-    return () => document.removeEventListener('pointerdown', onPointerDown);
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
   }, [open]);
 
   useEffect(() => {
@@ -176,16 +209,15 @@ export function SidePanel({
     return () => window.removeEventListener('keydown', onKey);
   }, [open, close]);
 
+  const toggle = () => {
+    followTrigger();
+    setOpen((value) => !value);
+  };
+
   return (
     <>
       <span ref={triggerRef} className="contents">
-        {trigger({
-          open: () => {
-            followTrigger();
-            setOpen((value) => !value);
-          },
-          isOpen: open,
-        })}
+        {trigger({ open: toggle, isOpen: open })}
       </span>
 
       {/*
@@ -205,16 +237,35 @@ export function SidePanel({
               // и состояние.
               data-open={open ? 'true' : 'false'}
               data-side={side}
-              style={{ width, ...(alignTop === 'trigger' ? { top: `${top}px` } : {}) }}
-              className={cn('side-panel--push', panelClasses({ side, open, alignTop }), className)}
+              // Ширина идёт переменной, а не готовым правилом: на широком экране
+              // её задаёт раскладка - панель встаёт вплотную к средней секции,
+              // и заданное здесь число там только мешало бы.
+              style={
+                {
+                  '--side-panel-width': width,
+                  ...(alignTop === 'trigger' ? { top: `${top}px` } : {}),
+                } as React.CSSProperties
+              }
+              className={cn('side-panel--push', panelClasses({ side, alignTop }), className)}
             >
-              <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
+              {/*
+                Шапка панели стоит на месте: прокручивается только содержимое.
+                Иначе вместе со словом уезжает и закрытие, а другого видимого
+                способа закрыть панель нет.
+              */}
+              {/*
+                Шапка панели идёт вровень с шапкой сайта: та же высота, та же
+                нижняя кромка. Иначе панель читается как приклеенная сбоку,
+                а не как часть той же страницы.
+              */}
+              <div className="flex h-[var(--header-height)] shrink-0 items-center justify-between gap-2 border-b border-border px-4">
                 <span className="text-body font-medium text-ink">{title ?? 'Панель'}</span>
+                {/* Тот же вид, что у кнопки меню: обе живут в одной полосе по верху. */}
                 <button
                   type="button"
                   onClick={close}
                   aria-label="Закрыть"
-                  className="grid h-9 w-9 place-items-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-ink"
+                  className="action-button"
                 >
                   <svg
                     width="16"
@@ -230,11 +281,10 @@ export function SidePanel({
                 </button>
               </div>
 
-              {/*
-                Карточки держатся на виду при прокрутке. Заголовок с крестиком
-                остаётся там, где стоял.
-              */}
-              <div className="side-panel__body flex-1 p-4">{children}</div>
+              {/* Прокручивается содержимое, а не панель целиком. */}
+              <div className="side-panel__body flex-1 overflow-y-auto overscroll-contain p-4">
+                {children}
+              </div>
             </aside>
           </>,
           document.body,
@@ -259,22 +309,29 @@ export function SidePanel({
  */
 export function panelClasses({
   side,
-  open,
   alignTop,
 }: {
   readonly side: 'left' | 'right';
-  readonly open: boolean;
   readonly alignTop: 'screen' | 'trigger';
 }): string {
   const mirrored = side === 'left';
+  // Слой, сдвиг и движение заданы в стилях по признакам `data-open`
+  // и `data-side`: классы-утилиты лежат слоем выше и перебивали правило
+  // для широкого экрана, из-за чего панель влетала от края вместо того,
+  // чтобы проступить на месте.
   return [
-    'fixed bottom-0 z-[55] flex flex-col overflow-y-auto overscroll-contain',
+    'fixed bottom-0 flex flex-col overflow-hidden',
     // Начатая от кнопки панель не скругляется: скруглённый угол читается как
     // обрезанный кусок, а панель - это край экрана, а не карточка.
-    alignTop === 'trigger' ? 'border-t' : 'top-0',
-    'border-border bg-surface shadow-[inset_0_2px_6px_-4px_rgb(0_0_0/0.35)]',
-    'transition-transform [transition-duration:var(--panel-motion-duration)] [transition-timing-function:var(--panel-motion-ease)]',
+    //
+    // Верх задан в стилях, а не классом: на широком экране панель начинается
+    // ниже шапки сайта - шапка лежит слоем выше и накрывала бы её.
+    alignTop === 'trigger' ? 'border-t' : '',
+    // Заливка задана в стилях: она считается от фона листа, а классом
+    // перебивалась бы.
+    'border-border shadow-[inset_0_2px_6px_-4px_rgb(0_0_0/0.35)]',
     mirrored ? 'left-0 border-r' : 'right-0 border-l',
-    open ? 'translate-x-0' : mirrored ? '-translate-x-full' : 'translate-x-full',
-  ].join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 }

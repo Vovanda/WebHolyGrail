@@ -22,10 +22,15 @@ export function VideoDescription({ text, limit = 240, className }: VideoDescript
   const { head, tail } = splitForPreview(text, limit);
   const body = 'whitespace-pre-line text-body leading-relaxed text-ink/90';
 
-  if (!tail) return <p className={cn(body, className)}>{text}</p>;
+  if (!tail)
+    return (
+      <p data-part="body" className={cn(body, className)}>
+        {text}
+      </p>
+    );
 
   return (
-    <details className={cn('group', className)}>
+    <details data-part="body" className={cn('group', className)}>
       <summary className={cn(body, 'cursor-pointer list-none [&::-webkit-details-marker]:hidden')}>
         {head}
         <span className="group-open:hidden">…</span>

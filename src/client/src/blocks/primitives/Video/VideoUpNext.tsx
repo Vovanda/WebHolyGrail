@@ -68,20 +68,34 @@ export function VideoUpNext({ item, videoRef, onSelect, delaySeconds = 8 }: Vide
 
   return (
     <div className="video-upnext">
-      <p className="video-upnext__label">Дальше в плейлисте</p>
+      <p data-part="caption" className="video-upnext__label">
+        Дальше в плейлисте
+      </p>
 
-      <button type="button" onClick={() => onSelect(item)} className="video-upnext__card">
+      <button
+        type="button"
+        data-part="card"
+        onClick={() => onSelect(item)}
+        className="video-upnext__card"
+      >
         {item.poster ? (
-          <img src={item.poster} alt="" className="video-upnext__poster" />
+          <img data-part="card-thumb" src={item.poster} alt="" className="video-upnext__poster" />
         ) : (
           <span className="video-upnext__poster" aria-hidden="true" />
         )}
-        <span className="video-upnext__title">{item.title}</span>
+        <span data-part="card-title" className="video-upnext__title">
+          {item.title}
+        </span>
       </button>
 
       <div className="video-upnext__actions">
         <span className="video-upnext__countdown">Через {left}…</span>
-        <button type="button" onClick={() => setVisible(false)} className="video-upnext__cancel">
+        <button
+          type="button"
+          data-part="action"
+          onClick={() => setVisible(false)}
+          className="video-upnext__cancel"
+        >
           Остаться
         </button>
       </div>

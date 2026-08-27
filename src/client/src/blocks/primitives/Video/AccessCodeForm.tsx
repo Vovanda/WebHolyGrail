@@ -165,6 +165,7 @@ export function AccessCodeForm({ token, className }: AccessCodeFormProps) {
         <button
           type="submit"
           disabled={busy || !code.trim()}
+          data-part="action"
           className="rounded-lg bg-accent px-4 py-2 text-body font-medium text-accent-fg transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
           {busy ? 'Проверяем…' : 'Открыть'}
