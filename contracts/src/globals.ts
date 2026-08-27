@@ -46,10 +46,25 @@ export interface SiteSettings {
   readonly social?: readonly SocialLink[];
   /** Конфигурация темы (light/dark/auto + user-toggle). */
   readonly theme?: ThemeConfig;
+  /** Поведение шапки: держится ли она наверху при прокрутке. */
+  readonly header?: HeaderSettings;
   /** Конфигурация layout — какие панели в каких слотах. См. R11. */
   readonly layout?: SiteLayoutConfig;
   /** Настройки видео, которые нужны странице. */
   readonly video?: VideoSettings;
+}
+
+/**
+ * Поведение шапки сайта.
+ *
+ * @remarks
+ * По умолчанию шапка уезжает вместе со страницей, а наверху остаётся одна
+ * кнопка меню - она липкая сама по себе и от этой настройки не зависит.
+ * Владелец включает липкость, когда меню должно быть под рукой всё время.
+ */
+export interface HeaderSettings {
+  /** Шапка держится наверху при прокрутке. По умолчанию нет. */
+  readonly sticky?: boolean;
 }
 
 export interface ContactsInfo {

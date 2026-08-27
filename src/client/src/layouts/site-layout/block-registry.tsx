@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { BlockNode, SiteSettings } from 'contracts';
+import { scopedAppearance } from 'contracts';
 
 import { Header } from '@/blocks/layout/Header';
 import { Footer } from '@/blocks/layout/Footer';
@@ -150,6 +151,30 @@ export function renderBlockNode(
   }
   const rendered = renderer(node, settings, children);
   const vClass = visibilityClass(node);
-  if (!vClass) return rendered;
-  return <div className={vClass}>{rendered}</div>;
+  const body = vClass ? <div className={vClass}>{rendered}</div> : rendered;
+
+  /*
+    Свой стиль блока подставляется здесь, а не в каждом блоке: точка одна
+    на все, и новый блок получает это сам собой.
+
+    Стиль ограничен признаком блока: он действует на сам блок и на его
+    содержимое и не достаёт до остальной страницы. Признак берётся от самой
+    записи - у двух блоков одного вида на странице стили не перепутаются.
+  */
+  const css = scopedAppearance(String(node.id ?? ''), blockCss(node));
+  if (!css) return body;
+
+  return (
+    <div data-block={String(node.id ?? '')}>
+      <style>{css}</style>
+      {body}
+    </div>
+  );
+}
+
+/** Свой стиль, если владелец его задал. */
+function blockCss(node: BlockNode): string {
+  const data = node.data as Record<string, unknown> | undefined;
+  const css = data?.['appearanceCss'];
+  return typeof css === 'string' ? css : '';
 }

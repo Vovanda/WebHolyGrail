@@ -40,6 +40,10 @@ import * as migration_20260827_042055_builtwith_dark_shot from './20260827_04205
 import * as migration_20260827_043400_feature_toggles from './20260827_043400_feature_toggles';
 import * as migration_20260827_060113_drop_player_ui from './20260827_060113_drop_player_ui';
 import * as migration_20260827_093112_video_set_list_view from './20260827_093112_video_set_list_view';
+import * as migration_20260827_141110_media_is_dark from './20260827_141110_media_is_dark';
+import * as migration_20260827_170342_header_sticky from './20260827_170342_header_sticky';
+import * as migration_20260827_183513_block_appearance from './20260827_183513_block_appearance';
+import * as migration_20260828_010500_block_appearance_css from './20260828_010500_block_appearance_css';
 
 export const migrations = [
   {
@@ -251,5 +255,25 @@ export const migrations = [
     up: migration_20260827_093112_video_set_list_view.up,
     down: migration_20260827_093112_video_set_list_view.down,
     name: '20260827_093112_video_set_list_view',
+  },
+  {
+    up: migration_20260827_141110_media_is_dark.up,
+    down: migration_20260827_141110_media_is_dark.down,
+    name: '20260827_141110_media_is_dark',
+  },
+  {
+    up: migration_20260827_170342_header_sticky.up,
+    down: migration_20260827_170342_header_sticky.down,
+    name: '20260827_170342_header_sticky',
+  },
+  {
+    up: migration_20260827_183513_block_appearance.up,
+    down: migration_20260827_183513_block_appearance.down,
+    name: '20260827_183513_block_appearance',
+  },
+  {
+    up: migration_20260828_010500_block_appearance_css.up,
+    down: migration_20260828_010500_block_appearance_css.down,
+    name: '20260828_010500_block_appearance_css',
   },
 ];

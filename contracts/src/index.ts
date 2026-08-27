@@ -22,7 +22,14 @@ export type {
   BlockSource,
   CarouselCard,
   CarouselBlockData,
+  BlockPart,
 } from './blocks';
+
+/*
+  Область видимости стиля блока считается в шве: её ставит сайт при отрисовке,
+  а предупреждение показывает админка. Одно место на обе стороны.
+*/
+export { APPEARANCE_WARNING, PALETTE_COLORS, flattenParts, scopedAppearance } from './blocks';
 
 export type { PageDoc, PageSeo } from './pages';
 

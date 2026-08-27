@@ -1,4 +1,4 @@
-import type { BlockNode, SiteSettings } from 'contracts';
+import { scopedAppearance, type BlockNode, type SiteSettings } from 'contracts';
 
 /**
  * CustomMarkup — секция из произвольной разметки.
@@ -29,10 +29,21 @@ export function CustomMarkup({
   const data = node.data ?? {};
   if (!data.html) return null;
 
+  /*
+    Стиль своей разметки ограничен блоком - так же, как «Свой стиль» у всех
+    остальных блоков. Раньше он вставлялся как есть и правил всю страницу:
+    одна опечатка в селекторе - и последствия по всему сайту, а причину
+    ищи в блоке на дальней странице.
+  */
+  const scoped = scopedAppearance(String(node.id ?? ''), data.css);
+
   return (
-    <section className={data.fullWidth ? '' : 'mx-auto max-w-wide px-4 md:px-6'}>
-      {data.css && <style dangerouslySetInnerHTML={{ __html: data.css }} />}
-      <div dangerouslySetInnerHTML={{ __html: data.html }} />
+    <section
+      data-block={String(node.id ?? '')}
+      className={data.fullWidth ? '' : 'mx-auto max-w-wide px-4 md:px-6'}
+    >
+      {scoped && <style dangerouslySetInnerHTML={{ __html: scoped }} />}
+      <div data-part="markup" dangerouslySetInnerHTML={{ __html: data.html }} />
     </section>
   );
 }

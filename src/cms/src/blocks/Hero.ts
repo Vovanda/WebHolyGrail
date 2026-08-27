@@ -10,18 +10,19 @@ export const HeroBlock: Block = {
   fields: [
     {
       name: 'title',
-      label: 'Заголовок (используй {accent} как место для акцентного слова)',
+      label: 'Заголовок',
       type: 'text',
       required: true,
-      admin: {
-        description:
-          'Слово на месте `{accent}` будет показано акцентным italic. Если `{accent}` нет — весь заголовок одного цвета.',
-      },
     },
     {
       name: 'titleAccent',
-      label: 'Акцентное слово (заменит `{accent}` в заголовке)',
+      label: 'Что выделить в заголовке',
       type: 'text',
+      admin: {
+        description:
+          'Часть заголовка, которая станет акцентной. Регистр не важен. Несколько частей — через вертикальную черту: «видео|сайте». Пусто — заголовок одного цвета.',
+        placeholder: 'Видео',
+      },
     },
     {
       name: 'subtitle',

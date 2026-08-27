@@ -118,3 +118,144 @@ export interface CarouselBlockData {
   /** Пропорции кадра, например `16 / 9`. */
   readonly aspect?: string;
 }
+
+/**
+ * Оформление блока: свой стиль, ограниченный самим блоком.
+ *
+ * @remarks
+ * Владелец пишет обычный CSS - `margin: 40px 0`, `border-radius: 16px 16px 0 0`,
+ * а при нужде и правила для того, что лежит внутри. Записывается всё как есть,
+ * без выдуманных слов вроде «просторно» и без частокола полей на каждый угол.
+ *
+ * Ограничение ровно одно - область видимости: написанное действует на сам блок
+ * и на то, что внутри него, и не достаёт до остальной страницы. Разбирать CSS
+ * самим не нужно: строка вкладывается в селектор блока, а вложенность браузер
+ * читает сам.
+ *
+ * Пусто - блок ведёт себя как принято на сайте.
+ */
+
+/**
+ * Часть блока, которую владелец вправе донастроить.
+ *
+ * @remarks
+ * Блок сам называет свои части и помечает их в разметке признаком `data-part`.
+ * Классы для этого не годятся: они машинные и меняются при первой же правке
+ * вёрстки, а признак - договорённость, которую держим мы.
+ *
+ * Тег указывается рядом: по нему сразу видно, с чем имеешь дело - строка списка
+ * это или картинка.
+ */
+export interface BlockPart {
+  /** Имя в разметке: `data-part="title"`. */
+  readonly name: string;
+  /** Как называть его человеку. */
+  readonly label: string;
+  /** Тег, которым часть отрисована: `li`, `img`, `div`. */
+  readonly tag?: string;
+  /** Что лежит внутри этой части. */
+  readonly parts?: readonly BlockPart[];
+}
+
+/** Строка списка частей: что показать, что скопировать и как глубоко лежит. */
+export interface PartRow {
+  /** Как показать: `li[data-part=card]`. */
+  readonly label: string;
+  /** Человеческое название. */
+  readonly title: string;
+  /** Что уйдёт в буфер - полный путь от блока. */
+  readonly selector: string;
+  /** Глубина вложенности, от нуля. */
+  readonly depth: number;
+}
+
+/**
+ * Части блока строками - для списка в админке.
+ *
+ * @remarks
+ * Показываем обычный CSS-селектор, а не свою краткую запись: сокращение вроде
+ * `div[card]` короче, но в него не допишешь ни состояние, ни класс, а
+ * `li[data-part=card]:hover` пишется само собой. Кавычки в атрибуте
+ * необязательны, поэтому строка и так недлинная.
+ *
+ * Вложенность передаётся глубиной, а не повтором пути в каждой строке: иначе
+ * список превращается в полотно из одинаковых начал.
+ */
+export function flattenParts(
+  parts: readonly BlockPart[] | undefined,
+  depth = 0,
+  prefix = '',
+): readonly PartRow[] {
+  if (!parts?.length) return [];
+
+  return parts.flatMap((part) => {
+    const step = `${part.tag ?? 'div'}[data-part=${part.name}]`;
+    const selector = prefix ? `${prefix} > ${step}` : step;
+    return [
+      { label: step, title: part.label, selector, depth },
+      ...flattenParts(part.parts, depth + 1, selector),
+    ];
+  });
+}
+
+export const PALETTE_COLORS = [
+  { value: 'var(--color-bg)', label: 'Лист страницы', sample: '#ffffff' },
+  { value: 'var(--color-page-bg)', label: 'Подложка вокруг листа', sample: '#fafafa' },
+  { value: 'var(--color-surface)', label: 'Карточка', sample: '#f5f5f5' },
+  { value: 'var(--color-ink)', label: 'Текст', sample: '#0a0a0a' },
+  { value: 'var(--color-muted)', label: 'Приглушённый текст', sample: '#737373' },
+  { value: 'var(--color-border)', label: 'Граница', sample: '#e5e5e5' },
+  { value: 'var(--color-accent)', label: 'Акцент', sample: '#2563eb' },
+  { value: 'var(--color-accent-soft)', label: 'Акцент бледный', sample: '#dbeafe' },
+] as const;
+
+export const APPEARANCE_WARNING =
+  'Переопределяет то, как блок уже выглядит, обычным CSS - для него самого и того, ' +
+  'что внутри него. Пусто - блок выглядит так, как задуман. Трогать без нужды не стоит: ' +
+  'ошибка здесь ломает вид страницы, и видно это будет сразу. ' +
+  'Именованные части ниже переживут правку вёрстки; писать по тегам и классам тоже ' +
+  'можно, но они меняются - смотреть настоящую разметку удобнее в средствах ' +
+  'разработчика прямо на странице.';
+
+/**
+ * Обернуть стиль владельца в область видимости блока.
+ *
+ * @remarks
+ * Возвращает готовое правило или пустую строку, если писать нечего.
+ *
+ * Область видимости держится на двух проверках, иначе она была бы на честном
+ * слове:
+ *
+ * - скобки должны быть уравновешены и ни в одном месте закрывающих не больше,
+ *   чем открытых. Иначе `} body { display: none }` оборвал бы наш селектор,
+ *   и остаток ушёл бы на всю страницу;
+ * - закрывающий тег стиля вырезается: иначе он оборвал бы стиль в разметке
+ *   и позволил вставить туда что угодно.
+ *
+ * Не прошло проверку - стиль не применяется вовсе: сломанная страница хуже,
+ * чем не сработавшая настройка.
+ *
+ * @example
+ * scopedAppearance('b7', 'margin: 40px 0; [data-part="title"] { font-size: 32px }')
+ * // '[data-block="b7"] { margin: 40px 0; [data-part="title"] { font-size: 32px } }'
+ */
+export function scopedAppearance(blockId: string, source: string | null | undefined): string {
+  const css = (source ?? '').replace(/<\/?style/gi, '').trim();
+  if (!css) return '';
+  if (!balanced(css)) return '';
+
+  return `[data-block="${blockId}"] { ${css} }`;
+}
+
+/** Скобки уравновешены и нигде не закрываются раньше, чем открылись. */
+function balanced(css: string): boolean {
+  let depth = 0;
+  for (const char of css) {
+    if (char === '{') depth += 1;
+    else if (char === '}') {
+      depth -= 1;
+      if (depth < 0) return false;
+    }
+  }
+  return depth === 0;
+}

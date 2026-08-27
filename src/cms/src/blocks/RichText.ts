@@ -1,4 +1,8 @@
 import type { Block } from 'payload';
+import { BlocksFeature, lexicalEditor } from '@payloadcms/richtext-lexical';
+
+import { VideoBlock } from './Video';
+import { VideoSetBlock } from './VideoSet';
 
 /**
  * RichText — форматированный текст страницы (R5++).
@@ -16,10 +20,27 @@ export const RichTextBlock: Block = {
   labels: { singular: 'Текст', plural: 'Текстовые блоки' },
   fields: [
     {
+      /**
+       * Содержимое текстового блока.
+       *
+       * @remarks
+       * Видео вставляется прямо в текст - тем же набором, что и в статье.
+       * Без этого редактор не знает узел с видео: содержимое, где оно уже
+       * стоит, открыть нельзя вовсе, и правка текста страницы встаёт.
+       *
+       * Список блоков намеренно короткий: полный набор страничных блоков
+       * внутри текста превращает блок во вторую страницу.
+       */
       name: 'content',
       label: 'Содержимое',
       type: 'richText',
       required: true,
+      editor: lexicalEditor({
+        features: ({ defaultFeatures }) => [
+          ...defaultFeatures,
+          BlocksFeature({ blocks: [VideoBlock, VideoSetBlock] }),
+        ],
+      }),
     },
     {
       name: 'width',

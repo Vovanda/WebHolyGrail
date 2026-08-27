@@ -37,7 +37,7 @@ import { PageRefBlock } from './PageRef';
 import { ProjectTypesGridBlock } from './whg/ProjectTypesGrid';
 import { BlockShowcaseBlock } from './whg/BlockShowcase';
 
-import { withVisibility } from './_visibility';
+import { withAppearance } from './_appearance';
 
 /**
  * Generic content-блоки template. Header/Footer/PageOutlet — layout-блоки
@@ -86,10 +86,15 @@ export const REUSABLE_INNER_BLOCKS = [
   // WHG-specific:
   ProjectTypesGridBlock,
   BlockShowcaseBlock,
-].map(withVisibility);
+  /*
+    Вид блока - у каждого: где показывать и как выглядит, одной свёрнутой
+    секцией. Навешивается разом, а не переписыванием тридцати семи файлов,
+    и новый блок получает то же поведение сам собой.
+  */
+].map((block) => withAppearance(block));
 
 export const PAGE_BLOCKS = [
   ...REUSABLE_INNER_BLOCKS,
-  withVisibility(ReusableRefBlock),
-  withVisibility(PageRefBlock),
+  withAppearance(ReusableRefBlock),
+  withAppearance(PageRefBlock),
 ];

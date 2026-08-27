@@ -44,6 +44,7 @@ import {
   videoDemoCodeEndpoint,
 } from './endpoints/video';
 import { togglesEndpoint } from './endpoints/toggles';
+import { blockPartsEndpoint } from './endpoints/block-parts';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -119,7 +120,6 @@ export default buildConfig({
   collections: [
     // Контент — то, из чего состоит сайт.
     Pages,
-    Media,
     ReusableBlocks,
     FaqGroups,
     // Обращения — то, ради чего сайт обычно и заводят.
@@ -130,8 +130,10 @@ export default buildConfig({
     Threads,
     Tags,
     Authors,
-    // Доступ к видео: плейлисты видео, права на них и коды, которые эти права
-    // выдают. Сами видео лежат в медиа — здесь только управление доступом.
+    // Медиа: сами файлы, плейлисты видео, права на них и коды, которые эти права
+    // выдают. Доступ живёт рядом с видео, а не отдельным разделом — человек ищет
+    // его там, где лежит сам файл.
+    Media,
     Playlists,
     Entitlements,
     AccessCodes,
@@ -150,6 +152,7 @@ export default buildConfig({
    * токен зрителя к конкретному медиафайлу не относится, он общий на сессию.
    */
   endpoints: [
+    blockPartsEndpoint,
     togglesEndpoint,
     videoTokenEndpoint,
     videoRedeemEndpoint,
