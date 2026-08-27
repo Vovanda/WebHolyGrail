@@ -483,8 +483,13 @@ fi
 # (~5-10 сек до switch). Это редкий path, помечать `// @needs-maintenance`.
 echo
 echo "→ Applying migrations (pnpm migrate)..."
-if ! docker exec "$SITE_SLUG-cms-$INACTIVE" pnpm --filter cms migrate 2>&1 | tail -10; then
+# Вывод миграции сохраняем целиком: при обрезке хвостом текст ошибки терялся,
+# и в логе оставался только стек без причины.
+MIGRATE_LOG=$(mktemp)
+if ! docker exec "$SITE_SLUG-cms-$INACTIVE" pnpm --filter cms migrate >"$MIGRATE_LOG" 2>&1; then
   echo "   ✗ migrate failed — rolling back"
+  echo "   ── вывод миграции ──"
+  sed 's/^/     /' "$MIGRATE_LOG"
   docker logs --tail 30 "$SITE_SLUG-cms-$INACTIVE" 2>&1 | sed 's/^/     /'
   SITE_SLUG=$SITE_SLUG \
   COLOR=$INACTIVE \
@@ -492,8 +497,11 @@ if ! docker exec "$SITE_SLUG-cms-$INACTIVE" pnpm --filter cms migrate 2>&1 | tai
   CLIENT_PORT=$INACTIVE_CLIENT_PORT \
   TAG=$TAG \
     "${INFISICAL_RUN[@]}" -p "$SITE_SLUG-$INACTIVE" -f "$COMPOSE_FILE" down
+  rm -f "$MIGRATE_LOG"
   exit 1
 fi
+sed 's/^/     /' "$MIGRATE_LOG"
+rm -f "$MIGRATE_LOG"
 echo "   ✓ migrations applied"
 
 # 3.6. Seed — идемпотентный засев стартового контента (home page, initial admin

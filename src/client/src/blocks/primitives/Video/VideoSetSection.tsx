@@ -61,13 +61,27 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
         <img src={playlist.cover} alt="" className="aspect-[21/6] w-full rounded-xl object-cover" />
       )}
 
-      {(data.showTitle !== false || data.showDescription !== false) && (
+      {/*
+        Ссылка на весь набор стоит в одной строке с названием. Под списком она
+        оставалась висеть сама по себе, и было неясно, к чему относится.
+      */}
+      {(data.showTitle !== false || data.showDescription !== false || setUrl) && (
         <header className="flex flex-col gap-2">
-          {data.showTitle !== false && (
-            <h2 className="text-h3 font-display font-semibold tracking-tight text-ink text-balance">
-              {heading}
-            </h2>
-          )}
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            {data.showTitle !== false && (
+              <h2 className="text-h3 font-display font-semibold tracking-tight text-ink text-balance">
+                {heading}
+              </h2>
+            )}
+            {data.showLink !== false && setUrl && (
+              <a
+                href={setUrl}
+                className="shrink-0 text-sm font-medium text-muted hover:text-ink hover:underline"
+              >
+                {hidden > 0 ? `Ещё ${hidden} в наборе →` : 'Весь набор →'}
+              </a>
+            )}
+          </div>
           {data.showDescription !== false && subtitle && (
             <p className="max-w-content text-body leading-relaxed text-ink/90">{subtitle}</p>
           )}
@@ -93,15 +107,6 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
           />
           {token && <AccessCodeDialog token={token} />}
         </>
-      )}
-
-      {data.showLink !== false && setUrl && (
-        <a
-          href={setUrl}
-          className="self-start text-sm font-medium text-muted hover:text-ink hover:underline"
-        >
-          {hidden > 0 ? `Ещё ${hidden} в наборе →` : 'Весь набор →'}
-        </a>
       )}
     </section>
   );
