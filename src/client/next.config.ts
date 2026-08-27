@@ -1,4 +1,21 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import type { NextConfig } from 'next';
+
+/*
+  Версия платформы лежит в манифесте в корне и попадает в сборку - страница
+  показывает её в подвале, а по образу видно, что именно выложено. Читаем
+  на сборке, а не держим копию в коде: копия разъезжается с манифестом.
+*/
+const version = (() => {
+  try {
+    const manifest = path.resolve(process.cwd(), '../../version.json');
+    return (JSON.parse(readFileSync(manifest, 'utf8')) as { version?: string }).version ?? '';
+  } catch {
+    return process.env.WHG_VERSION ?? '';
+  }
+})();
 
 /**
  * Next config for the public client frontend.
@@ -10,6 +27,7 @@ import type { NextConfig } from 'next';
  * with the production domain(s) and any demo-tunnel hostnames you use.
  */
 const nextConfig: NextConfig = {
+  env: { NEXT_PUBLIC_WHG_VERSION: version },
   reactStrictMode: true,
   images: {
     remotePatterns: [
