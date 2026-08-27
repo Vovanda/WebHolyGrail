@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 import type { BlockNode, VideoBlockData, SiteSettings } from 'contracts';
 
 import { checkVideoAccess, getVideoStream, issueVideoToken } from '@/lib/api-client';
+import { readVideoUi } from '@/lib/video-ui';
 import { cn } from '@/lib/utils';
 
 import { VideoPlayer } from './VideoPlayer';
@@ -19,7 +20,7 @@ import { VideoPlayer } from './VideoPlayer';
  */
 export interface VideoSectionProps {
   readonly node: BlockNode;
-  /** Настройки сайта: из них берётся вид плеера. */
+  /** Настройки сайта: из них берётся заглушка отказа. */
   readonly settings: SiteSettings;
   readonly className?: string;
 }
@@ -42,9 +43,10 @@ export async function VideoSection({ node, settings, className }: VideoSectionPr
   // и закрытый видео ему не откроется.
   const cookie = (await headers()).get('cookie') ?? '';
 
-  const [stream, access] = await Promise.all([
+  const [stream, access, playerUi] = await Promise.all([
     getVideoStream(mediaId),
     checkVideoAccess(mediaId, cookie),
+    readVideoUi(),
   ]);
   if (!stream) return null;
 
@@ -70,7 +72,7 @@ export async function VideoSection({ node, settings, className }: VideoSectionPr
 
       {token && stream.status === 'ready' ? (
         <VideoPlayer
-          ui={settings.video?.playerUi}
+          ui={playerUi}
           deniedSettings={settings.video?.denied}
           src={stream.playlistUrl}
           token={token}

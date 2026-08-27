@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 import type { BlockNode, VideoSetBlockData, SiteSettings } from 'contracts';
 
 import { getPlaylistById, issueVideoToken } from '@/lib/api-client';
+import { readVideoUi } from '@/lib/video-ui';
 import { cn } from '@/lib/utils';
 
 import { AccessCodeDialog } from './AccessCodeDialog';
@@ -21,7 +22,7 @@ import { VideoSetPlayer } from './VideoSetPlayer';
  */
 export interface VideoSetSectionProps {
   readonly node: BlockNode;
-  /** Настройки сайта: из них берётся вид плеера. */
+  /** Настройки сайта: из них берётся заглушка отказа. */
   readonly settings: SiteSettings;
   readonly className?: string;
 }
@@ -51,7 +52,7 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
   const withPlayer = data.mode !== 'list';
   // Токен нужен и списку без плеера: в него дописывается плейлист, когда зритель
   // вводит код в окне.
-  const token = await issueVideoToken();
+  const [token, playerUi] = await Promise.all([issueVideoToken(), readVideoUi()]);
 
   return (
     <section
@@ -90,7 +91,7 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
 
       {withPlayer && token ? (
         <VideoSetPlayer
-          playerUi={settings.video?.playerUi}
+          playerUi={playerUi}
           deniedSettings={settings.video?.denied}
           title={heading}
           items={items}
