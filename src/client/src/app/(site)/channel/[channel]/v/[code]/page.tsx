@@ -92,6 +92,7 @@ export default async function VideoPage({
         <VideoPlayer
           mini
           subtitles={video.subtitles}
+          storyboard={video.storyboard}
           chapters={video.chapters}
           durationSeconds={video.durationSeconds}
           src={video.playlistUrl}

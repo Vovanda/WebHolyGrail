@@ -169,6 +169,9 @@ export function payloadCatalog(payload: Payload): CatalogPort {
             prefix: result.prefix,
             qualities: result.qualities.map((height) => ({ height })),
             durationSeconds: result.durationSeconds,
+            // Пустая лента - не беда: полоса времени просто останется без
+            // подсказок, а всё остальное работает.
+            storyboard: result.storyboard ?? {},
             status: 'ready',
             error: null,
             // Секрет уходит в базу завёрнутым в мастер-ключ: расшифрованный

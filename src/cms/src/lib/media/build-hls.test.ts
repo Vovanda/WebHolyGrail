@@ -55,6 +55,7 @@ function makePorts(
           durationSeconds: 42,
           secret: Buffer.from('0123456789abcdef'),
           poster: Buffer.from('кадр'),
+          storyboard: null,
         };
       }),
     },

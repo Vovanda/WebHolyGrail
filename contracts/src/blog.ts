@@ -203,6 +203,8 @@ export interface VideoStream {
   readonly subtitles?: ReadonlyArray<VideoSubtitleTrack>;
   /** Оглавление записи, если его завели. */
   readonly chapters?: ReadonlyArray<VideoChapter>;
+  /** Кадры для перемотки, если их сняли. */
+  readonly storyboard?: VideoStoryboard | null;
   /** Адрес master.m3u8. */
   readonly playlistUrl: string;
   readonly status: 'pending' | 'processing' | 'ready' | 'failed';
@@ -240,6 +242,24 @@ export interface VideoSetItem {
   readonly ready: boolean;
   readonly locked: boolean;
   readonly lockReason: 'sign-in-required' | 'not-entitled' | null;
+}
+
+/**
+ * Лента кадров для перемотки.
+ *
+ * @remarks
+ * Все кадры лежат одной картинкой сеткой: сотня отдельных файлов означала бы
+ * сотню запросов на каждое движение по полосе времени.
+ */
+export interface VideoStoryboard {
+  readonly url: string;
+  readonly columns: number;
+  readonly rows: number;
+  readonly count: number;
+  readonly frameWidth: number;
+  readonly frameHeight: number;
+  /** Сколько секунд приходится на кадр. */
+  readonly intervalSeconds: number;
 }
 
 /**

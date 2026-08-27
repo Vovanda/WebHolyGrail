@@ -394,6 +394,23 @@ export const Media: CollectionConfig = {
           admin: { readOnly: true, hidden: true },
         },
         {
+          name: 'storyboard',
+          label: 'Кадры для перемотки',
+          type: 'group',
+          // Заполняется обработкой: полоса времени показывает кадр под курсором,
+          // и перемотка перестаёт быть вслепую.
+          admin: { readOnly: true, hidden: true },
+          fields: [
+            { name: 'url', type: 'text' },
+            { name: 'columns', type: 'number' },
+            { name: 'rows', type: 'number' },
+            { name: 'count', type: 'number' },
+            { name: 'frameWidth', type: 'number' },
+            { name: 'frameHeight', type: 'number' },
+            { name: 'intervalSeconds', type: 'number' },
+          ],
+        },
+        {
           name: 'qualities',
           label: 'Качества',
           type: 'array',

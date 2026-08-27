@@ -32,6 +32,7 @@ import * as migration_20260827_004108_carousel_source from './20260827_004108_ca
 import * as migration_20260827_010605_player_ui from './20260827_010605_player_ui';
 import * as migration_20260827_013037_video_subtitles from './20260827_013037_video_subtitles';
 import * as migration_20260827_013627_video_chapters from './20260827_013627_video_chapters';
+import * as migration_20260827_015213_video_storyboard from './20260827_015213_video_storyboard';
 
 export const migrations = [
   {
@@ -203,5 +204,10 @@ export const migrations = [
     up: migration_20260827_013627_video_chapters.up,
     down: migration_20260827_013627_video_chapters.down,
     name: '20260827_013627_video_chapters',
+  },
+  {
+    up: migration_20260827_015213_video_storyboard.up,
+    down: migration_20260827_015213_video_storyboard.down,
+    name: '20260827_015213_video_storyboard',
   },
 ];

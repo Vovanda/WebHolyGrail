@@ -81,12 +81,38 @@ export interface HlsResult {
    * а плеер обходится без неё.
    */
   readonly poster: Buffer | null;
+  /**
+   * Лента кадров для перемотки: все кадры одной картинкой.
+   *
+   * @remarks
+   * Полоса без кадров - перемотка вслепую. Кадры снимаются той же обработкой
+   * и складываются в одно изображение: сотня отдельных картинок означала бы
+   * сотню запросов на каждую перемотку.
+   *
+   * `null` - если снять не удалось; плеер тогда обходится полосой без
+   * подсказок.
+   */
+  readonly storyboard: StoryboardResult | null;
   /** Ступени, которые реально собрались (без тех, что выше исходника). */
   readonly rungs: ReadonlyArray<HlsRung>;
   /** Длительность ролика в секундах, если ffprobe её отдал. */
   readonly durationSeconds: number | null;
   /** Секрет AES-128. Хранить в базе, в раздачу не класть. */
   readonly secret: Buffer;
+}
+
+/** Лента кадров и её устройство: по нему собирается разметка для плеера. */
+export interface StoryboardResult {
+  readonly image: Buffer;
+  /** Сколько кадров в ряду и всего: по ним считается положение каждого. */
+  readonly columns: number;
+  readonly rows: number;
+  readonly count: number;
+  /** Размер одного кадра. */
+  readonly frameWidth: number;
+  readonly frameHeight: number;
+  /** Сколько секунд приходится на кадр. */
+  readonly intervalSeconds: number;
 }
 
 /**
@@ -100,6 +126,12 @@ export interface HlsResult {
  * Если не подошла ни одна (вертикальное видео с телефона, крошечный экран),
  * берём нижнюю: без единой дорожки плеер не получит ничего.
  */
+/** Ширина кадра подсказки: их показывают размером с ноготь. */
+const STORYBOARD_FRAME_WIDTH = 160;
+
+/** Потолок числа кадров: дальше лента тяжелеет, а толку не прибавляется. */
+const MAX_STORYBOARD_FRAMES = 100;
+
 export function selectRungs(
   ladder: ReadonlyArray<HlsRung>,
   sourceHeight: number | null,
@@ -246,6 +278,7 @@ export async function transcodeToHls(
       durationSeconds: duration,
       secret,
       poster: await grabPoster(input, work, duration),
+      storyboard: await grabStoryboard(input, work, duration),
     };
   } finally {
     await rm(work, { recursive: true, force: true });
@@ -303,6 +336,64 @@ function normalizePlaylist(name: string, body: Buffer): Buffer {
  * Сбой здесь не должен ронять всю нарезку: ролик уже готов, а обложку можно
  * задать руками.
  */
+/**
+ * Лента кадров для перемотки.
+ *
+ * @remarks
+ * Кадры берутся через равные промежутки и складываются в одну картинку сеткой.
+ * Промежуток считается от длительности: у короткой записи кадры чаще, у часовой
+ * реже, и лента остаётся одного порядка по весу.
+ *
+ * Кадры мелкие: их показывают размером с ноготь над полосой времени, и большие
+ * только утяжеляют картинку.
+ *
+ * Сбой здесь не роняет нарезку: запись уже готова, а перемотка работает и без
+ * подсказок.
+ */
+async function grabStoryboard(
+  input: string,
+  work: string,
+  duration: number | null,
+): Promise<StoryboardResult | null> {
+  if (!duration || duration < 10) return null;
+
+  const count = Math.min(MAX_STORYBOARD_FRAMES, Math.max(10, Math.floor(duration / 5)));
+  const intervalSeconds = duration / count;
+  const columns = Math.ceil(Math.sqrt(count));
+  const rows = Math.ceil(count / columns);
+  const file = join(work, 'storyboard.jpg');
+
+  try {
+    await run('ffmpeg', [
+      '-y',
+      '-i',
+      input,
+      '-vf',
+      `fps=1/${intervalSeconds.toFixed(3)},scale=${STORYBOARD_FRAME_WIDTH}:-2,tile=${columns}x${rows}`,
+      '-frames:v',
+      '1',
+      '-q:v',
+      '5',
+      file,
+    ]);
+
+    const image = await readFile(file);
+    return {
+      image,
+      columns,
+      rows,
+      count,
+      frameWidth: STORYBOARD_FRAME_WIDTH,
+      // Пропорции исходника здесь неизвестны, поэтому берём привычные: плеер
+      // растягивает подсказку по своей рамке, и небольшая разница незаметна.
+      frameHeight: Math.round((STORYBOARD_FRAME_WIDTH * 9) / 16),
+      intervalSeconds,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function grabPoster(
   input: string,
   work: string,

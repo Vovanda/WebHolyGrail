@@ -85,5 +85,6 @@ export type {
   VideoSetRef,
   VideoSubtitleTrack,
   VideoChapter,
+  VideoStoryboard,
 } from './blog';
 export { resolveDisplay } from './blog';

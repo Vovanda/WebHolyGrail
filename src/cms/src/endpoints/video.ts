@@ -140,6 +140,15 @@ export const videoByCodeEndpoint: Endpoint = {
             file?: { url?: string } | string | number | null;
           }> | null;
           hls?: {
+            storyboard?: {
+              url?: string;
+              columns?: number;
+              rows?: number;
+              count?: number;
+              frameWidth?: number;
+              frameHeight?: number;
+              intervalSeconds?: number;
+            } | null;
             status?: string;
             playlistUrl?: string | null;
             qualities?: ReadonlyArray<{ height?: number | null }> | null;
@@ -204,6 +213,18 @@ export const videoByCodeEndpoint: Endpoint = {
       qualities: (doc.hls?.qualities ?? []).flatMap((q) => (q?.height ? [q.height] : [])),
       durationSeconds: doc.hls?.durationSeconds ?? null,
       poster: doc.preview?.url ?? null,
+      // Лента кадров для перемотки, если её сняли.
+      storyboard: doc.hls?.storyboard?.url
+        ? {
+            url: doc.hls.storyboard.url,
+            columns: doc.hls.storyboard.columns ?? 1,
+            rows: doc.hls.storyboard.rows ?? 1,
+            count: doc.hls.storyboard.count ?? 1,
+            frameWidth: doc.hls.storyboard.frameWidth ?? 160,
+            frameHeight: doc.hls.storyboard.frameHeight ?? 90,
+            intervalSeconds: doc.hls.storyboard.intervalSeconds ?? 5,
+          }
+        : null,
       // Оглавление: только главы с названием и временем, по возрастанию.
       // Порядок в админке зависит от того, как их вводили, а плееру нужен ряд.
       chapters: (doc.chapters ?? [])

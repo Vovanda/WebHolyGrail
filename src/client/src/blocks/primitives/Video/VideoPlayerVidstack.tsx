@@ -14,11 +14,12 @@ import { DefaultVideoLayout, defaultLayoutIcons } from '@vidstack/react/player/l
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
 
-import type { VideoChapter, VideoSubtitleTrack } from 'contracts';
+import type { VideoChapter, VideoStoryboard, VideoSubtitleTrack } from 'contracts';
 
 import { cn } from '@/lib/utils';
 
 import { chaptersTrackUrl } from './chapters-track';
+import { storyboardTrackUrl } from './storyboard-track';
 import { useMiniPlayer } from './useMiniPlayer';
 import { createEnvelopeLoader, type EnvelopeFailure } from './envelope-loader';
 import { useVideoResume } from './useVideoResume';
@@ -55,6 +56,8 @@ export type VideoPlayerVidstackProps = VideoPlayerChromeProps & {
    * от этого только мельтешение, поэтому включается по месту.
    */
   readonly mini?: boolean;
+  /** Кадры для перемотки: полоса времени показывает кадр под курсором. */
+  readonly storyboard?: VideoStoryboard | null | undefined;
 };
 
 /** Текст отказа. Владелец переопределяет его в настройках сайта. */
@@ -79,6 +82,7 @@ export function VideoPlayerVidstack({
   chapters = [],
   durationSeconds = null,
   mini = false,
+  storyboard = null,
 }: VideoPlayerVidstackProps) {
   const [denied, setDenied] = useState<EnvelopeFailure | null>(null);
 
@@ -96,6 +100,10 @@ export function VideoPlayerVidstack({
     () => chaptersTrackUrl(chapters, durationSeconds),
     [chapters, durationSeconds],
   );
+
+  // Подсказки на полосе времени: кадры лежат одной картинкой, разметка к ней
+  // собирается здесь же.
+  const thumbnails = useMemo(() => storyboardTrackUrl(storyboard), [storyboard]);
 
   const loader = useMemo(
     () => createEnvelopeLoader({ mediaId, token, onFailure: setDenied }),
@@ -190,7 +198,11 @@ export function VideoPlayerVidstack({
           Раскладку выбирает сама библиотека: у неё свои виды для широкого и
           узкого экрана, и подмена одного другим разносит кнопки по кадру.
         */}
-          <DefaultVideoLayout icons={defaultLayoutIcons} translations={RU} />
+          <DefaultVideoLayout
+            icons={defaultLayoutIcons}
+            translations={RU}
+            {...(thumbnails ? { thumbnails } : {})}
+          />
         </MediaPlayer>
 
         {/* Переход по набору: у готового слоя таких кнопок нет, ставим поверх кадра. */}

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import type { VideoPorts } from './ports';
+import type { VideoPorts, StoryboardRendition } from './ports';
 
 /**
  * Готовит загруженное видео к показу: режет на качества и кладёт раздачу
@@ -84,7 +84,33 @@ export async function buildHls({
     log(`исходник удалён, остаётся только нарезка: ${sourceKey}`);
   }
 
+  /*
+    Лента кадров кладётся рядом с нарезкой, а не в медиатеку: её показывает
+    полоса времени, редактору она не нужна, и в списке файлов была бы мусором.
+    Заодно она уходит в раздачу и кешируется как остальные части записи.
+  */
+  let storyboard: StoryboardRendition | null = null;
+  if (result.storyboard) {
+    const key = `${prefix}/storyboard.jpg`;
+    await storage.put(key, {
+      path: 'storyboard.jpg',
+      body: result.storyboard.image,
+      contentType: 'image/jpeg',
+    });
+    storyboard = {
+      url: storage.urlForKey(key),
+      columns: result.storyboard.columns,
+      rows: result.storyboard.rows,
+      count: result.storyboard.count,
+      frameWidth: result.storyboard.frameWidth,
+      frameHeight: result.storyboard.frameHeight,
+      intervalSeconds: result.storyboard.intervalSeconds,
+    };
+    log('кадры для перемотки сняты');
+  }
+
   await catalog.saveRendition(mediaId, {
+    storyboard,
     playlistUrl: storage.urlForKey(`${prefix}/master.m3u8`),
     prefix,
     qualities: result.rungs.map((rung) => rung.height),

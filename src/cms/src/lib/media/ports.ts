@@ -25,6 +25,16 @@ export interface EncoderPort {
     secret: Buffer;
     /** Кадр для обложки; `null` — если вытащить не удалось. */
     poster: Buffer | null;
+    /** Лента кадров для перемотки; `null` — если снять не удалось. */
+    storyboard: {
+      image: Buffer;
+      columns: number;
+      rows: number;
+      count: number;
+      frameWidth: number;
+      frameHeight: number;
+      intervalSeconds: number;
+    } | null;
   }>;
 }
 
@@ -65,6 +75,19 @@ export interface RenditionResult {
   readonly qualities: ReadonlyArray<number>;
   readonly durationSeconds: number | null;
   readonly secret: string;
+  /** Лента кадров для перемотки: адрес и устройство сетки. */
+  readonly storyboard: StoryboardRendition | null;
+}
+
+/** Где лежит лента кадров и как она устроена. */
+export interface StoryboardRendition {
+  readonly url: string;
+  readonly columns: number;
+  readonly rows: number;
+  readonly count: number;
+  readonly frameWidth: number;
+  readonly frameHeight: number;
+  readonly intervalSeconds: number;
 }
 
 /** Каталог видео: чтение записи, сохранение итога, выбор ступеней. */

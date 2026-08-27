@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import type { VideoChapter, VideoSubtitleTrack } from 'contracts';
+import type { VideoChapter, VideoStoryboard, VideoSubtitleTrack } from 'contracts';
 
 import { VideoPlayerChrome, type VideoPlayerChromeProps } from './VideoPlayerChrome';
 import { VideoPlayerVidstack } from './VideoPlayerVidstack';
@@ -27,6 +27,8 @@ export type VideoPlayerProps = VideoPlayerChromeProps & {
   readonly durationSeconds?: number | null | undefined;
   /** Уводить играющую запись уголком при прокрутке: показывает только новый слой. */
   readonly mini?: boolean;
+  /** Кадры для перемотки: показывает только новый слой управления. */
+  readonly storyboard?: VideoStoryboard | null | undefined;
   /**
    * Какой слой управления рисовать.
    *
@@ -61,7 +63,7 @@ export function VideoPlayer({ ui: asked, ...props }: VideoPlayerProps) {
 
   // Прежний слой субтитров не рисует: он остаётся для сравнения и уйдёт, когда
   // выбор устоится.
-  const { subtitles, chapters, durationSeconds, mini, ...common } = props;
+  const { subtitles, chapters, durationSeconds, mini, storyboard, ...common } = props;
   return ui === 'vidstack' ? (
     <VideoPlayerVidstack
       {...common}
@@ -69,6 +71,7 @@ export function VideoPlayer({ ui: asked, ...props }: VideoPlayerProps) {
       chapters={chapters}
       durationSeconds={durationSeconds}
       mini={mini ?? false}
+      storyboard={storyboard}
     />
   ) : (
     <VideoPlayerChrome {...common} />
