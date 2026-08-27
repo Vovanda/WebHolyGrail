@@ -6,7 +6,6 @@ import type { VideoSetItem, VideoDeniedSettings } from 'contracts';
 import { cn } from '@/lib/utils';
 
 import { AccessCodeDialog } from './AccessCodeDialog';
-import { ACCESS_GRANTED_EVENT } from './AccessCodeForm';
 import { VideoPlayer } from './VideoPlayer';
 import { VideoSetDrawer } from './VideoSetDrawer';
 import { VideoUpNext } from './VideoUpNext';
@@ -22,6 +21,7 @@ const VIEWS: ReadonlyArray<{ value: SetView; label: string }> = [
 import { VideoSetList } from './VideoSetList';
 import { neighboursOf } from './selected-video';
 import { useSelectedVideo } from './useSelectedVideo';
+import { useUnlockableItems } from './useUnlockableItems';
 
 /**
  * Плейлист видео с плеером: слева видео, справа список.
@@ -62,32 +62,9 @@ export function VideoSetPlayer({
   deniedSettings,
   className,
 }: VideoSetPlayerProps) {
-  /**
-   * Список держим в состоянии: после введённого кода замки снимаются здесь же.
-   *
-   * Адрес потока у закрытых видео уже есть — он не секрет и приходит вместе
-   * со списком, — поэтому достаточно снять признак, и видео играет: ключ
-   * сервер выдаст, право лежит в токене. Перезагружать страницу незачем,
-   * она сбросила бы позицию и моргнула.
-   */
-  const [items, setItems] = useState(initial);
-  const [unlocking, setUnlocking] = useState(false);
-
-  useEffect(() => {
-    function onGranted() {
-      // Сначала проигрываем снятие замка, и только потом убираем его из
-      // состояния: если снять сразу, иконка исчезнет мгновенно и человек
-      // не поймёт, что именно изменилось.
-      setUnlocking(true);
-      setTimeout(() => {
-        setItems((current) => current.map((item) => ({ ...item, locked: false })));
-        setUnlocking(false);
-      }, 700);
-    }
-
-    window.addEventListener(ACCESS_GRANTED_EVENT, onGranted);
-    return () => window.removeEventListener(ACCESS_GRANTED_EVENT, onGranted);
-  }, []);
+  // Замки снимаются после введённого кода общим хуком: то же самое нужно
+  // списку в боковой панели, а два одинаковых слушателя разъезжаются.
+  const { items, unlocking } = useUnlockableItems(initial);
 
   /*
     Выбранное видео живёт в адресе, а не здесь: так ссылка на нужное видео
