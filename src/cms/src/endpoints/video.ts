@@ -132,6 +132,7 @@ export const videoByCodeEndpoint: Endpoint = {
           access?: string;
           uploadedBy?: { channel?: string; name?: string } | string | number | null;
           preview?: { url?: string; alt?: string } | null;
+          chapters?: ReadonlyArray<{ startSeconds?: number; title?: string }> | null;
           subtitles?: ReadonlyArray<{
             language?: string;
             label?: string;
@@ -203,6 +204,15 @@ export const videoByCodeEndpoint: Endpoint = {
       qualities: (doc.hls?.qualities ?? []).flatMap((q) => (q?.height ? [q.height] : [])),
       durationSeconds: doc.hls?.durationSeconds ?? null,
       poster: doc.preview?.url ?? null,
+      // Оглавление: только главы с названием и временем, по возрастанию.
+      // Порядок в админке зависит от того, как их вводили, а плееру нужен ряд.
+      chapters: (doc.chapters ?? [])
+        .flatMap((chapter) =>
+          typeof chapter?.startSeconds === 'number' && chapter?.title?.trim()
+            ? [{ startSeconds: chapter.startSeconds, title: chapter.title.trim() }]
+            : [],
+        )
+        .sort((a, b) => a.startSeconds - b.startSeconds),
       // Дорожки субтитров: файл, язык и подпись. Без файла дорожка бесполезна,
       // такие пропускаем.
       subtitles: (doc.subtitles ?? []).flatMap((track) => {

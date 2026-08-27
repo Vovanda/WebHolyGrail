@@ -201,6 +201,8 @@ export interface VideoStream {
   readonly id: string | number;
   /** Дорожки субтитров, если их завели. */
   readonly subtitles?: ReadonlyArray<VideoSubtitleTrack>;
+  /** Оглавление записи, если его завели. */
+  readonly chapters?: ReadonlyArray<VideoChapter>;
   /** Адрес master.m3u8. */
   readonly playlistUrl: string;
   readonly status: 'pending' | 'processing' | 'ready' | 'failed';
@@ -238,6 +240,18 @@ export interface VideoSetItem {
   readonly ready: boolean;
   readonly locked: boolean;
   readonly lockReason: 'sign-in-required' | 'not-entitled' | null;
+}
+
+/**
+ * Глава записи: с какой секунды начинается кусок и как он называется.
+ *
+ * @remarks
+ * Длинную запись смотрят кусками. Главы превращают полосу времени в оглавление,
+ * и до нужного места доходят одним нажатием.
+ */
+export interface VideoChapter {
+  readonly startSeconds: number;
+  readonly title: string;
 }
 
 /**

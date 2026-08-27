@@ -274,6 +274,33 @@ export const Media: CollectionConfig = {
       },
     },
     {
+      name: 'chapters',
+      label: 'Главы',
+      type: 'array',
+      maxRows: 60,
+      admin: {
+        condition: (data) => String(data?.mimeType ?? '').startsWith('video/'),
+        description:
+          'Оглавление записи: с какой секунды начинается кусок и как он называется. Полоса времени делится на части, и до нужного места доходят одним нажатием.',
+      },
+      fields: [
+        {
+          name: 'startSeconds',
+          label: 'Начало, секунды',
+          type: 'number',
+          required: true,
+          min: 0,
+          admin: { description: 'Например 125 - это 2:05.' },
+        },
+        {
+          name: 'title',
+          label: 'Название',
+          type: 'text',
+          required: true,
+        },
+      ],
+    },
+    {
       name: 'subtitles',
       label: 'Субтитры',
       type: 'array',

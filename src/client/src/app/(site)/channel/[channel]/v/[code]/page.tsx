@@ -91,6 +91,8 @@ export default async function VideoPage({
       {playable && token ? (
         <VideoPlayer
           subtitles={video.subtitles}
+          chapters={video.chapters}
+          durationSeconds={video.durationSeconds}
           src={video.playlistUrl}
           token={token}
           mediaId={video.id}

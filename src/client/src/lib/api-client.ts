@@ -15,6 +15,7 @@ import type {
   SiteSettings,
   VideoSetRef,
   VideoSubtitleTrack,
+  VideoChapter,
 } from 'contracts';
 
 /**
@@ -602,6 +603,7 @@ export async function getVideoByCode(
     poster: string | null;
     sets?: ReadonlyArray<VideoSetRef>;
     subtitles?: ReadonlyArray<VideoSubtitleTrack>;
+    chapters?: ReadonlyArray<VideoChapter>;
   };
 
   return {
@@ -613,6 +615,7 @@ export async function getVideoByCode(
     durationSeconds: doc.durationSeconds,
     poster: doc.poster ? { id: doc.id, url: doc.poster, alt: '' } : null,
     subtitles: doc.subtitles ?? [],
+    chapters: doc.chapters ?? [],
     title: doc.title,
     description: doc.description,
     channel: doc.channel,

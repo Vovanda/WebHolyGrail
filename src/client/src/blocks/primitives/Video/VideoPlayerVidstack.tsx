@@ -14,10 +14,11 @@ import { DefaultVideoLayout, defaultLayoutIcons } from '@vidstack/react/player/l
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
 
-import type { VideoSubtitleTrack } from 'contracts';
+import type { VideoChapter, VideoSubtitleTrack } from 'contracts';
 
 import { cn } from '@/lib/utils';
 
+import { chaptersTrackUrl } from './chapters-track';
 import { createEnvelopeLoader, type EnvelopeFailure } from './envelope-loader';
 import { useVideoResume } from './useVideoResume';
 import { useVideoTimecode } from './useVideoTimecode';
@@ -41,6 +42,10 @@ import type { VideoPlayerChromeProps } from './VideoPlayerChrome';
 export type VideoPlayerVidstackProps = VideoPlayerChromeProps & {
   /** Дорожки субтитров: язык, подпись и файл. */
   readonly subtitles?: ReadonlyArray<VideoSubtitleTrack> | undefined;
+  /** Оглавление: полоса времени делится на части с подписями. */
+  readonly chapters?: ReadonlyArray<VideoChapter> | undefined;
+  /** Длительность записи: по ней тянется последняя глава. */
+  readonly durationSeconds?: number | null | undefined;
 };
 
 /** Текст отказа. Владелец переопределяет его в настройках сайта. */
@@ -62,6 +67,8 @@ export function VideoPlayerVidstack({
   onPrev,
   onNext,
   subtitles = [],
+  chapters = [],
+  durationSeconds = null,
 }: VideoPlayerVidstackProps) {
   const [denied, setDenied] = useState<EnvelopeFailure | null>(null);
 
@@ -70,6 +77,12 @@ export function VideoPlayerVidstack({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   useVideoTimecode(videoRef);
   useVideoResume(videoRef, { mediaId });
+
+  // Оглавление собирается дорожкой прямо здесь: файла на диске не появляется.
+  const chaptersUrl = useMemo(
+    () => chaptersTrackUrl(chapters, durationSeconds),
+    [chapters, durationSeconds],
+  );
 
   const loader = useMemo(
     () => createEnvelopeLoader({ mediaId, token, onFailure: setDenied }),
@@ -125,6 +138,8 @@ export function VideoPlayerVidstack({
             записи, а ещё там, где звук включить нельзя - в транспорте, рядом со
             спящим ребёнком.
           */}
+          {chaptersUrl && <Track src={chaptersUrl} kind="chapters" lang="ru" default />}
+
           {subtitles.map((track) => (
             <Track
               key={`${track.language}-${track.src}`}
