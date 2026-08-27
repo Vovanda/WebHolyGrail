@@ -82,14 +82,6 @@ export interface SocialLink {
  * в CMS: они нужны при выдаче кода, а странице о них знать незачем.
  */
 export interface VideoSettings {
-  /**
-   * Какой слой управления рисовать.
-   *
-   * @remarks
-   * Слоя два, оба на одном движке. Выбор живёт в настройках сайта, поэтому
-   * меняется владельцем без выкладки (R0).
-   */
-  readonly playerUi?: 'vidstack' | 'chrome';
   /** Что показывать вместо закрытой записи. */
   readonly denied?: VideoDeniedSettings;
 }
