@@ -10,12 +10,13 @@ import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-sqlite';
  * во время выкладки работает рядом с новой, споткнулась бы об исчезнувшее поле.
  *
  * Значение не переносим: признак video.layout.vendor заводится стартовым
- * набором со своим значением, а выбор слоя всё это время был одинаков у всех.
+ * набором, а выбор слоя всё это время был одинаков у всех.
  */
-export async function up({ db }: MigrateUpArgs): Promise<void> {
+
+export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.run(sql`ALTER TABLE \`site_settings\` DROP COLUMN \`video_player_ui\`;`);
 }
 
-export async function down({ db }: MigrateDownArgs): Promise<void> {
+export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {
   await db.run(sql`ALTER TABLE \`site_settings\` ADD \`video_player_ui\` text DEFAULT 'vidstack';`);
 }
