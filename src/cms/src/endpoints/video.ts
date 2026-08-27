@@ -2,6 +2,8 @@ import type { Endpoint } from 'payload';
 
 import { payloadEntitlements } from '../lib/video/entitlement-source';
 import { entitlementPolicy } from '../lib/video/entitlements';
+import { checkKeyRate } from '../lib/video/key-rate';
+import { checkRequestOrigin } from '../lib/video/request-origin';
 import {
   checkRedeemAttempt,
   forgetRedeemMisses,
@@ -38,6 +40,25 @@ const json = (body: unknown, status = 200): Response =>
  * перезагрузку страницы. Без этого зритель вводит код, страница обновляется,
  * сервер выписывает новый пустой токен — и замок возвращается.
  */
+/**
+ * Домены, с которых плееру можно просить ключ.
+ *
+ * @remarks
+ * Тот же список, что у Payload для запросов между сайтами: держать два набора
+ * значило бы однажды обновить один и забыть второй.
+ */
+function allowedOrigins(): ReadonlyArray<string> {
+  const fromEnv = (process.env['PAYLOAD_ALLOWED_ORIGINS'] ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const own = [
+    process.env['PAYLOAD_PUBLIC_SERVER_URL'],
+    process.env['NEXT_PUBLIC_SITE_URL'],
+  ].filter((value): value is string => Boolean(value));
+  return [...own, ...fromEnv, 'http://localhost:3000', 'http://localhost:3001'];
+}
+
 /**
  * Чем различаем обратившихся при счёте попыток.
  *
@@ -851,6 +872,33 @@ export const videoEnvelopeEndpoint: Endpoint = {
   handler: async (req) => {
     const id = req.routeParams?.['id'];
     if (!id) return json({ error: 'Не указан ролик.' }, 400);
+
+    /*
+      Ключ выдаём плееру на нашем сайте. Чужая страница, встроившая поток,
+      получает отказ: платный курс не должен крутиться на стороннем сайте под
+      чужой рекламой.
+
+      От выкачивания это не защищает - заголовки подделываются, - и такой
+      случай ловится частотой запросов.
+    */
+    const origin = checkRequestOrigin(req.headers, allowedOrigins());
+    if (!origin.allowed) return json({ error: 'foreign-origin' }, 403);
+
+    /*
+      Зритель просит ключ раз в несколько минут, скачиватель - десятками
+      подряд. Считаем ключи на зрителя за час: обычный день до порога не
+      доходит, а выкачивание курса упирается за минуты.
+    */
+    const rate = checkKeyRate(clientKey(req));
+    if (!rate.allowed) {
+      return new Response(JSON.stringify({ error: 'too-many-keys' }), {
+        status: 429,
+        headers: {
+          'content-type': 'application/json; charset=utf-8',
+          'retry-after': String(rate.retryAfterSeconds),
+        },
+      });
+    }
 
     const token = new URL(req.url ?? '', 'http://localhost').searchParams.get('token') ?? '';
 
