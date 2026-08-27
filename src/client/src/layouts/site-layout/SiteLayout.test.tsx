@@ -40,6 +40,35 @@ function panelsOn(pathname: string | null, routes?: ReadonlyArray<string>): stri
   return [...html.matchAll(/data-panel-id="([^"]+)"/g)].map((m) => m[1] as string);
 }
 
+describe('сдвигающая панель', () => {
+  it('собирается раскладкой и рисуется целиком', () => {
+    const config: SiteLayoutConfig = {
+      grid: { template: 'classic-site' },
+      panels: [
+        {
+          id: 'сдвигающая',
+          slot: 'right',
+          mobile: 'push',
+          size: '21rem',
+          content: { kind: 'block', node: { blockType: 'footer', id: 'f', data: {} } },
+          meta: { title: 'Плейлист' },
+        },
+      ],
+    };
+
+    // Раскладка серверная, а панель клиентская: функцию между ними передать
+    // нельзя, и раньше это валило страницу целиком уже при отрисовке.
+    const html = renderToStaticMarkup(
+      <SiteLayout config={config} settings={settings} pathname="/video">
+        <main>содержимое</main>
+      </SiteLayout>,
+    );
+
+    expect(html).toContain('data-panel-id="сдвигающая"');
+    expect(html).toContain('Плейлист');
+  });
+});
+
 describe('отбор панелей по адресу', () => {
   it('без масок панель показывается везде', () => {
     expect(panelsOn('/blog')).toContain('только-видео');
