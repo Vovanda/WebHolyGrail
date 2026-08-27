@@ -48,6 +48,8 @@ export interface SiteSettings {
   readonly theme?: ThemeConfig;
   /** Поведение шапки: держится ли она наверху при прокрутке. */
   readonly header?: HeaderSettings;
+  /** Шаг секции по вертикали - общий для всех блоков страницы. */
+  readonly blockSpace?: BlockSpaceSettings;
   /** Конфигурация layout — какие панели в каких слотах. См. R11. */
   readonly layout?: SiteLayoutConfig;
   /** Настройки видео, которые нужны странице. */
@@ -65,6 +67,24 @@ export interface SiteSettings {
 export interface HeaderSettings {
   /** Шапка держится наверху при прокрутке. По умолчанию нет. */
   readonly sticky?: boolean;
+}
+
+/**
+ * Шаг секции по вертикали.
+ *
+ * @remarks
+ * Одно значение на все блоки страницы: владелец подбирает воздух разом, а не
+ * блок за блоком. Отдельному блоку он по-прежнему задаёт своё - «Вид блока»
+ * перебивает общий шаг.
+ *
+ * Значений два: узкий экран и широкий. Пишутся как есть, любой мерой CSS -
+ * «1rem», «24px», «2.5vh»; пусто означает взять то, что задано в коде.
+ */
+export interface BlockSpaceSettings {
+  /** Шаг на узком экране. По умолчанию один шрифт. */
+  readonly narrow?: string;
+  /** Шаг на широком экране, от 768 точек. По умолчанию полтора шрифта. */
+  readonly wide?: string;
 }
 
 export interface ContactsInfo {
