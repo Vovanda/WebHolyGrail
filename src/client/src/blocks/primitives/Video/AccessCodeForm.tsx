@@ -116,10 +116,27 @@ export function AccessCodeForm({ token, className }: AccessCodeFormProps) {
     }
   };
 
+  /**
+   * Вставить код из буфера.
+   *
+   * @remarks
+   * Буфер доступен не везде: без защищённого соединения и без разрешения
+   * браузер откажет. Отказ проглатываем - кнопка просто не сработает, а поле
+   * остаётся обычным, и код можно вставить как раньше.
+   */
+  const paste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text.trim()) setCode(text.trim());
+    } catch {
+      // Молча: заводить сообщение об ошибке ради необязательного удобства незачем.
+    }
+  };
+
   return (
     <form onSubmit={submit} className={cn('flex flex-col gap-2', className)}>
       <div className="flex flex-wrap gap-2">
-        <label className="flex-1">
+        <label className="relative flex-1">
           <span className="sr-only">Код доступа</span>
           <input
             value={code}
@@ -127,8 +144,23 @@ export function AccessCodeForm({ token, className }: AccessCodeFormProps) {
             placeholder="Код доступа"
             autoComplete="one-time-code"
             spellCheck={false}
-            className="w-full rounded-lg border border-border bg-paper px-3 py-2 text-body uppercase tracking-widest text-ink outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-muted focus:border-border-strong"
+            className="w-full rounded-lg border border-border bg-paper py-2 pl-3 pr-11 text-body uppercase tracking-widest text-ink outline-none placeholder:normal-case placeholder:tracking-normal placeholder:text-muted focus:border-border-strong"
           />
+
+          {/*
+            Код приходит в переписке, и его копируют. На телефоне вставка через
+            долгое нажатие с попаданием в нужное меню - лишняя возня там, где
+            и так теряют.
+          */}
+          <button
+            type="button"
+            onClick={paste}
+            aria-label="Вставить код из буфера"
+            title="Вставить"
+            className="absolute right-1 top-1/2 -translate-y-1/2 rounded-md p-2 text-muted transition-colors hover:bg-surface hover:text-ink"
+          >
+            <PasteIcon />
+          </button>
         </label>
         <button
           type="submit"
@@ -140,5 +172,26 @@ export function AccessCodeForm({ token, className }: AccessCodeFormProps) {
       </div>
       {error && <p className="text-sm text-danger">{error}</p>}
     </form>
+  );
+}
+
+/** Значок вставки: два листа, как принято обозначать буфер обмена. */
+function PasteIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M9 3h6a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

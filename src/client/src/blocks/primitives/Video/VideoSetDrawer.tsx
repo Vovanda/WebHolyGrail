@@ -47,7 +47,7 @@ export function VideoSetDrawer({
   return (
     <SidePanel
       side="right"
-      width="min(21rem, 88vw)"
+      width="min(25rem, 88vw)"
       alignTop="trigger"
       title="Плейлист"
       trigger={({ open, isOpen }) => (
