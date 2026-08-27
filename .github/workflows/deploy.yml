@@ -235,3 +235,32 @@ jobs:
             echo "::error::SHA mismatch — image не из этого commit'а!"
             exit 1
           fi
+
+  # Сквозная проверка того, что реально выложено. Здоровье контейнера говорит
+  # лишь «отвечает»; здесь смотрим глазами зрителя: собирается ли плеер, листается
+  # ли набор, закрыта ли закрытая запись.
+  #
+  # Отдельным заданием, потому что выкладке нужен только ssh, а проверке - код,
+  # pnpm и браузер. Падение не откатывает выкладку: к этому моменту она прошла,
+  # и разбираться нужно по отчёту, а не откатом.
+  smoke:
+    needs: deploy
+    if: ${{ vars.PUBLIC_URL != '' }}
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter client exec playwright install --with-deps chromium
+
+      - name: Проверка видео на выложенном сайте
+        env:
+          SMOKE_BASE_URL: ${{ vars.PUBLIC_URL }}
+          SMOKE_CMS_URL: ${{ vars.PUBLIC_URL }}
+        run: pnpm --filter client exec playwright test playwright/video.spec.ts --reporter=list
