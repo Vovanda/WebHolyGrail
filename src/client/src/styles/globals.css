@@ -123,6 +123,12 @@
     одной середины оставлял шапку на месте, и панель ложилась поверх неё:
     выходило и сдвинуто, и перекрыто разом.
   */
+  :root {
+    /* Одно движение на панель и страницу. */
+    --panel-motion-duration: 320ms;
+    --panel-motion-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
   body[data-side-panel='left'] [data-site-shell] {
     transform: translateX(var(--side-panel-width, 20rem));
   }
@@ -131,8 +137,13 @@
     transform: translateX(calc(-1 * var(--side-panel-width, 20rem)));
   }
 
+  /*
+    Страница и панель едут одним движением: одинаковая длительность и одна
+    кривая. С разными настройками панель успевает выехать раньше, и страница
+    догоняет её отдельным рывком - выглядит как две несвязанные анимации.
+  */
   [data-site-shell] {
-    transition: transform 0.3s ease;
+    transition: transform var(--panel-motion-duration) var(--panel-motion-ease);
   }
 
   @media (min-width: 1024px) {
@@ -152,7 +163,7 @@
     }
 
     [data-site-shell] {
-      transition: margin 0.25s ease;
+      transition: margin var(--panel-motion-duration) var(--panel-motion-ease);
     }
   }
 }

@@ -163,21 +163,7 @@ export function SidePanel({
               ref={panelRef}
               aria-hidden={!open}
               style={{ width, ...(alignTop === 'trigger' ? { top: `${top}px` } : {}) }}
-              className={cn(
-                'fixed bottom-0 z-[55] flex flex-col overflow-y-auto overscroll-contain',
-                alignTop === 'trigger' ? 'rounded-t-xl border-t' : 'top-0',
-                /*
-                  Панель читается как углубление в странице: фон темнее и по
-                  верхнему краю идёт тень внутрь. Без этого список висит на том
-                  же фоне, что и страница, и границы панели угадываются только
-                  по краю экрана.
-                */
-                'border-border bg-surface shadow-[inset_0_2px_6px_-4px_rgb(0_0_0/0.35)]',
-                'transition-transform duration-300 ease-out',
-                side === 'left' ? 'left-0 border-r' : 'right-0 border-l',
-                open ? 'translate-x-0' : side === 'left' ? '-translate-x-full' : 'translate-x-full',
-                className,
-              )}
+              className={cn(panelClasses({ side, open, alignTop }), className)}
             >
               <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
                 <span className="text-body font-medium text-ink">{title ?? 'Панель'}</span>
@@ -208,4 +194,38 @@ export function SidePanel({
         )}
     </>
   );
+}
+
+/**
+ * Классы панели: положение, оформление и состояние.
+ *
+ * @remarks
+ * Вынесено отдельной функцией, чтобы левая и правая стороны оставались
+ * зеркальными. Раньше это проверялось только глазами, и любая правка одной
+ * стороны легко расходилась с другой.
+ *
+ * Панель читается как углубление в странице: фон темнее и по верхней кромке
+ * идёт тень внутрь. Без этого список висит на том же фоне, что и страница.
+ *
+ * Длительность и кривая движения общие со страницей: панель и содержимое едут
+ * как одно целое, без догоняющего рывка.
+ */
+export function panelClasses({
+  side,
+  open,
+  alignTop,
+}: {
+  readonly side: 'left' | 'right';
+  readonly open: boolean;
+  readonly alignTop: 'screen' | 'trigger';
+}): string {
+  const mirrored = side === 'left';
+  return [
+    'fixed bottom-0 z-[55] flex flex-col overflow-y-auto overscroll-contain',
+    alignTop === 'trigger' ? 'rounded-t-xl border-t' : 'top-0',
+    'border-border bg-surface shadow-[inset_0_2px_6px_-4px_rgb(0_0_0/0.35)]',
+    'transition-transform [transition-duration:var(--panel-motion-duration)] [transition-timing-function:var(--panel-motion-ease)]',
+    mirrored ? 'left-0 border-r' : 'right-0 border-l',
+    open ? 'translate-x-0' : mirrored ? '-translate-x-full' : 'translate-x-full',
+  ].join(' ');
 }
