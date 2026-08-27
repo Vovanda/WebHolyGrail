@@ -7,11 +7,14 @@ import {
   MediaPlayer,
   MediaProvider,
   Poster,
+  Track,
   type MediaProviderAdapter,
 } from '@vidstack/react';
 import { DefaultVideoLayout, defaultLayoutIcons } from '@vidstack/react/player/layouts/default';
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
+
+import type { VideoSubtitleTrack } from 'contracts';
 
 import { cn } from '@/lib/utils';
 
@@ -35,7 +38,10 @@ import type { VideoPlayerChromeProps } from './VideoPlayerChrome';
  * Библиотеку hls.js передаём свою. По умолчанию Vidstack тянет её из чужой
  * сети раздачи, а нам нужен тот же экземпляр, куда встроен загрузчик ключа.
  */
-export type VideoPlayerVidstackProps = VideoPlayerChromeProps;
+export type VideoPlayerVidstackProps = VideoPlayerChromeProps & {
+  /** Дорожки субтитров: язык, подпись и файл. */
+  readonly subtitles?: ReadonlyArray<VideoSubtitleTrack> | undefined;
+};
 
 /** Текст отказа. Владелец переопределяет его в настройках сайта. */
 const DENIED_TEXT: Record<string, string> = {
@@ -55,6 +61,7 @@ export function VideoPlayerVidstack({
   onVideoRef,
   onPrev,
   onNext,
+  subtitles = [],
 }: VideoPlayerVidstackProps) {
   const [denied, setDenied] = useState<EnvelopeFailure | null>(null);
 
@@ -112,6 +119,22 @@ export function VideoPlayerVidstack({
       >
         <MediaProvider>
           {poster && <Poster className="vds-poster" src={poster} alt="" />}
+
+          {/*
+            Дорожки субтитров. Нужны слабослышащим и тем, кто не владеет языком
+            записи, а ещё там, где звук включить нельзя - в транспорте, рядом со
+            спящим ребёнком.
+          */}
+          {subtitles.map((track) => (
+            <Track
+              key={`${track.language}-${track.src}`}
+              src={track.src}
+              kind="subtitles"
+              label={track.label}
+              lang={track.language}
+              default={track.default === true}
+            />
+          ))}
         </MediaProvider>
 
         {/*

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import type { VideoSubtitleTrack } from 'contracts';
+
 import { VideoPlayerChrome, type VideoPlayerChromeProps } from './VideoPlayerChrome';
 import { VideoPlayerVidstack } from './VideoPlayerVidstack';
 
@@ -18,6 +20,8 @@ import { VideoPlayerVidstack } from './VideoPlayerVidstack';
  * варианта на одной странице подряд, ничего не переключая для остальных.
  */
 export type VideoPlayerProps = VideoPlayerChromeProps & {
+  /** Дорожки субтитров: показывает только новый слой управления. */
+  readonly subtitles?: ReadonlyArray<VideoSubtitleTrack> | undefined;
   /**
    * Какой слой управления рисовать.
    *
@@ -50,5 +54,12 @@ export function VideoPlayer({ ui: asked, ...props }: VideoPlayerProps) {
     if (fromUrl === 'vidstack' || fromUrl === 'chrome') setUi(fromUrl);
   }, []);
 
-  return ui === 'vidstack' ? <VideoPlayerVidstack {...props} /> : <VideoPlayerChrome {...props} />;
+  // Прежний слой субтитров не рисует: он остаётся для сравнения и уйдёт, когда
+  // выбор устоится.
+  const { subtitles, ...common } = props;
+  return ui === 'vidstack' ? (
+    <VideoPlayerVidstack {...common} subtitles={subtitles} />
+  ) : (
+    <VideoPlayerChrome {...common} />
+  );
 }

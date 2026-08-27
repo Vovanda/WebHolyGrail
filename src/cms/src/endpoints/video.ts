@@ -132,6 +132,12 @@ export const videoByCodeEndpoint: Endpoint = {
           access?: string;
           uploadedBy?: { channel?: string; name?: string } | string | number | null;
           preview?: { url?: string; alt?: string } | null;
+          subtitles?: ReadonlyArray<{
+            language?: string;
+            label?: string;
+            default?: boolean;
+            file?: { url?: string } | string | number | null;
+          }> | null;
           hls?: {
             status?: string;
             playlistUrl?: string | null;
@@ -197,6 +203,21 @@ export const videoByCodeEndpoint: Endpoint = {
       qualities: (doc.hls?.qualities ?? []).flatMap((q) => (q?.height ? [q.height] : [])),
       durationSeconds: doc.hls?.durationSeconds ?? null,
       poster: doc.preview?.url ?? null,
+      // Дорожки субтитров: файл, язык и подпись. Без файла дорожка бесполезна,
+      // такие пропускаем.
+      subtitles: (doc.subtitles ?? []).flatMap((track) => {
+        const file = track?.file;
+        const src = typeof file === 'object' && file ? file.url : null;
+        if (!src || !track?.language) return [];
+        return [
+          {
+            language: track.language,
+            label: track.label?.trim() || track.language,
+            src,
+            default: track.default === true,
+          },
+        ];
+      }),
     });
   },
 };

@@ -14,6 +14,7 @@ import type {
   ReusableBlockDoc,
   SiteSettings,
   VideoSetRef,
+  VideoSubtitleTrack,
 } from 'contracts';
 
 /**
@@ -600,6 +601,7 @@ export async function getVideoByCode(
     durationSeconds: number | null;
     poster: string | null;
     sets?: ReadonlyArray<VideoSetRef>;
+    subtitles?: ReadonlyArray<VideoSubtitleTrack>;
   };
 
   return {
@@ -610,6 +612,7 @@ export async function getVideoByCode(
     qualities: doc.qualities,
     durationSeconds: doc.durationSeconds,
     poster: doc.poster ? { id: doc.id, url: doc.poster, alt: '' } : null,
+    subtitles: doc.subtitles ?? [],
     title: doc.title,
     description: doc.description,
     channel: doc.channel,

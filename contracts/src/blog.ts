@@ -199,6 +199,8 @@ export interface ThreadsSectionData {
  */
 export interface VideoStream {
   readonly id: string | number;
+  /** Дорожки субтитров, если их завели. */
+  readonly subtitles?: ReadonlyArray<VideoSubtitleTrack>;
   /** Адрес master.m3u8. */
   readonly playlistUrl: string;
   readonly status: 'pending' | 'processing' | 'ready' | 'failed';
@@ -236,6 +238,23 @@ export interface VideoSetItem {
   readonly ready: boolean;
   readonly locked: boolean;
   readonly lockReason: 'sign-in-required' | 'not-entitled' | null;
+}
+
+/**
+ * Дорожка субтитров.
+ *
+ * @remarks
+ * Отдельный файл рядом с записью: дорожки добавляют и меняют когда угодно, а
+ * само видео при этом не пересобирается.
+ */
+export interface VideoSubtitleTrack {
+  /** Код языка: `ru`, `en`. По нему браузер понимает, что за дорожка. */
+  readonly language: string;
+  /** Подпись в плеере: «Русские», «English». */
+  readonly label: string;
+  readonly src: string;
+  /** Включать тем, кто ничего не выбирал сам. */
+  readonly default?: boolean;
 }
 
 /**

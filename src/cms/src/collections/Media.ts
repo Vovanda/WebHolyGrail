@@ -274,6 +274,48 @@ export const Media: CollectionConfig = {
       },
     },
     {
+      name: 'subtitles',
+      label: 'Субтитры',
+      type: 'array',
+      maxRows: 12,
+      admin: {
+        condition: (data) => String(data?.mimeType ?? '').startsWith('video/'),
+        description:
+          'Отдельные файлы рядом с записью. Добавляются и меняются когда угодно: перенарезка не нужна.',
+      },
+      fields: [
+        {
+          name: 'language',
+          label: 'Язык',
+          type: 'text',
+          required: true,
+          admin: { description: 'Код языка: ru, en, de. По нему браузер понимает дорожку.' },
+        },
+        {
+          name: 'label',
+          label: 'Как показывать в плеере',
+          type: 'text',
+          required: true,
+          admin: { description: 'Например «Русские» или «English».' },
+        },
+        {
+          name: 'file',
+          label: 'Файл дорожки',
+          type: 'upload',
+          relationTo: 'media',
+          required: true,
+          admin: { description: 'Формат VTT.' },
+        },
+        {
+          name: 'default',
+          label: 'Включать сразу',
+          type: 'checkbox',
+          defaultValue: false,
+          admin: { description: 'Дорожка включится у тех, кто ничего не выбирал сам.' },
+        },
+      ],
+    },
+    {
       name: 'hls',
       label: 'Потоковое видео',
       type: 'group',
