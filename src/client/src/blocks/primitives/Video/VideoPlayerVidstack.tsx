@@ -1,7 +1,7 @@
 'use client';
 
 import Hls from 'hls.js';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   isHLSProvider,
   MediaPlayer,
@@ -16,6 +16,7 @@ import '@vidstack/react/player/styles/default/layouts/video.css';
 import { cn } from '@/lib/utils';
 
 import { createEnvelopeLoader, type EnvelopeFailure } from './envelope-loader';
+import { useVideoTimecode } from './useVideoTimecode';
 import type { VideoPlayerChromeProps } from './VideoPlayerChrome';
 
 /**
@@ -55,6 +56,10 @@ export function VideoPlayerVidstack({
   onNext,
 }: VideoPlayerVidstackProps) {
   const [denied, setDenied] = useState<EnvelopeFailure | null>(null);
+
+  // Ссылка вида `?t=3m20s` открывает запись с нужного места.
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  useVideoTimecode(videoRef);
 
   const loader = useMemo(
     () => createEnvelopeLoader({ mediaId, token, onFailure: setDenied }),
@@ -98,6 +103,7 @@ export function VideoPlayerVidstack({
         onProviderChange={onProviderChange}
         onCanPlay={(_detail, event) => {
           const media = (event.target as { el?: HTMLElement } | null)?.el?.querySelector('video');
+          videoRef.current = (media as HTMLVideoElement) ?? null;
           onVideoRef?.((media as HTMLVideoElement) ?? null);
         }}
       >

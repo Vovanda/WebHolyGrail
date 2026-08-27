@@ -17,7 +17,20 @@ import { useEffect, useState } from 'react';
  * Адрес берём из `location` в момент клика, а не из пропсов: так в буфер
  * попадает то же, что видно в адресной строке, включая выбранные фильтры.
  */
-export function CopyLinkButton({ label = 'Скопировать ссылку' }: { readonly label?: string }) {
+export function CopyLinkButton({
+  label = 'Скопировать ссылку',
+  href,
+}: {
+  readonly label?: string;
+  /**
+   * Что именно копировать. Без него берётся адрес страницы.
+   *
+   * @remarks
+   * Функция, а не строка: адрес бывает нужен на момент нажатия - например,
+   * с позицией, на которой стоит видео.
+   */
+  readonly href?: () => string;
+}) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -27,7 +40,7 @@ export function CopyLinkButton({ label = 'Скопировать ссылку' }
   }, [copied]);
 
   async function copy() {
-    const url = window.location.href;
+    const url = href ? href() : window.location.href;
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);

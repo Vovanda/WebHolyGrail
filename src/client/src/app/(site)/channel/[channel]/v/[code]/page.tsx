@@ -6,6 +6,7 @@ import { VideoPlayer } from '@/blocks/primitives/Video/VideoPlayer';
 import { VideoSetDrawer } from '@/blocks/primitives/Video/VideoSetDrawer';
 import { VideoDescription } from '@/blocks/primitives/Video/VideoDescription';
 import { VideoSetLinks } from '@/blocks/primitives/Video/VideoSetLinks';
+import { VideoShareTimecode } from '@/blocks/primitives/Video/VideoShareTimecode';
 import { VideoSetList } from '@/blocks/primitives/Video/VideoSetList';
 import {
   checkVideoAccess,
@@ -123,6 +124,9 @@ export default async function VideoPage({
           </a>
           {video.durationSeconds ? ` · ${formatDuration(video.durationSeconds)}` : ''}
         </p>
+
+        {/* Поделиться с того места, где сейчас стоит запись. */}
+        <VideoShareTimecode />
         {video.description && <VideoDescription text={video.description} />}
       </header>
 
