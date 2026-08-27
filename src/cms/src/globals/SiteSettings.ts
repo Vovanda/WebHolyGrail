@@ -555,7 +555,7 @@ export const SiteSettings: GlobalConfig = {
             },
             {
               name: 'notReadyTitle',
-              label: 'Пока запись готовится',
+              label: 'Пока видео готовится',
               type: 'text',
               defaultValue: 'Видео ещё готовится к показу',
               admin: { description: 'Показывается, пока нарезка не закончилась.' },
