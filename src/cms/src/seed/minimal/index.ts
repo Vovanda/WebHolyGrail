@@ -42,6 +42,7 @@ import config from '../../payload.config.js';
 
 import { createInitialAdmin } from './createInitialAdmin.js';
 import { createHomePage } from './createHomePage.js';
+import { createStarterToggles } from './createStarterToggles.js';
 
 async function main(): Promise<void> {
   const email =
@@ -75,6 +76,12 @@ async function main(): Promise<void> {
     home.created
       ? `  ✓ home page created (id ${home.id})`
       : `  · home page already exists (id ${home.id})`,
+  );
+
+  console.log('→ createStarterToggles()');
+  const toggles = await createStarterToggles(payload);
+  console.log(
+    toggles > 0 ? `  ✓ переключателей заведено: ${toggles}` : '  · переключатели уже есть',
   );
 
   console.log('\nDone. CMS: http://localhost:3001/admin');
