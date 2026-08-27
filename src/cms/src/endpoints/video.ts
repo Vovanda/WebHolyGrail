@@ -10,6 +10,7 @@ import {
   noteRedeemMiss,
 } from '../lib/video/redeem-throttle';
 import { issueViewerToken, readViewerToken, withGrantedPlaylist } from '../lib/video/envelope';
+import { planEntitlement } from '../lib/video/keep-entitlement';
 import { grantStreamAccess, type StreamRecord } from '../lib/video/grant-access';
 import { masterKey, unwrapSecret } from '../lib/video/key-vault';
 import { generateAccessCode, normalizeAccessCode } from '../lib/video/short-code';
@@ -807,17 +808,47 @@ export const videoRedeemEndpoint: Endpoint = {
     // Право, выданное вошедшему, закрепляется за учётной записью: иначе оно
     // пропадёт вместе с токеном, а покупку нужно видеть и продлевать.
     if (result.bind === 'account' && req.user?.id) {
-      await req.payload.create({
+      // Тем же кодом можно воспользоваться снова - с другого устройства или
+      // после чистки данных. Права от этого плодиться не должны: одинаковые
+      // записи в списке не дают понять, что у зрителя открыто.
+      const already = await req.payload.find({
         collection: 'entitlements',
-        data: {
-          viewer: req.user.id,
-          playlist: Number(result.playlistId),
-          source: 'promo',
-          expiresAt: result.expiresAt,
-          note: `Код ${code}`,
+        where: {
+          and: [
+            { viewer: { equals: req.user.id } },
+            { playlist: { equals: Number(result.playlistId) } },
+          ],
         },
+        depth: 0,
+        limit: 1,
         overrideAccess: true,
       });
+
+      const existing = already.docs[0] as
+        | { id: string | number; expiresAt?: string | null }
+        | undefined;
+      const plan = planEntitlement(existing ?? null, result.expiresAt ?? null);
+
+      if (plan.kind === 'create') {
+        await req.payload.create({
+          collection: 'entitlements',
+          data: {
+            viewer: req.user.id,
+            playlist: Number(result.playlistId),
+            source: 'promo',
+            expiresAt: plan.expiresAt,
+            note: `Код ${code}`,
+          },
+          overrideAccess: true,
+        });
+      } else if (plan.kind === 'extend') {
+        await req.payload.update({
+          collection: 'entitlements',
+          id: plan.id,
+          data: { expiresAt: plan.expiresAt },
+          overrideAccess: true,
+        });
+      }
     }
 
     // Токен с новым правом запоминается браузером: иначе оно живёт до первой
