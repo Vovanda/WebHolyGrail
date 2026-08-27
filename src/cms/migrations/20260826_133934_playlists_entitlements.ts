@@ -1,4 +1,4 @@
-// @safe-bluegreen — expand-only: наборы роликов и права на них.
+// @safe-bluegreen — expand-only: плейлисты видео и права на них.
 // Старый цвет о них не знает.
 import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-sqlite';
 
