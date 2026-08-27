@@ -1,5 +1,7 @@
 import type { BlockNode, SiteSettings } from 'contracts';
 
+import { renderAccentHeading } from '@/lib/heading-accent';
+
 /**
  * Hero — секция с главным заголовком сайта (H1 + подзаголовок).
  *
@@ -34,23 +36,27 @@ export function Hero({
   const subtitle = data.subtitle?.trim() ?? '';
   const subtitleShort = data.subtitleShort?.trim() || subtitle;
 
-  // Акцентное слово встаёт строго на место метки. Без метки его вставлять некуда:
-  // приклеенное к концу заголовка, оно срастается с последним словом.
-  const hasSlot = title.includes('{accent}');
-  const [titleHead, titleTail = ''] = title.split('{accent}');
+  /*
+    Акцент - часть самого заголовка: владелец пишет заголовок целиком, а рядом
+    указывает, что в нём выделить. Регистр не важен, несколько кусков
+    перечисляются чертой: «видео|сайте».
+
+    Прежняя запись с меткой продолжает работать - у кого она уже стоит в тексте,
+    у того ничего не поедет.
+  */
+  // Выделяемая часть заголовка ищется общим способом - тем же, что у соседних блоков.
 
   return (
     <section className="bg-bg py-10 md:py-14">
       <div className="mx-auto max-w-wide px-6 text-center">
-        <h1 className="font-display text-3xl md:text-h1 font-semibold leading-tight tracking-tight text-ink">
-          {titleHead}
-          {hasSlot && titleAccent ? (
-            <b className="text-accent font-semibold">{titleAccent}</b>
-          ) : null}
-          {titleTail}
+        <h1
+          data-part="title"
+          className="font-display text-3xl md:text-h1 font-semibold leading-tight tracking-tight text-ink"
+        >
+          {renderAccentHeading(title, titleAccent)}
         </h1>
         {subtitle || subtitleShort ? (
-          <p className="mt-3 font-display text-muted text-base md:text-lg">
+          <p data-part="subtitle" className="mt-3 font-display text-muted text-base md:text-lg">
             <span className="md:hidden">{subtitleShort}</span>
             <span className="hidden md:inline">{subtitle || subtitleShort}</span>
           </p>
