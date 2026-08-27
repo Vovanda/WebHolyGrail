@@ -70,11 +70,13 @@ export function VideoSetDrawer({
       )}
     >
       {/*
-        Сведения о плейлисте, отбивка и карточки едут одним блоком: вверху панели
-        остаётся родовое слово с крестиком, а всё, что относится к самому
-        плейлисту, держится вместе.
+        Имя плейлиста держится на виду, пока листают список: по нему видно, что
+        именно листаешь. Родовое слово с крестиком остаётся сверху и уезжает
+        вместе с прокруткой - оно про панель, а не про плейлист.
+
+        Заливка нужна, иначе карточки просвечивают под прилипшим именем.
       */}
-      <div className="mb-3 flex flex-col gap-1 border-b border-border pb-3">
+      <div className="sticky top-0 z-[1] -mx-4 mb-3 flex flex-col gap-1 border-b border-border bg-surface px-4 pb-3 pt-1">
         {title && <p className="text-body font-medium text-ink text-balance">{title}</p>}
         <p className="text-sm text-muted">
           {position >= 0 ? `${position + 1} из ${items.length}` : `${items.length} видео`}

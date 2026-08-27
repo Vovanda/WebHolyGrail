@@ -165,16 +165,39 @@
   }
 
   @media (min-width: 1024px) {
-    /* На широком экране контент не выталкиваем, а ужимаем: место есть,
-     * и терять правый край страницы незачем. */
+    /* На широком экране страница не двигается вовсе: по бокам от неё и так
+     * свободное поле, и панель занимает его, ничего не отодвигая. Сдвиг
+     * остаётся узкому экрану, где встать колонке негде. */
     body:is([data-side-panel-left], [data-side-panel-right]) [data-site-shell] {
       transform: none;
-      margin-left: var(--side-panel-left);
-      margin-right: var(--side-panel-right);
+      margin-left: 0;
+      margin-right: 0;
     }
 
-    [data-site-shell] {
-      transition: margin var(--panel-motion-duration) var(--panel-motion-ease);
+    /* Панель проступает из-под страницы, а не влетает от края экрана: она лежит
+     * ниже слоя контента и проявляется на месте. */
+    .side-panel--push {
+      transform: none;
+      z-index: 10;
+      opacity: 0;
+      clip-path: inset(0 0 0 100%);
+      transition:
+        opacity var(--panel-motion-duration) var(--panel-motion-ease),
+        clip-path var(--panel-motion-duration) var(--panel-motion-ease);
+    }
+
+    .side-panel--push[data-open='true'] {
+      opacity: 1;
+      clip-path: inset(0 0 0 0);
+    }
+
+    /* Слева раскрывается зеркально: от своего края к середине. */
+    .side-panel--push[data-side='left'] {
+      clip-path: inset(0 100% 0 0);
+    }
+
+    .side-panel--push[data-side='left'][data-open='true'] {
+      clip-path: inset(0 0 0 0);
     }
   }
 }

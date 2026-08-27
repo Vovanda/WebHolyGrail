@@ -49,9 +49,13 @@ describe('panelClasses', () => {
     }
   });
 
-  it('панель на уровне кнопки получает скруглённый верх, а не прижимается к краю', () => {
-    expect(classes('left', true, 'trigger')).toContain('rounded-t-xl');
+  it('панель на уровне кнопки не прижимается к верху экрана', () => {
     expect(classes('left', true, 'trigger')).not.toContain('top-0');
     expect(classes('right', true, 'screen')).toContain('top-0');
+  });
+
+  it('угол не скругляется: скруглённый край читается как обрезанный кусок', () => {
+    expect(classes('left', true, 'trigger')).not.toContain('rounded');
+    expect(classes('right', true, 'trigger')).not.toContain('rounded');
   });
 });

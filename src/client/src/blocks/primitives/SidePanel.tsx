@@ -200,8 +200,13 @@ export function SidePanel({
             <aside
               ref={panelRef}
               aria-hidden={!open}
+              // Признаки читает CSS: на широком экране панель не выезжает, а
+              // проступает из-под страницы, и правило должно знать сторону
+              // и состояние.
+              data-open={open ? 'true' : 'false'}
+              data-side={side}
               style={{ width, ...(alignTop === 'trigger' ? { top: `${top}px` } : {}) }}
-              className={cn(panelClasses({ side, open, alignTop }), className)}
+              className={cn('side-panel--push', panelClasses({ side, open, alignTop }), className)}
             >
               <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
                 <span className="text-body font-medium text-ink">{title ?? 'Панель'}</span>
@@ -264,7 +269,9 @@ export function panelClasses({
   const mirrored = side === 'left';
   return [
     'fixed bottom-0 z-[55] flex flex-col overflow-y-auto overscroll-contain',
-    alignTop === 'trigger' ? 'rounded-t-xl border-t' : 'top-0',
+    // Начатая от кнопки панель не скругляется: скруглённый угол читается как
+    // обрезанный кусок, а панель - это край экрана, а не карточка.
+    alignTop === 'trigger' ? 'border-t' : 'top-0',
     'border-border bg-surface shadow-[inset_0_2px_6px_-4px_rgb(0_0_0/0.35)]',
     'transition-transform [transition-duration:var(--panel-motion-duration)] [transition-timing-function:var(--panel-motion-ease)]',
     mirrored ? 'left-0 border-r' : 'right-0 border-l',
