@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { VideoSetItem } from 'contracts';
 
 import { cn } from '@/lib/utils';
@@ -9,6 +9,16 @@ import { AccessCodeDialog } from './AccessCodeDialog';
 import { ACCESS_GRANTED_EVENT } from './AccessCodeForm';
 import { VideoPlayer } from './VideoPlayer';
 import { VideoSetDrawer } from './VideoSetDrawer';
+import { VideoUpNext } from './VideoUpNext';
+
+/** Как показать набор рядом с плеером. */
+type SetView = 'column' | 'row' | 'panel';
+
+const VIEWS: ReadonlyArray<{ value: SetView; label: string }> = [
+  { value: 'column', label: 'Списком' },
+  { value: 'row', label: 'Лентой' },
+  { value: 'panel', label: 'Панелью' },
+];
 import { VideoSetList } from './VideoSetList';
 
 /**
@@ -31,6 +41,8 @@ export interface VideoSetPlayerProps {
   readonly token: string;
   readonly channel: string | null;
   readonly setCode: string | null;
+  /** Название набора: с ним панель подписана по делу, а не словом «Плейлист». */
+  readonly title?: string | undefined;
   readonly className?: string;
 }
 
@@ -39,6 +51,7 @@ export function VideoSetPlayer({
   token,
   channel,
   setCode,
+  title,
   className,
 }: VideoSetPlayerProps) {
   /**
@@ -80,7 +93,10 @@ export function VideoSetPlayer({
     и панель оказывается единственным способом добраться до набора, не
     прокручивая всё видео.
   */
-  const [asPanel, setAsPanel] = useState(false);
+  const [view, setView] = useState<SetView>('column');
+  // Кадр нужен карточке «дальше»: она следит за окончанием видео.
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const asPanel = view === 'panel';
 
   /*
     Соседи текущего видео среди тех, что вообще могут играть. Закрытые и ещё
@@ -95,28 +111,44 @@ export function VideoSetPlayer({
     <div
       className={cn(
         'grid gap-5 pb-6',
-        asPanel ? 'grid-cols-1' : 'lg:grid-cols-[minmax(0,1fr)_20rem]',
+        view === 'column' ? 'lg:grid-cols-[minmax(0,1fr)_20rem]' : 'grid-cols-1',
         className,
       )}
     >
       <div className="flex flex-col gap-3">
+        {/* Слева выбор вида, справа кнопка панели - там же, откуда панель выезжает. */}
         <div className="flex flex-wrap items-center gap-2">
+          <div className="flex rounded-lg border border-border bg-paper p-1">
+            {VIEWS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setView(option.value)}
+                aria-pressed={view === option.value}
+                className={cn(
+                  'rounded-md px-3 py-1.5 text-sm transition-colors',
+                  view === option.value
+                    ? 'bg-surface font-medium text-ink'
+                    : 'text-muted hover:text-ink',
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+
           {asPanel && (
-            <VideoSetDrawer
-              items={items}
-              channel={channel}
-              setCode={setCode}
-              currentCode={current?.code ?? null}
-              onSelect={setCurrent}
-            />
+            <div className="ml-auto">
+              <VideoSetDrawer
+                items={items}
+                channel={channel}
+                setCode={setCode}
+                currentCode={current?.code ?? null}
+                title={title}
+                onSelect={setCurrent}
+              />
+            </div>
           )}
-          <button
-            type="button"
-            onClick={() => setAsPanel((value) => !value)}
-            className="ml-auto rounded-lg border border-border bg-paper px-3 py-2 text-sm text-muted transition-colors hover:border-border-strong hover:text-ink"
-          >
-            {asPanel ? 'Список рядом' : 'Список панелью'}
-          </button>
         </div>
         {current?.playlistUrl ? (
           <>
@@ -129,6 +161,14 @@ export function VideoSetPlayer({
               title={current.title}
               onPrev={prev ? () => setCurrent(prev) : undefined}
               onNext={next ? () => setCurrent(next) : undefined}
+              onVideoRef={(video) => {
+                videoRef.current = video;
+              }}
+              overlay={
+                next ? (
+                  <VideoUpNext item={next} videoRef={videoRef} onSelect={setCurrent} />
+                ) : undefined
+              }
             />
             <h3 className="text-body font-medium text-ink text-balance">{current.title}</h3>
           </>
@@ -145,7 +185,19 @@ export function VideoSetPlayer({
         Список ограничен высотой плеера и прокручивается: иначе длинный набор
         растягивает страницу, и до того, что под ним, никто не доходит.
       */}
-      {!asPanel && (
+      {view === 'row' && (
+        <VideoSetList
+          items={items}
+          channel={channel}
+          setCode={setCode}
+          currentCode={current?.code ?? null}
+          orientation="horizontal"
+          onSelect={setCurrent}
+          unlocking={unlocking}
+        />
+      )}
+
+      {view === 'column' && (
         <VideoSetList
           items={items}
           channel={channel}

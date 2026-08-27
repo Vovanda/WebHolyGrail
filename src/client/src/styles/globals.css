@@ -370,3 +370,80 @@
     }
   }
 }
+
+@layer components {
+  /*
+    Оформление готового слоя управления под палитру сайта.
+
+    Цвет бренда красит просмотренную часть полосы и точку на ней: полоса заодно
+    показывает, чей это сайт.
+  */
+  .video-vidstack {
+    --video-brand: var(--color-accent);
+    --video-focus-ring-color: var(--color-accent);
+    --video-border-radius: 12px;
+    --media-brand: var(--color-accent);
+    width: 100%;
+  }
+
+  /*
+    На телефоне громкость крутят кнопками устройства, поэтому ползунок здесь
+    только занимает место. Кнопка выключения звука остаётся: беззвучно смотрят
+    в транспорте и рядом со спящими, и качельки для этого неудобны.
+  */
+  @media (width < 640px) {
+    .video-vidstack .vds-volume-slider {
+      display: none;
+    }
+  }
+
+  /*
+    Переход по набору. Готовый слой таких кнопок не знает, поэтому они лежат
+    поверх кадра и живут по тем же правилам, что и остальное управление:
+    появляются вместе с ним и уходят, когда зритель замер.
+  */
+  .video-vidstack__set {
+    position: absolute;
+    inset-inline: 0;
+    top: 50%;
+    z-index: 5;
+    display: flex;
+    justify-content: space-between;
+    padding-inline: 0.75rem;
+    transform: translateY(-50%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  /* Управление показано - показаны и переходы. */
+  .video-vidstack:has(media-player[data-controls]) ~ .video-vidstack__set,
+  .video-vidstack__set:has(button:focus-visible),
+  .relative:hover > .video-vidstack__set {
+    opacity: 1;
+  }
+
+  .video-vidstack__set button {
+    display: grid;
+    place-items: center;
+    height: 2.75rem;
+    width: 2.75rem;
+    border: 0;
+    border-radius: 999px;
+    background: rgb(0 0 0 / 0.55);
+    color: #fff;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: background 0.2s ease;
+  }
+
+  .video-vidstack__set button:hover:not(:disabled) {
+    background: rgb(0 0 0 / 0.75);
+  }
+
+  .video-vidstack__set button:disabled {
+    opacity: 0.3;
+    cursor: default;
+    pointer-events: none;
+  }
+}

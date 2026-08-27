@@ -82,5 +82,6 @@ export type {
   VideoSetBlockData,
   DemoAccessBlockData,
   VideoSetItem,
+  VideoSetRef,
 } from './blog';
 export { resolveDisplay } from './blog';

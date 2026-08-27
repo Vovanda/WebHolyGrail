@@ -105,7 +105,12 @@ export function VideoPlayerVidstack({
           {poster && <Poster className="vds-poster" src={poster} alt="" />}
         </MediaProvider>
 
-        <DefaultVideoLayout icons={defaultLayoutIcons} translations={RU} />
+        {/*
+          Полный набор управления на любом экране. Библиотека по умолчанию
+          переходит на узком экране к сокращённому виду, где нет ни звука, ни
+          выбора качества, и человек остаётся без половины кнопок.
+        */}
+        <DefaultVideoLayout icons={defaultLayoutIcons} translations={RU} smallLayoutWhen={false} />
       </MediaPlayer>
 
       {/* Переход по набору: у готового слоя таких кнопок нет, ставим поверх кадра. */}

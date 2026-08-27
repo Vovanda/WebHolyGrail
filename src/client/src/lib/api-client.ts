@@ -13,6 +13,7 @@ import type {
   PageDoc,
   ReusableBlockDoc,
   SiteSettings,
+  VideoSetRef,
 } from 'contracts';
 
 /**
@@ -575,6 +576,8 @@ export async function getVideoByCode(
       description: string | null;
       channel: string;
       authorName: string | null;
+      /** Наборы, в которые входит это видео. */
+      sets: ReadonlyArray<VideoSetRef>;
     })
   | null
 > {
@@ -596,6 +599,7 @@ export async function getVideoByCode(
     qualities: ReadonlyArray<number>;
     durationSeconds: number | null;
     poster: string | null;
+    sets?: ReadonlyArray<VideoSetRef>;
   };
 
   return {
@@ -610,6 +614,7 @@ export async function getVideoByCode(
     description: doc.description,
     channel: doc.channel,
     authorName: doc.authorName,
+    sets: doc.sets ?? [],
   };
 }
 

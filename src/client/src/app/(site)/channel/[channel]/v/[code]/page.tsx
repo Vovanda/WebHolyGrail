@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { AccessCodeForm } from '@/blocks/primitives/Video/AccessCodeForm';
 import { VideoPlayer } from '@/blocks/primitives/Video/VideoPlayer';
 import { VideoSetDrawer } from '@/blocks/primitives/Video/VideoSetDrawer';
+import { VideoDescription } from '@/blocks/primitives/Video/VideoDescription';
 import { VideoSetList } from '@/blocks/primitives/Video/VideoSetList';
 import {
   checkVideoAccess,
@@ -121,7 +122,7 @@ export default async function VideoPage({
           </a>
           {video.durationSeconds ? ` · ${formatDuration(video.durationSeconds)}` : ''}
         </p>
-        {video.description && <Description text={video.description} />}
+        {video.description && <VideoDescription text={video.description} />}
       </header>
 
       {set && set.items.length > 1 && (
@@ -187,56 +188,6 @@ export default async function VideoPage({
       )}
     </main>
   );
-}
-
-/**
- * Описание ролика с раскрытием.
- *
- * @remarks
- * Длинное описание занимает пол-экрана и отодвигает всё, что под ним, поэтому
- * показывается началом, а остаток раскрывается по нажатию.
- *
- * Без JS (R14): `details` умеет это сам. Текст при этом не дублируется —
- * начало живёт в заголовке, продолжение в теле, — иначе поисковик видел бы
- * описание дважды.
- */
-function Description({ text }: { text: string }) {
-  const { head, tail } = splitForPreview(text, 240);
-
-  if (!tail) {
-    return <p className="whitespace-pre-line text-body leading-relaxed text-ink/90">{text}</p>;
-  }
-
-  return (
-    <details className="group">
-      <summary className="cursor-pointer list-none whitespace-pre-line text-body leading-relaxed text-ink/90 [&::-webkit-details-marker]:hidden">
-        {head}
-        <span className="group-open:hidden">…</span>
-        <span className="ml-1 whitespace-nowrap text-sm font-medium text-muted group-hover:text-ink group-open:hidden">
-          ещё
-        </span>
-      </summary>
-      <p className="whitespace-pre-line text-body leading-relaxed text-ink/90">{tail}</p>
-      <span className="mt-1 inline-block cursor-pointer text-sm font-medium text-muted">
-        свернуть
-      </span>
-    </details>
-  );
-}
-
-/**
- * Делит текст на видимое начало и остаток.
- *
- * @remarks
- * Режем по границе слова: обрыв посреди слова читается как поломка вёрстки.
- * Если остаток совсем короткий, деление не имеет смысла — текст отдаётся целиком.
- */
-function splitForPreview(text: string, limit: number): { head: string; tail: string } {
-  if (text.length <= limit + 40) return { head: text, tail: '' };
-
-  const space = text.lastIndexOf(' ', limit);
-  const cut = space > limit / 2 ? space : limit;
-  return { head: text.slice(0, cut), tail: text.slice(cut).trimStart() };
 }
 
 /** «12:05» — привычный вид длительности рядом с названием. */

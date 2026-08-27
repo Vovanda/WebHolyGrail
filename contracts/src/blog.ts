@@ -239,6 +239,22 @@ export interface VideoSetItem {
 }
 
 /**
+ * Набор, в который входит видео.
+ *
+ * @remarks
+ * Показывается на странице самого видео: зритель, пришедший по прямой ссылке,
+ * видит, частью чего оно является, и куда идти за остальным.
+ */
+export interface VideoSetRef {
+  readonly id: string | number;
+  /** Короткий код набора: из него собирается адрес. */
+  readonly code: string | null;
+  readonly title: string;
+  /** Сколько видео внутри. */
+  readonly count: number;
+}
+
+/**
  * Данные блока `videoSet` — набор роликов на произвольной странице.
  *
  * @remarks

@@ -74,6 +74,7 @@ export async function VideoSetSection({ node, className }: VideoSetSectionProps)
 
       {withPlayer && token ? (
         <VideoSetPlayer
+          title={heading}
           items={items}
           token={token}
           channel={playlist.channel}

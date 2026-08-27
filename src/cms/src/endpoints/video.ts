@@ -150,10 +150,45 @@ export const videoByCodeEndpoint: Endpoint = {
     const owner = typeof doc.uploadedBy === 'object' && doc.uploadedBy ? doc.uploadedBy : null;
     if ((owner?.channel ?? '') !== channel) return json({ error: 'not-found' }, 404);
 
+    /*
+      В какие наборы входит это видео.
+
+      Зритель приходит и со страницы канала, и по прямой ссылке - тогда набора
+      рядом нет, и после просмотра идти некуда. Список наборов даёт следующий
+      шаг: видно, что видео часть серии, и куда за остальным.
+
+      Закрытые наборы отсюда не показываем - тем же правилом, что и на канале:
+      страница открыта всем, включая поисковик, и перечень закрытого стал бы
+      описью платного для тех, кто его не брал.
+    */
+    const sets = await req.payload.find({
+      collection: 'playlists',
+      where: {
+        and: [{ 'items.video': { equals: doc.id } }, { access: { not_equals: 'private' } }],
+      },
+      depth: 0,
+      limit: 12,
+      overrideAccess: true,
+    });
+
     return json({
       id: doc.id,
       channel,
       authorName: owner?.name ?? null,
+      sets: sets.docs.map((set) => {
+        const item = set as {
+          id: string | number;
+          title?: string;
+          shortCode?: string;
+          items?: unknown[];
+        };
+        return {
+          id: item.id,
+          code: item.shortCode ?? null,
+          title: item.title?.trim() || 'Набор',
+          count: item.items?.length ?? 0,
+        };
+      }),
       title: doc.caption?.trim() || doc.alt?.trim() || doc.filename || 'Видео',
       description: doc.alt?.trim() || null,
       access: doc.access === 'private' ? 'private' : 'public',
