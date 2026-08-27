@@ -45,6 +45,32 @@ test.describe('Видео', () => {
     );
   });
 
+  test('панель и список у плеера показывают одно видео', async ({ page }) => {
+    const response = await page.goto(DEMO_PATH);
+    if (response?.status() === 404) test.skip(true, 'демо-страницы на этом сайте нет');
+
+    const tab = page.getByRole('button', { name: 'Плейлист' });
+    if ((await tab.count()) === 0) test.skip(true, 'панели плейлиста на этом сайте нет');
+
+    await tab.click();
+    const panel = page.locator('aside .side-panel__body');
+    await expect(panel).toBeVisible({ timeout: 10_000 });
+
+    // Второе видео в панели: первое уже играет, и по нему смены не увидеть.
+    const cards = panel.locator('button');
+    if ((await cards.count()) < 2) test.skip(true, 'в плейлисте меньше двух видео');
+    await cards.nth(1).click();
+
+    // Выбор уходит в адрес - по такой ссылке видео открывается сразу.
+    await expect(page).toHaveURL(/[?&]v=/, { timeout: 10_000 });
+
+    // И список рядом с плеером показывает то же самое: запись в адрес браузер
+    // никому не сообщает, поэтому между списками ходит своё событие.
+    const playingEverywhere = page.getByText('Играет сейчас');
+    await expect(playingEverywhere.first()).toBeVisible({ timeout: 10_000 });
+    expect(await playingEverywhere.count()).toBeGreaterThan(1);
+  });
+
   test('закрытое видео ключа не отдаёт', async ({ page, request }) => {
     const response = await page.goto(DEMO_PATH);
     if (response?.status() === 404) test.skip(true, 'демо-страницы на этом сайте нет');
