@@ -52,6 +52,24 @@ export interface CarouselDeckProps {
    * такое движение мешает: цель уезжает из-под пальца.
    */
   readonly marquee?: boolean;
+  /**
+   * Насколько быстро идёт непрерывное движение.
+   *
+   * @remarks
+   * Значение из embla: единица - привычный ход витрины. Меньше единицы читается
+   * как медленное течение, больше - как бегущая строка. Без непрерывного
+   * движения не значит ничего.
+   */
+  readonly speed?: number;
+  /**
+   * Останавливаться ли, когда на ленту навели указатель.
+   *
+   * @remarks
+   * По умолчанию да: человек подвёл курсор - значит присматривается, и уезжающая
+   * из-под него карточка раздражает. Витрине, которая едет фоном и ничего
+   * не предлагает выбирать, остановка ни к чему.
+   */
+  readonly pauseOnHover?: boolean;
   /** Зазор между карточками. */
   readonly gap?: 'sm' | 'md' | 'lg';
   /**
@@ -123,6 +141,8 @@ export function CarouselDeck({
   loop = false,
   autoplay,
   marquee = false,
+  speed = 1,
+  pauseOnHover = true,
   gap = 'md',
   transition = 'slide',
   height,
@@ -135,9 +155,11 @@ export function CarouselDeck({
   const plugins = [];
   if (transition === 'fade') plugins.push(Fade());
   if (marquee)
-    plugins.push(AutoScroll({ speed: 1, stopOnInteraction: false, stopOnMouseEnter: true }));
+    plugins.push(AutoScroll({ speed, stopOnInteraction: false, stopOnMouseEnter: pauseOnHover }));
   else if (autoplay)
-    plugins.push(Autoplay({ delay: autoplay, stopOnInteraction: false, stopOnMouseEnter: true }));
+    plugins.push(
+      Autoplay({ delay: autoplay, stopOnInteraction: false, stopOnMouseEnter: pauseOnHover }),
+    );
 
   const [viewportRef, embla] = useEmblaCarousel(
     { loop, align: mode === 'single' ? 'center' : 'start', containScroll: 'trimSnaps' },
