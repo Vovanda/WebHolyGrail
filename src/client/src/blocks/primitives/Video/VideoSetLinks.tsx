@@ -3,20 +3,20 @@ import type { VideoSetRef } from 'contracts';
 import { cn } from '@/lib/utils';
 
 /**
- * Наборы, в которые входит это видео.
+ * Плейлисты, в которые входит это видео.
  *
  * @remarks
- * Второй перечень на странице видео. Первый показывает соседей по набору, из
+ * Второй перечень на странице видео. Первый показывает соседей по плейлисту, из
  * которого зритель пришёл; этот отвечает на другой вопрос - частью чего ещё
  * является видео. Пришедшему по прямой ссылке он даёт первый шаг дальше.
  *
- * Набор, открытый прямо сейчас, отсюда убирается: он уже показан выше списком
+ * Плейлист, открытый прямо сейчас, отсюда убирается: он уже показан выше списком
  * своих видео.
  */
 export interface VideoSetLinksProps {
   readonly sets: ReadonlyArray<VideoSetRef>;
   readonly channel: string;
-  /** Набор, показанный выше: его здесь не повторяем. */
+  /** Плейлист, показанный выше: его здесь не повторяем. */
   readonly currentSetCode?: string | null;
   readonly className?: string;
 }
@@ -27,7 +27,7 @@ export function VideoSetLinks({ sets, channel, currentSetCode, className }: Vide
 
   return (
     <section className={cn('flex flex-col gap-3', className)}>
-      <h2 className="text-body font-medium text-ink">Это видео входит в наборы</h2>
+      <h2 className="text-body font-medium text-ink">Это видео входит в плейлисты</h2>
 
       <ul className="flex flex-wrap gap-2">
         {others.map((set) => (

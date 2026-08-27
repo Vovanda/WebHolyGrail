@@ -20,15 +20,15 @@ describe('токен зрителя', () => {
     if (checked.ok) expect(checked.granted).toEqual([]);
   });
 
-  it('погашенный код дописывает набор', () => {
+  it('погашенный код дописывает плейлист', () => {
     const token = issueViewerToken(SECRET, NOW);
     const next = withGrantedPlaylist(token.value, 42, SECRET, NOW);
     const checked = readViewerToken(next!, SECRET, NOW);
-    // Из токена набор приходит строкой: он лежит в подписанной строке.
+    // Из токена плейлист приходит строкой: он лежит в подписанной строке.
     expect(checked.ok && checked.granted).toEqual(['42']);
   });
 
-  it('повторное погашение того же кода набор не задваивает', () => {
+  it('повторное погашение того же кода плейлист не задваивает', () => {
     const token = issueViewerToken(SECRET, NOW);
     const once = withGrantedPlaylist(token.value, 42, SECRET, NOW);
     const twice = withGrantedPlaylist(once!, 42, SECRET, NOW);

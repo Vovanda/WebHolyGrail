@@ -4,7 +4,7 @@ import type { StoragePort } from './ports.js';
 import { purgeDeleted, type PurgeCandidate } from './purge.js';
 
 /**
- * Уборка удалённых роликов.
+ * Уборка удалённых видео.
  *
  * @remarks
  * Ошибка здесь тихая в обе стороны: стёрли раньше срока — восстановить нечем,
@@ -70,7 +70,7 @@ describe('уборка удалённых', () => {
     expect(removed).toEqual(['u7/hls/jkl']);
   });
 
-  it('ролик без нарезки просто забывается', async () => {
+  it('видео без нарезки просто забывается', async () => {
     const { removed, forgotten } = await run([{ id: 5, deletedAt: daysAgo(40), prefix: null }]);
     expect(removed).toEqual([]);
     expect(forgotten).toEqual([5]);
@@ -104,7 +104,7 @@ describe('уборка удалённых', () => {
     expect(order).toEqual(['removeFolder', 'forget']);
   });
 
-  it('сбой стирания оставляет ролик на следующий проход', async () => {
+  it('сбой стирания оставляет видео на следующий проход', async () => {
     const { storage } = makeStorage();
     storage.removeFolder = vi.fn(async () => {
       throw new Error('хранилище недоступно');

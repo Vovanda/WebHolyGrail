@@ -4,7 +4,7 @@ import { useDocumentInfo } from '@payloadcms/ui';
 import { useEffect, useState } from 'react';
 
 /**
- * Возврат ролика, помеченного к удалению.
+ * Возврат видео, помеченного к удалению.
  *
  * @remarks
  * Отсрочка перед стиранием нужна ровно для того, чтобы ошибку можно было
@@ -60,7 +60,7 @@ export function RestoreVideoField() {
       }}
     >
       <span style={{ fontSize: 13 }}>
-        Ролик скрыт с сайта {new Date(deletedAt).toLocaleDateString('ru-RU')}. Файлы ещё на месте.
+        Видео скрыт с сайта {new Date(deletedAt).toLocaleDateString('ru-RU')}. Файлы ещё на месте.
       </span>
       <button
         type="button"

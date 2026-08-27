@@ -83,7 +83,7 @@ export interface CarouselCard {
  * страницы.
  *
  * Отбор описан здесь же, а не в самой ленте: список и плитка получат тот же
- * набор значений, когда до них дойдёт (R9).
+ * плейлист значений, когда до них дойдёт (R9).
  */
 export interface BlockSource {
   readonly kind: 'manual' | 'articles' | 'videos';

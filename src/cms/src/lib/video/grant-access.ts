@@ -6,11 +6,11 @@ import { readViewerToken, sealEnvelope } from './envelope';
  *
  * @remarks
  * Сценарий не знает ни про Payload, ни про HTTP: ему передают уже прочитанный
- * ролик и реализацию политики. Благодаря этому он проверяется юнит-тестами
+ * видео и реализацию политики. Благодаря этому он проверяется юнит-тестами
  * один-в-один со спекой `spec/video/access-invariants.smt2`, без базы и сети.
  */
 
-/** Ролик в том виде, в каком его отдаёт каталог. */
+/** Видео в том виде, в каком его отдаёт каталог. */
 export interface StreamRecord {
   readonly id: string | number;
   readonly access: 'public' | 'private';

@@ -34,17 +34,33 @@ export const BuiltWithBlock: Block = {
       minRows: 1,
       maxRows: 12,
       admin: {
-        description: 'Каждая карточка — site + url. Если есть screenshot — показывается превью.',
+        description:
+          'Карточка сайта: имя, адрес, пояснение и снимок главной. Пояснение берётся из описания самого сайта, чтобы не расходиться с ним.',
       },
       fields: [
         { name: 'siteName', label: 'Имя сайта', type: 'text', required: true },
-        { name: 'url', label: 'URL (https://...)', type: 'text', required: true },
-        { name: 'niche', label: 'Ниша (1-2 слова)', type: 'text' },
+        { name: 'url', label: 'Адрес сайта', type: 'text', required: true },
+        {
+          name: 'niche',
+          label: 'Чем занимается',
+          type: 'textarea',
+          admin: { description: 'Берётся из описания сайта в его разметке.' },
+        },
         {
           name: 'screenshot',
-          label: 'Скриншот превью (опционально)',
+          label: 'Снимок для светлой темы',
           type: 'upload',
           relationTo: 'media',
+        },
+        {
+          name: 'screenshotDark',
+          label: 'Снимок для тёмной темы',
+          type: 'upload',
+          relationTo: 'media',
+          admin: {
+            description:
+              'Без него в тёмной теме показывается светлый снимок: он выбивается ярким пятном.',
+          },
         },
       ],
     },

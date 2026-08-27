@@ -18,7 +18,7 @@ function cards(count: number) {
 }
 
 describe('CarouselDeck', () => {
-  it('показывает все карточки набора', () => {
+  it('показывает все карточки плейлиста', () => {
     const html = renderToStaticMarkup(<CarouselDeck>{cards(5)}</CarouselDeck>);
     expect(html.match(/<article>/g)).toHaveLength(5);
   });
@@ -41,8 +41,10 @@ describe('CarouselDeck', () => {
   });
 
   it('подпись для чтения с экрана уходит в разметку', () => {
-    const html = renderToStaticMarkup(<CarouselDeck label="Видео набора">{cards(3)}</CarouselDeck>);
-    expect(html).toContain('aria-label="Видео набора"');
+    const html = renderToStaticMarkup(
+      <CarouselDeck label="Видео плейлиста">{cards(3)}</CarouselDeck>,
+    );
+    expect(html).toContain('aria-label="Видео плейлиста"');
     expect(html).toContain('aria-roledescription="carousel"');
   });
 

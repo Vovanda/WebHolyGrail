@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import type { VideoSetItem } from 'contracts';
 
 /**
- * Что смотреть дальше — карточка поверх кадра, когда ролик кончился.
+ * Что смотреть дальше — карточка поверх кадра, когда видео кончился.
  *
  * @remarks
- * Досмотренный ролик оставляет чёрный прямоугольник, и человек уходит просто
+ * Досмотренный видео оставляет чёрный прямоугольник, и человек уходит просто
  * потому, что дальше ничего не предложено. Поэтому в конце показываем
  * следующий кадром и названием: нажатие открывает его в том же плеере, без
  * перезагрузки страницы.
@@ -17,7 +17,7 @@ import type { VideoSetItem } from 'contracts';
  * раздражение сильнее пользы.
  *
  * Отсчёт останавливается, если зритель перемотал назад: значит он вернулся
- * к ролику, а не закончил с ним.
+ * к видео, а не закончил с ним.
  */
 export interface VideoUpNextProps {
   readonly item: VideoSetItem;
@@ -32,7 +32,7 @@ export function VideoUpNext({ item, videoRef, onSelect, delaySeconds = 8 }: Vide
   const [visible, setVisible] = useState(false);
   const [left, setLeft] = useState(delaySeconds);
 
-  // Ждём окончания ролика. Слушаем сам кадр, а не считаем время: у потока
+  // Ждём окончания видео. Слушаем сам кадр, а не считаем время: у потока
   // длительность уточняется по ходу, и вычисленный конец не совпадает с настоящим.
   useEffect(() => {
     const video = videoRef.current;
@@ -42,7 +42,7 @@ export function VideoUpNext({ item, videoRef, onSelect, delaySeconds = 8 }: Vide
       setLeft(delaySeconds);
       setVisible(true);
     };
-    // Перемотка назад означает, что к ролику вернулись: карточку убираем.
+    // Перемотка назад означает, что к видео вернулись: карточку убираем.
     const onPlaying = () => setVisible(false);
 
     video.addEventListener('ended', onEnded);
@@ -68,7 +68,7 @@ export function VideoUpNext({ item, videoRef, onSelect, delaySeconds = 8 }: Vide
 
   return (
     <div className="video-upnext">
-      <p className="video-upnext__label">Дальше в наборе</p>
+      <p className="video-upnext__label">Дальше в плейлисте</p>
 
       <button type="button" onClick={() => onSelect(item)} className="video-upnext__card">
         {item.poster ? (

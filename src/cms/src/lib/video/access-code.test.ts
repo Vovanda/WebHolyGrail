@@ -17,7 +17,7 @@ describe('код доступа', () => {
     expect(codes).toMatch(/^[0-9ABCDEFGHJKMNPQRSTVWXYZ]+$/);
   });
 
-  it('не повторяется на большом наборе', () => {
+  it('не повторяется на большом плейлисте', () => {
     const codes = new Set(Array.from({ length: 3000 }, () => generateAccessCode(8)));
     expect(codes.size).toBe(3000);
   });

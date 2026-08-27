@@ -49,7 +49,7 @@ export function BlockShowcase({
         {subtitle && <p className="text-center text-muted mt-3">{subtitle}</p>}
 
         <div className="mt-10">
-          <CarouselDeck gap="lg" dots autoplay={4000} loop label={heading}>
+          <CarouselDeck gap="lg" edge="gap" dots autoplay={4000} loop label={heading}>
             {items.map((item, i) => {
               const preview = mediaUrl(item.preview);
               return (

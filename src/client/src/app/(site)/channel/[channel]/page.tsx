@@ -9,7 +9,7 @@ import { getChannel } from '@/lib/api-client';
  * Не отдельная сущность, а страница автора: заводить «каналы» рядом с уже
  * существующими участниками значило бы держать два профиля на одного человека.
  *
- * Сейчас здесь только ролики. Фото и статьи того же автора встанут сюда же,
+ * Сейчас здесь только видео. Фото и статьи того же автора встанут сюда же,
  * когда дойдут — адрес для этого и выбран общий, а не `/videos/<автор>`.
  */
 type Params = { channel: string };
@@ -41,12 +41,12 @@ export default async function ChannelPage({ params }: { params: Promise<Params> 
       </header>
 
       {/*
-        Наборы идут перед отдельными записями: человек, попавший на канал, чаще
+        Плейлисты идут перед отдельными записями: человек, попавший на канал, чаще
         ищет курс целиком, а не одну запись из середины.
       */}
       {data.sets.length > 0 && (
         <section className="flex flex-col gap-4">
-          <h2 className="text-h4 font-display font-semibold tracking-tight text-ink">Наборы</h2>
+          <h2 className="text-h4 font-display font-semibold tracking-tight text-ink">Плейлисты</h2>
 
           <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,18rem),1fr))]">
             {data.sets.map((set) => (

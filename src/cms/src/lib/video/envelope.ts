@@ -55,7 +55,7 @@ export interface ViewerToken {
 }
 
 /**
- * Наборы, открытые этому токену по коду.
+ * Плейлисты, открытые этому токену по коду.
  *
  * @remarks
  * Погашенный код не пишет ничего в базу: он дописывает право прямо в токен и
@@ -87,7 +87,7 @@ export function issueViewerToken(
 }
 
 /**
- * Пересобирает токен с добавленным набором.
+ * Пересобирает токен с добавленным плейлистом.
  *
  * @remarks
  * Ключ сохраняется: у зрителя уже идёт просмотр, и подмена ключа посреди
@@ -107,9 +107,9 @@ export function withGrantedPlaylist(
   const parsed = readViewerToken(token, appSecret, nowSeconds);
   if (!parsed.ok) return null;
 
-  // Сравниваем строками: из токена набор приходит строкой, из базы числом, и
+  // Сравниваем строками: из токена плейлист приходит строкой, из базы числом, и
   // прямое сравнение не находило совпадения - повторное погашение того же кода
-  // дописывало набор ещё раз, и список рос с каждой попыткой.
+  // дописывало плейлист ещё раз, и список рос с каждой попыткой.
   const already = parsed.granted.some((id) => String(id) === String(playlistId));
   const granted = already ? parsed.granted : [...parsed.granted, playlistId];
 
@@ -125,7 +125,7 @@ function buildToken(
   granted: GrantedPlaylists,
   appSecret: string,
 ): string {
-  // Наборы через запятую внутри одной части: разделитель токена другой,
+  // Плейлисты через запятую внутри одной части: разделитель токена другой,
   // поэтому разбор не ломается даже при пустом списке.
   const payload = `${base64url(key)}${SEPARATOR}${expires}${SEPARATOR}${granted.join(',')}`;
   return `${payload}${SEPARATOR}${sign(payload, appSecret)}`;
@@ -137,7 +137,7 @@ export type TokenCheck =
       readonly ok: true;
       readonly key: Buffer;
       readonly expires: number;
-      /** Наборы, открытые погашенными кодами. */
+      /** Плейлисты, открытые погашенными кодами. */
       readonly granted: GrantedPlaylists;
     }
   | { readonly ok: false; readonly reason: 'malformed' | 'signature' | 'expired' };

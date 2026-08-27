@@ -214,7 +214,7 @@ export function VideoPlayerVidstack({
           />
         </MediaPlayer>
 
-        {/* Переход по набору: у готового слоя таких кнопок нет, ставим поверх кадра. */}
+        {/* Переход по плейлисту: у готового слоя таких кнопок нет, ставим поверх кадра. */}
         {(onPrev || onNext) && (
           <div className="video-vidstack__set">
             <button type="button" onClick={onPrev} disabled={!onPrev} aria-label="Предыдущее видео">

@@ -6,10 +6,10 @@ import { ScrollList } from '@/blocks/primitives/ScrollList';
 import { VideoSetCard } from './VideoSetCard';
 
 /**
- * Список роликов набора.
+ * Список видео плейлиста.
  *
  * @remarks
- * Один компонент на три места: справа от плеера, под роликом на его странице
+ * Один компонент на три места: справа от плеера, под видео на его странице
  * и отдельным блоком, где плеера нет вовсе. Отличаются они только тем, как
  * список повёрнут, поэтому разводить три похожих списка незачем (R9).
  *
@@ -19,13 +19,13 @@ import { VideoSetCard } from './VideoSetCard';
  */
 export interface VideoSetListProps {
   readonly items: ReadonlyArray<VideoSetItem>;
-  /** Адрес канала: из него собираются ссылки на ролики. */
+  /** Адрес канала: из него собираются ссылки на видео. */
   readonly channel: string | null;
   /**
    * Как повёрнут список.
    *
    * @remarks
-   * `vertical` — колонкой: рядом с плеером и когда роликов много.
+   * `vertical` — колонкой: рядом с плеером и когда видео много.
    * `horizontal` — лентой: под плеером, где вертикаль отняла бы всю высоту.
    */
   readonly orientation?: 'vertical' | 'horizontal';
@@ -39,9 +39,9 @@ export interface VideoSetListProps {
   readonly maxHeight?: string | undefined;
   /** Сколько карточек показать сразу; остальные подгружаются при прокрутке. */
   readonly limit?: number | undefined;
-  /** Отмеченный ролик — тот, что играет сейчас. */
+  /** Отмеченный видео — тот, что играет сейчас. */
   readonly currentCode?: string | null;
-  /** Набор, из которого пришли: чтобы на странице ролика показать его же. */
+  /** Плейлист, из которого пришли: чтобы на странице видео показать его же. */
   readonly setCode?: string | null;
   /** Нажатие вместо перехода — когда плеер рядом и уходить со страницы незачем. */
   readonly onSelect?: ((item: VideoSetItem) => void) | undefined;
@@ -70,7 +70,7 @@ export function VideoSetList({
   className,
 }: VideoSetListProps) {
   if (items.length === 0) {
-    return <p className="text-body text-muted">В наборе пока нет видео.</p>;
+    return <p className="text-body text-muted">В плейлисте пока нет видео.</p>;
   }
 
   // Какое видео сейчас играет: и лента, и колонка подъезжают к нему сами.
@@ -92,13 +92,13 @@ export function VideoSetList({
   ));
 
   /*
-    Лентой набор листается пальцем и стрелками - той же каруселью, что и
+    Лентой плейлист листается пальцем и стрелками - той же каруселью, что и
     остальные ленты сайта. Своей прокрутки здесь нет: инерция, прилипание и
     поведение на телефоне уже собраны в примитиве.
   */
   if (orientation === 'horizontal') {
     return (
-      <CarouselDeck mode="row" gap="md" arrows label="Видео набора" className={className}>
+      <CarouselDeck mode="row" gap="md" arrows label="Видео плейлиста" className={className}>
         {rows.map((row) => (
           <CarouselItem key={row.key} width="min(16rem, 78vw)">
             {row}
@@ -109,11 +109,11 @@ export function VideoSetList({
   }
 
   /*
-    Колонкой набор показывается списком: у него своя прокрутка с потолком по
+    Колонкой плейлист показывается списком: у него своя прокрутка с потолком по
     высоте и порции. Длинная серия иначе утаскивает вниз всю страницу, а сотня
     карточек разом заметно дольше рисуется.
 
-    Память места привязана к самому набору: вернувшись, зритель видит список
+    Память места привязана к самому плейлисту: вернувшись, зритель видит список
     там же, где оставил.
   */
   return (
@@ -123,7 +123,7 @@ export function VideoSetList({
       more="scroll"
       activeIndex={activeIndex}
       rememberKey={setCode ? `set:${setCode}` : undefined}
-      label="Видео набора"
+      label="Видео плейлиста"
       className={className}
     >
       {rows}

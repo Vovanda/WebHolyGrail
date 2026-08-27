@@ -15,7 +15,7 @@ describe('короткий код', () => {
     expect(codes).not.toMatch(/[0O1lI]/);
   });
 
-  it('не повторяется на большом наборе', () => {
+  it('не повторяется на большом плейлисте', () => {
     const codes = new Set(Array.from({ length: 5000 }, () => generateShortCode()));
     expect(codes.size).toBe(5000);
   });

@@ -17,7 +17,7 @@ export const VideoBlock: Block = {
   fields: [
     {
       name: 'video',
-      label: 'Ролик',
+      label: 'Видео',
       type: 'upload',
       relationTo: 'media',
       required: true,
@@ -45,7 +45,7 @@ export const VideoBlock: Block = {
       relationTo: 'media',
       admin: {
         description:
-          'Картинка до нажатия «play». Можно не задавать: кадр из ролика снимается сам при нарезке. Своя обложка его заменяет.',
+          'Картинка до нажатия «play». Можно не задавать: кадр из видео снимается сам при нарезке. Своя обложка его заменяет.',
       },
     },
     {

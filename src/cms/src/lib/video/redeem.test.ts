@@ -29,7 +29,7 @@ const redeem = (c: AccessCode | null, viewerId: string | number | null = 42) =>
   redeemCode({ code: c, viewerId, now: NOW });
 
 describe('погашение кода', () => {
-  it('вошедший получает право на набор', () => {
+  it('вошедший получает право на плейлист', () => {
     const result = redeem(code());
     expect(result).toMatchObject({ ok: true, playlistId: 7, bind: 'account', expiresAt: null });
   });

@@ -22,6 +22,7 @@ export interface BuiltWithData {
     readonly url: string;
     readonly niche?: string;
     readonly screenshot?: MediaRef | null;
+    readonly screenshotDark?: MediaRef | null;
   }[];
 }
 
@@ -53,9 +54,12 @@ export function BuiltWith({
         {subtitle && <p className="text-center text-muted mt-3">{subtitle}</p>}
 
         <div className="mt-10">
-          <CarouselDeck gap="lg" marquee loop label={heading}>
+          <CarouselDeck gap="lg" edge="gap" marquee loop label={heading}>
             {items.map((item, i) => {
               const preview = mediaUrl(item.screenshot);
+              // Второй снимок для тёмной темы: светлый там выбивается ярким
+              // пятном. Нет второго - показываем единственный.
+              const previewDark = mediaUrl(item.screenshotDark) ?? preview ?? undefined;
               return (
                 <CarouselItem key={i} width="min(20rem, 85vw)">
                   <Link
@@ -66,12 +70,20 @@ export function BuiltWith({
                   >
                     <div className="aspect-[16/10] bg-surface relative overflow-hidden">
                       {preview ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={preview}
-                          alt={item.siteName}
-                          className="absolute inset-0 h-full w-full object-cover"
-                        />
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={preview}
+                            alt={item.siteName}
+                            className="shot-light absolute inset-0 h-full w-full object-cover"
+                          />
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={previewDark}
+                            alt={item.siteName}
+                            className="shot-dark absolute inset-0 h-full w-full object-cover"
+                          />
+                        </>
                       ) : (
                         <PreviewPlaceholder siteName={item.siteName} />
                       )}

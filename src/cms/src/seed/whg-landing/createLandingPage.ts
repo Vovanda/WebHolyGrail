@@ -292,7 +292,7 @@ function buildLandingPageData(media: MediaMap) {
             subtitle: 'S3-совместимое',
             description: 'MinIO в dev',
             details:
-              'Любой S3-совместимый провайдер: AWS S3, Cloudflare R2, Backblaze B2 или self-host MinIO. Один env-переменный набор переключает между ними.\n\nВ dev — MinIO в docker рядом, нулевая настройка. Без локального диска — медиа сразу там же где будет на проде.',
+              'Любой S3-совместимый провайдер: AWS S3, Cloudflare R2, Backblaze B2 или self-host MinIO. Один env-переменный плейлист переключает между ними.\n\nВ dev — MinIO в docker рядом, нулевая настройка. Без локального диска — медиа сразу там же где будет на проде.',
           },
           {
             // 🔒 для Secrets-feature (роль = защита). Stack Transparency для

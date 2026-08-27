@@ -9,13 +9,13 @@ import { VideoSetList } from './VideoSetList';
 import { VideoSetPlayer } from './VideoSetPlayer';
 
 /**
- * VideoSetSection — набор роликов на произвольной странице.
+ * VideoSetSection — плейлист видео на произвольной странице.
  *
  * @remarks
- * Серверный (R14): замок у каждого ролика считается по конкретному зрителю,
+ * Серверный (R14): замок у каждого видео считается по конкретному зрителю,
  * поэтому список собирается при показе, а не берётся из кеша страницы.
  *
- * Закрытые ролики из списка не убираются: состав набора — его витрина, и по
+ * Закрытые видео из списка не убираются: состав плейлиста — его витрина, и по
  * названию с обложкой видно, что человек получит. Играть закрытый всё равно
  * не начнёт, ключ выдаётся отдельно и по тем же правилам.
  */
@@ -36,7 +36,7 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
   if (!playlistId) return null;
 
   // Куки зрителя пробрасываем: без них вошедший выглядит анонимом, и его
-  // открытые ролики показались бы закрытыми.
+  // открытые видео показались бы закрытыми.
   const cookie = (await headers()).get('cookie') ?? '';
   const playlist = await getPlaylistById(playlistId, cookie);
   if (!playlist) return null;
@@ -49,7 +49,7 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
   const hidden = playlist.items.length - items.length;
 
   const withPlayer = data.mode !== 'list';
-  // Токен нужен и списку без плеера: в него дописывается набор, когда зритель
+  // Токен нужен и списку без плеера: в него дописывается плейлист, когда зритель
   // вводит код в окне.
   const token = await issueVideoToken();
 
@@ -62,7 +62,7 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
       )}
 
       {/*
-        Ссылка на весь набор стоит в одной строке с названием. Под списком она
+        Ссылка на весь плейлист стоит в одной строке с названием. Под списком она
         оставалась висеть сама по себе, и было неясно, к чему относится.
       */}
       {(data.showTitle !== false || data.showDescription !== false || setUrl) && (
@@ -78,7 +78,7 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
                 href={setUrl}
                 className="shrink-0 text-sm font-medium text-muted hover:text-ink hover:underline"
               >
-                {hidden > 0 ? `Ещё ${hidden} в наборе →` : 'Весь набор →'}
+                {hidden > 0 ? `Ещё ${hidden} в плейлисте →` : 'Весь плейлист →'}
               </a>
             )}
           </div>

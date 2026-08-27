@@ -223,7 +223,7 @@ export function payloadCatalog(payload: Payload): CatalogPort {
   };
 }
 
-/** Набор портов по умолчанию — то, чем пользуется фоновая задача. */
+/** Плейлист портов по умолчанию — то, чем пользуется фоновая задача. */
 export const defaultVideoPorts = (payload: Payload): VideoPorts => ({
   encoder: ffmpegEncoder,
   storage: s3Storage(),

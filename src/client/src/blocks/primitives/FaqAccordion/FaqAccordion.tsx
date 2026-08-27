@@ -199,7 +199,7 @@ function isVkUrl(href: string): boolean {
   }
 }
 
-// Lexical AST → React. Минимальный набор узлов для FAQ: paragraph, list (ul/ol),
+// Lexical AST → React. Минимальный плейлист узлов для FAQ: paragraph, list (ul/ol),
 // listitem, text (с bold), link. Без подключения @lexical/react — оверкилл.
 interface LexNode {
   readonly type: string;

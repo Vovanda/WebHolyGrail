@@ -6,14 +6,14 @@ import { VideoSetPlayer } from '@/blocks/primitives/Video/VideoSetPlayer';
 import { getPlaylistByCode, issueVideoToken } from '@/lib/api-client';
 
 /**
- * Страница набора: `/@<канал>/p/<код>`.
+ * Страница плейлиста: `/@<канал>/p/<код>`.
  *
  * @remarks
- * Набор смотрят, а не изучают, поэтому страница устроена как привычный
- * плейлист: слева играет ролик, справа список остальных, и переключение
+ * Плейлист смотрят, а не изучают, поэтому страница устроена как привычный
+ * плейлист: слева играет видео, справа список остальных, и переключение
  * не уводит со страницы.
  *
- * Закрытые ролики из списка не убираются — состав набора это его витрина,
+ * Закрытые видео из списка не убираются — состав плейлиста это его витрина,
  * и по названию с обложкой видно, за что платят. Играть закрытый не начнёт:
  * ключ выдаётся отдельно и по тем же правилам.
  *
@@ -27,7 +27,7 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata({ params }: { params: Promise<Params> }) {
   const { channel, code } = await params;
   const playlist = await getPlaylistByCode(channel, code, '');
-  if (!playlist) return { title: 'Набор не найден' };
+  if (!playlist) return { title: 'Плейлист не найден' };
 
   return {
     title: playlist.title,
@@ -94,7 +94,7 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
   );
 }
 
-/** «3 ролика», «5 роликов» — иначе счётчик читается как машинный. */
+/** «3 видео», «5 видео» — иначе счётчик читается как машинный. */
 function plural(count: number, one: string, few: string, many: string): string {
   const mod100 = count % 100;
   if (mod100 >= 11 && mod100 <= 14) return many;

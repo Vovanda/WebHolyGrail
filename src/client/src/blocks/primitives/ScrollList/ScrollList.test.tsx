@@ -14,7 +14,7 @@ function rows(count: number) {
 }
 
 describe('ScrollList', () => {
-  it('без ограничения показывает весь набор', () => {
+  it('без ограничения показывает весь плейлист', () => {
     const html = renderToStaticMarkup(<ScrollList>{rows(12)}</ScrollList>);
     expect(html.match(/<li>/g)).toHaveLength(12);
     expect(html).not.toContain('Показать ещё');
@@ -57,7 +57,7 @@ describe('ScrollList', () => {
     expect(html).not.toContain('max-height');
   });
 
-  it('пустому набору показывает подсказку вместо списка', () => {
+  it('пустому плейлисту показывает подсказку вместо списка', () => {
     const html = renderToStaticMarkup(<ScrollList empty={<p>Пока пусто</p>}>{[]}</ScrollList>);
     expect(html).toBe('<p>Пока пусто</p>');
   });

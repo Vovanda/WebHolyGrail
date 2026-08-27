@@ -58,7 +58,7 @@ describe('VideoSetList', () => {
     expect(html).toContain('/@whg/v/aaa1111?set=set1');
   });
 
-  it('набор без видео говорит об этом словами', () => {
+  it('плейлист без видео говорит об этом словами', () => {
     const html = renderToStaticMarkup(<VideoSetList items={[]} channel="whg" setCode="set1" />);
     expect(html).toContain('нет видео');
   });

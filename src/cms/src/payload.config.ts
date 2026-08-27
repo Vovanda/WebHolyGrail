@@ -127,8 +127,8 @@ export default buildConfig({
     Threads,
     Tags,
     Authors,
-    // Доступ к видео: наборы роликов, права на них и коды, которые эти права
-    // выдают. Сами ролики лежат в медиа — здесь только управление доступом.
+    // Доступ к видео: плейлисты видео, права на них и коды, которые эти права
+    // выдают. Сами видео лежат в медиа — здесь только управление доступом.
     Playlists,
     Entitlements,
     AccessCodes,
@@ -162,7 +162,7 @@ export default buildConfig({
   ],
   /**
    * Jobs Queue — admin UI на /admin/collections/payload-jobs. Template поставляет
-   * пустой набор tasks/workflows — downstream добавляет свои задачи (sync
+   * пустой плейлист tasks/workflows — downstream добавляет свои задачи (sync
    * соц-сетей, генерация отчётов, периодические синки). Воркер запускается через
    * `pnpm payload jobs:run` или встроенный autoRun (см. whg-payload-jobs skill).
    *
@@ -173,7 +173,7 @@ export default buildConfig({
   jobs: {
     tasks: [BuildHlsTask, PurgeVideosTask],
     // Один воркер за раз: ffmpeg живёт на той же машине, что и сайт, и
-    // параллельное кодирование нескольких роликов придушит выдачу страниц.
+    // параллельное кодирование нескольких видео придушит выдачу страниц.
     autoRun: [{ cron: '* * * * *', allQueues: true, limit: 1 }],
     workflows: [],
     jobsCollectionOverrides: ({ defaultJobsCollection }) => ({

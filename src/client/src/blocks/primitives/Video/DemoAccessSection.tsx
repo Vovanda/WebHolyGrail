@@ -6,7 +6,7 @@ import { DemoAccessPanel } from './DemoAccessPanel';
  * DemoAccessSection — серверная обёртка пробы доступа по коду.
  *
  * @remarks
- * Токен здесь не нужен: код вводится в окне, которое живёт рядом с набором,
+ * Токен здесь не нужен: код вводится в окне, которое живёт рядом с плейлистом,
  * и токен берётся там же.
  */
 export interface DemoAccessSectionProps {
