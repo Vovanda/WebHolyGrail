@@ -56,14 +56,20 @@ export async function FaqAccordion({
   return (
     <section className="bg-bg py-8 md:py-12">
       <div className="mx-auto max-w-[880px] px-4 md:px-6">
-        <h1 className="font-display font-semibold text-center leading-tight text-[clamp(30px,5vw,46px)] text-ink m-0 tracking-[-0.6px]">
+        <h1
+          data-part="title"
+          className="font-display font-semibold text-center leading-tight text-[clamp(30px,5vw,46px)] text-ink m-0 tracking-[-0.6px]"
+        >
           {titleEmoji && <span className="mr-2">{titleEmoji}</span>}
           {title}
         </h1>
         <div className="mx-auto mt-3.5 h-[1.5px] w-[60px] bg-accent opacity-85 rounded-full" />
 
         {lead && (
-          <p className="font-display italic text-center text-[18px] leading-[1.5] text-muted mt-6 mb-[26px] tracking-[0.2px]">
+          <p
+            data-part="subtitle"
+            className="font-display italic text-center text-[18px] leading-[1.5] text-muted mt-6 mb-[26px] tracking-[0.2px]"
+          >
             {lead}
           </p>
         )}
@@ -98,7 +104,10 @@ export async function FaqAccordion({
 
         {groups.map((g, i) => (
           <section key={g.id} id={`faq-${slugFor(g, i)}`} className="my-5">
-            <h2 className="flex items-center gap-2.5 font-bold text-ink m-0 mb-2.5 pb-1.5 border-b-[1.5px] border-border uppercase tracking-[0.5px] text-[16px]">
+            <h2
+              data-part="group-title"
+              className="flex items-center gap-2.5 font-bold text-ink m-0 mb-2.5 pb-1.5 border-b-[1.5px] border-border uppercase tracking-[0.5px] text-[16px]"
+            >
               <span className="inline-flex items-center justify-center w-[30px] h-[30px] bg-ink text-paper rounded-full text-[15px] font-extrabold">
                 {i + 1}
               </span>
@@ -109,6 +118,7 @@ export async function FaqAccordion({
               <details
                 key={j}
                 data-faq-item
+                data-part="item"
                 {...(it.openByDefault ? { open: true } : {})}
                 className={cn(
                   'group bg-paper border border-border rounded-[12px] mb-2.5',
@@ -118,6 +128,7 @@ export async function FaqAccordion({
                 )}
               >
                 <summary
+                  data-part="item-title"
                   className={cn(
                     'flex items-center gap-3 px-4 py-3.5 min-h-12 cursor-pointer list-none',
                     'text-ink text-[15px] leading-[1.35] select-none',
@@ -149,7 +160,10 @@ export async function FaqAccordion({
                   </span>
                   <span className="flex-1">{it.question}</span>
                 </summary>
-                <div className="px-4 pb-4 pt-1 text-ink text-[15px] leading-[1.55]">
+                <div
+                  data-part="item-body"
+                  className="px-4 pb-4 pt-1 text-ink text-[15px] leading-[1.55]"
+                >
                   <FaqAnswer content={it.answer} />
                 </div>
               </details>
@@ -159,12 +173,17 @@ export async function FaqAccordion({
 
         {cta && (cta.text || cta.linkLabel) && (
           <div className="mt-8 text-center">
-            {cta.text && <p className="text-muted text-[15px] mb-3">{cta.text}</p>}
+            {cta.text && (
+              <p data-part="caption" className="text-muted text-[15px] mb-3">
+                {cta.text}
+              </p>
+            )}
             {cta.linkLabel && cta.linkHref && (
               <a
                 href={cta.linkHref}
                 target="_blank"
                 rel="noopener"
+                data-part="action"
                 className={cn(
                   'inline-flex items-center gap-2 min-h-[46px] px-6 py-3',
                   // VK-link → синий бренд VK (фиксированный, текст всегда

@@ -48,10 +48,17 @@ export function ProjectTypesGrid({
       <div className="mx-auto max-w-wide px-4 sm:px-6 grid lg:grid-cols-2 gap-8 sm:gap-10 lg:gap-12 items-start">
         {/* LEFT — heading + subtitle */}
         <div>
-          <h2 className="font-display text-h3 md:text-h2 font-semibold leading-tight text-ink">
+          <h2
+            data-part="title"
+            className="font-display text-h3 md:text-h2 font-semibold leading-tight text-ink"
+          >
             {renderAccentHeading(heading, headingAccent)}
           </h2>
-          {subtitle && <p className="mt-5 text-muted leading-relaxed max-w-md">{subtitle}</p>}
+          {subtitle && (
+            <p data-part="subtitle" className="mt-5 text-muted leading-relaxed max-w-md">
+              {subtitle}
+            </p>
+          )}
         </div>
 
         {/* RIGHT — 2×2 grid */}
@@ -62,6 +69,7 @@ export function ProjectTypesGrid({
               return (
                 <div
                   key={i}
+                  data-part="card"
                   className={`rounded-xl border bg-bg p-5 transition-shadow ${
                     isRoadmap
                       ? 'border-border opacity-70'
@@ -78,7 +86,10 @@ export function ProjectTypesGrid({
                       innerScale={0.6}
                     />
                   </div>
-                  <div className="font-display font-semibold text-ink text-base">
+                  <div
+                    data-part="card-title"
+                    className="font-display font-semibold text-ink text-base"
+                  >
                     {item.label}
                     {isRoadmap && (
                       <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wide bg-surface text-muted border border-border">
@@ -87,13 +98,19 @@ export function ProjectTypesGrid({
                     )}
                   </div>
                   {item.description && (
-                    <div className="text-sm text-muted mt-1 leading-snug">{item.description}</div>
+                    <div data-part="card-body" className="text-sm text-muted mt-1 leading-snug">
+                      {item.description}
+                    </div>
                   )}
                 </div>
               );
             })}
           </div>
-          {caption && <p className="mt-5 text-center text-sm italic text-muted">{caption}</p>}
+          {caption && (
+            <p data-part="caption" className="mt-5 text-center text-sm italic text-muted">
+              {caption}
+            </p>
+          )}
         </div>
       </div>
     </section>

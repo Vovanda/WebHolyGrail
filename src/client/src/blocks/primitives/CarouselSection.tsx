@@ -34,11 +34,18 @@ export async function CarouselSection({ node }: CarouselSectionProps) {
     <section className="py-10 md:py-14">
       <div className="mx-auto w-full max-w-wide px-6">
         {data.heading && (
-          <h2 className="font-display text-h3 font-semibold tracking-tight text-ink md:text-h2">
+          <h2
+            data-part="title"
+            className="font-display text-h3 font-semibold tracking-tight text-ink md:text-h2"
+          >
             {data.heading}
           </h2>
         )}
-        {data.subtitle && <p className="mt-3 text-body text-muted">{data.subtitle}</p>}
+        {data.subtitle && (
+          <p data-part="subtitle" className="mt-3 text-body text-muted">
+            {data.subtitle}
+          </p>
+        )}
 
         <div className="mt-8">
           <CarouselDeck
@@ -133,14 +140,23 @@ function CarouselCardView({ card }: { readonly card: CarouselCardView }) {
     <>
       {src && (
         <img
+          data-part="card-media"
           src={src}
           alt={card.image?.alt ?? card.title ?? ''}
           loading="lazy"
           className="aspect-video w-full rounded-lg object-cover"
         />
       )}
-      {card.title && <p className="mt-3 text-body font-medium text-ink">{card.title}</p>}
-      {card.text && <p className="mt-1 text-sm text-muted">{card.text}</p>}
+      {card.title && (
+        <p data-part="card-title" className="mt-3 text-body font-medium text-ink">
+          {card.title}
+        </p>
+      )}
+      {card.text && (
+        <p data-part="card-subtitle" className="mt-1 text-sm text-muted">
+          {card.text}
+        </p>
+      )}
     </>
   );
 
@@ -149,6 +165,7 @@ function CarouselCardView({ card }: { readonly card: CarouselCardView }) {
       <a
         href={card.link.href}
         {...(card.link.external ? { target: '_blank', rel: 'noreferrer' } : {})}
+        data-part="card"
         className="block rounded-xl border border-border bg-paper p-3 transition-colors hover:border-border-strong"
       >
         {body}
@@ -156,5 +173,9 @@ function CarouselCardView({ card }: { readonly card: CarouselCardView }) {
     );
   }
 
-  return <div className="rounded-xl border border-border bg-paper p-3">{body}</div>;
+  return (
+    <div data-part="card" className="rounded-xl border border-border bg-paper p-3">
+      {body}
+    </div>
+  );
 }

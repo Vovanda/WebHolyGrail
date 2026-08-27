@@ -44,6 +44,7 @@ export function ThreadCard({
     const cover = thread.cover;
     return (
       <section
+        data-part="card"
         className={cn(
           'overflow-hidden rounded-xl border border-border bg-surface',
           cover?.url && 'md:grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] md:items-stretch',
@@ -52,6 +53,7 @@ export function ThreadCard({
       >
         {cover?.url && (
           <img
+            data-part="card-media"
             src={cover.url}
             alt={cover.alt ?? thread.title}
             className="w-full aspect-[16/10] object-cover md:h-full md:aspect-auto"
@@ -59,13 +61,25 @@ export function ThreadCard({
           />
         )}
         <div className="flex flex-col justify-center gap-3 p-6 md:p-8 lg:p-10">
-          <Heading className="text-h2 font-display font-semibold text-ink leading-tight tracking-tight text-balance">
+          <Heading
+            data-part="card-title"
+            className="text-h2 font-display font-semibold text-ink leading-tight tracking-tight text-balance"
+          >
             {thread.title}
           </Heading>
           {thread.description && (
-            <p className="text-body text-muted leading-relaxed max-w-prose">{thread.description}</p>
+            <p
+              data-part="card-subtitle"
+              className="text-body text-muted leading-relaxed max-w-prose"
+            >
+              {thread.description}
+            </p>
           )}
-          {meta && <p className="text-sm text-muted/80 tabular-nums">{meta}</p>}
+          {meta && (
+            <p data-part="card-caption" className="text-sm text-muted/80 tabular-nums">
+              {meta}
+            </p>
+          )}
         </div>
       </section>
     );
@@ -75,13 +89,16 @@ export function ThreadCard({
     return (
       <a
         href={href}
+        data-part="card"
         className={cn(
           'flex items-center gap-3 rounded-md border border-border px-3 py-2.5',
           'hover:border-border-strong hover:bg-surface-hover transition-colors',
           className,
         )}
       >
-        <span className="min-w-0 truncate font-semibold text-ink">{thread.title}</span>
+        <span data-part="card-title" className="min-w-0 truncate font-semibold text-ink">
+          {thread.title}
+        </span>
         {articlesCount !== undefined && (
           <span className="ml-auto shrink-0 text-xs text-muted tabular-nums">{articlesCount}</span>
         )}
@@ -93,6 +110,7 @@ export function ThreadCard({
   const Heading = headingLevel ?? 'h3';
   return (
     <article
+      data-part="card"
       className={cn(
         // `relative` — якорь для растянутой ссылки заголовка (см. ниже).
         'group relative flex flex-col overflow-hidden rounded-xl border border-border bg-paper',
@@ -104,6 +122,7 @@ export function ThreadCard({
       <div className="overflow-hidden bg-surface">
         {thread.cover?.url ? (
           <img
+            data-part="card-media"
             src={thread.cover.url}
             alt={thread.cover.alt ?? thread.title}
             className="w-full aspect-[4/3] object-cover transition-transform duration-300 group-hover:scale-[1.03]"
@@ -116,7 +135,10 @@ export function ThreadCard({
         )}
       </div>
       <div className="flex flex-1 flex-col gap-2 p-4 md:p-5">
-        <Heading className="text-h4 font-display font-semibold text-ink leading-snug text-balance">
+        <Heading
+          data-part="card-title"
+          className="text-h4 font-display font-semibold text-ink leading-snug text-balance"
+        >
           {/*
             Кликается вся плитка, а не только заголовок: карточка целиком
             выглядит как одна кнопка, и попадание мимо буквы заголовка
@@ -133,9 +155,18 @@ export function ThreadCard({
           </a>
         </Heading>
         {thread.description && (
-          <p className="text-body text-muted line-clamp-2 leading-relaxed">{thread.description}</p>
+          <p
+            data-part="card-subtitle"
+            className="text-body text-muted line-clamp-2 leading-relaxed"
+          >
+            {thread.description}
+          </p>
         )}
-        {meta && <p className="mt-auto pt-1 text-sm text-muted/80 tabular-nums">{meta}</p>}
+        {meta && (
+          <p data-part="card-caption" className="mt-auto pt-1 text-sm text-muted/80 tabular-nums">
+            {meta}
+          </p>
+        )}
       </div>
     </article>
   );

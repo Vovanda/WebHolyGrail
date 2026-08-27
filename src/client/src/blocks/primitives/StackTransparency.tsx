@@ -32,15 +32,21 @@ export function StackTransparency({
   if (items.length === 0) return null;
 
   return (
-    <section className="py-14 md:py-18 bg-page-bg">
+    <section className="block-space bg-page-bg">
       <div className="mx-auto max-w-wide px-4 md:px-6 text-center">
         {heading && (
-          <h2 className="font-display text-xl md:text-2xl font-semibold text-ink">{heading}</h2>
+          <h2 data-part="title" className="font-display text-xl md:text-2xl font-semibold text-ink">
+            {heading}
+          </h2>
         )}
-        {subtitle && <p className="mt-2 text-sm md:text-base text-muted">{subtitle}</p>}
+        {subtitle && (
+          <p data-part="subtitle" className="mt-2 text-sm md:text-base text-muted">
+            {subtitle}
+          </p>
+        )}
         <ul className="mt-8 flex flex-wrap items-center justify-center gap-x-10 gap-y-6">
           {items.map((item, i) => (
-            <li key={i} className="flex flex-col items-center gap-2 min-w-[80px]">
+            <li key={i} data-part="item" className="flex flex-col items-center gap-2 min-w-[80px]">
               <Icon
                 icon={item.icon}
                 label={item.label}

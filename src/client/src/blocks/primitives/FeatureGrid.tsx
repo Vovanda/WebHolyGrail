@@ -8,6 +8,7 @@ import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, X } from 'lucide-r
 import type { BlockNode, MediaRef, SiteSettings } from 'contracts';
 
 import { resolveMediaUrl } from '@/lib/media';
+import { cn } from '@/lib/utils';
 
 import { Icon } from './Icon';
 import { PhotoLightbox } from './PhotoLightbox';
@@ -118,6 +119,7 @@ function CardMedia({
       <div className={`${ratioClass} overflow-hidden bg-surface`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
+          data-part="card-media"
           src={urls[0]}
           alt={alt}
           {...(onPick ? { onClick: () => onPick(0), role: 'button', tabIndex: 0 } : {})}
@@ -138,6 +140,7 @@ function CardMedia({
               <div className={ratioClass}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
+                  data-part="card-media"
                   src={url}
                   alt={alt}
                   {...(onPick ? { onClick: () => onPick(i), role: 'button', tabIndex: 0 } : {})}
@@ -219,10 +222,21 @@ function FeatureCard({
           />
         </div>
       )}
-      <div className="font-display font-semibold text-ink text-sm md:text-base">{item.title}</div>
-      {item.subtitle && <div className="text-xs text-muted mt-1">{item.subtitle}</div>}
+      <div
+        data-part="card-title"
+        className="font-display font-semibold text-ink text-sm md:text-base"
+      >
+        {item.title}
+      </div>
+      {item.subtitle && (
+        <div data-part="card-subtitle" className="text-xs text-muted mt-1">
+          {item.subtitle}
+        </div>
+      )}
       {item.description && (
-        <div className="text-xs text-muted/80 mt-2 leading-snug">{item.description}</div>
+        <div data-part="card-body" className="text-xs text-muted/80 mt-2 leading-snug">
+          {item.description}
+        </div>
       )}
     </>
   );
@@ -235,6 +249,7 @@ function FeatureCard({
       <button
         type="button"
         onClick={onOpen}
+        data-part="card"
         className={interactiveClass}
         aria-label={`Подробнее: ${item.title}`}
       >
@@ -249,6 +264,7 @@ function FeatureCard({
       <Link
         href={href}
         {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+        data-part="card"
         className={interactiveClass}
       >
         {body}
@@ -260,7 +276,11 @@ function FeatureCard({
       </Link>
     );
   }
-  return <div className={baseClass}>{body}</div>;
+  return (
+    <div data-part="card" className={baseClass}>
+      {body}
+    </div>
+  );
 }
 
 export function FeatureGrid({
@@ -283,14 +303,21 @@ export function FeatureGrid({
   const isSevenCheckerboard = !isCarousel && items.length === 7;
 
   return (
-    <section className={`py-14 md:py-18 ${isCarousel ? 'bg-page-bg' : ''}`}>
+    <section className={cn('block-space', isCarousel && 'bg-page-bg')}>
       <div className="mx-auto max-w-wide px-4 md:px-6">
         {heading && (
-          <h2 className="text-center font-display text-h3 md:text-h2 font-semibold text-ink">
+          <h2
+            data-part="title"
+            className="text-center font-display text-h3 md:text-h2 font-semibold text-ink"
+          >
             {heading}
           </h2>
         )}
-        {subtitle && <p className="text-center text-muted mt-3 max-w-2xl mx-auto">{subtitle}</p>}
+        {subtitle && (
+          <p data-part="subtitle" className="text-center text-muted mt-3 max-w-2xl mx-auto">
+            {subtitle}
+          </p>
+        )}
 
         {isCarousel ? (
           <CardCarousel items={items} onOpen={setOpenIdx} />

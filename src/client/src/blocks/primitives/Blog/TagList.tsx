@@ -27,6 +27,7 @@ export function TagChip({ tag, className }: TagChipProps) {
   return (
     <a
       href={`/blog/tag/${tag.slug}`}
+      data-part="item"
       className={cn(
         'inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold',
         'border border-border transition-colors hover:bg-surface-hover',

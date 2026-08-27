@@ -92,27 +92,44 @@ function Card({ doc }: { readonly doc: SpecialistDoc }) {
   const disciplines = (doc.disciplines ?? []).map((d) => d.title).filter(Boolean);
 
   const inner = (
-    <article className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-accent">
+    <article
+      data-part="card"
+      className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-accent"
+    >
       {url ? (
         // eslint-disable-next-line @next/next/no-img-element -- источник — S3 нашей CMS, размеры задаёт контейнер
-        <img src={url} alt={doc.fullName} className="aspect-[4/3] w-full object-cover" />
+        <img
+          data-part="card-media"
+          src={url}
+          alt={doc.fullName}
+          className="aspect-[4/3] w-full object-cover"
+        />
       ) : (
         <div className="aspect-[4/3] w-full bg-accent-soft" aria-hidden="true" />
       )}
       <div className="flex flex-1 flex-col gap-1 p-4">
-        <h3 className="font-display text-lg font-semibold text-ink">{doc.fullName}</h3>
+        <h3 data-part="card-title" className="font-display text-lg font-semibold text-ink">
+          {doc.fullName}
+        </h3>
         {doc.ratingPublic && typeof doc.rating === 'number' && doc.rating > 0 && (
           <RatingStars value={doc.rating} />
         )}
-        {doc.headline && <p className="text-sm text-muted">{doc.headline}</p>}
+        {doc.headline && (
+          <p data-part="card-subtitle" className="text-sm text-muted">
+            {doc.headline}
+          </p>
+        )}
         {disciplines.length > 0 && (
-          <p className="mt-2 text-sm text-ink/80">
+          <p data-part="card-body" className="mt-2 text-sm text-ink/80">
             {disciplines.slice(0, 4).join(' · ')}
             {disciplines.length > 4 && ' …'}
           </p>
         )}
         {doc.acceptingClients === false && (
-          <p className="mt-auto pt-3 text-xs uppercase tracking-wide text-muted">
+          <p
+            data-part="card-caption"
+            className="mt-auto pt-3 text-xs uppercase tracking-wide text-muted"
+          >
             Сейчас не набирает
           </p>
         )}
@@ -134,9 +151,15 @@ function Header({ data }: { readonly data: SpecialistDirectoryData }) {
   return (
     <header className="mb-8 text-center md:mb-10">
       {data.heading && (
-        <h2 className="font-display text-h3 font-semibold text-ink md:text-h2">{data.heading}</h2>
+        <h2 data-part="title" className="font-display text-h3 font-semibold text-ink md:text-h2">
+          {data.heading}
+        </h2>
       )}
-      {data.description && <p className="mt-2 text-muted">{data.description}</p>}
+      {data.description && (
+        <p data-part="subtitle" className="mt-2 text-muted">
+          {data.description}
+        </p>
+      )}
     </header>
   );
 }
@@ -147,6 +170,7 @@ function MoreLink({ data }: { readonly data: SpecialistDirectoryData }) {
     <div className="mt-8 text-center">
       <Link
         href={data.moreHref}
+        data-part="action"
         className="inline-block rounded-md border border-accent px-6 py-3 font-medium text-accent transition-colors hover:bg-accent hover:text-accent-fg"
       >
         {data.moreLabel}
@@ -182,10 +206,13 @@ async function CitiesView({ data }: { readonly data: SpecialistDirectoryData }) 
                 <Link
                   key={String(city.id)}
                   href={`${data.moreHref ?? catalogPath()}?city=${city.slug ?? ''}`}
+                  data-part="card"
                   className="group rounded-xl border border-border bg-surface p-6 no-underline transition-colors hover:border-accent"
                 >
-                  <p className="font-display text-xl font-semibold text-ink">{city.name}</p>
-                  <p className="mt-1 text-sm text-muted">
+                  <p data-part="card-title" className="font-display text-xl font-semibold text-ink">
+                    {city.name}
+                  </p>
+                  <p data-part="card-caption" className="mt-1 text-sm text-muted">
                     {count} {plural(count, 'специалист', 'специалиста', 'специалистов')}
                   </p>
                 </Link>
@@ -318,7 +345,10 @@ export async function SpecialistDirectory({
         {byCity.map(({ city, people }) => (
           <div key={String(city.id)} className="mb-10 last:mb-0">
             {(data.showCities ?? true) && (
-              <h3 className="mb-4 font-display text-lg font-semibold uppercase tracking-wide text-accent">
+              <h3
+                data-part="group-title"
+                className="mb-4 font-display text-lg font-semibold uppercase tracking-wide text-accent"
+              >
                 {city.name}
               </h3>
             )}

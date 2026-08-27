@@ -83,7 +83,11 @@ export function Prose({
   const useDropcap = data.variant === 'editorial-with-dropcap';
 
   return (
-    <section className="bg-bg pt-2 pb-10 md:pb-14">
+    /*
+      Шаг по вертикали общий для всех блоков страницы; отдельному блоку его
+      меняет владелец своим стилем.
+    */
+    <section className="block-space bg-bg">
       {/* Незаполненные реквизиты и неподанное уведомление — не мелочь: документ
           без них не работает, а выглядит готовым. Поэтому предупреждение видно
           прямо на странице, а не только в админке. */}
@@ -108,6 +112,7 @@ export function Prose({
         {paragraphs.map((paragraph, idx) => (
           <p
             key={idx}
+            data-part="item"
             className={cn('m-0 mb-[18px] last:mb-0', useDropcap && idx === 0 && 'with-dropcap')}
           >
             {paragraph}

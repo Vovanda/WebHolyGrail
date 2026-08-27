@@ -52,7 +52,10 @@ export function Timeline({
   return (
     <section className="bg-bg py-12 md:py-16">
       <ContentFrame side="right" decor="vines" className="px-6">
-        <h2 className="text-center font-display text-3xl md:text-h2 font-semibold text-ink">
+        <h2
+          data-part="title"
+          className="text-center font-display text-3xl md:text-h2 font-semibold text-ink"
+        >
           {heading}
         </h2>
         <div className="mx-auto mt-4 mb-10 h-[1.5px] w-16 bg-accent opacity-85 rounded-full" />
@@ -100,11 +103,16 @@ export function Timeline({
                   <span className="emoji-fix w-6 text-lg shrink-0" aria-hidden>
                     {entry.icon ?? ''}
                   </span>
-                  <h3 className="font-display text-[28px] font-semibold tracking-[0.5px] leading-tight text-ink mb-1">
+                  <h3
+                    data-part="entry-title"
+                    className="font-display text-[28px] font-semibold tracking-[0.5px] leading-tight text-ink mb-1"
+                  >
                     {entry.year}
                   </h3>
                 </div>
-                <p className="text-ink/90 leading-relaxed">{entry.body}</p>
+                <p data-part="entry-body" className="text-ink/90 leading-relaxed">
+                  {entry.body}
+                </p>
               </li>
             );
           })}

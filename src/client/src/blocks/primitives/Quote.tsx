@@ -145,12 +145,14 @@ export function Quote({
     hasPhoto && (data.variant === 'card-accent-left' || data.variant === 'photo-card');
 
   const figureEl = (
-    <figure className={cn(quoteCard({ variant: data.variant }), 'm-0')}>
+    <figure data-part="card" className={cn(quoteCard({ variant: data.variant }), 'm-0')}>
       <span aria-hidden className={quoteMark({ variant: data.variant })}>
         {'“'}
       </span>
-      <blockquote className="m-0">{data.body}</blockquote>
-      <figcaption className={quoteCaption({ variant: data.variant })}>
+      <blockquote data-part="card-body" className="m-0">
+        {data.body}
+      </blockquote>
+      <figcaption data-part="card-caption" className={quoteCaption({ variant: data.variant })}>
         {data.author}
         {data.role && <span className={quoteRole({ variant: data.variant })}>{data.role}</span>}
       </figcaption>
@@ -162,7 +164,10 @@ export function Quote({
       <ContentFrame side="none" className="px-6">
         {data.heading && (
           <>
-            <h2 className="text-center font-display text-3xl md:text-h2 font-semibold text-ink">
+            <h2
+              data-part="title"
+              className="text-center font-display text-3xl md:text-h2 font-semibold text-ink"
+            >
               {data.heading}
             </h2>
             <div className="mx-auto mt-4 mb-8 h-[1.5px] w-16 bg-accent opacity-85 rounded-full" />
@@ -227,10 +232,13 @@ function FullWidthDarkQuote({ data }: { readonly data: QuoteData }) {
         <span aria-hidden className="font-display text-6xl text-dark-block-fg/30 leading-none">
           {'“'}
         </span>
-        <blockquote className="mt-3 font-display text-xl md:text-2xl lg:text-3xl font-medium italic leading-snug text-dark-block-fg">
+        <blockquote
+          data-part="body"
+          className="mt-3 font-display text-xl md:text-2xl lg:text-3xl font-medium italic leading-snug text-dark-block-fg"
+        >
           {data.body}
         </blockquote>
-        <div className="mt-8 text-sm md:text-base text-dark-block-fg/75">
+        <div data-part="caption" className="mt-8 text-sm md:text-base text-dark-block-fg/75">
           {'— '}
           {data.authorHref ? (
             <Link

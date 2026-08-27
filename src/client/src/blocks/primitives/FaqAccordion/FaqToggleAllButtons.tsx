@@ -25,6 +25,7 @@ export function FaqToggleAllButtons() {
     <div className="flex flex-wrap gap-2 justify-center mb-4">
       <button
         type="button"
+        data-part="action"
         onClick={() => toggleAll(true)}
         className={cn(
           'inline-flex items-center min-h-[36px] px-[18px] rounded-full',
@@ -36,6 +37,7 @@ export function FaqToggleAllButtons() {
       </button>
       <button
         type="button"
+        data-part="action"
         onClick={() => toggleAll(false)}
         className={cn(
           'inline-flex items-center min-h-[36px] px-[18px] rounded-full',

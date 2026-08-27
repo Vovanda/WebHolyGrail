@@ -47,13 +47,18 @@ export function InstallSnippet({
           <button
             type="button"
             onClick={copy}
+            data-part="action"
             aria-label={copied ? 'Скопировано' : 'Скопировать команду'}
             className="absolute top-3 right-3 inline-flex h-8 w-8 items-center justify-center rounded-md text-dark-block-fg/70 hover:text-dark-block-fg hover:bg-white/10 transition-colors"
           >
             {copied ? <Check size={16} /> : <Copy size={16} />}
           </button>
         </div>
-        {caption && <p className="mt-3 text-center text-sm text-muted">{caption}</p>}
+        {caption && (
+          <p data-part="caption" className="mt-3 text-center text-sm text-muted">
+            {caption}
+          </p>
+        )}
       </div>
     </section>
   );

@@ -32,17 +32,25 @@ export function ComparisonTable({
     <section className="py-14 md:py-18">
       <div className="mx-auto max-w-wide px-4 md:px-6">
         {heading && (
-          <h2 className="text-center font-display text-h3 md:text-h2 font-semibold text-ink mb-10 md:mb-12">
+          <h2
+            data-part="title"
+            className="text-center font-display text-h3 md:text-h2 font-semibold text-ink mb-10 md:mb-12"
+          >
             {heading}
           </h2>
         )}
         <div className="grid gap-4 lg:gap-6 items-stretch lg:grid-cols-[1fr_auto_1fr]">
           {/* LEFT — soft red tint */}
           <div className="rounded-xl bg-danger-soft/50 border border-danger/20 p-6 md:p-8">
-            <h3 className="font-display text-lg font-semibold text-danger mb-4">{leftLabel}</h3>
+            <h3
+              data-part="column-title"
+              className="font-display text-lg font-semibold text-danger mb-4"
+            >
+              {leftLabel}
+            </h3>
             <ul className="space-y-3">
               {leftItems.map((item, i) => (
-                <li key={i} className="flex items-start gap-3 text-ink/85">
+                <li key={i} data-part="item" className="flex items-start gap-3 text-ink/85">
                   <X size={18} className="text-danger shrink-0 mt-0.5" aria-hidden="true" />
                   <span className="leading-snug">{item.text}</span>
                 </li>
@@ -57,10 +65,15 @@ export function ComparisonTable({
 
           {/* RIGHT — soft pastel green tint */}
           <div className="rounded-xl bg-success-soft/50 border border-success/20 p-6 md:p-8">
-            <h3 className="font-display text-lg font-semibold text-success mb-4">{rightLabel}</h3>
+            <h3
+              data-part="column-title"
+              className="font-display text-lg font-semibold text-success mb-4"
+            >
+              {rightLabel}
+            </h3>
             <ul className="space-y-3">
               {rightItems.map((item, i) => (
-                <li key={i} className="flex items-start gap-3 text-ink/85">
+                <li key={i} data-part="item" className="flex items-start gap-3 text-ink/85">
                   <Check size={18} className="text-success shrink-0 mt-0.5" aria-hidden="true" />
                   <span className="leading-snug">{item.text}</span>
                 </li>

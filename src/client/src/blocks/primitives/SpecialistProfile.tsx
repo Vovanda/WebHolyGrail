@@ -53,7 +53,10 @@ export function SpecialistProfile({
     <section className="bg-bg py-10 md:py-14">
       <div className="mx-auto max-w-content px-4 md:px-6">
         {data.heading && (
-          <h2 className="mb-6 font-display text-2xl font-semibold text-ink md:text-3xl">
+          <h2
+            data-part="title"
+            className="mb-6 font-display text-2xl font-semibold text-ink md:text-3xl"
+          >
             {data.heading}
           </h2>
         )}
@@ -61,7 +64,9 @@ export function SpecialistProfile({
         {hasBio && (
           <div>
             {!data.heading && (
-              <h2 className="font-display text-xl font-semibold text-ink">О себе</h2>
+              <h2 data-part="group-title" className="font-display text-xl font-semibold text-ink">
+                О себе
+              </h2>
             )}
             {doc.bio!.split(/\n{2,}/).map((paragraph) => (
               <p key={paragraph.slice(0, 40)} className="mt-3 leading-relaxed text-ink/90">
@@ -73,10 +78,12 @@ export function SpecialistProfile({
 
         {hasCredentials && (
           <div className="mt-8">
-            <h2 className="font-display text-xl font-semibold text-ink">Образование и регалии</h2>
+            <h2 data-part="group-title" className="font-display text-xl font-semibold text-ink">
+              Образование и регалии
+            </h2>
             <ul className="mt-3 space-y-2">
               {credentials.map((item) => (
-                <li key={item.title} className="text-ink/90">
+                <li key={item.title} data-part="item" className="text-ink/90">
                   {item.title}
                   {item.note && <span className="text-muted"> — {item.note}</span>}
                 </li>
@@ -87,10 +94,12 @@ export function SpecialistProfile({
 
         {hasFacts && (
           <div className="mt-8">
-            <h2 className="font-display text-xl font-semibold text-ink">Факты</h2>
+            <h2 data-part="group-title" className="font-display text-xl font-semibold text-ink">
+              Факты
+            </h2>
             <ul className="mt-3 space-y-2">
               {facts.map((item) => (
-                <li key={item.text} className="text-ink/90">
+                <li key={item.text} data-part="item" className="text-ink/90">
                   {item.text}
                 </li>
               ))}
@@ -100,18 +109,31 @@ export function SpecialistProfile({
 
         {hasLocations && (
           <div className="mt-8">
-            <h2 className="font-display text-xl font-semibold text-ink">Где найти</h2>
+            <h2 data-part="group-title" className="font-display text-xl font-semibold text-ink">
+              Где найти
+            </h2>
             <ul className="mt-3 space-y-3">
               {locations.map((place) => (
-                <li key={place.title} className="rounded-lg border border-border p-4">
-                  <p className="font-medium text-ink">{place.title}</p>
-                  {place.address && <p className="text-muted">{place.address}</p>}
+                <li
+                  key={place.title}
+                  data-part="item"
+                  className="rounded-lg border border-border p-4"
+                >
+                  <p data-part="item-title" className="font-medium text-ink">
+                    {place.title}
+                  </p>
+                  {place.address && (
+                    <p data-part="item-body" className="text-muted">
+                      {place.address}
+                    </p>
+                  )}
                   {place.note && <p className="text-sm text-muted">{place.note}</p>}
                   {place.mapUrl && (
                     <a
                       href={place.mapUrl}
                       target="_blank"
                       rel="noopener noreferrer"
+                      data-part="action"
                       className="mt-1 inline-block text-sm text-accent underline-offset-2 hover:underline"
                     >
                       Посмотреть на карте

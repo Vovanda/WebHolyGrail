@@ -134,6 +134,7 @@ export function LightboxImageGroup({
             <button
               key={`${p.url}-${i}`}
               type="button"
+              data-part="item"
               onClick={() => open(i)}
               aria-label={`Увеличить фото${p.alt ? ` — ${p.alt}` : ''}`}
               className={cn(
@@ -141,7 +142,13 @@ export function LightboxImageGroup({
                 itemClassName,
               )}
             >
-              <img src={p.url} alt={p.alt ?? ''} loading={loading} className={imgClassName} />
+              <img
+                data-part="media"
+                src={p.url}
+                alt={p.alt ?? ''}
+                loading={loading}
+                className={imgClassName}
+              />
               {showBadge && <PhotoCountBadge count={photos.length} />}
             </button>
           );

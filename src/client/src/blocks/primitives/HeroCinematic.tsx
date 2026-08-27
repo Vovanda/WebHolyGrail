@@ -102,6 +102,7 @@ function Corner({ corner }: { readonly corner: HeroCinematicCorner }) {
   const emphasis = corner.emphasis ?? 'medium';
   return (
     <div
+      data-part="item"
       className={[
         'relative inline-block w-[46%] max-w-[150px] px-3 py-2.5 uppercase leading-snug tracking-wide text-accent md:w-auto md:max-w-[220px] md:px-4 md:py-3',
         'before:absolute before:bg-accent before:content-[""] after:absolute after:bg-accent after:content-[""]',
@@ -111,7 +112,10 @@ function Corner({ corner }: { readonly corner: HeroCinematicCorner }) {
     >
       {corner.title}
       {corner.subtitle && (
-        <span className="mt-1 block text-[11px] font-normal normal-case leading-tight tracking-normal text-ink/80 md:mt-1.5 md:text-sm">
+        <span
+          data-part="item-subtitle"
+          className="mt-1 block text-[11px] font-normal normal-case leading-tight tracking-normal text-ink/80 md:mt-1.5 md:text-sm"
+        >
           {corner.subtitle}
         </span>
       )}
@@ -252,6 +256,7 @@ export function HeroCinematic({
           // а не по набранному вразрядку названию.
           // eslint-disable-next-line @next/next/no-img-element -- источник S3 нашей CMS
           <img
+            data-part="media"
             src={mediaUrl(data.logo)}
             alt={data.brand ?? ''}
             className="mx-auto my-4 w-60 max-w-[82%] md:w-[26rem]"
@@ -265,7 +270,10 @@ export function HeroCinematic({
         )}
 
         <div className="flex flex-grow items-center py-4 md:px-[6%]">
-          <h1 className="font-display text-2xl font-bold uppercase leading-tight tracking-wide text-accent dark:[text-shadow:0_2px_10px_rgba(0,0,0,0.6)] md:text-4xl">
+          <h1
+            data-part="title"
+            className="font-display text-2xl font-bold uppercase leading-tight tracking-wide text-accent dark:[text-shadow:0_2px_10px_rgba(0,0,0,0.6)] md:text-4xl"
+          >
             {data.headline}
             {data.highlightHref ? (
               <Link href={data.highlightHref} className="no-underline hover:opacity-80">
@@ -282,7 +290,10 @@ export function HeroCinematic({
           // и белым оно пропадало на светлой теме, а тёмным пропадёт на тёмном
           // кадре. Плашка даёт тексту собственный фон и заодно привязывает его
           // к теме сайта.
-          <blockquote className="mx-auto max-w-3xl rounded-lg border-y-2 border-accent bg-bg/70 px-4 py-4 text-center text-base leading-relaxed text-ink backdrop-blur-sm md:text-lg">
+          <blockquote
+            data-part="subtitle"
+            className="mx-auto max-w-3xl rounded-lg border-y-2 border-accent bg-bg/70 px-4 py-4 text-center text-base leading-relaxed text-ink backdrop-blur-sm md:text-lg"
+          >
             {data.quote}
           </blockquote>
         )}
@@ -291,6 +302,7 @@ export function HeroCinematic({
           <div className="py-4 text-center">
             <Link
               href={data.ctaHref}
+              data-part="action"
               className="inline-block border-2 border-accent px-8 py-3 text-sm font-semibold uppercase tracking-[0.15em] text-accent transition-all hover:-translate-y-0.5 hover:bg-accent hover:text-accent-fg md:px-11 md:py-4"
             >
               {data.ctaLabel}

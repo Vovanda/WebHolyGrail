@@ -44,14 +44,21 @@ export function BuiltWith({
   if (items.length === 0) return null;
 
   return (
-    <section className="py-14 md:py-18 bg-page-bg">
+    <section className="block-space bg-page-bg">
       <div className="mx-auto max-w-wide px-4 sm:px-6">
         {heading && (
-          <h2 className="text-center font-display text-h3 md:text-h2 font-semibold text-ink">
+          <h2
+            data-part="title"
+            className="text-center font-display text-h3 md:text-h2 font-semibold text-ink"
+          >
             {heading}
           </h2>
         )}
-        {subtitle && <p className="text-center text-muted mt-3">{subtitle}</p>}
+        {subtitle && (
+          <p data-part="subtitle" className="text-center text-muted mt-3">
+            {subtitle}
+          </p>
+        )}
 
         <div className="mt-10">
           <CarouselDeck gap="lg" edge="gap" marquee loop label={heading}>
@@ -66,6 +73,7 @@ export function BuiltWith({
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    data-part="card"
                     className="group block h-full overflow-hidden rounded-xl border border-border bg-bg shadow-sm transition-all hover:border-accent/40 hover:shadow-md"
                   >
                     <div className="aspect-[16/10] bg-surface relative overflow-hidden">
@@ -73,12 +81,14 @@ export function BuiltWith({
                         <>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
+                            data-part="card-media"
                             src={preview}
                             alt={item.siteName}
                             className="shot-light absolute inset-0 h-full w-full object-cover"
                           />
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
+                            data-part="card-media"
                             src={previewDark}
                             alt={item.siteName}
                             className="shot-dark absolute inset-0 h-full w-full object-cover"
@@ -90,11 +100,19 @@ export function BuiltWith({
                     </div>
                     <div className="flex items-start justify-between gap-3 p-4">
                       <div className="min-w-0">
-                        <div className="truncate font-display text-base font-semibold text-ink">
+                        <div
+                          data-part="card-title"
+                          className="truncate font-display text-base font-semibold text-ink"
+                        >
                           {item.siteName}
                         </div>
                         {item.niche && (
-                          <div className="mt-0.5 truncate text-xs text-muted">{item.niche}</div>
+                          <div
+                            data-part="card-subtitle"
+                            className="mt-0.5 truncate text-xs text-muted"
+                          >
+                            {item.niche}
+                          </div>
                         )}
                       </div>
                       <ArrowUpRight

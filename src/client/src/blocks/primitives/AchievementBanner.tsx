@@ -73,7 +73,10 @@ export function AchievementBanner({
             </div>
             <div className="flex-1 min-w-0">
               {title && (
-                <p className="m-0 font-display font-bold text-[24px] uppercase text-ink tracking-[0.4px] leading-[1.1]">
+                <p
+                  data-part="title"
+                  className="m-0 font-display font-bold text-[24px] uppercase text-ink tracking-[0.4px] leading-[1.1]"
+                >
                   {title}
                   {titleSuffix && (
                     <>
@@ -86,7 +89,7 @@ export function AchievementBanner({
                 </p>
               )}
               {descriptionNodes.length > 0 && (
-                <p className="m-0 mt-1.5 text-[14.5px] leading-[1.5] text-ink">
+                <p data-part="subtitle" className="m-0 mt-1.5 text-[14.5px] leading-[1.5] text-ink">
                   {descriptionNodes}
                 </p>
               )}
@@ -100,6 +103,7 @@ export function AchievementBanner({
               {items.map((it, i) => (
                 <li
                   key={i}
+                  data-part="item"
                   className={cn(
                     'inline-flex items-center gap-2.5',
                     'pl-3.5 pr-5 py-[11px] rounded-full',

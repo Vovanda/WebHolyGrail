@@ -169,10 +169,14 @@ export function SpecialistTop({
         >
           {shown.map((p) => (
             <Link key={p.id} href={p.slug ? `${basePath}/${p.slug}` : '#'} className="no-underline">
-              <article className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-accent">
+              <article
+                data-part="card"
+                className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-accent"
+              >
                 {p.photoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- источник S3 нашей CMS
                   <img
+                    data-part="card-media"
                     src={p.photoUrl}
                     alt={p.fullName}
                     className="aspect-[4/3] w-full object-cover"
@@ -181,16 +185,30 @@ export function SpecialistTop({
                   <div className="aspect-[4/3] w-full bg-accent-soft" aria-hidden="true" />
                 )}
                 <div className="flex flex-1 flex-col gap-1 p-4">
-                  <h3 className="font-display text-lg font-semibold text-ink">{p.fullName}</h3>
+                  <h3
+                    data-part="card-title"
+                    className="font-display text-lg font-semibold text-ink"
+                  >
+                    {p.fullName}
+                  </h3>
                   {/* Город — первое, что человек ищет в карточке: он выбирает
                       не только специалиста, но и «дотуда ли я доеду». */}
                   {p.cityName && (
-                    <p className="text-sm uppercase tracking-wide text-accent">{p.cityName}</p>
+                    <p
+                      data-part="card-caption"
+                      className="text-sm uppercase tracking-wide text-accent"
+                    >
+                      {p.cityName}
+                    </p>
                   )}
                   {typeof p.rating === 'number' && p.rating > 0 && <RatingStars value={p.rating} />}
-                  {p.headline && <p className="text-sm text-muted">{p.headline}</p>}
+                  {p.headline && (
+                    <p data-part="card-subtitle" className="text-sm text-muted">
+                      {p.headline}
+                    </p>
+                  )}
                   {p.disciplines.length > 0 && (
-                    <p className="mt-2 text-sm text-ink/80">
+                    <p data-part="card-body" className="mt-2 text-sm text-ink/80">
                       {p.disciplines.slice(0, MAX_CARD_SKILLS).join(' · ')}
                       {p.disciplines.length > MAX_CARD_SKILLS && ' …'}
                     </p>
@@ -206,6 +224,7 @@ export function SpecialistTop({
         <div className="mt-8 text-center">
           <Link
             href={moreHref}
+            data-part="action"
             className="inline-block rounded-md border border-accent px-6 py-3 font-medium text-accent transition-colors hover:bg-accent hover:text-accent-fg"
           >
             {moreLabel}

@@ -24,6 +24,7 @@ export function Pagination({ currentPage, totalPages, hrefBuilder, className }: 
       aria-label="Pagination"
     >
       <a
+        data-part="action"
         href={currentPage > 1 ? href(currentPage - 1) : undefined}
         aria-disabled={currentPage <= 1}
         className={cn(
@@ -44,6 +45,7 @@ export function Pagination({ currentPage, totalPages, hrefBuilder, className }: 
           <a
             key={p}
             href={href(p)}
+            data-part="item"
             aria-current={p === currentPage ? 'page' : undefined}
             className={cn(
               'min-w-[36px] px-2 py-1.5 rounded-md text-sm font-semibold text-center',
@@ -57,6 +59,7 @@ export function Pagination({ currentPage, totalPages, hrefBuilder, className }: 
         ),
       )}
       <a
+        data-part="action"
         href={currentPage < totalPages ? href(currentPage + 1) : undefined}
         aria-disabled={currentPage >= totalPages}
         className={cn(

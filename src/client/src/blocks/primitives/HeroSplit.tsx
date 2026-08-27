@@ -73,13 +73,17 @@ export function HeroSplit({
         {/* LEFT — text + CTA + badges */}
         <div>
           <h1
+            data-part="title"
             className="font-display font-semibold leading-tight tracking-tight text-ink"
             style={{ fontSize: 'clamp(2rem, 5vw, var(--text-h1))' }}
           >
             {renderAccentHeading(heading, headingAccent)}
           </h1>
           {subtitle && (
-            <p className="mt-5 text-base md:text-lg text-muted leading-relaxed max-w-[560px]">
+            <p
+              data-part="subtitle"
+              className="mt-5 text-base md:text-lg text-muted leading-relaxed max-w-[560px]"
+            >
               {subtitle}
             </p>
           )}
@@ -101,7 +105,7 @@ export function HeroSplit({
           {badges.length > 0 && (
             <ul className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
               {badges.map((b, i) => (
-                <li key={i} className="inline-flex items-center gap-1.5">
+                <li key={i} data-part="item" className="inline-flex items-center gap-1.5">
                   <Check size={14} className="text-success" />
                   {b.label}
                 </li>
@@ -112,13 +116,21 @@ export function HeroSplit({
 
         {/* RIGHT — vertical-steps card */}
         {rightSteps.length > 0 && (
-          <div className="rounded-2xl bg-bg border border-border shadow-lg p-6 md:p-7 backdrop-blur-sm">
+          <div
+            data-part="card"
+            className="rounded-2xl bg-bg border border-border shadow-lg p-6 md:p-7 backdrop-blur-sm"
+          >
             {rightTitle && (
-              <h2 className="font-display text-h4 font-semibold text-ink mb-4">{rightTitle}</h2>
+              <h2
+                data-part="card-title"
+                className="font-display text-h4 font-semibold text-ink mb-4"
+              >
+                {rightTitle}
+              </h2>
             )}
             <ol className="space-y-1">
               {rightSteps.map((step, i) => (
-                <li key={i}>
+                <li key={i} data-part="card-item">
                   <div className="flex items-start gap-3 py-2">
                     <Icon
                       icon={step.icon ?? '◆'}
@@ -129,10 +141,17 @@ export function HeroSplit({
                       innerScale={0.6}
                     />
                     <div className="min-w-0">
-                      <div className="font-semibold text-ink text-base leading-tight">
+                      <div
+                        data-part="card-item-title"
+                        className="font-semibold text-ink text-base leading-tight"
+                      >
                         {step.label}
                       </div>
-                      {step.sub && <div className="text-sm text-muted mt-0.5">{step.sub}</div>}
+                      {step.sub && (
+                        <div data-part="card-item-body" className="text-sm text-muted mt-0.5">
+                          {step.sub}
+                        </div>
+                      )}
                     </div>
                   </div>
                   {i < rightSteps.length - 1 && (
@@ -147,7 +166,9 @@ export function HeroSplit({
               ))}
             </ol>
             {rightCaption && (
-              <p className="mt-5 text-center text-sm italic text-muted">{rightCaption}</p>
+              <p data-part="card-caption" className="mt-5 text-center text-sm italic text-muted">
+                {rightCaption}
+              </p>
             )}
           </div>
         )}
@@ -177,6 +198,7 @@ function CtaButton({
       href={href}
       target={external ? '_blank' : undefined}
       rel={external ? 'noopener noreferrer' : undefined}
+      data-part="action"
       className={`${base} ${styles}`}
     >
       {children}

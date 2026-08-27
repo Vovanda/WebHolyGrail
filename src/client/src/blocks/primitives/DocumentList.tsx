@@ -66,11 +66,18 @@ export function DocumentList({
     <section className="bg-bg py-10 md:py-14">
       <div className="mx-auto max-w-wide px-4 md:px-6">
         {data.heading && (
-          <h2 className="font-display text-2xl font-semibold text-ink md:text-3xl">
+          <h2
+            data-part="title"
+            className="font-display text-2xl font-semibold text-ink md:text-3xl"
+          >
             {data.heading}
           </h2>
         )}
-        {data.description && <p className="mt-2 text-muted">{data.description}</p>}
+        {data.description && (
+          <p data-part="subtitle" className="mt-2 text-muted">
+            {data.description}
+          </p>
+        )}
 
         <ul
           className={
@@ -92,7 +99,7 @@ export function DocumentList({
 
             if (!asCards) {
               return (
-                <li key={index}>
+                <li key={index} data-part="item">
                   <a
                     href={href}
                     target="_blank"
@@ -115,11 +122,13 @@ export function DocumentList({
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
+                  data-part="card"
                   className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface no-underline transition-colors hover:border-accent"
                 >
                   {preview ? (
                     // eslint-disable-next-line @next/next/no-img-element -- источник S3 нашей CMS
                     <img
+                      data-part="card-media"
                       src={preview}
                       alt=""
                       aria-hidden="true"
@@ -134,9 +143,17 @@ export function DocumentList({
                     </div>
                   )}
                   <div className="flex flex-1 flex-col gap-1 p-4">
-                    <span className="font-medium text-ink">{title}</span>
-                    {item.note && <span className="text-sm text-muted">{item.note}</span>}
-                    <span className="mt-auto pt-2 text-sm text-accent">Скачать · {meta}</span>
+                    <span data-part="card-title" className="font-medium text-ink">
+                      {title}
+                    </span>
+                    {item.note && (
+                      <span data-part="card-subtitle" className="text-sm text-muted">
+                        {item.note}
+                      </span>
+                    )}
+                    <span data-part="card-caption" className="mt-auto pt-2 text-sm text-accent">
+                      Скачать · {meta}
+                    </span>
                   </div>
                 </a>
               </li>

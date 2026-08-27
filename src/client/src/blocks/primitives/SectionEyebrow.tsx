@@ -32,7 +32,10 @@ export function SectionEyebrow({
         className,
       )}
     >
-      <Tag className="text-eyebrow font-display font-semibold uppercase tracking-eyebrow text-ink">
+      <Tag
+        data-part="title"
+        className="text-eyebrow font-display font-semibold uppercase tracking-eyebrow text-ink"
+      >
         {children}
       </Tag>
       {aside && <div className="text-eyebrow uppercase tracking-eyebrow text-muted">{aside}</div>}

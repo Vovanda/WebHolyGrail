@@ -39,11 +39,17 @@ export function CtaBanner({
       <div className="mx-auto max-w-content px-4 md:px-6 text-center">
         {/* Цвет задан на самом заголовке: глобальное правило для h1–h4 красит их
             в --color-ink и перебивает наследование от секции. */}
-        <h2 className="font-display text-h2 md:text-h1 font-semibold leading-tight tracking-tight text-accent-fg">
+        <h2
+          data-part="title"
+          className="font-display text-h2 md:text-h1 font-semibold leading-tight tracking-tight text-accent-fg"
+        >
           {heading}
         </h2>
         {subtitle && (
-          <p className="mt-4 text-base md:text-lg text-accent-fg/85 max-w-2xl mx-auto">
+          <p
+            data-part="subtitle"
+            className="mt-4 text-base md:text-lg text-accent-fg/85 max-w-2xl mx-auto"
+          >
             {subtitle}
           </p>
         )}

@@ -116,12 +116,19 @@ export function RequestForm({
   return (
     <section id={anchorId} className="bg-bg py-10 md:py-14 scroll-mt-24">
       <div className="mx-auto max-w-content px-4 md:px-6">
-        <h2 className="font-display text-2xl font-semibold text-ink md:text-3xl">{data.heading}</h2>
-        {data.description && <p className="mt-2 text-muted">{data.description}</p>}
+        <h2 data-part="title" className="font-display text-2xl font-semibold text-ink md:text-3xl">
+          {data.heading}
+        </h2>
+        {data.description && (
+          <p data-part="subtitle" className="mt-2 text-muted">
+            {data.description}
+          </p>
+        )}
 
         {collapsible && !open && (
           <button
             type="button"
+            data-part="action"
             onClick={() => setOpen(true)}
             className="mt-4 inline-flex items-center gap-2 rounded-md border border-accent px-5 py-3 font-medium text-accent transition-colors hover:bg-accent hover:text-accent-fg"
             aria-expanded={false}
@@ -181,6 +188,7 @@ export function RequestForm({
               <button
                 type="submit"
                 disabled={status === 'sending'}
+                data-part="action"
                 className="rounded-md bg-accent px-6 py-3 font-medium text-accent-fg transition-opacity hover:opacity-90 disabled:opacity-60"
               >
                 {status === 'sending' ? 'Отправляем…' : (data.submitLabel ?? 'Отправить')}

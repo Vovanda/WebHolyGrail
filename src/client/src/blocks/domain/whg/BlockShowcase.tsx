@@ -43,10 +43,17 @@ export function BlockShowcase({
   return (
     <section className="py-14 md:py-18 bg-page-bg">
       <div className="mx-auto max-w-wide px-4 md:px-6">
-        <h2 className="text-center font-display text-h3 md:text-h2 font-semibold text-ink">
+        <h2
+          data-part="title"
+          className="text-center font-display text-h3 md:text-h2 font-semibold text-ink"
+        >
           {heading}
         </h2>
-        {subtitle && <p className="text-center text-muted mt-3">{subtitle}</p>}
+        {subtitle && (
+          <p data-part="subtitle" className="text-center text-muted mt-3">
+            {subtitle}
+          </p>
+        )}
 
         <div className="mt-10">
           <CarouselDeck gap="lg" edge="gap" dots autoplay={4000} loop label={heading}>
@@ -54,11 +61,15 @@ export function BlockShowcase({
               const preview = mediaUrl(item.preview);
               return (
                 <CarouselItem key={i} width="min(15rem, 46vw)">
-                  <div className="rounded-xl border border-border bg-bg overflow-hidden shadow-sm transition-shadow hover:shadow-md">
+                  <div
+                    data-part="card"
+                    className="rounded-xl border border-border bg-bg overflow-hidden shadow-sm transition-shadow hover:shadow-md"
+                  >
                     <div className="aspect-[4/3] bg-surface relative overflow-hidden">
                       {preview ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
                         <img
+                          data-part="card-media"
                           src={preview}
                           alt={item.label}
                           className="absolute inset-0 h-full w-full object-cover"
@@ -67,7 +78,10 @@ export function BlockShowcase({
                         <BlockPreviewPlaceholder label={item.label} index={i} />
                       )}
                     </div>
-                    <div className="p-3 text-center font-display font-medium text-ink text-sm">
+                    <div
+                      data-part="card-title"
+                      className="p-3 text-center font-display font-medium text-ink text-sm"
+                    >
                       {item.label}
                     </div>
                   </div>

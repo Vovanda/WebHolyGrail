@@ -40,7 +40,10 @@ export async function ArticlesSection({ node, settings, className }: ArticlesSec
       {(data.title || data.description) && (
         <header className="mb-8 md:mb-10 text-center">
           {data.title && (
-            <h2 className="font-display text-h3 md:text-h2 font-semibold text-ink">
+            <h2
+              data-part="title"
+              className="font-display text-h3 md:text-h2 font-semibold text-ink"
+            >
               {/* Если у секции есть ссылка «смотреть все» — заголовок ведёт туда же:
                   по нему кликают раньше, чем доходят до ссылки под лентой. */}
               {cta ? (
@@ -53,7 +56,9 @@ export async function ArticlesSection({ node, settings, className }: ArticlesSec
             </h2>
           )}
           {data.description && (
-            <p className="text-muted mt-3 max-w-prose mx-auto">{data.description}</p>
+            <p data-part="subtitle" className="text-muted mt-3 max-w-prose mx-auto">
+              {data.description}
+            </p>
           )}
         </header>
       )}
@@ -69,6 +74,7 @@ export async function ArticlesSection({ node, settings, className }: ArticlesSec
         <div className="mt-8 flex justify-center">
           <Link
             href={cta.href!}
+            data-part="action"
             className="text-ink underline underline-offset-4 hover:text-muted transition-colors"
           >
             {cta.label}
