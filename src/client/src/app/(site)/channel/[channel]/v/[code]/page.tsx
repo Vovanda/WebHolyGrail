@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { AccessCodeForm } from '@/blocks/primitives/Video/AccessCodeForm';
 import { VideoPlayer } from '@/blocks/primitives/Video/VideoPlayer';
 import { VideoSetDrawer } from '@/blocks/primitives/Video/VideoSetDrawer';
+import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { VideoDescription } from '@/blocks/primitives/Video/VideoDescription';
 import { VideoSetLinks } from '@/blocks/primitives/Video/VideoSetLinks';
 import { VideoShareTimecode } from '@/blocks/primitives/Video/VideoShareTimecode';
@@ -88,6 +89,19 @@ export default async function VideoPage({
       поэтому ширины у них разные.
     */
     <main className="mx-auto flex max-w-wide flex-col gap-5 px-4 py-6 md:px-6 md:py-8">
+      {/*
+        Путь до записи: канал, набор, сама запись. Пришедший по прямой ссылке
+        иначе не понимает, где оказался и что рядом.
+      */}
+      <Breadcrumbs
+        items={[
+          { label: video.authorName ?? `@${channel}`, href: `/@${channel}` },
+          ...(set ? [{ label: set.title, href: `/@${channel}/p/${set.code ?? setCode}` }] : []),
+          { label: video.title },
+        ]}
+        copyLink
+      />
+
       {playable && token ? (
         <VideoPlayer
           mini

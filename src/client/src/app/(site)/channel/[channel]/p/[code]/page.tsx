@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
+import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { VideoSetPlayer } from '@/blocks/primitives/Video/VideoSetPlayer';
 import { getPlaylistByCode, issueVideoToken } from '@/lib/api-client';
 
@@ -50,6 +51,14 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
 
   return (
     <main className="mx-auto flex max-w-wide flex-col gap-6 px-4 py-6 md:px-6 md:py-8">
+      <Breadcrumbs
+        items={[
+          { label: playlist.authorName ?? `@${channel}`, href: `/@${channel}` },
+          { label: playlist.title },
+        ]}
+        copyLink
+      />
+
       {playlist.cover && (
         <img src={playlist.cover} alt="" className="aspect-[21/6] w-full rounded-xl object-cover" />
       )}
