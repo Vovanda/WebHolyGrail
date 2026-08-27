@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { areasWidth, parseAreas } from './areas';
+import { areasWidth, parseAreas, type Area } from './grid-areas';
 
 /**
  * Раскладка именами описывает и вертикальное объединение, но допускает фигуры,
@@ -28,19 +28,19 @@ describe('разбор областей', () => {
 
   it('точка оставляет пустое место', () => {
     const areas = parseAreas('a . : b c');
-    expect(areas?.map((a) => a.name)).toEqual(['a', 'b', 'c']);
+    expect(areas?.map((a: Area) => a.name)).toEqual(['a', 'b', 'c']);
   });
 
   it('порядок плиток - по имени: им дизайнер и переставляет карточки', () => {
-    expect(parseAreas('b a : b a')?.map((a) => a.name)).toEqual(['a', 'b']);
+    expect(parseAreas('b a : b a')?.map((a: Area) => a.name)).toEqual(['a', 'b']);
   });
 
   it('пример владельца: четвёртая уходит вниз, пятая встаёт наверх', () => {
     const areas = parseAreas('a b c e : a b d d');
 
-    expect(areas?.map((a) => a.name)).toEqual(['a', 'b', 'c', 'd', 'e']);
+    expect(areas?.map((a: Area) => a.name)).toEqual(['a', 'b', 'c', 'd', 'e']);
     // Четвёртая плитка легла во второй ряд и заняла две колонки.
-    expect(areas?.find((a) => a.name === 'd')).toEqual({
+    expect(areas?.find((a: Area) => a.name === 'd')).toEqual({
       name: 'd',
       column: 3,
       row: 2,
@@ -48,7 +48,7 @@ describe('разбор областей', () => {
       height: 1,
     });
     // Пятая осталась в первом ряду справа.
-    expect(areas?.find((a) => a.name === 'e')?.row).toBe(1);
+    expect(areas?.find((a: Area) => a.name === 'e')?.row).toBe(1);
   });
 });
 

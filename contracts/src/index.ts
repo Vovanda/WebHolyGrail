@@ -94,3 +94,10 @@ export type {
   VideoStoryboard,
 } from './blog';
 export { resolveDisplay } from './blog';
+
+/**
+ * Раскладка плиток: разбором пользуются и сайт, и админка - она проверяет
+ * введённую строку и говорит человеку, что не так.
+ */
+export { parseAreas, areasWidth } from './grid-areas';
+export type { Area } from './grid-areas';
