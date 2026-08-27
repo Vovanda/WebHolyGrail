@@ -151,7 +151,6 @@ export function renderBlockNode(
   }
   const rendered = renderer(node, settings, children);
   const vClass = visibilityClass(node);
-  const body = vClass ? <div className={vClass}>{rendered}</div> : rendered;
 
   /*
     Свой стиль блока подставляется здесь, а не в каждом блоке: точка одна
@@ -160,15 +159,24 @@ export function renderBlockNode(
     Стиль ограничен признаком блока: он действует на сам блок и на его
     содержимое и не достаёт до остальной страницы. Признак берётся от самой
     записи - у двух блоков одного вида на странице стили не перепутаются.
+
+    Правило целится в содержимое обёртки, а не в саму обёртку: отступы и
+    скругление у блока держит его собственный класс, и с обёртки до него
+    не дотянуться - владелец пишет padding, а на странице ничего не меняется.
+
+    Обёртка одна на признак и на видимость: вторая между ними увела бы стиль
+    на пустой промежуточный узел.
   */
-  const css = scopedAppearance(String(node.id ?? ''), blockCss(node));
-  if (!css) return body;
+  const css = scopedAppearance(String(node.id ?? ''), blockCss(node), 'child');
+  if (!css) return vClass ? <div className={vClass}>{rendered}</div> : rendered;
 
   return (
-    <div data-block={String(node.id ?? '')}>
+    <>
       <style>{css}</style>
-      {body}
-    </div>
+      <div className={vClass || undefined} data-block={String(node.id ?? '')}>
+        {rendered}
+      </div>
+    </>
   );
 }
 
