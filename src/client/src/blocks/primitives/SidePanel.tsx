@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import { cn } from '@/lib/utils';
@@ -37,6 +37,20 @@ export interface SidePanelProps {
    */
   readonly width?: string;
   readonly title?: string | undefined;
+  /**
+   * Подвести страницу к кнопке при открытии.
+   *
+   * @remarks
+   * Панель начинается от верха экрана, а кнопка стоит где-то в середине
+   * страницы. Без подводки список и кнопка оказываются на разной высоте, и
+   * взгляд прыгает между ними.
+   *
+   * Страница уезжает плавно, поэтому переход читается как одно движение:
+   * контент поднимается, панель выезжает, список встаёт на уровень кнопки.
+   */
+  readonly scrollToTrigger?: boolean;
+  /** Отступ сверху при подводке: под высоту шапки сайта. */
+  readonly scrollOffset?: number;
   readonly className?: string;
 }
 
@@ -46,6 +60,8 @@ export function SidePanel({
   side = 'left',
   width = 'min(20rem, 86vw)',
   title,
+  scrollToTrigger = false,
+  scrollOffset = 80,
   className,
 }: SidePanelProps) {
   const [open, setOpen] = useState(false);
@@ -54,6 +70,17 @@ export function SidePanel({
   useEffect(() => setMounted(true), []);
 
   const close = useCallback(() => setOpen(false), []);
+
+  const triggerRef = useRef<HTMLSpanElement | null>(null);
+
+  // Подводка к кнопке. Идёт вместе с выездом панели, поэтому оба движения
+  // видны как одно.
+  const scrollToButton = useCallback(() => {
+    if (!scrollToTrigger) return;
+    const top = triggerRef.current?.getBoundingClientRect().top;
+    if (top === undefined) return;
+    window.scrollBy({ top: top - scrollOffset, behavior: 'smooth' });
+  }, [scrollToTrigger, scrollOffset]);
 
   // Признак для стилей и ширина сдвига. Снимается при закрытии и при уходе
   // со страницы: иначе следующая страница откроется сдвинутой.
@@ -79,7 +106,17 @@ export function SidePanel({
 
   return (
     <>
-      {trigger({ open: () => setOpen((value) => !value), isOpen: open })}
+      <span ref={triggerRef} className="contents">
+        {trigger({
+          open: () => {
+            setOpen((value) => {
+              if (!value) scrollToButton();
+              return !value;
+            });
+          },
+          isOpen: open,
+        })}
+      </span>
 
       {/*
         Панель живёт в самом низу страницы, отдельно от каркаса.

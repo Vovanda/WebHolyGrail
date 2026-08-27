@@ -1,6 +1,7 @@
 import type { BlockNode, CarouselBlockData, CarouselCard, SiteSettings } from 'contracts';
 
 import { CarouselDeck, CarouselItem } from '@/blocks/primitives/Carousel';
+import { listArticles } from '@/lib/api-client';
 import { resolveMediaUrl } from '@/lib/media';
 
 /**
@@ -19,12 +20,12 @@ export interface CarouselSectionProps {
   readonly className?: string;
 }
 
-export function CarouselSection({ node }: CarouselSectionProps) {
+export async function CarouselSection({ node }: CarouselSectionProps) {
   const data = node.data ?? {};
-  const cards = data.cards ?? [];
+  const cards = await collectCards(data);
 
-  // Живые коллекции подключаются следующим шагом: до тех пор лента показывает
-  // то, что завели руками, и пустой блок страницу не ломает.
+  // Пустая лента страницу не ломает: у только что поставленного блока карточек
+  // ещё нет, и рисовать пустую рамку незачем.
   if (cards.length === 0) return null;
 
   const autoplay = data.autoplaySeconds ? data.autoplaySeconds * 1000 : undefined;
@@ -49,7 +50,7 @@ export function CarouselSection({ node }: CarouselSectionProps) {
             aspect={data.aspect}
             label={data.heading}
           >
-            {cards.map((card: CarouselCard, index: number) => (
+            {cards.map((card, index) => (
               <CarouselItem
                 key={index}
                 width={data.mode === 'single' ? 'full' : (data.cardWidth ?? 'min(18rem, 80vw)')}
@@ -64,8 +65,49 @@ export function CarouselSection({ node }: CarouselSectionProps) {
   );
 }
 
-function CarouselCardView({ card }: { readonly card: CarouselCard }) {
-  const src = resolveMediaUrl(card.image?.media);
+/**
+ * Карточка, готовая к показу.
+ *
+ * @remarks
+ * У карточки из админки картинка приходит ссылкой на медиа, у записи блога -
+ * уже собранным адресом. Готовый адрес рядом избавляет ленту от знания, из
+ * какой коллекции пришло изображение.
+ */
+type CarouselCardView = CarouselCard & { readonly imageUrl?: string };
+
+/**
+ * Собирает карточки: заведённые руками либо взятые из живой коллекции.
+ *
+ * @remarks
+ * Лента с источником обновляется сама: вышла новая запись - она появилась на
+ * странице, и трогать саму страницу для этого не нужно (R0).
+ *
+ * Видео и наборы подключаются отдельно: у них проверка доступа на каждого
+ * зрителя, и показывать их общим списком без неё нельзя.
+ */
+async function collectCards(
+  data: CarouselBlockData & { sourceKind?: string; sourceLimit?: number; sourceOrder?: string },
+): Promise<ReadonlyArray<CarouselCardView>> {
+  const kind = data.sourceKind ?? data.source?.kind ?? 'manual';
+  if (kind === 'manual') return data.cards ?? [];
+  if (kind !== 'articles') return [];
+
+  const found = await listArticles({
+    limit: data.sourceLimit ?? data.source?.limit ?? 8,
+    sort: (data.sourceOrder ?? data.source?.order) === 'oldest' ? 'oldest' : 'newest',
+  }).catch(() => null);
+  if (!found) return [];
+
+  return found.docs.map((article) => ({
+    title: article.title,
+    ...(article.lead ? { text: article.lead } : {}),
+    link: { href: `/blog/${article.slug}`, label: article.title },
+    ...(article.cover?.url ? { imageUrl: article.cover.url } : {}),
+  }));
+}
+
+function CarouselCardView({ card }: { readonly card: CarouselCardView }) {
+  const src = card.imageUrl ?? resolveMediaUrl(card.image?.media);
   const body = (
     <>
       {src && (
