@@ -70,6 +70,31 @@ server {
     # nginx работает в host-network, MinIO на 127.0.0.1:<MINIO_PORT>.
     # URL'ы Media.url генерируются Payload через S3_PUBLIC_URL=https://<DOMAIN>/media
     # (см. payload.config.ts → s3Storage → generateFileURL).
+    # Куски видео - отдельно от прочих файлов: только у них есть частота,
+    # по которой видно выкачивание. Оглавление потока и обложки считать незачем,
+    # их берут по разу.
+    #
+    # Всплеск в сотню запросов пропускаем: плеер набирает буфер вперёд, и на
+    # старте просмотра куски идут пачкой. Упирается в счёт только тот, кто тянет
+    # непрерывно - выкачка часа растягивается с полуминуты до нескольких минут
+    # и попадает в журнал отказами.
+    location ~ ^/media/(?<media_path>.*\.(?:ts|m4s))$ {
+        limit_req zone=hls burst=100 nodelay;
+
+        proxy_pass http://127.0.0.1:9100/<SITE_SLUG>-media/$media_path$is_args$args;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_buffering on;
+        proxy_intercept_errors on;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+        proxy_hide_header x-amz-id-2;
+        proxy_hide_header x-amz-request-id;
+        proxy_hide_header x-minio-deployment-id;
+    }
+
     location /media/ {
         proxy_pass http://127.0.0.1:9100/<SITE_SLUG>-media/;
         proxy_http_version 1.1;
