@@ -39,18 +39,18 @@ describe('VideoDenied', () => {
     expect(html).not.toContain('Купить');
   });
 
-  it('пока запись готовится, кнопки нет: идти зрителю некуда', () => {
+  it('пока видео готовится, кнопки нет: идти зрителю некуда', () => {
     const html = renderToStaticMarkup(
       <VideoDenied
         reason="not-ready"
         settings={{
-          notReadyTitle: 'Готовим запись',
+          notReadyTitle: 'Готовим видео',
           actionLabel: 'Оформить',
           actionHref: '/pricing',
         }}
       />,
     );
-    expect(html).toContain('Готовим запись');
+    expect(html).toContain('Готовим видео');
     expect(html).not.toContain('/pricing');
   });
 
