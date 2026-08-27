@@ -330,6 +330,22 @@ export interface DemoAccessBlockData {
   readonly text?: string;
 }
 
+/**
+ * Плейлист боковой панелью, объявляемой раскладкой.
+ *
+ * @remarks
+ * Отдельно от блока на странице: у панели нет ни плеера, ни обложки, ни
+ * заголовков - только список, а стоит она не в теле страницы, а сбоку от неё.
+ * Общий блок с флагом «я в панели» знал бы, где стоит, и перестал быть чистой
+ * функцией от пропсов (R5).
+ *
+ * С каким видео список согласован, панель узнаёт из адреса: плеер живёт в
+ * другой ветке разметки, и пропсом до него не дотянуться.
+ */
+export interface VideoSetPanelBlockData {
+  readonly playlist?: { id: string | number } | string | number | null;
+}
+
 export interface VideoSetBlockData {
   readonly heading?: string;
   readonly subtitle?: string;
