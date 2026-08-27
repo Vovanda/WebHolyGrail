@@ -71,6 +71,7 @@ export function SidePanel({
   const close = useCallback(() => setOpen(false), []);
 
   const triggerRef = useRef<HTMLSpanElement | null>(null);
+  const panelRef = useRef<HTMLElement | null>(null);
   // Верх панели: с какой высоты экрана она начинается.
   const [top, setTop] = useState(0);
 
@@ -110,6 +111,24 @@ export function SidePanel({
     };
   }, [open, side, width]);
 
+  /*
+    Нажатие мимо панели её закрывает, и при этом доходит до того, на что
+    нажали: кнопки в шапке - тема, меню - остаются рабочими с первого раза.
+    Прозрачный слой поверх страницы съедал бы это первое нажатие.
+  */
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target as Node | null;
+      if (!target) return;
+      if (panelRef.current?.contains(target)) return;
+      if (triggerRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     function onKey(event: KeyboardEvent) {
@@ -140,20 +159,8 @@ export function SidePanel({
       {mounted &&
         createPortal(
           <>
-            {/*
-              Нажатие по странице рядом с панелью закрывает её. Слой прозрачный:
-              затемнение означало бы «вернись, когда закончишь», а панель со
-              сдвигом остаётся частью той же работы.
-            */}
-            {open && (
-              <button
-                type="button"
-                aria-label="Закрыть панель"
-                onClick={close}
-                className="fixed inset-0 z-[54] cursor-default bg-transparent"
-              />
-            )}
             <aside
+              ref={panelRef}
               aria-hidden={!open}
               style={{ width, ...(alignTop === 'trigger' ? { top: `${top}px` } : {}) }}
               className={cn(
