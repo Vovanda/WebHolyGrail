@@ -713,6 +713,14 @@ export interface ChannelSet {
   readonly title: string;
   readonly description: string | null;
   readonly cover: string | null;
+  /**
+   * Кадры видео плейлиста.
+   *
+   * @remarks
+   * Из них собирается лицо, когда своей обложки нет: пустое место там, где у
+   * соседей картинка, читается как поломка.
+   */
+  readonly covers?: ReadonlyArray<string>;
   /** Сколько записей внутри. */
   readonly count: number;
 }

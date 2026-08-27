@@ -11,6 +11,7 @@ import {
 } from '../lib/video/redeem-throttle';
 import { issueViewerToken, readViewerToken, withGrantedPlaylist } from '../lib/video/envelope';
 import { planEntitlement } from '../lib/video/keep-entitlement';
+import { playlistCovers } from '../lib/video/playlist-covers';
 import { grantStreamAccess, type StreamRecord } from '../lib/video/grant-access';
 import { masterKey, unwrapSecret } from '../lib/video/key-vault';
 import { generateAccessCode, normalizeAccessCode } from '../lib/video/short-code';
@@ -351,7 +352,9 @@ export const videoChannelEndpoint: Endpoint = {
         and: [{ author: { equals: owner.id } }, { access: { not_equals: 'private' } }],
       },
       sort: '-createdAt',
-      depth: 1,
+      // Глубже на шаг: нужны кадры самих видео - из них собирается обложка
+      // плейлисту, у которого своей нет.
+      depth: 2,
       limit: 40,
       overrideAccess: true,
     });
@@ -376,6 +379,8 @@ export const videoChannelEndpoint: Endpoint = {
             title: doc.title?.trim() || 'Плейлист',
             description: doc.description?.trim() || null,
             cover: doc.cover?.url ?? null,
+            // Кадры видео: ими плейлист показывается, когда своей обложки нет.
+            covers: playlistCovers(doc.items ?? []),
             count: doc.items?.length ?? 0,
           },
         ];

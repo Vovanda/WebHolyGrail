@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 
+import { PlaylistCover } from '@/blocks/primitives/Video/PlaylistCover';
 import { getChannel } from '@/lib/api-client';
 
 /**
@@ -55,11 +56,7 @@ export default async function ChannelPage({ params }: { params: Promise<Params> 
                 href={`/@${data.channel}/p/${set.code}`}
                 className="group flex flex-col overflow-hidden rounded-xl border border-border bg-paper transition-colors hover:border-border-strong"
               >
-                {set.cover ? (
-                  <img src={set.cover} alt="" className="aspect-video w-full object-cover" />
-                ) : (
-                  <span className="aspect-video w-full bg-surface" aria-hidden="true" />
-                )}
+                <PlaylistCover cover={set.cover} covers={set.covers ?? []} />
 
                 <span className="flex flex-col gap-1 p-4">
                   <span className="text-body font-medium leading-snug text-ink text-balance">
