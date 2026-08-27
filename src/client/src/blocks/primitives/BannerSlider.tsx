@@ -1,4 +1,4 @@
-import { Carousel } from './Carousel';
+import { PhotoDeck } from './Carousel';
 
 interface BannerItem {
   url: string;
@@ -10,7 +10,7 @@ interface BannerSliderProps {
 }
 
 /**
- * BannerSlider — top-баннер сайта. Тонкий wrapper над общим `Carousel`.
+ * BannerSlider - верхний баннер сайта. Тонкая обёртка над каруселью снимков.
  *
  * @remarks
  * Параметры:
@@ -18,17 +18,17 @@ interface BannerSliderProps {
  *  - без стрелок-навигации
  *  - object-contain (не кропать) — баннер не должен кропаться
  *  - height auto — высота подстраивается под пропорции картинки
- *  - фон `#1d1612` под прозрачными участками
+ *  - фон листа под прозрачными участками
  */
 export function BannerSlider({ banners }: BannerSliderProps) {
   return (
-    <Carousel
+    <PhotoDeck
       slides={banners}
       interval={7000}
       arrows={false}
       swipe
       heightFromFirstSlide
-      background="#ffffff"
+      background="var(--color-bg)"
     />
   );
 }
