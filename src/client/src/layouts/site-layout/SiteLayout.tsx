@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { PanelConfig, SiteLayoutConfig, SiteSettings, SlotName } from 'contracts';
 
+import { panelMatchesRoute } from './panel-routes';
 import { renderPanelContent } from './renderPanelContent';
 import { SidePanel } from '@/blocks/primitives/SidePanel';
 
@@ -28,13 +29,24 @@ import { SidePanel } from '@/blocks/primitives/SidePanel';
 export function SiteLayout({
   config,
   settings,
+  pathname,
   children,
 }: {
   readonly config: SiteLayoutConfig;
   readonly settings: SiteSettings;
+  /**
+   * Адрес открытой страницы: по нему отбираются панели, у которых он задан.
+   *
+   * @remarks
+   * Приходит пропсом, а не читается здесь: раскладка остаётся чистой функцией
+   * от того, что ей дали, и проверяется без запуска сайта (R5).
+   */
+  readonly pathname?: string | null;
   readonly children: ReactNode;
 }) {
-  const grouped = groupPanelsBySlot(config.panels);
+  const grouped = groupPanelsBySlot(
+    config.panels.filter((panel) => panelMatchesRoute(panel.routes, pathname)),
+  );
 
   warnUnimplementedSlots(grouped);
 

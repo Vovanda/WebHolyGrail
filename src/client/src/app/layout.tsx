@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { headers } from 'next/headers';
+
+import { PATHNAME_HEADER } from '@/lib/pathname-header';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 
@@ -45,6 +48,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const settings = (await getSiteSettings().catch(() => null)) ?? FALLBACK_SITE_SETTINGS;
+  // Адрес кладёт middleware: серверной раскладке его больше взять негде,
+  // а панели вроде плейлиста нужны не на каждой странице.
+  const pathname = (await headers()).get(PATHNAME_HEADER);
   const layoutConfig = settings.layout ?? FALLBACK_SITE_SETTINGS.layout!;
   const themeConfig = settings.theme ?? FALLBACK_SITE_SETTINGS.theme!;
 
@@ -59,7 +65,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         <PaletteOverride config={themeConfig} />
       </head>
       <body className="min-h-screen font-sans">
-        <SiteLayout config={layoutConfig} settings={settings}>
+        <SiteLayout config={layoutConfig} settings={settings} pathname={pathname}>
           {children}
         </SiteLayout>
         {process.env.NEXT_PUBLIC_YM_ID && <YandexMetrika id={process.env.NEXT_PUBLIC_YM_ID} />}
