@@ -646,17 +646,31 @@ export interface ChannelVideo {
 export async function getChannel(channel: string): Promise<{
   channel: string;
   authorName: string | null;
+  sets: ReadonlyArray<ChannelSet>;
   videos: ReadonlyArray<ChannelVideo>;
 } | null> {
   const response = await fetch(`${CMS_URL}/api/video/channel/${encodeURIComponent(channel)}`, {
     cache: 'no-store',
   });
   if (!response.ok) return null;
-  return (await response.json()) as {
+  const doc = (await response.json()) as {
     channel: string;
     authorName: string | null;
+    sets?: ReadonlyArray<ChannelSet>;
     videos: ReadonlyArray<ChannelVideo>;
   };
+  return { ...doc, sets: doc.sets ?? [] };
+}
+
+/** Набор в списке канала. */
+export interface ChannelSet {
+  readonly id: string | number;
+  readonly code: string;
+  readonly title: string;
+  readonly description: string | null;
+  readonly cover: string | null;
+  /** Сколько записей внутри. */
+  readonly count: number;
 }
 
 /** Набор целиком: чем он является и что в нём. */

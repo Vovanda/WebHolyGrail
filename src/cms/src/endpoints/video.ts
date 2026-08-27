@@ -318,9 +318,46 @@ export const videoChannelEndpoint: Endpoint = {
       overrideAccess: true,
     });
 
+    /*
+      Наборы автора. Показываем открытые: канал видит любой, включая поисковик,
+      и перечень закрытого стал бы описью платного для тех, кто его не брал -
+      тем же правилом, что и для отдельных записей.
+    */
+    const sets = await req.payload.find({
+      collection: 'playlists',
+      where: {
+        and: [{ author: { equals: owner.id } }, { access: { not_equals: 'private' } }],
+      },
+      sort: '-createdAt',
+      depth: 1,
+      limit: 40,
+      overrideAccess: true,
+    });
+
     return json({
       channel,
       authorName: owner.name ?? null,
+      sets: sets.docs.flatMap((raw) => {
+        const doc = raw as {
+          id: string | number;
+          title?: string;
+          shortCode?: string | null;
+          description?: string | null;
+          cover?: { url?: string } | null;
+          items?: unknown[];
+        };
+        if (!doc.shortCode) return [];
+        return [
+          {
+            id: doc.id,
+            code: doc.shortCode,
+            title: doc.title?.trim() || 'Набор',
+            description: doc.description?.trim() || null,
+            cover: doc.cover?.url ?? null,
+            count: doc.items?.length ?? 0,
+          },
+        ];
+      }),
       videos: videos.docs.flatMap((raw) => {
         const doc = raw as {
           id: string | number;
