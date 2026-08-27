@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import type { PanelConfig, SiteLayoutConfig, SiteSettings, SlotName } from 'contracts';
 
-import { LayoutPushPanel } from './LayoutPushPanel';
 import { panelMatchesRoute } from './panel-routes';
 import { panelScreenClass } from './panel-visibility';
 import { renderPanelContent } from './renderPanelContent';
@@ -151,30 +150,13 @@ function PanelHost({
 }) {
   if (panel.slot === 'left' || panel.slot === 'right') {
     /*
-      Панель, которая отодвигает страницу, собирается лейаутом целиком: портал,
-      сдвиг каркаса, закрытие крестиком, клавишей и нажатием мимо лежат в одном
-      примитиве, и любой новой панели это достаётся даром. Блоку остаётся
-      только его содержимое.
+      Боковую панель рисует сам блок: у навигации своя кнопка в шапке, у
+      плейлиста - своя над плеером, и поведение у них разное.
 
-      Панель поверх страницы рисует блок сам: у навигации своя кнопка в шапке и
-      своё поведение, загонять её в общий примитив значило бы ломать
-      работающее (R9).
+      Раскладка пробовала собирать такие панели сама, и вышло хуже: кнопка
+      оказывалась ярлыком у края экрана, одна на всю страницу, тогда как
+      плейлистов на ней бывает несколько. Кнопка принадлежит своему блоку.
     */
-    if (panel.mobile === 'push') {
-      const width = typeof panel.size === 'number' ? `${panel.size}px` : panel.size;
-      return (
-        <section
-          data-panel-id={panel.id}
-          data-panel-slot={panel.slot}
-          className={panelScreenClass(panel.visibility)}
-        >
-          <LayoutPushPanel side={panel.slot} width={width} title={panel.meta?.title}>
-            {renderPanelContent(panel.content, settings, pageChildren)}
-          </LayoutPushPanel>
-        </section>
-      );
-    }
-
     return (
       <section
         data-panel-id={panel.id}

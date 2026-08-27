@@ -7,28 +7,31 @@ import { cn } from '@/lib/utils';
 
 import { AccessCodeDialog } from './AccessCodeDialog';
 import { VideoPlayer } from './VideoPlayer';
+import { VideoSetDrawer } from './VideoSetDrawer';
+import { VideoSetList } from './VideoSetList';
 import { VideoUpNext } from './VideoUpNext';
+import { neighboursOf } from './selected-video';
+import { useSelectedVideo } from './useSelectedVideo';
+import { useUnlockableItems } from './useUnlockableItems';
 
-/** Как показать плейлист рядом с плеером. */
 /**
- * Как показать список рядом с плеером.
+ * Как показать список плейлиста.
  *
  * @remarks
- * Панели здесь больше нет: её объявляет раскладка сайта, и та умеет больше -
- * знает свои адреса, отодвигает страницу вместе с шапкой, закрывается клавишей
- * и нажатием мимо. Две панели с одним и тем же списком на одной странице
- * человека только путали.
+ * Виды взаимоисключающие: колонка стоит рядом с плеером, лента лежит под ним,
+ * панель прячет список за кнопкой в углу и выезжает по нажатию. При панели
+ * ничего под плеером не рисуется - в этом и смысл, освободить место.
+ *
+ * Выбирает владелец в настройках блока. Зритель ничего не переключает: на
+ * обычном сайте вид один и задан заранее.
  */
-type SetView = 'column' | 'row';
+export type SetView = 'column' | 'row' | 'panel';
 
 const VIEWS: ReadonlyArray<{ value: SetView; label: string }> = [
   { value: 'column', label: 'Списком' },
   { value: 'row', label: 'Лентой' },
+  { value: 'panel', label: 'Панелью' },
 ];
-import { VideoSetList } from './VideoSetList';
-import { neighboursOf } from './selected-video';
-import { useSelectedVideo } from './useSelectedVideo';
-import { useUnlockableItems } from './useUnlockableItems';
 
 /**
  * Плейлист видео с плеером: слева видео, справа список.
@@ -54,10 +57,26 @@ export interface VideoSetPlayerProps {
   readonly playerUi?: 'vidstack' | 'chrome' | undefined;
   /** Что показать вместо закрытой записи: приходит из настроек сайта. */
   readonly deniedSettings?: VideoDeniedSettings | undefined;
+  /** Как показывать список: задаётся в настройках блока. */
+  readonly view?: SetView | undefined;
+  /**
+   * Дать зрителю переключать вид.
+   *
+   * @remarks
+   * Нужно витрине шаблона: там переключатель показывает посетителю, что вид
+   * настраивается, и заменяет ему поход в админку. На обычном сайте владелец
+   * выбрал вид заранее, и переключать его посетителю незачем.
+   */
+  readonly showViewSwitch?: boolean | undefined;
+  /** Название плейлиста: с ним панель подписана по делу, а не словом «Плейлист». */
+  readonly title?: string | undefined;
   readonly className?: string;
 }
 
 export function VideoSetPlayer({
+  view: asked,
+  showViewSwitch = false,
+  title,
   items: initial,
   token,
   channel,
@@ -78,21 +97,17 @@ export function VideoSetPlayer({
   const { current, select: setCurrent } = useSelectedVideo(items);
 
   /*
-    Вид списка переключается на месте: рядом с плеером или боковой панелью,
-    которая сдвигает страницу. На узком экране колонка рядом не помещается,
-    и панель оказывается единственным способом добраться до плейлиста, не
-    прокручивая всё видео.
+    Вид задаёт владелец в настройках блока. Переключатель на странице бывает
+    только на витрине шаблона, и там выбор запоминается: посетитель,
+    переключившийся на панель, ждёт её и на следующей странице.
   */
-  /*
-    Выбранный вид запоминается: человек, переключившийся на панель, ждёт её и
-    на следующей записи. Выбор личный и живёт в браузере зрителя.
-  */
-  const [view, setViewState] = useState<SetView>('column');
+  const [view, setViewState] = useState<SetView>(asked ?? 'column');
 
   useEffect(() => {
+    if (!showViewSwitch) return;
     const saved = readView();
     if (saved) setViewState(saved);
-  }, []);
+  }, [showViewSwitch]);
 
   const setView = (next: SetView) => {
     setViewState(next);
@@ -116,27 +131,48 @@ export function VideoSetPlayer({
       )}
     >
       <div className="flex flex-col gap-3">
-        {/* Слева выбор вида, справа кнопка панели - там же, откуда панель выезжает. */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex rounded-lg border border-border bg-paper p-1">
-            {VIEWS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setView(option.value)}
-                aria-pressed={view === option.value}
-                className={cn(
-                  'rounded-md px-3 py-1.5 text-sm transition-colors',
-                  view === option.value
-                    ? 'bg-surface font-medium text-ink'
-                    : 'text-muted hover:text-ink',
-                )}
-              >
-                {option.label}
-              </button>
-            ))}
+        {/*
+          Слева выбор вида - только на витрине шаблона. Справа кнопка панели:
+          она стоит над плеером, там же, откуда панель выезжает, и подписана
+          номером текущего видео.
+        */}
+        {(showViewSwitch || view === 'panel') && (
+          <div className="flex flex-wrap items-center gap-2">
+            {showViewSwitch && (
+              <div className="flex rounded-lg border border-border bg-paper p-1">
+                {VIEWS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setView(option.value)}
+                    aria-pressed={view === option.value}
+                    className={cn(
+                      'rounded-md px-3 py-1.5 text-sm transition-colors',
+                      view === option.value
+                        ? 'bg-surface font-medium text-ink'
+                        : 'text-muted hover:text-ink',
+                    )}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {view === 'panel' && (
+              <div className="ml-auto">
+                <VideoSetDrawer
+                  items={items}
+                  channel={channel}
+                  setCode={setCode}
+                  currentCode={current?.code ?? null}
+                  title={title}
+                  onSelect={setCurrent}
+                />
+              </div>
+            )}
           </div>
-        </div>
+        )}
         {current?.playlistUrl ? (
           <>
             {/*

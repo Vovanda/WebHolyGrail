@@ -19,6 +19,66 @@ import type { VideoSetItem } from 'contracts';
 /** Имя в адресе. Короткое, потому что попадает в ссылки, которыми делятся. */
 export const VIDEO_PARAM = 'v';
 
+/**
+ * Выбор в адресе, когда плейлистов на странице несколько.
+ *
+ * @remarks
+ * Плейлист на странице бывает не один: подборка курса и подборка отзывов стоят
+ * рядом, и у каждой свой плеер. С одним общим значением они дерутся: переключил
+ * видео в первой - вторая своего кода в адресе не находит и сбрасывается на
+ * первое видео, хотя её никто не трогал.
+ *
+ * Поэтому значение подписано плейлистом: `v=<плейлист>:<видео>`, и параметр
+ * может повторяться. Значение без подписи понимает любой плейлист - таким был
+ * прежний вид адреса, и уже разосланные ссылки должны продолжать работать.
+ */
+const PAIR_SEPARATOR = ':';
+
+/** Код видео для этого плейлиста, взятый из строки запроса. */
+export function readSelection(search: string, setCode: string | null | undefined): string | null {
+  const values = new URLSearchParams(search).getAll(VIDEO_PARAM);
+
+  for (const value of values) {
+    const at = value.indexOf(PAIR_SEPARATOR);
+    if (at < 0) continue;
+    if (value.slice(0, at) === setCode) return value.slice(at + 1) || null;
+  }
+
+  // Подписи нет - значение общее: так выглядели ссылки до появления второго
+  // плейлиста на странице.
+  const plain = values.find((value) => !value.includes(PAIR_SEPARATOR));
+  return plain ?? null;
+}
+
+/**
+ * Строка запроса с новым выбором.
+ *
+ * @remarks
+ * Чужие значения остаются на месте: рядом стоящий плейлист не должен терять
+ * своё видео от того, что переключили этот.
+ */
+export function writeSelection(
+  search: string,
+  setCode: string | null | undefined,
+  videoCode: string,
+): string {
+  const params = new URLSearchParams(search);
+  const mine = setCode ? `${setCode}${PAIR_SEPARATOR}${videoCode}` : videoCode;
+
+  const others = params.getAll(VIDEO_PARAM).filter((value) => {
+    const at = value.indexOf(PAIR_SEPARATOR);
+    // Без подписи значение общее и заменяется своим: держать оба незачем.
+    if (at < 0) return false;
+    return value.slice(0, at) !== setCode;
+  });
+
+  params.delete(VIDEO_PARAM);
+  for (const value of others) params.append(VIDEO_PARAM, value);
+  params.append(VIDEO_PARAM, mine);
+
+  return params.toString();
+}
+
 /** Те видео плейлиста, которые действительно заиграют. */
 export function playableOf(items: ReadonlyArray<VideoSetItem>): ReadonlyArray<VideoSetItem> {
   return items.filter((item) => !item.locked && item.ready && item.playlistUrl);

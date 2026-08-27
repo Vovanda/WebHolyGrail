@@ -33,7 +33,6 @@ import { ArticlesSection } from '@/blocks/primitives/Blog/ArticlesSection';
 import { ThreadsSection } from '@/blocks/primitives/Blog/ThreadsSection';
 import { DemoAccessSection } from '@/blocks/primitives/Video/DemoAccessSection';
 import { VideoSetSection } from '@/blocks/primitives/Video/VideoSetSection';
-import { VideoSetPanelSection } from '@/blocks/primitives/Video/VideoSetPanelSection';
 import { VideoSection } from '@/blocks/primitives/Video/VideoSection';
 import { RichTextBlock } from '@/blocks/primitives/RichText';
 import { PageOutlet } from '@/blocks/system/PageOutlet';
@@ -84,7 +83,6 @@ const REGISTRY: Record<string, BlockRenderer> = {
   'threads-section': (node) => <ThreadsSection node={node} />,
   video: (node, settings) => <VideoSection node={node} settings={settings} />,
   videoSet: (node, settings) => <VideoSetSection node={node} settings={settings} />,
-  videoSetPanel: (node) => <VideoSetPanelSection node={node} />,
   demoAccess: (node) => <DemoAccessSection node={node} />,
   'rich-text': (node, settings) => <RichTextBlock node={node} settings={settings} />,
   'reusable-ref': (node, settings) => <ReusableRef node={node} settings={settings} />,
