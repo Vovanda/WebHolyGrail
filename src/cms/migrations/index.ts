@@ -29,6 +29,7 @@ import * as migration_20260826_194734_demo_access_block from './20260826_194734_
 import * as migration_20260826_201412_video_set_modes from './20260826_201412_video_set_modes';
 import * as migration_20260826_234502_carousel_block from './20260826_234502_carousel_block';
 import * as migration_20260827_004108_carousel_source from './20260827_004108_carousel_source';
+import * as migration_20260827_010605_player_ui from './20260827_010605_player_ui';
 
 export const migrations = [
   {
@@ -185,5 +186,10 @@ export const migrations = [
     up: migration_20260827_004108_carousel_source.up,
     down: migration_20260827_004108_carousel_source.down,
     name: '20260827_004108_carousel_source',
+  },
+  {
+    up: migration_20260827_010605_player_ui.up,
+    down: migration_20260827_010605_player_ui.down,
+    name: '20260827_010605_player_ui',
   },
 ];

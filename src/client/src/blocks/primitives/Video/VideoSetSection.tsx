@@ -1,5 +1,5 @@
 import { headers } from 'next/headers';
-import type { BlockNode, VideoSetBlockData } from 'contracts';
+import type { BlockNode, VideoSetBlockData, SiteSettings } from 'contracts';
 
 import { getPlaylistById, issueVideoToken } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
@@ -21,10 +21,12 @@ import { VideoSetPlayer } from './VideoSetPlayer';
  */
 export interface VideoSetSectionProps {
   readonly node: BlockNode;
+  /** Настройки сайта: из них берётся вид плеера. */
+  readonly settings: SiteSettings;
   readonly className?: string;
 }
 
-export async function VideoSetSection({ node, className }: VideoSetSectionProps) {
+export async function VideoSetSection({ node, settings, className }: VideoSetSectionProps) {
   const data = (node.data ?? {}) as unknown as VideoSetBlockData;
 
   const playlistId =
@@ -74,6 +76,7 @@ export async function VideoSetSection({ node, className }: VideoSetSectionProps)
 
       {withPlayer && token ? (
         <VideoSetPlayer
+          playerUi={settings.video?.playerUi}
           title={heading}
           items={items}
           token={token}

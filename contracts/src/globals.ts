@@ -48,6 +48,8 @@ export interface SiteSettings {
   readonly theme?: ThemeConfig;
   /** Конфигурация layout — какие панели в каких слотах. См. R11. */
   readonly layout?: SiteLayoutConfig;
+  /** Настройки видео, которые нужны странице. */
+  readonly video?: VideoSettings;
 }
 
 export interface ContactsInfo {
@@ -70,4 +72,22 @@ export interface SocialLink {
   readonly url: string;
   /** Альтернативная подпись (если иконки нет). */
   readonly label?: string;
+}
+
+/**
+ * Настройки видео, видимые сайту.
+ *
+ * @remarks
+ * Здесь только то, что влияет на показ. Длина кода и срок его жизни остаются
+ * в CMS: они нужны при выдаче кода, а странице о них знать незачем.
+ */
+export interface VideoSettings {
+  /**
+   * Какой слой управления рисовать.
+   *
+   * @remarks
+   * Слоя два, оба на одном движке. Выбор живёт в настройках сайта, поэтому
+   * меняется владельцем без выкладки (R0).
+   */
+  readonly playerUi?: 'vidstack' | 'chrome';
 }

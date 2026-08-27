@@ -43,6 +43,8 @@ export interface VideoSetPlayerProps {
   readonly setCode: string | null;
   /** Название набора: с ним панель подписана по делу, а не словом «Плейлист». */
   readonly title?: string | undefined;
+  /** Какой слой управления рисовать: приходит из настроек сайта. */
+  readonly playerUi?: 'vidstack' | 'chrome' | undefined;
   readonly className?: string;
 }
 
@@ -52,6 +54,7 @@ export function VideoSetPlayer({
   channel,
   setCode,
   title,
+  playerUi,
   className,
 }: VideoSetPlayerProps) {
   /**
@@ -154,6 +157,7 @@ export function VideoSetPlayer({
           <>
             <VideoPlayer
               key={String(current.id)}
+              ui={playerUi}
               src={current.playlistUrl}
               token={token}
               mediaId={current.id}

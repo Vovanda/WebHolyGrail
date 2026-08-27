@@ -1,5 +1,5 @@
 import { headers } from 'next/headers';
-import type { BlockNode, VideoBlockData } from 'contracts';
+import type { BlockNode, VideoBlockData, SiteSettings } from 'contracts';
 
 import { checkVideoAccess, getVideoStream, issueVideoToken } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
@@ -19,6 +19,8 @@ import { VideoPlayer } from './VideoPlayer';
  */
 export interface VideoSectionProps {
   readonly node: BlockNode;
+  /** Настройки сайта: из них берётся вид плеера. */
+  readonly settings: SiteSettings;
   readonly className?: string;
 }
 
@@ -29,7 +31,7 @@ const DENIAL: Record<string, string> = {
   unavailable: 'Видео сейчас недоступно',
 };
 
-export async function VideoSection({ node, className }: VideoSectionProps) {
+export async function VideoSection({ node, settings, className }: VideoSectionProps) {
   const data = (node.data ?? {}) as unknown as VideoBlockData;
 
   const mediaId =
@@ -68,6 +70,7 @@ export async function VideoSection({ node, className }: VideoSectionProps) {
 
       {token && stream.status === 'ready' ? (
         <VideoPlayer
+          ui={settings.video?.playerUi}
           src={stream.playlistUrl}
           token={token}
           mediaId={stream.id}

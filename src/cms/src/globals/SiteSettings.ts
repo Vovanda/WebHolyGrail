@@ -521,6 +521,20 @@ export const SiteSettings: GlobalConfig = {
       },
       fields: [
         {
+          name: 'playerUi',
+          label: 'Вид плеера',
+          type: 'select',
+          defaultValue: 'vidstack',
+          options: [
+            { label: 'Обычный', value: 'vidstack' },
+            { label: 'Прежний', value: 'chrome' },
+          ],
+          admin: {
+            description:
+              'Два слоя управления на одном движке. Меняется без выкладки; посмотреть второй, ничего не переключая, можно добавив к адресу ?player=chrome.',
+          },
+        },
+        {
           name: 'codeLength',
           label: 'Длина кода доступа',
           type: 'select',

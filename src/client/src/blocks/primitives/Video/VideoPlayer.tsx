@@ -13,36 +13,41 @@ import { VideoPlayerVidstack } from './VideoPlayerVidstack';
  * своими руками, второй берёт готовый слой Vidstack. Оба работают с одним
  * потоком и одним ключом шифрования, поэтому переключение ничего не ломает.
  *
- * Значение по умолчанию приходит из окружения (`NEXT_PUBLIC_VIDEO_UI`) и
- * меняется без сборки. Поверх него работает `?player=` в адресе - им можно
- * посмотреть оба варианта на одной и той же странице подряд, ничего не
- * выкладывая.
+ * Значение приходит из настроек сайта, поэтому меняется в админке без
+ * выкладки. Поверх него работает `?player=` в адресе - им можно посмотреть оба
+ * варианта на одной странице подряд, ничего не переключая для остальных.
  */
-export type VideoPlayerProps = VideoPlayerChromeProps;
+export type VideoPlayerProps = VideoPlayerChromeProps & {
+  /**
+   * Какой слой управления рисовать.
+   *
+   * @remarks
+   * Приходит из настроек сайта, поэтому владелец меняет его в админке без
+   * выкладки. Адрес перекрывает это значение: так можно посмотреть второй
+   * вариант, ничего не переключая для остальных.
+   */
+  readonly ui?: 'vidstack' | 'chrome' | undefined;
+};
 
 type Ui = 'chrome' | 'vidstack';
 
 /**
- * Слой по умолчанию.
+ * Слой на случай, когда в настройках ничего не выбрано.
  *
  * @remarks
- * Пока выбран Vidstack: он на проверке, и смотреть его удобнее сразу, без
- * дописывания адреса. Второй слой остаётся доступен через `?player=chrome`.
- *
- * Значение переменной окружения перекрывает умолчание, но вшивается при
- * сборке. Когда выбор устоится, он переедет в настройки сайта, где меняется
- * без выкладки.
+ * Выбор живёт в настройках сайта и меняется владельцем без выкладки. Здесь
+ * остаётся запасное значение для страниц, которые настройки не читают.
  */
 const DEFAULT_UI: Ui = process.env.NEXT_PUBLIC_VIDEO_UI === 'chrome' ? 'chrome' : 'vidstack';
 
-export function VideoPlayer(props: VideoPlayerProps) {
-  const [ui, setUi] = useState<Ui>(DEFAULT_UI);
+export function VideoPlayer({ ui: asked, ...props }: VideoPlayerProps) {
+  const [ui, setUi] = useState<Ui>(asked ?? DEFAULT_UI);
 
   // Адрес читаем после появления страницы: на сервере его нет, и разметка
   // должна совпасть с той, что браузер получил первой.
   useEffect(() => {
-    const asked = new URLSearchParams(window.location.search).get('player');
-    if (asked === 'vidstack' || asked === 'chrome') setUi(asked);
+    const fromUrl = new URLSearchParams(window.location.search).get('player');
+    if (fromUrl === 'vidstack' || fromUrl === 'chrome') setUi(fromUrl);
   }, []);
 
   return ui === 'vidstack' ? <VideoPlayerVidstack {...props} /> : <VideoPlayerChrome {...props} />;
