@@ -18,7 +18,7 @@ export const Entitlements: CollectionConfig = {
   admin: {
     useAsTitle: 'id',
     defaultColumns: ['viewer', 'playlist', 'source', 'expiresAt'],
-    group: 'Доступ к видео',
+    group: 'Медиа',
     description: 'Кому открыт какой плейлист. Выдаётся оплатой, ссылкой, промокодом или вручную.',
   },
   fields: [

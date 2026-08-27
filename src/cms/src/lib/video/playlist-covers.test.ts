@@ -7,7 +7,8 @@ import { playlistCovers } from './playlist-covers.js';
  * здесь либо оставляет пустое место, либо тянет лишние адреса в каждый ответ.
  */
 
-const кадр = (url: string | null) => ({ preview: url === null ? null : { url } });
+/** Строка плейлиста в том виде, в каком её отдаёт база: кадр внутри видео. */
+const кадр = (url: string | null) => ({ video: { preview: url === null ? null : { url } } });
 
 describe('кадры для стопки', () => {
   it('берутся по порядку плейлиста', () => {
@@ -21,6 +22,10 @@ describe('кадры для стопки', () => {
 
   it('видео без кадра пропускается', () => {
     expect(playlistCovers([кадр(null), кадр('/b.jpg'), {}])).toEqual(['/b.jpg']);
+  });
+
+  it('нераскрытая связь пропускается: вместо видео пришёл его номер', () => {
+    expect(playlistCovers([{ video: 42 }, кадр('/b.jpg')])).toEqual(['/b.jpg']);
   });
 
   it('повторы не задваиваются', () => {

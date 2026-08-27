@@ -2,6 +2,8 @@
 
 import type { DefaultCellComponentProps } from 'payload';
 
+import { useRelatedImageURL } from './useRelatedImageURL';
+
 /**
  * Обложка плейлиста в списке плейлистов.
  *
@@ -18,31 +20,30 @@ interface Row {
 
 export function PlaylistCoverCell({ rowData }: DefaultCellComponentProps) {
   const row = (rowData ?? {}) as Row;
-  const cover = typeof row.cover === 'object' && row.cover ? row.cover : null;
-  const src = cover?.thumbnailURL ?? cover?.url;
-
-  if (!src) {
-    return (
-      <span
-        aria-hidden="true"
-        style={{
-          display: 'block',
-          width: 60,
-          height: 34,
-          borderRadius: 4,
-          background: 'var(--theme-elevation-100)',
-        }}
-      />
-    );
-  }
+  const src = useRelatedImageURL('media', row.cover);
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      alt={row.title ?? ''}
-      loading="lazy"
-      style={{ width: 60, height: 34, objectFit: 'cover', borderRadius: 4, display: 'block' }}
-    />
+    <>
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={src}
+          alt={row.title ?? ''}
+          loading="lazy"
+          style={{ width: 60, height: 34, objectFit: 'cover', borderRadius: 4, display: 'block' }}
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          style={{
+            display: 'block',
+            width: 60,
+            height: 34,
+            borderRadius: 4,
+            background: 'var(--theme-elevation-100)',
+          }}
+        />
+      )}
+    </>
   );
 }

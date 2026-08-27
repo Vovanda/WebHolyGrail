@@ -2,6 +2,8 @@
 
 import type { DefaultCellComponentProps } from 'payload';
 
+import { useRelatedImageURL } from './useRelatedImageURL';
+
 /**
  * Миниатюра файла в списке медиа.
  *
@@ -27,35 +29,33 @@ export function MediaThumbCell({ rowData }: DefaultCellComponentProps) {
   const row = (rowData ?? {}) as Row;
 
   const isVideo = String(row.mimeType ?? '').startsWith('video/');
-  // В списке связь приходит идентификатором, а не документом, поэтому кадр
-  // берём из миниатюры: у нарезанного видео она и есть снятая обложка.
-  const preview = typeof row.preview === 'object' && row.preview ? row.preview.url : undefined;
+  const preview = useRelatedImageURL('media', row.preview);
   // У видео `url` ведёт на манифест потока — картинкой он не откроется.
   const src = preview ?? row.thumbnailURL ?? (isVideo ? undefined : row.url);
 
-  if (!src) {
-    // Обложки ещё нет: видео в очереди или нарезка не удалась. Пустая рамка
-    // ровно того же размера, чтобы строки в таблице не прыгали.
-    return (
-      <span
-        aria-hidden="true"
-        style={{
-          display: 'block',
-          width: 60,
-          height: 34,
-          borderRadius: 4,
-          background: 'var(--theme-elevation-100)',
-        }}
-      />
-    );
-  }
-
   return (
-    <img
-      src={src}
-      alt=""
-      loading="lazy"
-      style={{ width: 60, height: 34, objectFit: 'cover', borderRadius: 4, display: 'block' }}
-    />
+    <>
+      {src ? (
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          style={{ width: 60, height: 34, objectFit: 'cover', borderRadius: 4, display: 'block' }}
+        />
+      ) : (
+        // Обложки ещё нет: видео в очереди или нарезка не удалась. Пустая рамка
+        // ровно того же размера, чтобы строки в таблице не прыгали.
+        <span
+          aria-hidden="true"
+          style={{
+            display: 'block',
+            width: 60,
+            height: 34,
+            borderRadius: 4,
+            background: 'var(--theme-elevation-100)',
+          }}
+        />
+      )}
+    </>
   );
 }

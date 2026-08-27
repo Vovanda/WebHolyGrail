@@ -22,8 +22,9 @@ export const Playlists: CollectionConfig = {
   labels: { singular: 'Плейлист', plural: 'Плейлисты' },
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['cover', 'title', 'author', 'access', 'updatedAt'],
-    group: 'Доступ к видео',
+    // Первой идёт обычная колонка: на ней Payload сам рисует ссылку на запись.
+    defaultColumns: ['title', 'cover', 'author', 'access', 'updatedAt'],
+    group: 'Медиа',
     description: 'Подборки видео. Доступ к закрытым из них даёт право на плейлист.',
   },
   fields: [

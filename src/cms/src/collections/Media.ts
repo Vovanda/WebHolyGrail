@@ -2,6 +2,7 @@ import { APIError, type CollectionConfig } from 'payload';
 
 import { generateShortCode } from '../lib/video/short-code';
 
+import { isDarkImage } from '../lib/image-luma';
 import { renderPdfPreview } from '../lib/pdf-preview';
 
 /**
@@ -35,8 +36,11 @@ export const Media: CollectionConfig = {
     // Название впереди имени файла: в списке ищут глазами по названию, а
     // `lesson-4.mp4` о содержимом не говорит ничего. Описание из колонок убрано —
     // у видео оно в несколько строк и разносит таблицу.
-    defaultColumns: ['preview', 'filename', 'caption', 'mimeType', 'updatedAt'],
-    group: 'Контент',
+    // Первой идёт обычная колонка: на ней Payload сам рисует ссылку на запись.
+    // Своя ячейка на первом месте подменяла бы эту обёртку, и строка переставала
+    // открываться - а в окне выбора воссозданная руками ссылка перехватывала бы выбор.
+    defaultColumns: ['filename', 'preview', 'caption', 'mimeType', 'updatedAt'],
+    group: 'Медиа',
     /**
      * Обложки видео не показываются в общем списке.
      *
@@ -98,6 +102,22 @@ export const Media: CollectionConfig = {
     },
     {
       /**
+       * Тёмная ли картинка.
+       *
+       * @remarks
+       * По ней выбирается цвет текста поверх обложки: на светлой он тёмный,
+       * на тёмной белый. Считается один раз при загрузке - тянуть файл из
+       * хранилища на каждый показ страницы дороже самой страницы.
+       *
+       * Пусто у видео и документов, а также если файл не удалось разобрать.
+       */
+      name: 'isDark',
+      type: 'checkbox',
+      index: false,
+      admin: { hidden: true, readOnly: true },
+    },
+    {
+      /**
        * Файл создан системой, а не загружен человеком.
        *
        * @remarks
@@ -128,6 +148,25 @@ export const Media: CollectionConfig = {
       admin: {
         description:
           'Что изображено. Читают скринридеры и поисковики. Для видео и документов можно оставить пустым.',
+      },
+    },
+    {
+      /**
+       * Имя файла в списке - без значка файла рядом.
+       *
+       * @remarks
+       * Поле заводит сам Payload; здесь оно объявлено только ради своей ячейки
+       * в списке - остальное берётся из базового описания.
+       */
+      name: 'filename',
+      type: 'text',
+      // Подпись колонки берётся из словаря Payload: своё описание поля затирает
+      // базовое целиком, и без этой строки в шапке остаётся английское слово.
+      label: ({ t }) => t('upload:fileName'),
+      admin: {
+        components: {
+          Cell: '/admin/components/FileNameCell#FileNameCell',
+        },
       },
     },
     {
@@ -516,6 +555,18 @@ export const Media: CollectionConfig = {
      * переписала бы историю загрузок.
      */
     beforeChange: [
+      /*
+        Яркость картинки считается по загруженному файлу, пока он ещё в руках:
+        после сохранения он уходит в хранилище, и достать его обратно можно
+        только запросом по сети.
+      */
+      async ({ data, req }) => {
+        const upload = req.file;
+        if (upload?.data && String(upload.mimetype ?? '').startsWith('image/')) {
+          data['isDark'] = await isDarkImage(upload.data);
+        }
+        return data;
+      },
       ({ data, req, operation }) => {
         if (operation === 'create' && req.user && !data['uploadedBy']) {
           data['uploadedBy'] = req.user.id;

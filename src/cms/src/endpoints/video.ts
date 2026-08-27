@@ -227,7 +227,9 @@ export const videoByCodeEndpoint: Endpoint = {
       where: {
         and: [{ 'items.video': { equals: doc.id } }, { access: { not_equals: 'private' } }],
       },
-      depth: 0,
+      // Глубже на шаг: нужны кадры самих видео - из них собирается обложка
+      // плейлисту, у которого своей нет.
+      depth: 2,
       limit: 12,
       overrideAccess: true,
     });
@@ -241,6 +243,7 @@ export const videoByCodeEndpoint: Endpoint = {
           id: string | number;
           title?: string;
           shortCode?: string;
+          cover?: { url?: string } | null;
           items?: unknown[];
         };
         return {
@@ -248,6 +251,8 @@ export const videoByCodeEndpoint: Endpoint = {
           code: item.shortCode ?? null,
           title: item.title?.trim() || 'Плейлист',
           count: item.items?.length ?? 0,
+          cover: item.cover?.url ?? null,
+          covers: playlistCovers(item.items ?? []),
         };
       }),
       title: doc.caption?.trim() || doc.alt?.trim() || doc.filename || 'Видео',
@@ -421,7 +426,7 @@ type PlaylistVideo = {
   access?: string;
   // Нужен, чтобы автор видел свои закрытые видео в списке плейлиста без замка.
   uploadedBy?: unknown;
-  preview?: { url?: string } | null;
+  preview?: { url?: string; isDark?: boolean | null } | null;
   hls?: {
     status?: string;
     playlistUrl?: string | null;
@@ -448,7 +453,7 @@ type PlaylistDoc = {
   title?: string;
   shortCode?: string | null;
   description?: string | null;
-  cover?: { url?: string } | null;
+  cover?: { url?: string; isDark?: boolean | null } | null;
   author?: { id?: string | number; channel?: string; name?: string } | string | number | null;
   items?: ReadonlyArray<{ video?: PlaylistVideo | string | number | null }> | null;
 };
@@ -487,6 +492,7 @@ async function describePlaylist(
       playlistUrl: video.hls?.playlistUrl ?? null,
       title: video.caption?.trim() || video.alt?.trim() || video.filename || 'Видео',
       poster: video.preview?.url ?? null,
+      posterIsDark: video.preview?.isDark ?? null,
       durationSeconds: video.hls?.durationSeconds ?? null,
       ready: video.hls?.status === 'ready',
       locked: !decision.allowed,
@@ -505,6 +511,11 @@ async function describePlaylist(
     // Подставляется при выдаче, а не пишется в базу, иначе автоподстановка
     // однажды затрёт обложку, выбранную руками.
     cover: doc.cover?.url ?? items.find((item) => item.poster)?.poster ?? null,
+    // Яркость - от той картинки, которая в итоге показывается: своей обложки
+    // или подставленного кадра. По ней страница выбирает цвет текста поверх.
+    coverIsDark: doc.cover?.url
+      ? (doc.cover.isDark ?? null)
+      : (items.find((item) => item.poster)?.posterIsDark ?? null),
     items,
   };
 }
