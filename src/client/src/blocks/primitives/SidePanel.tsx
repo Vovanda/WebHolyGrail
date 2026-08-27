@@ -37,20 +37,19 @@ export interface SidePanelProps {
    */
   readonly width?: string;
   readonly title?: string | undefined;
+  /** Наименьший отступ сверху, когда кнопка уехала за верх экрана: под шапку сайта. */
+  readonly minTop?: number;
   /**
-   * Подвести страницу к кнопке при открытии.
+   * Откуда панель начинается по высоте.
    *
    * @remarks
-   * Панель начинается от верха экрана, а кнопка стоит где-то в середине
-   * страницы. Без подводки список и кнопка оказываются на разной высоте, и
-   * взгляд прыгает между ними.
-   *
-   * Страница уезжает плавно, поэтому переход читается как одно движение:
-   * контент поднимается, панель выезжает, список встаёт на уровень кнопки.
+   * `screen` - от верхнего края, во всю высоту: так ведёт себя навигация.
+   * `trigger` - от кнопки, которой её открыли. Второе нужно там, где выше
+   * кнопки на странице стоит что-то своё - баннер, заголовок набора, - и
+   * панель во весь экран накрывала бы его, а список оказывался бы далеко от
+   * места, куда человек нажал.
    */
-  readonly scrollToTrigger?: boolean;
-  /** Отступ сверху при подводке: под высоту шапки сайта. */
-  readonly scrollOffset?: number;
+  readonly alignTop?: 'screen' | 'trigger';
   readonly className?: string;
 }
 
@@ -60,8 +59,8 @@ export function SidePanel({
   side = 'left',
   width = 'min(20rem, 86vw)',
   title,
-  scrollToTrigger = false,
-  scrollOffset = 80,
+  minTop = 80,
+  alignTop = 'screen',
   className,
 }: SidePanelProps) {
   const [open, setOpen] = useState(false);
@@ -72,18 +71,34 @@ export function SidePanel({
   const close = useCallback(() => setOpen(false), []);
 
   const triggerRef = useRef<HTMLSpanElement | null>(null);
+  // Верх панели: с какой высоты экрана она начинается.
+  const [top, setTop] = useState(0);
 
-  // Подводка к кнопке. Идёт вместе с выездом панели, поэтому оба движения
-  // видны как одно.
-  const scrollToButton = useCallback(() => {
-    if (!scrollToTrigger) return;
-    const top = triggerRef.current?.getBoundingClientRect().top;
-    if (top === undefined) return;
-    window.scrollBy({ top: top - scrollOffset, behavior: 'smooth' });
-  }, [scrollToTrigger, scrollOffset]);
+  /*
+    Верх панели держится уровня кнопки, пока та видна, и прилипает к верху
+    экрана, когда кнопка уезжает выше. Страница при этом стоит на месте:
+    человек нажал в середине статьи и остался там же, а список появился рядом.
+  */
+  const followTrigger = useCallback(() => {
+    if (alignTop !== 'trigger') return;
+    // Координаты берём у самой кнопки: обёртка стоит с `display: contents`,
+    // своего бокса не имеет и отдаёт нули.
+    const rect = triggerRef.current?.firstElementChild?.getBoundingClientRect();
+    if (!rect) return;
+    setTop(Math.max(rect.top, minTop));
+  }, [alignTop, minTop]);
 
-  // Признак для стилей и ширина сдвига. Снимается при закрытии и при уходе
-  // со страницы: иначе следующая страница откроется сдвинутой.
+  useEffect(() => {
+    if (!open || alignTop !== 'trigger') return;
+    followTrigger();
+    window.addEventListener('scroll', followTrigger, { passive: true });
+    window.addEventListener('resize', followTrigger);
+    return () => {
+      window.removeEventListener('scroll', followTrigger);
+      window.removeEventListener('resize', followTrigger);
+    };
+  }, [open, alignTop, followTrigger]);
+
   useEffect(() => {
     if (!open) return;
     const body = document.body;
@@ -109,10 +124,8 @@ export function SidePanel({
       <span ref={triggerRef} className="contents">
         {trigger({
           open: () => {
-            setOpen((value) => {
-              if (!value) scrollToButton();
-              return !value;
-            });
+            followTrigger();
+            setOpen((value) => !value);
           },
           isOpen: open,
         })}
@@ -142,10 +155,18 @@ export function SidePanel({
             )}
             <aside
               aria-hidden={!open}
-              style={{ width }}
+              style={{ width, ...(alignTop === 'trigger' ? { top: `${top}px` } : {}) }}
               className={cn(
-                'fixed top-0 bottom-0 z-[55] flex flex-col overflow-y-auto overscroll-contain',
-                'border-border bg-bg transition-transform duration-300 ease-out',
+                'fixed bottom-0 z-[55] flex flex-col overflow-y-auto overscroll-contain',
+                alignTop === 'trigger' ? 'rounded-t-xl border-t' : 'top-0',
+                /*
+                  Панель читается как углубление в странице: фон темнее и по
+                  верхнему краю идёт тень внутрь. Без этого список висит на том
+                  же фоне, что и страница, и границы панели угадываются только
+                  по краю экрана.
+                */
+                'border-border bg-surface shadow-[inset_0_2px_6px_-4px_rgb(0_0_0/0.35)]',
+                'transition-transform duration-300 ease-out',
                 side === 'left' ? 'left-0 border-r' : 'right-0 border-l',
                 open ? 'translate-x-0' : side === 'left' ? '-translate-x-full' : 'translate-x-full',
                 className,

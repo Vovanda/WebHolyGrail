@@ -1,10 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import useEmblaCarousel from 'embla-carousel-react';
-import AutoScroll from 'embla-carousel-auto-scroll';
 import Link from 'next/link';
-import { ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
+
+import { CarouselDeck, CarouselItem } from '@/blocks/primitives/Carousel';
 import type { BlockNode, SiteSettings, MediaRef } from 'contracts';
 
 import { resolveMediaUrl } from '@/lib/media';
@@ -41,27 +40,6 @@ export function BuiltWith({
   const subtitle = data.subtitle;
   const items = data.items ?? [];
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'start', dragFree: true }, [
-    AutoScroll({ speed: 0.8, stopOnInteraction: false, stopOnMouseEnter: true }),
-  ]);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [snapCount, setSnapCount] = useState(0);
-
-  const scrollPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
-  const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
-  const scrollTo = useCallback((idx: number) => emblaApi?.scrollTo(idx), [emblaApi]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    setSnapCount(emblaApi.scrollSnapList().length);
-    const onSelect = () => setSelectedIndex(emblaApi.selectedScrollSnap());
-    onSelect();
-    emblaApi.on('select', onSelect);
-    return () => {
-      emblaApi.off('select', onSelect);
-    };
-  }, [emblaApi]);
-
   if (items.length === 0) return null;
 
   return (
@@ -74,92 +52,50 @@ export function BuiltWith({
         )}
         {subtitle && <p className="text-center text-muted mt-3">{subtitle}</p>}
 
-        <div className="relative mt-10">
-          <div className="overflow-hidden" ref={emblaRef}>
-            {/* -ml-4 на container компенсирует pl-4 у первого слайда, gap
-                одинаковый между всеми slides включая loop wrap-around. */}
-            <div className="flex -ml-4 md:-ml-5">
-              {items.map((item, i) => {
-                const preview = mediaUrl(item.screenshot);
-                return (
-                  <div
-                    key={i}
-                    className="flex-[0_0_85%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333%] xl:flex-[0_0_25%] min-w-0 pl-4 md:pl-5"
+        <div className="mt-10">
+          <CarouselDeck gap="lg" marquee loop label={heading}>
+            {items.map((item, i) => {
+              const preview = mediaUrl(item.screenshot);
+              return (
+                <CarouselItem key={i} width="min(20rem, 85vw)">
+                  <Link
+                    href={item.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group block h-full overflow-hidden rounded-xl border border-border bg-bg shadow-sm transition-all hover:border-accent/40 hover:shadow-md"
                   >
-                    <Link
-                      href={item.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group block rounded-xl border border-border bg-bg overflow-hidden shadow-sm hover:shadow-md hover:border-accent/40 transition-all h-full"
-                    >
-                      <div className="aspect-[16/10] bg-surface relative overflow-hidden">
-                        {preview ? (
-                          /* eslint-disable-next-line @next/next/no-img-element */
-                          <img
-                            src={preview}
-                            alt={item.siteName}
-                            className="absolute inset-0 h-full w-full object-cover"
-                          />
-                        ) : (
-                          <PreviewPlaceholder siteName={item.siteName} />
+                    <div className="aspect-[16/10] bg-surface relative overflow-hidden">
+                      {preview ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={preview}
+                          alt={item.siteName}
+                          className="absolute inset-0 h-full w-full object-cover"
+                        />
+                      ) : (
+                        <PreviewPlaceholder siteName={item.siteName} />
+                      )}
+                    </div>
+                    <div className="flex items-start justify-between gap-3 p-4">
+                      <div className="min-w-0">
+                        <div className="truncate font-display text-base font-semibold text-ink">
+                          {item.siteName}
+                        </div>
+                        {item.niche && (
+                          <div className="mt-0.5 truncate text-xs text-muted">{item.niche}</div>
                         )}
                       </div>
-                      <div className="p-4 flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="font-display font-semibold text-ink text-base truncate">
-                            {item.siteName}
-                          </div>
-                          {item.niche && (
-                            <div className="text-xs text-muted mt-0.5 truncate">{item.niche}</div>
-                          )}
-                        </div>
-                        <ArrowUpRight
-                          size={16}
-                          className="text-muted group-hover:text-accent transition-colors shrink-0 mt-1"
-                        />
-                      </div>
-                    </Link>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Arrows */}
-          <button
-            type="button"
-            onClick={scrollPrev}
-            aria-label="Предыдущий"
-            className="inline-flex absolute left-0 top-1/2 -translate-x-3 -translate-y-1/2 h-10 w-10 items-center justify-center rounded-full bg-bg border border-border text-muted hover:text-ink hover:shadow-md transition-all z-10"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <button
-            type="button"
-            onClick={scrollNext}
-            aria-label="Следующий"
-            className="inline-flex absolute right-0 top-1/2 translate-x-3 -translate-y-1/2 h-10 w-10 items-center justify-center rounded-full bg-bg border border-border text-muted hover:text-ink hover:shadow-md transition-all z-10"
-          >
-            <ChevronRight size={20} />
-          </button>
+                      <ArrowUpRight
+                        size={16}
+                        className="mt-1 shrink-0 text-muted transition-colors group-hover:text-accent"
+                      />
+                    </div>
+                  </Link>
+                </CarouselItem>
+              );
+            })}
+          </CarouselDeck>
         </div>
-
-        {/* Dots */}
-        {snapCount > 1 && (
-          <div className="mt-6 flex justify-center gap-2">
-            {Array.from({ length: snapCount }).map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => scrollTo(i)}
-                aria-label={`Слайд ${i + 1}`}
-                className={`h-2 rounded-full transition-all ${
-                  i === selectedIndex ? 'w-6 bg-accent' : 'w-2 bg-border hover:bg-muted'
-                }`}
-              />
-            ))}
-          </div>
-        )}
       </div>
     </section>
   );

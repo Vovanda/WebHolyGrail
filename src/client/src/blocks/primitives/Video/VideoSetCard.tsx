@@ -85,6 +85,9 @@ export function VideoSetCard({
         <span
           className={cn(
             'text-body font-medium leading-snug text-balance',
+            // Длинное название в ленте занимает четыре строки и тянет карточку
+            // вниз; две строки - предел, дальше многоточие.
+            orientation === 'horizontal' && 'line-clamp-2',
             current ? 'text-accent' : 'text-ink',
           )}
         >
@@ -104,7 +107,7 @@ export function VideoSetCard({
   const shell = cn(
     'group relative rounded-xl border bg-paper p-3 transition-colors',
     orientation === 'horizontal'
-      ? 'flex w-56 shrink-0 snap-start flex-col gap-2'
+      ? 'flex h-full w-full shrink-0 flex-col gap-2'
       : 'flex items-center gap-3',
     current ? 'border-accent' : 'border-border',
     playable ? 'hover:border-border-strong' : 'opacity-70',

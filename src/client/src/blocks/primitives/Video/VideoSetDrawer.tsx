@@ -48,7 +48,7 @@ export function VideoSetDrawer({
     <SidePanel
       side="right"
       width="min(21rem, 88vw)"
-      scrollToTrigger
+      alignTop="trigger"
       title={title ?? 'Плейлист'}
       trigger={({ open, isOpen }) => (
         <button

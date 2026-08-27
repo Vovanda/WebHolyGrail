@@ -170,7 +170,9 @@ export function CarouselDeck({
     <div className={cn('relative', className)}>
       <div className={cn('overflow-hidden', EDGE[edge])} ref={viewportRef}>
         <div
-          className={cn('flex', GAP[gap], mode === 'single' && 'items-stretch')}
+          /* Карточки тянутся до общей высоты: иначе соседи разной длины дают
+             рваный нижний край ленты. */
+          className={cn('flex items-stretch', GAP[gap])}
           style={{ ...(height ? { height } : {}), ...(aspect ? { aspectRatio: aspect } : {}) }}
           role="group"
           aria-roledescription="carousel"
@@ -232,7 +234,13 @@ export function CarouselItem({
   const fixed = width !== 'full' && width !== 'auto' ? width : undefined;
   return (
     <div
-      className={cn('min-w-0 shrink-0 grow-0', width === 'full' && 'basis-full', className)}
+      className={cn(
+        // Карточка занимает всю высоту ленты, а содержимое внутри тянется до
+        // её низа: так у ряда ровный край независимо от длины подписей.
+        'flex min-w-0 shrink-0 grow-0 [&>*]:h-full [&>*]:w-full',
+        width === 'full' && 'basis-full',
+        className,
+      )}
       style={fixed ? { flexBasis: fixed, width: fixed } : undefined}
     >
       {children}
