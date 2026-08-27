@@ -1,7 +1,7 @@
 import type { BlockNode, CarouselBlockData, CarouselCard, SiteSettings } from 'contracts';
 
 import { CarouselDeck, CarouselItem } from '@/blocks/primitives/Carousel';
-import { listArticles } from '@/lib/api-client';
+import { getChannel, listArticles } from '@/lib/api-client';
 import { resolveMediaUrl } from '@/lib/media';
 
 /**
@@ -82,18 +82,39 @@ type CarouselCardView = CarouselCard & { readonly imageUrl?: string };
  * Лента с источником обновляется сама: вышла новая запись - она появилась на
  * странице, и трогать саму страницу для этого не нужно (R0).
  *
- * Видео и наборы подключаются отдельно: у них проверка доступа на каждого
- * зрителя, и показывать их общим списком без неё нельзя.
+ * Видео берутся с канала автора, где закрытые уже отсеяны: перечень открытой
+ * страницы иначе стал бы описью платного для тех, кто его не брал.
  */
 async function collectCards(
-  data: CarouselBlockData & { sourceKind?: string; sourceLimit?: number; sourceOrder?: string },
+  data: CarouselBlockData & {
+    sourceKind?: string;
+    sourceLimit?: number;
+    sourceOrder?: string;
+    sourceChannel?: string;
+  },
 ): Promise<ReadonlyArray<CarouselCardView>> {
   const kind = data.sourceKind ?? data.source?.kind ?? 'manual';
   if (kind === 'manual') return data.cards ?? [];
+
+  const limit = data.sourceLimit ?? data.source?.limit ?? 8;
+
+  if (kind === 'videos') {
+    const channel = data.sourceChannel ?? data.source?.channel ?? '';
+    if (!channel) return [];
+    const found = await getChannel(channel).catch(() => null);
+    if (!found) return [];
+
+    return found.videos.slice(0, limit).map((video) => ({
+      title: video.title,
+      link: { href: `/@${channel}/v/${video.code}`, label: video.title },
+      ...(video.poster ? { imageUrl: video.poster } : {}),
+    }));
+  }
+
   if (kind !== 'articles') return [];
 
   const found = await listArticles({
-    limit: data.sourceLimit ?? data.source?.limit ?? 8,
+    limit,
     sort: (data.sourceOrder ?? data.source?.order) === 'oldest' ? 'oldest' : 'newest',
   }).catch(() => null);
   if (!found) return [];

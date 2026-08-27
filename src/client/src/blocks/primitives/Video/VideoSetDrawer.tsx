@@ -49,7 +49,7 @@ export function VideoSetDrawer({
       side="right"
       width="min(21rem, 88vw)"
       alignTop="trigger"
-      title={title ?? 'Плейлист'}
+      title="Плейлист"
       trigger={({ open, isOpen }) => (
         <button
           type="button"
@@ -69,6 +69,18 @@ export function VideoSetDrawer({
         </button>
       )}
     >
+      {/*
+        Сведения о наборе, отбивка и карточки едут одним блоком: вверху панели
+        остаётся родовое слово с крестиком, а всё, что относится к самому
+        набору, держится вместе.
+      */}
+      <div className="mb-3 flex flex-col gap-1 border-b border-border pb-3">
+        {title && <p className="text-body font-medium text-ink text-balance">{title}</p>}
+        <p className="text-sm text-muted">
+          {position >= 0 ? `${position + 1} из ${items.length}` : `${items.length} видео`}
+        </p>
+      </div>
+
       <VideoSetList
         items={items}
         channel={channel}

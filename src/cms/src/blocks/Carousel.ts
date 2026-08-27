@@ -32,10 +32,18 @@ export const CarouselBlock: Block = {
       options: [
         { label: 'Карточки заведены здесь', value: 'manual' },
         { label: 'Записи блога', value: 'articles' },
-        { label: 'Видео', value: 'videos' },
-        { label: 'Наборы видео', value: 'playlists' },
+        { label: 'Видео канала', value: 'videos' },
       ],
       admin: { description: 'Живая коллекция обновляет ленту сама.' },
+    },
+    {
+      name: 'sourceChannel',
+      label: 'Канал',
+      type: 'text',
+      admin: {
+        condition: (_, siblings) => siblings?.sourceKind === 'videos',
+        description: 'Имя канала без собачки, например whg.',
+      },
     },
     {
       name: 'sourceLimit',

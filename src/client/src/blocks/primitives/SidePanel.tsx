@@ -53,6 +53,9 @@ export interface SidePanelProps {
   readonly className?: string;
 }
 
+/** Сколько карточек должно быть видно, чтобы список читался списком. */
+const MIN_VISIBLE_CARDS = 3;
+
 export function SidePanel({
   trigger,
   children,
@@ -82,11 +85,39 @@ export function SidePanel({
   */
   const followTrigger = useCallback(() => {
     if (alignTop !== 'trigger') return;
+    // На телефоне панель занимает экран целиком и идёт от верха: равняться там
+    // не с чем - страницы рядом не видно, а кнопка остаётся за кадром.
+    if (window.innerWidth < 1024) {
+      setTop(0);
+      return;
+    }
     // Координаты берём у самой кнопки: обёртка стоит с `display: contents`,
     // своего бокса не имеет и отдаёт нули.
     const rect = triggerRef.current?.firstElementChild?.getBoundingClientRect();
     if (!rect) return;
-    setTop(Math.max(rect.top, minTop));
+
+    let next = Math.max(rect.top, minTop);
+
+    /*
+      Панель, начатая слишком низко, показывает пустоту и край первой карточки.
+      Считаем, сколько нужно на три карточки с шапкой, и поднимаем верх ровно
+      настолько, чтобы они поместились.
+
+      Три - тот минимум, по которому видно, что это список, а не одинокая
+      карточка внизу экрана.
+    */
+    const panel = panelRef.current;
+    const card = panel?.querySelector('li, [data-panel-card]');
+    const head = panel?.firstElementChild;
+    if (card && head) {
+      const needed =
+        card.getBoundingClientRect().height * MIN_VISIBLE_CARDS +
+        head.getBoundingClientRect().height;
+      const available = window.innerHeight - next;
+      if (available < needed) next = Math.max(minTop, window.innerHeight - needed);
+    }
+
+    setTop(next);
   }, [alignTop, minTop]);
 
   useEffect(() => {
@@ -194,7 +225,11 @@ export function SidePanel({
                 </button>
               </div>
 
-              <div className="flex-1 p-4">{children}</div>
+              {/*
+                Карточки держатся на виду при прокрутке. Заголовок с крестиком
+                остаётся там, где стоял.
+              */}
+              <div className="side-panel__body flex-1 p-4">{children}</div>
             </aside>
           </>,
           document.body,

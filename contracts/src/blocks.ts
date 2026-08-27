@@ -86,7 +86,9 @@ export interface CarouselCard {
  * набор значений, когда до них дойдёт (R9).
  */
 export interface BlockSource {
-  readonly kind: 'manual' | 'articles' | 'videos' | 'playlists';
+  readonly kind: 'manual' | 'articles' | 'videos';
+  /** Канал, чьи видео показывать. */
+  readonly channel?: string;
   /** Сколько показать. */
   readonly limit?: number;
   /** Порядок: свежие сверху или как задано вручную. */
