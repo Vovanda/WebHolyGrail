@@ -27,11 +27,17 @@ describe('panelClasses', () => {
     expect(common(classes('left', 'trigger'))).toEqual(common(classes('right', 'trigger')));
   });
 
-  it('стороны зеркальны: край экрана и граница напротив него', () => {
+  it('панель прижата к своей стороне', () => {
     expect(classes('left')).toContain('left-0');
-    expect(classes('left')).toContain('border-r');
     expect(classes('right')).toContain('right-0');
-    expect(classes('right')).toContain('border-l');
+  });
+
+  it('очерчена с обеих сторон', () => {
+    // На широком экране панель стоит по краю страницы, а до края окна остаётся
+    // поле: без второй границы её внешний край теряется на фоне.
+    for (const side of ['left', 'right'] as const) {
+      expect(classes(side)).toContain('border-x');
+    }
   });
 
   it('сдвиг задан стилями, а не классом', () => {
