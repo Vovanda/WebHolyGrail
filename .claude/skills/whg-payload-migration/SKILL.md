@@ -295,6 +295,33 @@ sqlite3 data/<slug>.db ".schema _pages_v_blocks_quote"
 
 **Не нужно** на VPS вручную дергать `docker exec ... pnpm migrate`. Достаточно push в main — CI build → deploy.sh применяет.
 
+## Миграция не должна валить выкладку
+
+Набор таблиц у блока отличается от сайта к сайту: они появляются там, где блок
+разрешили ставить. Слепой `ALTER TABLE` по списку валит весь прогон на первой же
+недостающей таблице, а с ним и выкладку - деплой откатывается, прод остаётся на
+прежней версии.
+
+Поэтому в миграциях под блоки колонка добавляется по факту:
+
+```ts
+const TABLES = ['pages_blocks_x', '_pages_v_blocks_x', 'reusable_blocks_blocks_x'];
+
+for (const table of TABLES) {
+  if (!(await hasTable(db, table))) continue;
+  if (await hasColumn(db, table, 'my_column')) continue;
+  await db.run(sql.raw(`ALTER TABLE \`${table}\` ADD \`my_column\` text;`));
+}
+```
+
+`hasTable` смотрит `sqlite_master`, `hasColumn` - `PRAGMA table_info`. Тот же приём
+и в `down`.
+
+**Вывод миграции читать целиком.** В `deploy/prod/deploy.sh` он раньше обрезался
+хвостом, и в логе оставался стек без текста ошибки - причину было не найти.
+Сейчас вывод сохраняется в файл и печатается полностью; если правишь этот блок,
+обрезку не возвращай.
+
 ## Blue-green safety (prod)
 
 > На prod деплой через blue-green (`deploy/prod/compose.bluegreen.yml` + `deploy.sh`). Старый и новый цвет работают **на ОДНОЙ БД** во время switch (1-2 минуты). Миграции должны быть **expand-only** — старый цвет не должен падать на новой схеме.
