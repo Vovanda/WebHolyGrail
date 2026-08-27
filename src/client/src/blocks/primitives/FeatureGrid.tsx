@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import useEmblaCarousel from 'embla-carousel-react';
-import AutoScroll from 'embla-carousel-auto-scroll';
 import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import type { BlockNode, MediaRef, SiteSettings } from 'contracts';
 
+import { CarouselDeck, CarouselItem } from '@/blocks/primitives/Carousel';
 import { resolveMediaUrl } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
@@ -378,71 +378,24 @@ function CardCarousel({
   readonly items: NonNullable<FeatureGridData['items']>;
   readonly onOpen: (idx: number) => void;
 }) {
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'start', dragFree: true }, [
-    AutoScroll({ speed: 0.8, stopOnInteraction: false, stopOnMouseEnter: true }),
-  ]);
-  const [selected, setSelected] = useState(0);
-  const [snapCount, setSnapCount] = useState(0);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    setSnapCount(emblaApi.scrollSnapList().length);
-    const onSelect = () => setSelected(emblaApi.selectedScrollSnap());
-    onSelect();
-    emblaApi.on('select', onSelect);
-    return () => {
-      emblaApi.off('select', onSelect);
-    };
-  }, [emblaApi]);
-
   return (
-    <>
-      <div className="relative mt-10">
-        <div className="overflow-hidden" ref={emblaRef}>
-          <div className="flex -ml-4 md:-ml-5">
-            {items.map((item, i) => (
-              <div
-                key={i}
-                className="flex-[0_0_85%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333%] xl:flex-[0_0_25%] min-w-0 pl-4 md:pl-5"
-              >
-                <FeatureCard item={item} ratio="16/10" onOpen={() => onOpen(i)} />
-              </div>
-            ))}
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => emblaApi?.scrollPrev()}
-          aria-label="Предыдущий"
-          className="inline-flex absolute left-0 top-1/2 -translate-x-3 -translate-y-1/2 h-10 w-10 items-center justify-center rounded-full bg-bg border border-border text-muted hover:text-ink hover:shadow-md transition-all z-10"
-        >
-          <ChevronLeft size={20} />
-        </button>
-        <button
-          type="button"
-          onClick={() => emblaApi?.scrollNext()}
-          aria-label="Следующий"
-          className="inline-flex absolute right-0 top-1/2 translate-x-3 -translate-y-1/2 h-10 w-10 items-center justify-center rounded-full bg-bg border border-border text-muted hover:text-ink hover:shadow-md transition-all z-10"
-        >
-          <ChevronRight size={20} />
-        </button>
-      </div>
-      {snapCount > 1 && (
-        <div className="mt-6 flex justify-center gap-2">
-          {Array.from({ length: snapCount }).map((_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => emblaApi?.scrollTo(i)}
-              aria-label={`Слайд ${i + 1}`}
-              className={`h-2 rounded-full transition-all ${
-                i === selected ? 'w-6 bg-accent' : 'w-2 bg-border hover:bg-muted'
-              }`}
-            />
-          ))}
-        </div>
-      )}
-    </>
+    <CarouselDeck
+      mode="row"
+      gap="md"
+      edge="gap"
+      arrows
+      dots
+      loop
+      marquee
+      label="Возможности"
+      className="mt-10"
+    >
+      {items.map((item, i) => (
+        <CarouselItem key={i} className="basis-[85%] sm:basis-1/2 lg:basis-1/3 xl:basis-1/4">
+          <FeatureCard item={item} ratio="16/10" onOpen={() => onOpen(i)} />
+        </CarouselItem>
+      ))}
+    </CarouselDeck>
   );
 }
 
