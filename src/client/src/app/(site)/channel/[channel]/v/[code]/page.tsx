@@ -5,6 +5,7 @@ import { AccessCodeForm } from '@/blocks/primitives/Video/AccessCodeForm';
 import { VideoPlayer } from '@/blocks/primitives/Video/VideoPlayer';
 import { VideoSetDrawer } from '@/blocks/primitives/Video/VideoSetDrawer';
 import { VideoDescription } from '@/blocks/primitives/Video/VideoDescription';
+import { VideoSetLinks } from '@/blocks/primitives/Video/VideoSetLinks';
 import { VideoSetList } from '@/blocks/primitives/Video/VideoSetList';
 import {
   checkVideoAccess,
@@ -160,6 +161,22 @@ export default async function VideoPage({
             className="hidden md:flex"
           />
         </section>
+      )}
+
+      {/*
+        Второй перечень отвечает на другой вопрос: частью чего ещё является это
+        видео. Линия отделяет его от списка выше - без неё два перечня подряд
+        читаются как один длинный.
+      */}
+      {video.sets.length > 0 && (
+        <>
+          <hr className="border-border" />
+          <VideoSetLinks
+            sets={video.sets}
+            channel={channel}
+            currentSetCode={set?.code ?? setCode}
+          />
+        </>
       )}
 
       {/*
