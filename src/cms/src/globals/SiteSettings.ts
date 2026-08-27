@@ -191,6 +191,35 @@ export const SiteSettings: GlobalConfig = {
               ],
             },
             {
+              name: 'blockSpace',
+              label: 'Шаг секции',
+              type: 'group',
+              admin: {
+                description:
+                  'Воздух сверху и снизу у каждого блока страницы. Отдельному блоку задаётся своё в «Виде блока».',
+              },
+              fields: [
+                {
+                  name: 'narrow',
+                  label: 'На узком экране',
+                  type: 'text',
+                  admin: {
+                    placeholder: '1rem',
+                    description: 'Любая мера CSS. Пусто — как задано в коде.',
+                  },
+                },
+                {
+                  name: 'wide',
+                  label: 'На широком экране',
+                  type: 'text',
+                  admin: {
+                    placeholder: '1.5rem',
+                    description: 'От 768 точек ширины.',
+                  },
+                },
+              ],
+            },
+            {
               name: 'theme',
               label: 'Тема',
               type: 'group',
