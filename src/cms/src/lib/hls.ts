@@ -178,7 +178,22 @@ async function probe(input: string): Promise<{ height: number | null; duration: 
  */
 export async function transcodeToHls(
   source: Buffer,
-  { ladder = DEFAULT_LADDER, keyUri }: { ladder?: ReadonlyArray<HlsRung>; keyUri: string },
+  {
+    ladder = DEFAULT_LADDER,
+    keyUri,
+    onProgress,
+  }: {
+    ladder?: ReadonlyArray<HlsRung>;
+    keyUri: string;
+    /**
+     * Сколько записи уже обработано, от нуля до единицы.
+     *
+     * @remarks
+     * Нарезка часовой записи идёт минутами, и без вестей о ней карточка
+     * выглядит зависшей: владелец не понимает, идёт работа или всё встало.
+     */
+    onProgress?: (share: number) => void;
+  },
 ): Promise<HlsResult> {
   if (!keyUri) {
     throw new Error('Нужен адрес выдачи ключа: без него плеер не расшифрует поток.');
@@ -270,7 +285,12 @@ export async function transcodeToHls(
       rungs.map((rung) => mkdir(join(out, `${rung.height}p`), { recursive: true })),
     );
 
-    await run('ffmpeg', args);
+    await run('ffmpeg', args, (seconds) => {
+      // Доля считается от длительности: без неё показывать нечего, и вести о
+      // ходе просто не идут.
+      if (!onProgress || !duration || duration <= 0) return;
+      onProgress(Math.min(1, seconds / duration));
+    });
 
     return {
       files: await collect(out),
@@ -422,8 +442,18 @@ async function grabPoster(
   }
 }
 
-/** Запуск утилиты со сбором stdout; отказ — с текстом stderr, иначе причину не найти. */
-function run(command: string, args: ReadonlyArray<string>): Promise<string> {
+/**
+ * Запуск утилиты со сбором stdout; отказ - с текстом stderr, иначе причину не найти.
+ *
+ * @remarks
+ * Ход работы отдаётся наблюдателю по мере разбора вывода: нарезка часовой
+ * записи идёт минутами, и без вестей о ней карточка выглядит зависшей.
+ */
+function run(
+  command: string,
+  args: ReadonlyArray<string>,
+  onProgress?: (seconds: number) => void,
+): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, [...args]);
     let out = '';
@@ -432,7 +462,12 @@ function run(command: string, args: ReadonlyArray<string>): Promise<string> {
       out += String(chunk);
     });
     child.stderr.on('data', (chunk) => {
-      err += String(chunk);
+      const text = String(chunk);
+      err += text;
+      if (onProgress) {
+        const at = lastTimestamp(text);
+        if (at !== null) onProgress(at);
+      }
     });
     child.on('error', reject);
     child.on('close', (code) => {
@@ -440,4 +475,20 @@ function run(command: string, args: ReadonlyArray<string>): Promise<string> {
       else reject(new Error(`${command} завершился с кодом ${code}: ${err.slice(-2000)}`));
     });
   });
+}
+
+/**
+ * Последняя отметка времени в выводе утилиты.
+ *
+ * @remarks
+ * Утилита пишет строки вида `time=00:01:23.45`, обновляя их по ходу работы.
+ * Берём последнюю в куске вывода: промежуточные всё равно устарели к моменту
+ * разбора.
+ */
+function lastTimestamp(text: string): number | null {
+  const matches = [...text.matchAll(/time=(\d+):(\d{2}):(\d{2})/g)];
+  const last = matches.at(-1);
+  if (!last) return null;
+  const [, h, m, sec] = last;
+  return Number(h) * 3600 + Number(m) * 60 + Number(sec);
 }

@@ -63,7 +63,22 @@ export async function buildHls({
   const prefix = `${area}/hls/${randomUUID()}`;
 
   log('режу на качества');
-  const result = await encoder.transcode(source, { ladder: await catalog.ladder(), keyUri });
+
+  /*
+    Ход нарезки пишем редко - шагом в несколько процентов. Карточке этого
+    хватает, а запись в базу на каждый разобранный кадр нагружала бы её впустую.
+  */
+  let lastReported = 0;
+  const result = await encoder.transcode(source, {
+    ladder: await catalog.ladder(),
+    keyUri,
+    onProgress: (share) => {
+      const percent = Math.round(share * 100);
+      if (percent < lastReported + 5) return;
+      lastReported = percent;
+      void catalog.saveProgress(mediaId, percent);
+    },
+  });
 
   // Прошлую нарезку убираем по адресу из каталога, а не по новому: у каждой
   // свой адрес, и иначе прежние сегменты остались бы в хранилище навсегда.

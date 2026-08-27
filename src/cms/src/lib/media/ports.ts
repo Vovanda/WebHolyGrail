@@ -17,7 +17,12 @@ import type { HlsFile, HlsRung } from '../hls';
 export interface EncoderPort {
   transcode(
     source: Buffer,
-    options: { ladder: ReadonlyArray<HlsRung>; keyUri: string },
+    options: {
+      ladder: ReadonlyArray<HlsRung>;
+      keyUri: string;
+      /** Сколько записи уже обработано, от нуля до единицы. */
+      onProgress?: (share: number) => void;
+    },
   ): Promise<{
     files: ReadonlyArray<HlsFile>;
     rungs: ReadonlyArray<HlsRung>;
@@ -103,6 +108,14 @@ export interface CatalogPort {
    * хранилище и получает тот же адрес раздачи, что и всё остальное.
    */
   savePoster(id: string | number, poster: Buffer): Promise<void>;
+  /**
+   * Отмечает, сколько записи уже обработано.
+   *
+   * @remarks
+   * Пишется редко: карточке хватает шага в несколько процентов, а запись в базу
+   * на каждый кадр нагружала бы её впустую.
+   */
+  saveProgress(id: string | number, percent: number): Promise<void>;
 }
 
 export interface VideoPorts {

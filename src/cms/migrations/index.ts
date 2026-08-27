@@ -35,6 +35,7 @@ import * as migration_20260827_013627_video_chapters from './20260827_013627_vid
 import * as migration_20260827_015213_video_storyboard from './20260827_015213_video_storyboard';
 import * as migration_20260827_020821_video_denied from './20260827_020821_video_denied';
 import * as migration_20260827_023648_playlist_apply_access from './20260827_023648_playlist_apply_access';
+import * as migration_20260827_025918_video_progress from './20260827_025918_video_progress';
 
 export const migrations = [
   {
@@ -221,5 +222,10 @@ export const migrations = [
     up: migration_20260827_023648_playlist_apply_access.up,
     down: migration_20260827_023648_playlist_apply_access.down,
     name: '20260827_023648_playlist_apply_access',
+  },
+  {
+    up: migration_20260827_025918_video_progress.up,
+    down: migration_20260827_025918_video_progress.down,
+    name: '20260827_025918_video_progress',
   },
 ];

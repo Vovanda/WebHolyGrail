@@ -86,6 +86,7 @@ function makePorts(
         saved.push(result);
       }),
       ladder: vi.fn(async () => [{ height: 480, videoKbps: 1200, audioKbps: 96 }]),
+      saveProgress: vi.fn(async () => undefined),
       savePoster: vi.fn(async () => {
         calls.push('savePoster');
       }),

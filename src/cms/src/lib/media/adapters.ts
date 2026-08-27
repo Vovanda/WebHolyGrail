@@ -185,6 +185,16 @@ export function payloadCatalog(payload: Payload): CatalogPort {
       });
     },
 
+    async saveProgress(id, percent) {
+      await payload.update({
+        collection: 'media',
+        id,
+        data: { hls: { progress: percent } },
+        // Служебное обновление: отметка о ходе не должна запускать новый круг.
+        context: { skipHlsQueue: true },
+      });
+    },
+
     async savePoster(id, poster) {
       const created = await payload.create({
         collection: 'media',

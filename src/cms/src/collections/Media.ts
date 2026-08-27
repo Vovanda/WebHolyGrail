@@ -364,6 +364,15 @@ export const Media: CollectionConfig = {
       },
       fields: [
         {
+          name: 'progressView',
+          type: 'ui',
+          admin: {
+            components: {
+              Field: '/admin/components/VideoProgressField#VideoProgressField',
+            },
+          },
+        },
+        {
           name: 'status',
           label: 'Состояние',
           type: 'select',
@@ -391,6 +400,16 @@ export const Media: CollectionConfig = {
           name: 'prefix',
           label: 'Папка в хранилище',
           type: 'text',
+          admin: { readOnly: true, hidden: true },
+        },
+        {
+          name: 'progress',
+          label: 'Готово, %',
+          type: 'number',
+          min: 0,
+          max: 100,
+          // Заполняется обработкой по ходу нарезки: без вестей карточка
+          // выглядит зависшей, и владелец не понимает, идёт работа или встала.
           admin: { readOnly: true, hidden: true },
         },
         {
