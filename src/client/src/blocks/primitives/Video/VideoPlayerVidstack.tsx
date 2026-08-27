@@ -16,6 +16,7 @@ import '@vidstack/react/player/styles/default/layouts/video.css';
 import { cn } from '@/lib/utils';
 
 import { createEnvelopeLoader, type EnvelopeFailure } from './envelope-loader';
+import { useVideoResume } from './useVideoResume';
 import { useVideoTimecode } from './useVideoTimecode';
 import type { VideoPlayerChromeProps } from './VideoPlayerChrome';
 
@@ -57,9 +58,11 @@ export function VideoPlayerVidstack({
 }: VideoPlayerVidstackProps) {
   const [denied, setDenied] = useState<EnvelopeFailure | null>(null);
 
-  // Ссылка вида `?t=3m20s` открывает запись с нужного места.
+  // Ссылка вида `?t=3m20s` открывает запись с нужного места, а без неё запись
+  // продолжается с того места, где её оставили.
   const videoRef = useRef<HTMLVideoElement | null>(null);
   useVideoTimecode(videoRef);
+  useVideoResume(videoRef, { mediaId });
 
   const loader = useMemo(
     () => createEnvelopeLoader({ mediaId, token, onFailure: setDenied }),
