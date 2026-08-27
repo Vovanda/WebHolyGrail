@@ -22,7 +22,7 @@ export const Playlists: CollectionConfig = {
   labels: { singular: 'Набор', plural: 'Наборы' },
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'author', 'access', 'updatedAt'],
+    defaultColumns: ['cover', 'title', 'author', 'access', 'updatedAt'],
     group: 'Доступ к видео',
     description: 'Подборки роликов. Доступ к закрытым из них даёт право на набор.',
   },
@@ -60,6 +60,11 @@ export const Playlists: CollectionConfig = {
       label: 'Обложка',
       type: 'upload',
       relationTo: 'media',
+      admin: {
+        components: {
+          Cell: '/admin/components/PlaylistCoverCell#PlaylistCoverCell',
+        },
+      },
     },
     {
       /**
