@@ -26,7 +26,7 @@ The mistake to avoid: classifying values by **what they are** ("constants go in 
 
 ## What this means for typical values
 
-- **Feature flags** — Infisical. Toggle through env, no rebuild.
+- **Feature flags** — a Payload collection, with Infisical able to override any of them. See [Feature toggles](#feature-toggles) below.
 - **Rate limits, retry counts, default cache TTL** — Infisical. DevOps knobs.
 - **Supported locales list** — Infisical (changing it is a config decision, not a content decision).
 - **Brand colors / theme name** — Payload `SiteSettings` (a content / brand decision).
@@ -60,6 +60,33 @@ For typical small-business sites on Holy Grail none of these apply. Infisical al
 If a Holy Grail instance ever genuinely needs that level of flag control, we'd add the system then. The migration is mechanical (rename `process.env.X` → SDK call). We don't pre-optimise for a scale we don't have.
 
 A homegrown FF UI on top of Infisical (a Payload collection mirroring flags, or a custom panel) is also possible — but again, why? Infisical UI does the job. Build it only if real friction appears.
+
+## Feature toggles
+
+Real friction did appear, and toggles moved to a `feature-toggles` collection with an
+Infisical override on top. What forced the change: an env variable is baked into the build,
+so `NEXT_PUBLIC_VIDEO_UI` could not be flipped without a redeploy — the exact thing a flag
+exists to avoid. Moving the value into the database also put it where the site owner can
+see it, which an Infisical project they have no account for never was.
+
+How it works:
+
+- A toggle is described once (key, feature group, description) and gets a value **per
+  environment**, plus an optional scheduled time. The time wins over the checkboxes: it is
+  set deliberately and in advance, and "turn it on Monday morning" has to fire by itself.
+- The decision itself is a pure function that knows nothing about Payload or the admin
+  panel — record in, yes or no out. Storage can be replaced without touching the rules.
+- **An Infisical value overrides the checkboxes.** A `TOGGLE_<KEY>` variable claims the
+  toggle for whoever runs the servers: thresholds, limits, a workaround during an incident.
+  An unrecognised spelling is ignored rather than treated as off, so a typo cannot quietly
+  kill a working feature. Such a toggle is still listed in the admin panel, showing that a
+  variable owns it — otherwise the owner sees behaviour and cannot find its source.
+- If the site cannot read the summary at all, everything counts as off. Silently switching
+  features on during an outage is the one failure mode worth ruling out by construction.
+
+The split from the table above still holds: the owner changes what the site does through
+the admin panel, whoever runs the servers changes technical knobs through Infisical. What
+changed is that both now land in one list.
 
 ## When we revisit
 
