@@ -19,6 +19,7 @@ import type { VideoChapter, VideoSubtitleTrack } from 'contracts';
 import { cn } from '@/lib/utils';
 
 import { chaptersTrackUrl } from './chapters-track';
+import { useMiniPlayer } from './useMiniPlayer';
 import { createEnvelopeLoader, type EnvelopeFailure } from './envelope-loader';
 import { useVideoResume } from './useVideoResume';
 import { useVideoTimecode } from './useVideoTimecode';
@@ -46,6 +47,14 @@ export type VideoPlayerVidstackProps = VideoPlayerChromeProps & {
   readonly chapters?: ReadonlyArray<VideoChapter> | undefined;
   /** Длительность записи: по ней тянется последняя глава. */
   readonly durationSeconds?: number | null | undefined;
+  /**
+   * Уводить играющую запись уголком, когда страницу прокрутили мимо.
+   *
+   * @remarks
+   * Уместно там, где под записью есть что читать. В ленте одинаковых карточек
+   * от этого только мельтешение, поэтому включается по месту.
+   */
+  readonly mini?: boolean;
 };
 
 /** Текст отказа. Владелец переопределяет его в настройках сайта. */
@@ -69,12 +78,16 @@ export function VideoPlayerVidstack({
   subtitles = [],
   chapters = [],
   durationSeconds = null,
+  mini = false,
 }: VideoPlayerVidstackProps) {
   const [denied, setDenied] = useState<EnvelopeFailure | null>(null);
 
   // Ссылка вида `?t=3m20s` открывает запись с нужного места, а без неё запись
   // продолжается с того места, где её оставили.
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const frameRef = useRef<HTMLDivElement | null>(null);
+  const miniPlayer = useMiniPlayer(frameRef, videoRef);
+  const asMini = mini && miniPlayer.active;
   useVideoTimecode(videoRef);
   useVideoResume(videoRef, { mediaId });
 
@@ -115,63 +128,85 @@ export function VideoPlayerVidstack({
   }
 
   return (
-    <div className={cn('relative', className)}>
-      <MediaPlayer
-        className="video-vidstack w-full overflow-hidden rounded-xl border border-border"
-        src={{ src, type: 'application/x-mpegurl' }}
-        title={title ?? ''}
-        playsInline
-        crossOrigin
-        keyTarget="player"
-        onProviderChange={onProviderChange}
-        onCanPlay={(_detail, event) => {
-          const media = (event.target as { el?: HTMLElement } | null)?.el?.querySelector('video');
-          videoRef.current = (media as HTMLVideoElement) ?? null;
-          onVideoRef?.((media as HTMLVideoElement) ?? null);
-        }}
-      >
-        <MediaProvider>
-          {poster && <Poster className="vds-poster" src={poster} alt="" />}
+    <div
+      ref={frameRef}
+      className={cn(
+        'relative',
+        // Место записи на странице остаётся занятым: без этого страница
+        // подпрыгивает, стоит кадру уехать в угол.
+        asMini && 'min-h-[1px]',
+        className,
+      )}
+    >
+      {asMini && (
+        <button
+          type="button"
+          onClick={miniPlayer.dismiss}
+          aria-label="Убрать окошко"
+          className="fixed bottom-2 right-2 z-[61] grid h-7 w-7 place-items-center rounded-full bg-ink/80 text-paper"
+        >
+          ×
+        </button>
+      )}
 
-          {/*
+      <div className={cn(asMini && 'video-mini')}>
+        <MediaPlayer
+          className="video-vidstack w-full overflow-hidden rounded-xl border border-border"
+          src={{ src, type: 'application/x-mpegurl' }}
+          title={title ?? ''}
+          playsInline
+          crossOrigin
+          keyTarget="player"
+          onProviderChange={onProviderChange}
+          onCanPlay={(_detail, event) => {
+            const media = (event.target as { el?: HTMLElement } | null)?.el?.querySelector('video');
+            videoRef.current = (media as HTMLVideoElement) ?? null;
+            onVideoRef?.((media as HTMLVideoElement) ?? null);
+          }}
+        >
+          <MediaProvider>
+            {poster && <Poster className="vds-poster" src={poster} alt="" />}
+
+            {/*
             Дорожки субтитров. Нужны слабослышащим и тем, кто не владеет языком
             записи, а ещё там, где звук включить нельзя - в транспорте, рядом со
             спящим ребёнком.
           */}
-          {chaptersUrl && <Track src={chaptersUrl} kind="chapters" lang="ru" default />}
+            {chaptersUrl && <Track src={chaptersUrl} kind="chapters" lang="ru" default />}
 
-          {subtitles.map((track) => (
-            <Track
-              key={`${track.language}-${track.src}`}
-              src={track.src}
-              kind="subtitles"
-              label={track.label}
-              lang={track.language}
-              default={track.default === true}
-            />
-          ))}
-        </MediaProvider>
+            {subtitles.map((track) => (
+              <Track
+                key={`${track.language}-${track.src}`}
+                src={track.src}
+                kind="subtitles"
+                label={track.label}
+                lang={track.language}
+                default={track.default === true}
+              />
+            ))}
+          </MediaProvider>
 
-        {/*
+          {/*
           Раскладку выбирает сама библиотека: у неё свои виды для широкого и
           узкого экрана, и подмена одного другим разносит кнопки по кадру.
         */}
-        <DefaultVideoLayout icons={defaultLayoutIcons} translations={RU} />
-      </MediaPlayer>
+          <DefaultVideoLayout icons={defaultLayoutIcons} translations={RU} />
+        </MediaPlayer>
 
-      {/* Переход по набору: у готового слоя таких кнопок нет, ставим поверх кадра. */}
-      {(onPrev || onNext) && (
-        <div className="video-vidstack__set">
-          <button type="button" onClick={onPrev} disabled={!onPrev} aria-label="Предыдущее видео">
-            <PrevIcon />
-          </button>
-          <button type="button" onClick={onNext} disabled={!onNext} aria-label="Следующее видео">
-            <NextIcon />
-          </button>
-        </div>
-      )}
+        {/* Переход по набору: у готового слоя таких кнопок нет, ставим поверх кадра. */}
+        {(onPrev || onNext) && (
+          <div className="video-vidstack__set">
+            <button type="button" onClick={onPrev} disabled={!onPrev} aria-label="Предыдущее видео">
+              <PrevIcon />
+            </button>
+            <button type="button" onClick={onNext} disabled={!onNext} aria-label="Следующее видео">
+              <NextIcon />
+            </button>
+          </div>
+        )}
 
-      {overlay}
+        {overlay}
+      </div>
     </div>
   );
 }

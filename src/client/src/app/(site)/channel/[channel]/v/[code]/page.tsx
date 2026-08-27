@@ -90,6 +90,7 @@ export default async function VideoPage({
     <main className="mx-auto flex max-w-wide flex-col gap-5 px-4 py-6 md:px-6 md:py-8">
       {playable && token ? (
         <VideoPlayer
+          mini
           subtitles={video.subtitles}
           chapters={video.chapters}
           durationSeconds={video.durationSeconds}

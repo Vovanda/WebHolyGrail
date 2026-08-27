@@ -25,6 +25,8 @@ export type VideoPlayerProps = VideoPlayerChromeProps & {
   /** Оглавление записи: показывает только новый слой управления. */
   readonly chapters?: ReadonlyArray<VideoChapter> | undefined;
   readonly durationSeconds?: number | null | undefined;
+  /** Уводить играющую запись уголком при прокрутке: показывает только новый слой. */
+  readonly mini?: boolean;
   /**
    * Какой слой управления рисовать.
    *
@@ -59,13 +61,14 @@ export function VideoPlayer({ ui: asked, ...props }: VideoPlayerProps) {
 
   // Прежний слой субтитров не рисует: он остаётся для сравнения и уйдёт, когда
   // выбор устоится.
-  const { subtitles, chapters, durationSeconds, ...common } = props;
+  const { subtitles, chapters, durationSeconds, mini, ...common } = props;
   return ui === 'vidstack' ? (
     <VideoPlayerVidstack
       {...common}
       subtitles={subtitles}
       chapters={chapters}
       durationSeconds={durationSeconds}
+      mini={mini ?? false}
     />
   ) : (
     <VideoPlayerChrome {...common} />
