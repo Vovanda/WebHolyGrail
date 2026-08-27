@@ -3,6 +3,7 @@ import type { PanelConfig, SiteLayoutConfig, SiteSettings, SlotName } from 'cont
 
 import { LayoutPushPanel } from './LayoutPushPanel';
 import { panelMatchesRoute } from './panel-routes';
+import { panelScreenClass } from './panel-visibility';
 import { renderPanelContent } from './renderPanelContent';
 
 /**
@@ -162,7 +163,11 @@ function PanelHost({
     if (panel.mobile === 'push') {
       const width = typeof panel.size === 'number' ? `${panel.size}px` : panel.size;
       return (
-        <section data-panel-id={panel.id} data-panel-slot={panel.slot}>
+        <section
+          data-panel-id={panel.id}
+          data-panel-slot={panel.slot}
+          className={panelScreenClass(panel.visibility)}
+        >
           <LayoutPushPanel side={panel.slot} width={width} title={panel.meta?.title}>
             {renderPanelContent(panel.content, settings, pageChildren)}
           </LayoutPushPanel>
@@ -171,7 +176,11 @@ function PanelHost({
     }
 
     return (
-      <section data-panel-id={panel.id} data-panel-slot={panel.slot}>
+      <section
+        data-panel-id={panel.id}
+        data-panel-slot={panel.slot}
+        className={panelScreenClass(panel.visibility)}
+      >
         {renderPanelContent(panel.content, settings, pageChildren)}
       </section>
     );

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-import { PATHNAME_HEADER } from '@/lib/pathname-header';
+import { PATHNAME_HEADER, SEARCH_HEADER } from '@/lib/pathname-header';
 
 /**
  * Адрес страницы для серверной раскладки.
@@ -19,6 +19,7 @@ import { PATHNAME_HEADER } from '@/lib/pathname-header';
 export function middleware(request: NextRequest) {
   const headers = new Headers(request.headers);
   headers.set(PATHNAME_HEADER, request.nextUrl.pathname);
+  headers.set(SEARCH_HEADER, request.nextUrl.search);
 
   return NextResponse.next({ request: { headers } });
 }

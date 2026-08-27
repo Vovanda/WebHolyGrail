@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 
 import { AccessCodeForm } from '@/blocks/primitives/Video/AccessCodeForm';
 import { VideoPlayer } from '@/blocks/primitives/Video/VideoPlayer';
-import { VideoSetDrawer } from '@/blocks/primitives/Video/VideoSetDrawer';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { VideoDescription } from '@/blocks/primitives/Video/VideoDescription';
 import { VideoSetLinks } from '@/blocks/primitives/Video/VideoSetLinks';
@@ -175,19 +174,6 @@ export default async function VideoPage({
             </a>
             »
           </h2>
-
-          {/*
-            На узком экране список уезжает в боковую панель: лентой там видно
-            два видео из двадцати, а вертикалью он занял бы весь экран.
-          */}
-          <VideoSetDrawer
-            items={set.items}
-            channel={channel}
-            setCode={set.code ?? setCode}
-            currentCode={code}
-            title={set.title}
-            className="self-start md:hidden"
-          />
 
           <VideoSetList
             items={set.items}
