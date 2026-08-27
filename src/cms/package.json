@@ -16,6 +16,7 @@
     "seed:minimal": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/minimal/index.ts",
     "seed:whg-landing": "cross-env NODE_OPTIONS=--no-deprecation tsx src/seed/whg-landing/index.ts",
     "check:schema": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/check-schema-drift.ts",
+    "rewrap:secrets": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/rewrap-video-secrets.ts",
     "migrate": "cross-env NODE_OPTIONS=--no-deprecation payload migrate",
     "migrate:create": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:create",
     "migrate:status": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:status",
