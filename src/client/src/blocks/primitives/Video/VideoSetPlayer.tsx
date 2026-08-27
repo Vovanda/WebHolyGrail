@@ -99,7 +99,21 @@ export function VideoSetPlayer({
     и панель оказывается единственным способом добраться до набора, не
     прокручивая всё видео.
   */
-  const [view, setView] = useState<SetView>('column');
+  /*
+    Выбранный вид запоминается: человек, переключившийся на панель, ждёт её и
+    на следующей записи. Выбор личный и живёт в браузере зрителя.
+  */
+  const [view, setViewState] = useState<SetView>('column');
+
+  useEffect(() => {
+    const saved = readView();
+    if (saved) setViewState(saved);
+  }, []);
+
+  const setView = (next: SetView) => {
+    setViewState(next);
+    rememberView(next);
+  };
   // Кадр нужен карточке «дальше»: она следит за окончанием видео.
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const asPanel = view === 'panel';
@@ -221,4 +235,26 @@ export function VideoSetPlayer({
       <AccessCodeDialog token={token} />
     </div>
   );
+}
+
+/** Ключ памяти: у каждого зрителя свой выбор вида. */
+const VIEW_KEY = 'whg:set-view';
+
+function readView(): SetView | null {
+  try {
+    const raw = window.localStorage.getItem(VIEW_KEY);
+    return raw === 'column' || raw === 'row' || raw === 'panel' ? raw : null;
+  } catch {
+    // Хранилище бывает закрыто настройками браузера: набор от этого работает
+    // как обычно, просто без памяти о выборе.
+    return null;
+  }
+}
+
+function rememberView(view: SetView): void {
+  try {
+    window.localStorage.setItem(VIEW_KEY, view);
+  } catch {
+    // см. выше
+  }
 }
