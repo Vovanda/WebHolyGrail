@@ -521,24 +521,6 @@ export const SiteSettings: GlobalConfig = {
       },
       fields: [
         {
-          name: 'playerUi',
-          label: 'Вид плеера',
-          type: 'select',
-          defaultValue: 'vidstack',
-          options: [
-            { label: 'Обычный', value: 'vidstack' },
-            { label: 'Прежний', value: 'chrome' },
-          ],
-          admin: {
-            // Поле оставлено на переходное время: значение больше не читается,
-            // а убрать колонку сразу нельзя - прежняя сборка сайта живёт рядом
-            // с новой, пока идёт выкладка, и споткнулась бы об исчезнувшее поле.
-            readOnly: true,
-            description:
-              'Переехало в «Переключатели», признак video.layout.vendor. Здесь поле уже ни на что не влияет и скоро исчезнет.',
-          },
-        },
-        {
           name: 'denied',
           label: 'Вместо закрытой записи',
           type: 'group',

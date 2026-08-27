@@ -38,6 +38,7 @@ import * as migration_20260827_023648_playlist_apply_access from './20260827_023
 import * as migration_20260827_025918_video_progress from './20260827_025918_video_progress';
 import * as migration_20260827_042055_builtwith_dark_shot from './20260827_042055_builtwith_dark_shot';
 import * as migration_20260827_043400_feature_toggles from './20260827_043400_feature_toggles';
+import * as migration_20260827_053000_drop_player_ui from './20260827_053000_drop_player_ui';
 
 export const migrations = [
   {
@@ -239,5 +240,10 @@ export const migrations = [
     up: migration_20260827_043400_feature_toggles.up,
     down: migration_20260827_043400_feature_toggles.down,
     name: '20260827_043400_feature_toggles',
+  },
+  {
+    up: migration_20260827_053000_drop_player_ui.up,
+    down: migration_20260827_053000_drop_player_ui.down,
+    name: '20260827_053000_drop_player_ui',
   },
 ];
