@@ -1,14 +1,19 @@
 import type { Payload } from 'payload';
 
 import { currentEnvironment, decideAll, type ToggleRecord } from './decide';
+import { readEnvToggles } from './env';
 
 /**
  * Откуда берутся значения переключателей.
  *
  * @remarks
- * Сейчас источник один - таблица в базе. Внешний узел настроек появится, когда
- * сайтов станет несколько: тогда меняется только эта прослойка, а сайт и
- * админка остаются как есть.
+ * Источников два: таблица в базе, где признаки заводит владелец, и переменные
+ * окружения, которые приходят из хранилища секретов. Пришедшее снаружи главнее
+ * галочек: если признаком управляет тот, кто занимается серверами, галочка не
+ * должна тихо его переопределять.
+ *
+ * Внешний узел настроек появится, когда сайтов станет несколько: тогда меняется
+ * только эта прослойка, а сайт и админка остаются как есть.
  *
  * Свод держим недолго в памяти: сайт спрашивает его на каждой странице, и
  * ходить в базу каждый раз незачем. Задержка в полминуты для переключателя
@@ -46,10 +51,13 @@ export async function readToggles(
   if (!found) return cached?.value ?? {};
 
   const records = found.docs as ReadonlyArray<ToggleRecord>;
-  const value = decideAll(records, {
-    environment: currentEnvironment(process.env['APP_ENVIRONMENT'] ?? process.env['NODE_ENV']),
-    now,
-  });
+  const value = {
+    ...decideAll(records, {
+      environment: currentEnvironment(process.env['APP_ENVIRONMENT'] ?? process.env['NODE_ENV']),
+      now,
+    }),
+    ...readEnvToggles(process.env),
+  };
 
   cached = { at: now.getTime(), value };
   return value;

@@ -23,6 +23,7 @@ interface Toggle {
   staging?: boolean | null;
   development?: boolean | null;
   enableAt?: string | null;
+  source?: string | null;
 }
 
 const ENVIRONMENTS = [
@@ -34,12 +35,20 @@ const ENVIRONMENTS = [
 export function TogglesBoard() {
   const [items, setItems] = useState<Toggle[] | null>(null);
   const [busy, setBusy] = useState<string | number | null>(null);
+  // Что сайт отдаёт на самом деле: у признаков из хранилища секретов значение
+  // задаёт переменная, и по галочкам его не увидеть.
+  const [actual, setActual] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     void fetch('/api/feature-toggles?depth=0&limit=200&sort=group', { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setItems(d?.docs ?? []))
       .catch(() => setItems([]));
+
+    void fetch('/api/toggles', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setActual(d?.toggles ?? {}))
+      .catch(() => undefined);
   }, []);
 
   // Собираем по фичам: владелец думает «что там с видео», а не перебирает
@@ -117,25 +126,31 @@ export function TogglesBoard() {
                 </div>
 
                 <div style={{ display: 'flex', gap: '.75rem', flexShrink: 0 }}>
-                  {ENVIRONMENTS.map((env) => (
-                    <label
-                      key={env.field}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '.3rem',
-                        fontSize: '.8rem',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={item[env.field] === true}
-                        onChange={() => void toggle(item, env.field)}
-                        disabled={busy === item.id}
-                      />
-                      {env.label}
-                    </label>
-                  ))}
+                  {item.source === 'infisical' ? (
+                    <span style={{ fontSize: '.8rem', opacity: 0.75 }}>
+                      {item.key && actual[item.key] ? 'включён' : 'выключен'} переменной окружения
+                    </span>
+                  ) : (
+                    ENVIRONMENTS.map((env) => (
+                      <label
+                        key={env.field}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '.3rem',
+                          fontSize: '.8rem',
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={item[env.field] === true}
+                          onChange={() => void toggle(item, env.field)}
+                          disabled={busy === item.id}
+                        />
+                        {env.label}
+                      </label>
+                    ))
+                  )}
                 </div>
               </div>
             ))}

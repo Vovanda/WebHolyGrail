@@ -20,6 +20,7 @@ import { FaqGroups } from './collections/FaqGroups';
 import { Articles } from './collections/Articles';
 import { Threads } from './collections/Threads';
 import { Tags } from './collections/Tags';
+import { adoptEnvToggles } from './lib/toggles/adopt';
 import { Authors } from './collections/Authors';
 import { Cities } from './collections/Cities';
 import { Specialists } from './collections/Specialists';
@@ -153,18 +154,22 @@ export default buildConfig({
     videoTokenEndpoint,
     videoRedeemEndpoint,
     videoDemoCodeEndpoint,
-    videoDemoCodeEndpoint,
-    videoRedeemEndpoint,
-    videoDemoCodeEndpoint,
-    videoDemoCodeEndpoint,
     videoByCodeEndpoint,
     videoChannelEndpoint,
     videoPlaylistEndpoint,
     videoPlaylistByIdEndpoint,
-    videoPlaylistByIdEndpoint,
     videoAccessEndpoint,
     videoEnvelopeEndpoint,
   ],
+
+  /**
+   * Признаки из хранилища секретов заводятся в списке при запуске: значение им
+   * задаёт переменная, но видны они наравне с остальными.
+   */
+  onInit: async (payload) => {
+    const added = await adoptEnvToggles(payload).catch(() => 0);
+    if (added > 0) payload.logger.info(`Заведено переключателей из окружения: ${added}`);
+  },
   /**
    * Jobs Queue — admin UI на /admin/collections/payload-jobs. Template поставляет
    * пустой плейлист tasks/workflows — downstream добавляет свои задачи (sync
