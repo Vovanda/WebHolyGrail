@@ -36,6 +36,8 @@ export type VideoPlayerProps = VideoPlayerChromeProps & {
   readonly storyboard?: VideoStoryboard | null | undefined;
   /** Что показать вместо закрытой записи: задаётся владельцем в настройках. */
   readonly deniedSettings?: VideoDeniedSettings | undefined;
+  /** Подпись зрителя поверх кадра: показывает только новый слой управления. */
+  readonly watermark?: string | undefined;
   /**
    * Какой слой управления рисовать.
    *
@@ -70,8 +72,16 @@ export function VideoPlayer({ ui: asked, ...props }: VideoPlayerProps) {
 
   // Прежний слой субтитров не рисует: он остаётся для сравнения и уйдёт, когда
   // выбор устоится.
-  const { subtitles, chapters, durationSeconds, mini, storyboard, deniedSettings, ...common } =
-    props;
+  const {
+    subtitles,
+    chapters,
+    durationSeconds,
+    mini,
+    storyboard,
+    deniedSettings,
+    watermark,
+    ...common
+  } = props;
   return ui === 'vidstack' ? (
     <VideoPlayerVidstack
       {...common}
@@ -81,6 +91,7 @@ export function VideoPlayer({ ui: asked, ...props }: VideoPlayerProps) {
       mini={mini ?? false}
       storyboard={storyboard}
       deniedSettings={deniedSettings}
+      watermark={watermark}
     />
   ) : (
     <VideoPlayerChrome {...common} />

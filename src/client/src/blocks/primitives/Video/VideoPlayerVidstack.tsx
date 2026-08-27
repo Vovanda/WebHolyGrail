@@ -25,6 +25,7 @@ import { cn } from '@/lib/utils';
 
 import { chaptersTrackUrl } from './chapters-track';
 import { VideoDenied } from './VideoDenied';
+import { VideoWatermark } from './VideoWatermark';
 import { storyboardTrackUrl } from './storyboard-track';
 import { useMiniPlayer } from './useMiniPlayer';
 import { createEnvelopeLoader, type EnvelopeFailure } from './envelope-loader';
@@ -66,6 +67,14 @@ export type VideoPlayerVidstackProps = VideoPlayerChromeProps & {
   readonly storyboard?: VideoStoryboard | null | undefined;
   /** Что показать вместо закрытой записи: задаётся владельцем в настройках. */
   readonly deniedSettings?: VideoDeniedSettings | undefined;
+  /**
+   * Подпись зрителя поверх кадра.
+   *
+   * @remarks
+   * Ставится на закрытые записи: слив тогда приводит прямо к сливающему.
+   * Открытую портить посторонним текстом незачем.
+   */
+  readonly watermark?: string | undefined;
 };
 
 export function VideoPlayerVidstack({
@@ -85,6 +94,7 @@ export function VideoPlayerVidstack({
   mini = false,
   storyboard = null,
   deniedSettings,
+  watermark,
 }: VideoPlayerVidstackProps) {
   const [denied, setDenied] = useState<EnvelopeFailure | null>(null);
 
@@ -215,6 +225,8 @@ export function VideoPlayerVidstack({
             </button>
           </div>
         )}
+
+        {watermark && <VideoWatermark label={watermark} />}
 
         {overlay}
       </div>

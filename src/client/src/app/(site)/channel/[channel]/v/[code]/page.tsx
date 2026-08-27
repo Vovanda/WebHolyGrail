@@ -11,6 +11,7 @@ import { VideoShareTimecode } from '@/blocks/primitives/Video/VideoShareTimecode
 import { VideoSetList } from '@/blocks/primitives/Video/VideoSetList';
 import {
   checkVideoAccess,
+  getViewerName,
   getPlaylistByCode,
   getVideoByCode,
   issueVideoToken,
@@ -81,6 +82,18 @@ export default async function VideoPage({
   const setCode = typeof setParam === 'string' ? setParam : null;
   const set = setCode ? await getPlaylistByCode(channel, setCode, cookie) : null;
 
+  /*
+    Подпись поверх кадра ставим только на закрытые записи: открытую и так
+    смотрят без условий, портить её посторонним текстом незачем.
+
+    Вошедший подписан своей почтой, незнакомец - коротким отпечатком выданного
+    ему токена: слив тогда всё равно приводит к конкретному доступу.
+  */
+  const watermark =
+    video.access === 'private'
+      ? ((await getViewerName(cookie)) ?? (token ? `#${token.slice(0, 6)}` : null))
+      : null;
+
   return (
     /*
       Плеер идёт в широком контейнере, а описание под ним — в узком: страница
@@ -105,6 +118,7 @@ export default async function VideoPage({
       {playable && token ? (
         <VideoPlayer
           mini
+          watermark={watermark ?? undefined}
           subtitles={video.subtitles}
           storyboard={video.storyboard}
           chapters={video.chapters}

@@ -662,6 +662,31 @@ export async function getChannel(channel: string): Promise<{
   return { ...doc, sets: doc.sets ?? [] };
 }
 
+/**
+ * Кто смотрит: имя или почта вошедшего.
+ *
+ * @remarks
+ * Нужно для подписи поверх закрытой записи. Незнакомец подписи по имени не
+ * получает - её просто нет, - и там остаётся отпечаток сессии.
+ *
+ * Куки пробрасываются со страницы: без них CMS видит анонима.
+ */
+export async function getViewerName(cookie: string): Promise<string | null> {
+  if (!cookie) return null;
+  const response = await fetch(`${CMS_URL}/api/users/me`, {
+    cache: 'no-store',
+    headers: { cookie },
+  }).catch(() => null);
+  if (!response?.ok) return null;
+
+  const doc = (await response.json().catch(() => null)) as {
+    user?: { name?: string | null; email?: string | null } | null;
+  } | null;
+  const user = doc?.user;
+  if (!user) return null;
+  return user.email?.trim() || user.name?.trim() || null;
+}
+
 /** Набор в списке канала. */
 export interface ChannelSet {
   readonly id: string | number;
