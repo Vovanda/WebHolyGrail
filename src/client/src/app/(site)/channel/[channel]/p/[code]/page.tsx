@@ -85,7 +85,6 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
         <VideoSetPlayer
           items={playlist.items}
           token={token}
-          title={playlist.title}
           channel={playlist.channel ?? channel}
           setCode={playlist.code ?? code}
         />

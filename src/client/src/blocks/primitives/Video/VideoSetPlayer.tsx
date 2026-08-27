@@ -7,16 +7,23 @@ import { cn } from '@/lib/utils';
 
 import { AccessCodeDialog } from './AccessCodeDialog';
 import { VideoPlayer } from './VideoPlayer';
-import { VideoSetDrawer } from './VideoSetDrawer';
 import { VideoUpNext } from './VideoUpNext';
 
 /** Как показать плейлист рядом с плеером. */
-type SetView = 'column' | 'row' | 'panel';
+/**
+ * Как показать список рядом с плеером.
+ *
+ * @remarks
+ * Панели здесь больше нет: её объявляет раскладка сайта, и та умеет больше -
+ * знает свои адреса, отодвигает страницу вместе с шапкой, закрывается клавишей
+ * и нажатием мимо. Две панели с одним и тем же списком на одной странице
+ * человека только путали.
+ */
+type SetView = 'column' | 'row';
 
 const VIEWS: ReadonlyArray<{ value: SetView; label: string }> = [
   { value: 'column', label: 'Списком' },
   { value: 'row', label: 'Лентой' },
-  { value: 'panel', label: 'Панелью' },
 ];
 import { VideoSetList } from './VideoSetList';
 import { neighboursOf } from './selected-video';
@@ -43,8 +50,6 @@ export interface VideoSetPlayerProps {
   readonly token: string;
   readonly channel: string | null;
   readonly setCode: string | null;
-  /** Название плейлиста: с ним панель подписана по делу, а не словом «Плейлист». */
-  readonly title?: string | undefined;
   /** Какой слой управления рисовать: приходит из настроек сайта. */
   readonly playerUi?: 'vidstack' | 'chrome' | undefined;
   /** Что показать вместо закрытой записи: приходит из настроек сайта. */
@@ -57,7 +62,6 @@ export function VideoSetPlayer({
   token,
   channel,
   setCode,
-  title,
   playerUi,
   deniedSettings,
   className,
@@ -96,7 +100,6 @@ export function VideoSetPlayer({
   };
   // Кадр нужен карточке «дальше»: она следит за окончанием видео.
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const asPanel = view === 'panel';
 
   /*
     Соседи текущего видео среди тех, что вообще могут играть. Закрытые и ещё
@@ -133,19 +136,6 @@ export function VideoSetPlayer({
               </button>
             ))}
           </div>
-
-          {asPanel && (
-            <div className="ml-auto">
-              <VideoSetDrawer
-                items={items}
-                channel={channel}
-                setCode={setCode}
-                currentCode={current?.code ?? null}
-                title={title}
-                onSelect={setCurrent}
-              />
-            </div>
-          )}
         </div>
         {current?.playlistUrl ? (
           <>
@@ -220,7 +210,7 @@ const VIEW_KEY = 'whg:set-view';
 function readView(): SetView | null {
   try {
     const raw = window.localStorage.getItem(VIEW_KEY);
-    return raw === 'column' || raw === 'row' || raw === 'panel' ? raw : null;
+    return raw === 'column' || raw === 'row' ? raw : null;
   } catch {
     // Хранилище бывает закрыто настройками браузера: плейлист от этого работает
     // как обычно, просто без памяти о выборе.

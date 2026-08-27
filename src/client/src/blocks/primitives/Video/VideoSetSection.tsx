@@ -93,7 +93,6 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
         <VideoSetPlayer
           playerUi={playerUi}
           deniedSettings={settings.video?.denied}
-          title={heading}
           items={items}
           token={token}
           channel={playlist.channel}
