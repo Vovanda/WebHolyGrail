@@ -8,6 +8,23 @@
 2. **Niche** — depends on the sector, comes from a niche package.
 3. **Unique** — written for one site; if a pattern repeats, it graduates into the shared library.
 
+## The UI kit is invariant too
+
+Appearance follows the same three layers as data. The bottom layer — the UI kit — is
+invariant by definition: buttons, inputs, cards, overlays, bars and badges look the same
+on every site, because their look is derived from the palette and the settings the owner
+edits in the admin UI, not from values written at the call site.
+
+The kit lives in one place: design tokens in `styles/tokens.css`, component classes in
+`styles/globals.css`, shared React primitives in `blocks/primitives/`. A site never
+re-creates a kit member locally — it names the existing one. A fourth flavour of a button,
+assembled inline from utility classes, drifts away from the other three within a month and
+silently breaks the promise that the owner controls the look from the admin UI.
+
+Adding to the kit is normal; assembling beside it is not. If the needed variant does not
+exist, it is added to the kit — neutrally named (`action-button`, not `close-video-button`)
+so the next site reuses it as is.
+
 ## Invariant collections
 
 Shipped in the template:

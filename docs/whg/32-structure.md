@@ -101,6 +101,20 @@
 
 - **Root = your site.** There is no `sites/`, no `packages/_template/`. The root **is** the scaffold. Use this template → clone → `./dev-setup.sh && ./dev.sh` → working dev stack.
 - **`contracts/` is the seam.** `client/` and `cms/` import only from `contracts`. Never `client → cms` or vice versa. This makes the CMS replaceable.
+- **Enumerations live in the seam, with their labels.** A set of allowed values — spacing steps, radius steps, corner scopes, access modes — is declared once in `contracts` and exported as values, not only as types. The admin builds its option list from that array; the site builds its class tables from the same one. Nothing is translated between the two sides, and no copy of the list can drift.
+
+  ```ts
+  // contracts/src/blocks.ts
+  export const SPACING_STEPS = [
+    { value: 'none', label: 'Без воздуха' },
+    { value: 'md', label: 'Обычно' },
+  ] as const;
+  export type SpacingStep = (typeof SPACING_STEPS)[number]['value'];
+  ```
+
+  The seam is transitively visible to both sides, so this needs no mappers and no per-module namespaces. A list declared beside its use — in a block file, in a component — is the thing that eventually disagrees with the page.
+
+- **Select fields carry a short `enumName`.** Payload names an enumeration type after the whole nesting chain (page → blocks field → block → field). In Postgres such a type is a database object and must be unique; in SQLite it does not exist at all and the column is plain text — but the length check runs for both, and long block names cross the 63-character limit. `withShortEnums(prefix, fields)` stamps those names for a whole field set, so a new field cannot be forgotten.
 - **Dockerfile lives with the app, not in `deploy/`.** `src/client/Dockerfile`, `src/cms/Dockerfile`. The app knows how to build itself. `deploy/` only orchestrates.
 - **`.env.example` is documentation.** Lists what variables exist. Real values live in Infisical Cloud (`.infisical.json` workspace marker is committed; secrets aren't).
 
