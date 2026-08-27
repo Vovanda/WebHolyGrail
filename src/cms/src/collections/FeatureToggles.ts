@@ -25,6 +25,11 @@ export const FeatureToggles: CollectionConfig = {
     defaultColumns: ['title', 'key', 'group', 'production', 'updatedAt'],
     group: 'Настройки',
     description: 'Что включено на сайте. Меняется здесь и доходит до сайта без выкладки.',
+    components: {
+      // Свод над списком: владельцу нужен ответ «что сейчас включено на рабочем
+      // сайте», а не перечень записей по алфавиту.
+      beforeListTable: ['/admin/components/TogglesBoard#TogglesBoard'],
+    },
   },
   fields: [
     {
