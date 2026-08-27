@@ -61,11 +61,10 @@ export function shouldResume({
 }
 
 export function useVideoResume(
-  video: React.RefObject<HTMLVideoElement | null>,
+  media: HTMLVideoElement | null,
   { mediaId, startAfter = 15, stopBefore = 20 }: VideoResumeOptions,
 ): void {
   useEffect(() => {
-    const media = video.current;
     if (!media) return;
 
     const key = `whg:resume:${mediaId}`;
@@ -110,7 +109,7 @@ export function useVideoResume(
       media.removeEventListener('timeupdate', remember);
       media.removeEventListener('ended', finish);
     };
-  }, [video, mediaId, startAfter, stopBefore]);
+  }, [media, mediaId, startAfter, stopBefore]);
 }
 
 function read(key: string): number | null {

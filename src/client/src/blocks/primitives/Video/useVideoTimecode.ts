@@ -13,16 +13,19 @@ import { useEffect } from 'react';
  * момента перемотка молча теряется. Дальше зритель управляет сам, и повторно
  * возвращать его к таймкоду нельзя.
  *
+ * Принимаем сам кадр, а не коробку с ним: плеер создаёт кадр не сразу, и
+ * проверка «коробка пуста - выходим» отрабатывала раньше его появления. Со
+ * значением эффект пересчитывается, когда кадр наконец есть.
+ *
  * Обратно: текущее время дописывается в адрес по требованию - этим занимается
  * кнопка «поделиться», ей отдаётся {@link timecodeHref}.
  */
-export function useVideoTimecode(video: React.RefObject<HTMLVideoElement | null>): void {
+export function useVideoTimecode(media: HTMLVideoElement | null): void {
   useEffect(() => {
+    if (!media) return;
+
     const seconds = parseTimecode(new URLSearchParams(window.location.search).get('t'));
     if (seconds === null) return;
-
-    const media = video.current;
-    if (!media) return;
 
     let done = false;
     const apply = () => {
@@ -38,7 +41,7 @@ export function useVideoTimecode(video: React.RefObject<HTMLVideoElement | null>
       media.removeEventListener('loadedmetadata', apply);
       media.removeEventListener('durationchange', apply);
     };
-  }, [video]);
+  }, [media]);
 }
 
 /**

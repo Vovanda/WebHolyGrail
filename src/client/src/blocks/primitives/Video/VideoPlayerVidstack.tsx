@@ -98,14 +98,21 @@ export function VideoPlayerVidstack({
 }: VideoPlayerVidstackProps) {
   const [denied, setDenied] = useState<EnvelopeFailure | null>(null);
 
-  // Ссылка вида `?t=3m20s` открывает запись с нужного места, а без неё запись
-  // продолжается с того места, где её оставили.
+  /*
+    Ссылка вида `?t=3m20s` открывает видео с нужного места, а без неё оно
+    продолжается там, где его оставили.
+
+    Кадр держим и ссылкой, и значением: ссылка нужна соседям, которым важен
+    только доступ к нему, а значение - тем, кто должен дождаться его появления.
+    Плеер создаёт кадр не сразу, и без этого перемотка молча терялась.
+  */
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [media, setMedia] = useState<HTMLVideoElement | null>(null);
   const frameRef = useRef<HTMLDivElement | null>(null);
   const miniPlayer = useMiniPlayer(frameRef, videoRef);
   const asMini = mini && miniPlayer.active;
-  useVideoTimecode(videoRef);
-  useVideoResume(videoRef, { mediaId });
+  useVideoTimecode(media);
+  useVideoResume(media, { mediaId });
 
   // Оглавление собирается дорожкой прямо здесь: файла на диске не появляется.
   const chaptersUrl = useMemo(
@@ -181,9 +188,14 @@ export function VideoPlayerVidstack({
           keyTarget="player"
           onProviderChange={onProviderChange}
           onCanPlay={(_detail, event) => {
-            const media = (event.target as { el?: HTMLElement } | null)?.el?.querySelector('video');
-            videoRef.current = (media as HTMLVideoElement) ?? null;
-            onVideoRef?.((media as HTMLVideoElement) ?? null);
+            const found =
+              ((event.target as { el?: HTMLElement } | null)?.el?.querySelector(
+                'video',
+              ) as HTMLVideoElement | null) ?? null;
+
+            videoRef.current = found;
+            setMedia(found);
+            onVideoRef?.(found);
           }}
         >
           <MediaProvider>
