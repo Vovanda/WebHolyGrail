@@ -77,6 +77,22 @@ export const Playlists: CollectionConfig = {
       admin: { position: 'sidebar' },
     },
     {
+      name: 'applyAccessToItems',
+      label: 'Применить ко всем записям',
+      type: 'select',
+      defaultValue: 'none',
+      options: [
+        { label: 'Не трогать', value: 'none' },
+        { label: 'Закрыть все записи', value: 'private' },
+        { label: 'Открыть все записи', value: 'public' },
+      ],
+      admin: {
+        position: 'sidebar',
+        description:
+          'Разовое действие при сохранении: доступ каждой записи набора станет таким. Дальше их можно править по одной.',
+      },
+    },
+    {
       name: 'access',
       label: 'Видимость набора',
       type: 'select',
@@ -116,6 +132,59 @@ export const Playlists: CollectionConfig = {
     },
   ],
   hooks: {
+    afterChange: [
+      /*
+        Массовое закрытие и открытие записей набора.
+
+        Курс продают набором, а доступ у каждой записи свой: закрывать их по
+        одной - долгая ручная работа, в которой легко пропустить урок и отдать
+        его даром.
+
+        Действие разовое, рукой автора: правилом «набор закрыт - значит закрыты
+        все записи» связать нельзя, потому что запись живёт и вне набора, а
+        первый урок часто оставляют открытым нарочно.
+      */
+      async ({ doc, previousDoc, req, operation }) => {
+        if (operation !== 'update') return doc;
+
+        const applyTo = (doc as { applyAccessToItems?: string | null }).applyAccessToItems;
+        if (!applyTo || applyTo === 'none') return doc;
+        // Отметка разовая: иначе каждое сохранение набора заново переписывало
+        // бы доступ у записей, отменяя ручные правки автора.
+        if ((previousDoc as { applyAccessToItems?: string | null })?.applyAccessToItems === applyTo)
+          return doc;
+
+        const items = ((doc as { items?: ReadonlyArray<{ video?: unknown }> }).items ?? [])
+          .map((item) => item?.video)
+          .map((video) =>
+            typeof video === 'object' && video ? (video as { id?: string | number }).id : video,
+          )
+          .filter((id): id is string | number => id !== undefined && id !== null);
+
+        for (const id of items) {
+          await req.payload.update({
+            collection: 'media',
+            id,
+            data: { access: applyTo === 'private' ? 'private' : 'public' },
+            // Служебное обновление: смена доступа нарезку не трогает, видео
+            // зашифровано в обоих случаях.
+            context: { skipHlsQueue: true },
+            overrideAccess: true,
+          });
+        }
+
+        // Отметку сбрасываем: она означает «сделай сейчас», а не состояние.
+        await req.payload.update({
+          collection: 'playlists',
+          id: doc.id,
+          data: { applyAccessToItems: 'none' },
+          context: { skipHlsQueue: true },
+          overrideAccess: true,
+        });
+
+        return doc;
+      },
+    ],
     beforeChange: [
       ({ data, req, operation }) => {
         if (operation === 'create' && !data['shortCode']) {
