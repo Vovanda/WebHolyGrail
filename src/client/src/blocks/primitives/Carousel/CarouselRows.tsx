@@ -185,6 +185,7 @@ function CarouselInner({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             key={`${s.url}-${i}`}
+            data-part="media"
             src={s.url}
             alt={s.alt}
             draggable={false}
@@ -218,14 +219,11 @@ function ArrowButton({ side, onClick }: { side: 'prev' | 'next'; onClick: () => 
       aria-label={isPrev ? 'Предыдущий слайд' : 'Следующий слайд'}
       onClick={onClick}
       className={[
+        // Общий вид кнопки поверх картинки: своих цветов стрелки не заводят.
+        'action-button action-button--on-media',
         'absolute top-1/2 -translate-y-1/2 z-10',
         isPrev ? 'left-3' : 'right-3',
-        'grid place-items-center h-10 w-10 rounded-full text-bg',
-        'transition-colors',
       ].join(' ')}
-      style={{ background: 'rgba(43,34,26,.45)' }}
-      onMouseOver={(e) => (e.currentTarget.style.background = 'rgba(43,34,26,.7)')}
-      onMouseOut={(e) => (e.currentTarget.style.background = 'rgba(43,34,26,.45)')}
     >
       <svg
         viewBox="0 0 24 24"

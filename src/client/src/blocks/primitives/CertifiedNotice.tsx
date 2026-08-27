@@ -40,7 +40,7 @@ export function CertifiedNotice({
             'relative bg-paper rounded-[12px] overflow-hidden',
             'mx-auto max-w-[720px]',
             'pl-7 md:pl-10 pr-6 md:pr-10 py-8 md:py-10',
-            'shadow-[0_6px_20px_rgba(43,34,26,0.08)]',
+            'shadow-[var(--shadow-md)]',
             'before:absolute before:inset-y-0 before:left-0 before:w-1.5 before:bg-accent before:rounded-r-[2px]',
           )}
         >
@@ -50,12 +50,18 @@ export function CertifiedNotice({
             </p>
           )}
           {title && (
-            <h3 className="mt-2 font-display italic text-[26px] md:text-[30px] leading-tight text-ink">
+            <h3
+              data-part="title"
+              className="mt-2 font-display italic text-[26px] md:text-[30px] leading-tight text-ink"
+            >
               {title}
             </h3>
           )}
           {bodyParagraphs.length > 0 && (
-            <div className="mt-4 font-sans text-ink/85 text-[15px] md:text-base leading-relaxed">
+            <div
+              data-part="body"
+              className="mt-4 font-sans text-ink/85 text-[15px] md:text-base leading-relaxed"
+            >
               {bodyParagraphs.map((p, i) => (
                 <p key={i} className={i > 0 ? 'mt-3' : undefined}>
                   {renderBoldMarks(p)}
@@ -66,13 +72,16 @@ export function CertifiedNotice({
           {items.length > 0 && (
             <div className="mt-6 md:mt-7">
               {criteriaTitle && (
-                <p className="font-sans uppercase tracking-[0.14em] text-[11.5px] md:text-[12px] font-bold text-muted">
+                <p
+                  data-part="group-title"
+                  className="font-sans uppercase tracking-[0.14em] text-[11.5px] md:text-[12px] font-bold text-muted"
+                >
                   {criteriaTitle}
                 </p>
               )}
               <ul className={cn('flex flex-col gap-2', criteriaTitle ? 'mt-3' : '')}>
                 {items.map((c) => (
-                  <li key={c.id} className="flex items-start gap-3">
+                  <li key={c.id} data-part="item" className="flex items-start gap-3">
                     <span
                       aria-hidden
                       className={cn(

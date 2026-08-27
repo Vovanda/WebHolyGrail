@@ -64,11 +64,7 @@ export function ThemeToggle({ className }: { readonly className?: string }) {
       }}
       aria-label={`Текущая: ${LABELS[mode]}. Click → ${LABELS[next]}`}
       title={`${LABELS[mode]} → ${LABELS[next]}`}
-      className={
-        'inline-flex h-9 w-9 items-center justify-center rounded-md text-muted ' +
-        'hover:text-ink hover:bg-surface-hover transition-colors ' +
-        (className ?? '')
-      }
+      className={'icon-button ' + (className ?? '')}
     >
       <Icon size={18} />
     </button>

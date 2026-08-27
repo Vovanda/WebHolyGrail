@@ -54,16 +54,24 @@ export function SiteLayout({
   // Карточка занимает max-w-wide и тянется через весь center-слот целиком,
   // чтобы все вложенные секции рисовались на одном непрерывном фоне.
   // Тень + скруглённый нижний край — editorial-default:
-  //   box-shadow: 0 0 34px rgba(43,34,26,.08); border-radius: 0 0 18px 18px;
+  //   тень листа - токен --shadow-sheet; нижний край скруглён.
   const isClassicSite = (config.grid?.template ?? 'classic-site') === 'classic-site';
   const centerContentClass = isClassicSite
-    ? 'relative flex-1 flex flex-col mx-auto w-full max-w-wide bg-bg shadow-[0_0_34px_rgba(43,34,26,0.08)] rounded-b-[18px] overflow-hidden'
+    ? 'relative flex-1 flex flex-col mx-auto w-full max-w-wide bg-bg shadow-[var(--shadow-sheet)] rounded-b-[18px] overflow-hidden'
     : 'flex-1 flex flex-col';
 
   return (
-    <div data-site-shell className="relative flex flex-col gap-6 min-h-screen text-ink">
+    /*
+      Слоты идут вплотную: общий зазор между ними отделял шапку от содержимого
+      полосой фона страницы, хотя отступ - дело самого содержимого.
+    */
+    <div data-site-shell className="relative flex min-h-screen flex-col text-ink">
       {grouped.top.length > 0 && (
-        <div data-slot="top" className="flex flex-col">
+        <div
+          data-slot="top"
+          data-sticky={settings.header?.sticky ? '' : undefined}
+          className="flex flex-col"
+        >
           {grouped.top.map((panel) => (
             <PanelHost key={panel.id} panel={panel} settings={settings} />
           ))}

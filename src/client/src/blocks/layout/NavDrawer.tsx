@@ -5,6 +5,8 @@ import Link from 'next/link';
 import type { BlockNode, SiteSettings } from 'contracts';
 
 import { BrandMark } from '@/blocks/primitives/BrandMark';
+
+import { ThemeToggle } from './ThemeToggle';
 import { SocialIcon } from '@/blocks/primitives/SocialIcon';
 
 /**
@@ -69,19 +71,12 @@ export function NavDrawer({
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
         className={[
-          // top-2.5 (10px) — центр Header'а (py-3 + h-9 кнопка ≈ 60px).
-          // Размер 36×36 (h-9 w-9) совпадает с ThemeToggle/GitHub-icon в Header
-          // — единый ритм icon-кнопок.
-          //
-          // bg-page-bg/90 + backdrop-blur — непрозрачная подложка, иначе
-          // burger сливается с любым контентом под ним.
-          'fixed top-2.5 z-50',
+          // Вид у всех кнопок-действий один и описан в стилях: они стоят в одной
+          // полосе по верху окна и разными читались бы как чужие друг другу.
+          'action-button action-button--floating z-50',
           isLeft
             ? 'left-[max(16px,calc((100vw-1300px)/2+24px))]'
             : 'right-[max(16px,calc((100vw-1300px)/2+24px))]',
-          'inline-flex h-9 w-9 items-center justify-center rounded-md',
-          'bg-page-bg/90 backdrop-blur-md border border-border',
-          'text-muted hover:text-ink hover:bg-surface-hover transition-colors',
         ].join(' ')}
       >
         {open ? <IconX /> : <IconBurger />}
@@ -128,107 +123,112 @@ export function NavDrawer({
               {settings.siteName ?? 'Сайт'}
             </span>
           </Link>
+
+          {/* Смена темы рядом с названием: меню открыто - переключатель под рукой. */}
+          <div className="ml-auto flex items-center gap-2">
+            <ThemeToggle />
+          </div>
         </div>
 
         {/* Прокручивается всё содержимое разом, а не только список пунктов:
             иначе на телефоне в альбомной ориентации меню из десятка пунктов
             зажимается в узкую полосу, потому что контакты занимают низ панели. */}
         <div className="flex-1 overflow-y-auto">
-        {/* Nav-пункты — full-width разделители, выраженный hover */}
-        <nav>
-          <ul>
-            {nav.map((item) => (
-              <li key={item.href} className="border-b border-border last:border-b-0">
-                <Link
-                  href={item.href}
-                  target={item.external ? '_blank' : undefined}
-                  rel={item.external ? 'noopener noreferrer' : undefined}
-                  onClick={() => setOpen(false)}
-                  className="
+          {/* Nav-пункты — full-width разделители, выраженный hover */}
+          <nav>
+            <ul>
+              {nav.map((item) => (
+                <li key={item.href} className="border-b border-border last:border-b-0">
+                  <Link
+                    href={item.href}
+                    target={item.external ? '_blank' : undefined}
+                    rel={item.external ? 'noopener noreferrer' : undefined}
+                    onClick={() => setOpen(false)}
+                    className="
                     group relative flex items-center px-6 py-4
                     font-display text-lg text-ink
                     hover:bg-accent/10 hover:text-accent
                     transition-colors
                   "
-                >
-                  <span
-                    aria-hidden
-                    className="
+                  >
+                    <span
+                      aria-hidden
+                      className="
                       absolute left-0 top-0 bottom-0 w-1 bg-accent
                       opacity-0 group-hover:opacity-100 transition-opacity
                     "
-                  />
-                  <span>{item.label}</span>
-                </Link>
+                    />
+                    <span>{item.label}</span>
+                  </Link>
 
-                {/* Подпункты открыты сразу. Прятать их за раскрытием — требовать
+                  {/* Подпункты открыты сразу. Прятать их за раскрытием — требовать
                     лишнее касание ради того, что и так помещается, а для раздела
                     из девяти направлений это основной способ попасть внутрь. */}
-                {item.children && item.children.length > 0 && (
-                  <ul className="pb-2">
-                    {item.children.map((child) => (
-                      <li key={child.href}>
-                        <Link
-                          href={child.href}
-                          target={child.external ? '_blank' : undefined}
-                          rel={child.external ? 'noopener noreferrer' : undefined}
-                          onClick={() => setOpen(false)}
-                          className="
+                  {item.children && item.children.length > 0 && (
+                    <ul className="pb-2">
+                      {item.children.map((child) => (
+                        <li key={child.href}>
+                          <Link
+                            href={child.href}
+                            target={child.external ? '_blank' : undefined}
+                            rel={child.external ? 'noopener noreferrer' : undefined}
+                            onClick={() => setOpen(false)}
+                            className="
                             block py-2 pl-10 pr-6
                             font-display text-sm text-muted
                             hover:bg-accent/10 hover:text-accent
                             transition-colors
                           "
-                        >
-                          {child.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            ))}
-          </ul>
-        </nav>
+                          >
+                            {child.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </nav>
 
-        {/* Контакты + соцсети — сразу под меню, не прижатые ко дну */}
-        {(phone || email || hours || social.length > 0) && (
-          <div className="px-6 py-5 space-y-3">
-            {phone && (
-              <a
-                href={`tel:${phone.replace(/[^+\d]/g, '')}`}
-                className="block font-display text-accent text-lg font-semibold hover:text-accent-hover transition-colors"
-              >
-                {phone}
-              </a>
-            )}
-            {email && (
-              <a
-                href={`mailto:${email}`}
-                className="block text-sm text-ink/85 hover:text-accent transition-colors"
-              >
-                {email}
-              </a>
-            )}
-            {hours && <p className="text-sm text-muted">{hours}</p>}
-            {social.length > 0 && (
-              <div className="flex items-center gap-2 pt-2">
-                {social.map((s) => (
-                  <a
-                    key={s.url}
-                    href={s.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label={s.label ?? s.platform}
-                    className="grid place-items-center h-9 w-9 rounded-full border border-border text-muted hover:text-accent hover:border-accent transition-colors"
-                  >
-                    <SocialIcon platform={s.platform} />
-                  </a>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+          {/* Контакты + соцсети — сразу под меню, не прижатые ко дну */}
+          {(phone || email || hours || social.length > 0) && (
+            <div className="px-6 py-5 space-y-3">
+              {phone && (
+                <a
+                  href={`tel:${phone.replace(/[^+\d]/g, '')}`}
+                  className="block font-display text-accent text-lg font-semibold hover:text-accent-hover transition-colors"
+                >
+                  {phone}
+                </a>
+              )}
+              {email && (
+                <a
+                  href={`mailto:${email}`}
+                  className="block text-sm text-ink/85 hover:text-accent transition-colors"
+                >
+                  {email}
+                </a>
+              )}
+              {hours && <p className="text-sm text-muted">{hours}</p>}
+              {social.length > 0 && (
+                <div className="flex items-center gap-2 pt-2">
+                  {social.map((s) => (
+                    <a
+                      key={s.url}
+                      href={s.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={s.label ?? s.platform}
+                      className="grid place-items-center h-9 w-9 rounded-full border border-border text-muted hover:text-accent hover:border-accent transition-colors"
+                    >
+                      <SocialIcon platform={s.platform} />
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </aside>
     </div>

@@ -6,7 +6,7 @@ import { ThemeToggle } from './ThemeToggle';
 import { BrandMark } from '@/blocks/primitives/BrandMark';
 
 /**
- * Header — sticky-шапка template'а под marketing landing.
+ * Header — шапка сайта: знак, меню и кнопки.
  *
  * @remarks
  * Композиция (desktop):
@@ -39,12 +39,27 @@ export function Header({
   const data = node.data ?? {};
   const nav = settings.mainNav ?? [];
   const showThemeToggle = settings.theme?.userToggle ?? true;
+  const sticky = settings.header?.sticky ?? false;
   const githubUrl = data.githubUrl;
   const cta = data.primaryCta;
 
   return (
-    <header className="sticky top-0 z-30 bg-page-bg/80 backdrop-blur-md border-b border-border">
-      <div className="mx-auto flex max-w-wide items-center gap-3 md:gap-4 pl-4 md:pl-6 pr-16 md:pr-20 py-3">
+    /*
+      Шапка настоящая - по ширине средней секции: в ней знак, меню и кнопки.
+      Влево и вправо от неё идёт её же продолжение - та же полоса с той же
+      чертой понизу, только пустая. Глазами это одна шапка во всю ширину окна.
+
+      Продолжения лежат ниже боковой панели: она приезжает и закрывает их
+      собой. Сама шапка выше панели - её не перекрыть.
+
+      По умолчанию шапка уезжает вместе со страницей, а наверху остаётся одна
+      кнопка меню. Владелец включает липкость галочкой в настройках сайта,
+      когда меню должно быть под рукой всё время.
+    */
+    <header className={sticky ? 'sticky top-0 flex' : 'flex'}>
+      <span aria-hidden="true" className="header-side flex-1 border-b border-border" />
+
+      <div className="header-center mx-auto flex w-full max-w-wide items-center gap-3 border-b border-border py-3 pl-4 pr-16 md:gap-4 md:pl-6 md:pr-20">
         {/* Wordmark — inline SVG mark + siteName */}
         <Link
           href="/"
@@ -85,7 +100,7 @@ export function Header({
               target="_blank"
               rel="noopener noreferrer"
               aria-label="GitHub repository"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted hover:text-ink hover:bg-surface-hover transition-colors"
+              className="icon-button"
             >
               <Github size={18} />
             </a>
@@ -103,6 +118,8 @@ export function Header({
           )}
         </div>
       </div>
+
+      <span aria-hidden="true" className="header-side flex-1 border-b border-border" />
     </header>
   );
 }

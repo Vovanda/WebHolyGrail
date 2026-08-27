@@ -66,6 +66,25 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.08);
+  /* Тень листа страницы: он лежит на подложке во всю ширину окна, и только
+   * тень отделяет его край - разница фонов между листом и подложкой едва
+   * заметна. Цвет от палитры: на смуглой палитре чёрный отвал читался бы
+   * грязью. */
+  --shadow-sheet: 0 0 34px color-mix(in oklab, var(--color-ink) 8%, transparent);
+  /* Окно поверх страницы: отрывается от неё заметнее листа. */
+  --shadow-overlay: 0 24px 64px color-mix(in oklab, var(--color-ink) 28%, transparent);
+  --shadow-overlay-side: 8px 0 32px color-mix(in oklab, var(--color-ink) 18%, transparent);
+  /* Нахлёст блока на картинку сверху: тень падает вверх, на саму картинку. */
+  --shadow-overlap-up: 0 -18px 40px -24px color-mix(in oklab, var(--color-ink) 75%, transparent);
+  /*
+   * Подсветка текста, лежащего на фотографии. Цвет здесь намеренно вне палитры:
+   * он зависит от яркости самой картинки, а не от темы сайта - на тёмном кадре
+   * текст белый с чёрным ореолом, на светлом наоборот.
+   */
+  --shadow-text-on-dark: 0 2px 12px rgb(0 0 0 / 0.55);
+  --shadow-text-on-dark-soft: 0 1px 8px rgb(0 0 0 / 0.5);
+  --shadow-text-on-light: 0 2px 12px rgb(255 255 255 / 0.65);
+  --shadow-text-on-light-soft: 0 1px 8px rgb(255 255 255 / 0.6);
 
   /* ── Типографика ────────────────────────────────── */
   /* Geist Sans + Geist Mono подключаются через next/font в `app/layout.tsx`,
@@ -98,6 +117,12 @@
   --tracking-eyebrow: 0.025em; /* разрядка капса в подписях секций */
 
   /* ── Контейнеры ─────────────────────────────────── */
+  /*
+    Высота шапки сайта: отступ сверху и снизу плюс знак с названием.
+    Ею пользуется боковая панель - она лежит слоем ниже шапки, и без отступа
+    её верх прятался бы под ней.
+  */
+  --header-height: calc(0.75rem * 2 + 2.25rem + 1px);
   --container-content: 880px; /* читабельный текст */
   --container-wide: 1300px; /* основной landing-контейнер */
   --container-full: 1536px; /* предел для full-width layouts */
@@ -157,4 +182,9 @@
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6);
+  /* В тёмной теме тень не читается вовсе, край листа держит кромка. */
+  --shadow-sheet: 0 0 34px color-mix(in oklab, black 45%, transparent);
+  --shadow-overlay: 0 24px 64px color-mix(in oklab, black 65%, transparent);
+  --shadow-overlay-side: 8px 0 32px color-mix(in oklab, black 55%, transparent);
+  --shadow-overlap-up: 0 -18px 40px -24px color-mix(in oklab, black 80%, transparent);
 }

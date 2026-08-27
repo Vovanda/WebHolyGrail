@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -63,6 +63,21 @@ export function openDetail(slug: string): void {
 
 export function DetailDrawer({ slug, children, className, placement = 'left' }: DetailDrawerProps) {
   const [open, setOpen] = useState(false);
+  /*
+    Содержимое остаётся на месте, пока окно растворяется. Снималось оно сразу
+    с закрытием, и окно на глазах схлопывалось до одного крестика: кнопка
+    исчезала, поле сжималось вверх. Уходить окно должно как было - целиком
+    и без движения.
+  */
+  const [leaving, setLeaving] = useState(false);
+
+  // Окно закрылось - содержимое живёт до конца растворения, потом снимается.
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (wasOpen.current && !open) setLeaving(true);
+    if (open) setLeaving(false);
+    wasOpen.current = open;
+  }, [open]);
 
   const close = useCallback(() => {
     if (!open) return;
@@ -141,39 +156,49 @@ export function DetailDrawer({ slug, children, className, placement = 'left' }: 
         role="dialog"
         aria-modal="true"
         aria-hidden={!open}
+        onTransitionEnd={(event) => {
+          // Только собственное растворение окна: переходы внутренних кнопок
+          // всплывают сюда же и снимали содержимое раньше времени.
+          if (event.target !== event.currentTarget || event.propertyName !== 'opacity') return;
+          if (!open) setLeaving(false);
+        }}
         className={cn(
           'fixed z-[61] overflow-y-auto overscroll-contain bg-bg',
-          'transition-all duration-300 ease-out',
+          /*
+            Окно в середине экрана только растворяется - размеры не меняются.
+
+            Раньше переход шёл по всем свойствам разом и вдобавок ужимал окно:
+            на закрытии кнопка исчезала, поле сжималось вниз, крестик дёргался.
+            Растворение короче открытия: уходящее окно не должно задерживать.
+          */
+          'transition-opacity ease-out',
           placement === 'center'
             ? cn(
                 'left-1/2 top-1/2 w-[min(92vw,560px)] max-h-[85vh] -translate-x-1/2 -translate-y-1/2',
-                'rounded-2xl border border-border shadow-[0_24px_64px_rgba(43,34,26,0.28)]',
-                open ? 'opacity-100 scale-100' : 'pointer-events-none opacity-0 scale-95',
+                'rounded-2xl border border-border shadow-[var(--shadow-overlay)]',
+                open ? 'opacity-100 duration-200' : 'pointer-events-none opacity-0 duration-150',
               )
             : cn(
+                'transition-transform duration-300',
                 'top-0 left-0 h-full w-full max-w-[440px]',
-                'shadow-[8px_0_32px_rgba(43,34,26,0.18)]',
+                'shadow-[var(--shadow-overlay-side)]',
                 open ? 'translate-x-0' : '-translate-x-full',
               ),
           className,
         )}
       >
-        {/* Закрытие — кнопка-крестик в том же положении что бургер-меню
-            (top-2 right-4, см. NavDrawer). Использует те же стили, чтобы
-            пользователю не приходилось искать «другую» кнопку закрытия. */}
+        {/* Закрытие — та же кнопка-действие, что бургер и закрытие панели. */}
         <button
           type="button"
           onClick={close}
           aria-label="Закрыть"
           className={cn(
-            'z-[62] grid place-items-center',
+            // Тот же вид, что у кнопки меню и закрытия панели: своих кнопок
+            // окно не заводит, иначе они разъезжаются вида к виду.
+            'action-button z-[62]',
             placement === 'center'
               ? 'absolute top-3 right-3'
               : 'fixed top-3 right-[max(24px,calc((100vw-1300px)/2+24px))]',
-            'grid place-items-center h-11 w-11 md:h-12 md:w-12 rounded-lg',
-            'bg-surface text-ink shadow-sm border border-border',
-            // hover-фон совпадает с бургером (#d1c69f).
-            'hover:bg-[#d1c69f] hover:border-[#d1c69f] transition-colors',
           )}
         >
           <svg
@@ -188,7 +213,7 @@ export function DetailDrawer({ slug, children, className, placement = 'left' }: 
             <path d="M6 6l12 12M6 18L18 6" />
           </svg>
         </button>
-        {open && children}
+        {(open || leaving) && children}
       </aside>
     </>
   );

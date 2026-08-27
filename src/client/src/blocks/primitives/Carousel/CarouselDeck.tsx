@@ -175,7 +175,13 @@ export function CarouselDeck({
   const next = useCallback(() => embla?.scrollNext(), [embla]);
 
   // Листать нечего - показываем содержимое как есть, без пустых стрелок и точек.
+  /*
+    Листать некуда - стрелок нет. Считать по числу карточек нельзя: четыре
+    штуки помещаются в ленту целиком, и стрелки при них только мешают.
+    Признаки приходят от самой ленты и учитывают её настоящую ширину.
+  */
   const single = count <= 1;
+  const scrollable = loop || canPrev || canNext;
 
   return (
     <div className={cn('relative', className)}>
@@ -196,7 +202,7 @@ export function CarouselDeck({
         </div>
       </div>
 
-      {arrows && !single && (
+      {arrows && !single && scrollable && (
         <>
           <CarouselArrow side="left" onClick={prev} disabled={!loop && !canPrev} />
           <CarouselArrow side="right" onClick={next} disabled={!loop && !canNext} />
@@ -279,7 +285,9 @@ function CarouselArrow({
       aria-label={side === 'left' ? 'Назад' : 'Вперёд'}
       className={cn(
         // На телефоне листают пальцем, и стрелки там только закрывают картинку.
-        'absolute top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 items-center justify-center md:inline-flex',
+        // Видны и на узком экране: листать пальцем можно, но без стрелок
+        // не видно, что лента вообще листается.
+        'absolute top-1/2 z-10 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center',
         'rounded-full border border-border bg-bg text-muted transition-all',
         'hover:text-ink hover:shadow-md disabled:opacity-40 disabled:hover:shadow-none',
         side === 'left' ? 'left-0 -translate-x-3' : 'right-0 translate-x-3',

@@ -69,6 +69,135 @@
 
 @layer components {
   /*
+    Кнопка-действие, висящая поверх страницы: меню, закрытие панели и всё,
+    что появится дальше. Один вид на всех - иначе кнопки в одной полосе по
+    верху окна читаются как пришедшие из разных мест.
+  */
+  /*
+    Кнопка-иконка в потоке: шапка, подвал, копирование кода. Размер один
+    на все - тридцать шесть точек, как у знака сайта рядом.
+  */
+  .icon-button {
+    display: inline-flex;
+    height: 2.25rem;
+    width: 2.25rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
+    color: var(--color-muted);
+    transition:
+      color 150ms ease,
+      background-color 150ms ease,
+      border-color 150ms ease;
+  }
+
+  .icon-button:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-ink);
+  }
+
+  /* Обведённая: там, где кнопка стоит одна и её край нужно обозначить. */
+  .icon-button--outlined {
+    border: 1px solid var(--color-border);
+  }
+
+  .icon-button--outlined:hover {
+    border-color: var(--color-border-strong);
+    background: transparent;
+    color: var(--color-ink);
+  }
+
+  .action-button {
+    display: inline-flex;
+    height: 2.25rem;
+    width: 2.25rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
+    border: 1px solid var(--color-border);
+    background: color-mix(in oklab, var(--color-page-bg) 90%, transparent);
+    backdrop-filter: blur(12px);
+    color: var(--color-muted);
+    transition:
+      color 150ms ease,
+      background-color 150ms ease;
+  }
+
+  .action-button:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-ink);
+  }
+
+  /*
+    Шаг секции по вертикали. Один на все блоки страницы: раньше каждый держал
+    свой, и на одной странице набиралось шесть разных - ноль, шестнадцать,
+    сорок восемь, пятьдесят шесть, шестьдесят четыре.
+
+    Владелец меняет это у отдельного блока своим стилем; в коде значение одно.
+  */
+  .block-space {
+    padding-top: 3.5rem;
+    padding-bottom: 3.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .block-space {
+      padding-top: 4.5rem;
+      padding-bottom: 4.5rem;
+    }
+  }
+
+  /*
+    Подложка проигрывателя: кадр и список к нему - одна вещь, а не два предмета
+    рядом. Без неё список висел в воздухе, будто случайно оказался под видео.
+
+    Тон на ступень темнее листа страницы, карточки внутри остаются светлее -
+    тот же порядок, что уже сложился в боковой панели.
+  */
+  .media-shell {
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--color-border);
+    background: var(--color-page-bg);
+    padding: 1rem;
+  }
+
+  /*
+    Кнопка поверх картинки - стрелки карусели, управление галереей. Подложка
+    затемняет ровно настолько, чтобы значок читался на любом кадре, и берётся
+    от чернил палитры: на смуглой палитре чистый чёрный выглядит провалом.
+  */
+  .action-button--on-media {
+    height: 2.5rem;
+    width: 2.5rem;
+    border: 0;
+    border-radius: var(--radius-full);
+    background: color-mix(in oklab, var(--color-ink) 45%, transparent);
+    backdrop-filter: none;
+    color: var(--color-bg);
+  }
+
+  .action-button--on-media:hover {
+    background: color-mix(in oklab, var(--color-ink) 70%, transparent);
+    color: var(--color-bg);
+  }
+
+  /*
+    Кнопка над страницей едет вместе с ней: она привязана к окну, а не
+    к каркасу, и без сдвига оставалась бы на месте, когда страница уехала.
+  */
+  .action-button--floating {
+    position: fixed;
+    top: 0.625rem;
+    translate: var(--shell-shift) 0;
+    transition:
+      color 150ms ease,
+      background-color 150ms ease,
+      translate var(--panel-motion-duration) var(--panel-motion-ease);
+  }
+
+  /*
     Пара снимков под тему. Светлый снимок в тёмной теме выбивается ярким
     пятном, поэтому у карточки их два, и показывается подходящий.
 
@@ -143,62 +272,266 @@
     выходило и сдвинуто, и перекрыто разом.
   */
   :root {
-    /* Одно движение на панель и страницу. */
-    --panel-motion-duration: 320ms;
-    --panel-motion-ease: cubic-bezier(0.32, 0.72, 0, 1);
+    /*
+      Одно движение на панель и страницу: длительность и кривая общие, иначе
+      они разъезжаются и панель догоняет страницу.
+
+      Движение неспешное и с мягким выходом: короткое и резкое читается как
+      подёргивание, особенно когда едет полотно во всю высоту окна.
+    */
+    --panel-motion-duration: 520ms;
+    --panel-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
     /* Сколько отодвинуто с каждой стороны. */
     --side-panel-left: 0px;
     --side-panel-right: 0px;
   }
 
   /*
-    Страница отодвигается на разницу между сторонами. Открыты обе - сдвиги
-    гасят друг друга, открыта одна - страница уезжает от неё. Такой счёт даёт
-    одно движение и когда вторая панель открывается поверх первой.
+    Свободное поле сбоку от средней секции - в него панель и встаёт.
+    На узком окне секция занимает всё, и поля нет вовсе.
   */
+  :root {
+    --side-gutter: calc((100vw - min(100vw, var(--container-wide))) / 2);
+  }
+
+  /*
+    Страница отодвигается ровно на то, чего панели не хватило до края окна:
+    поместилась в свободное поле - двигать нечего, не поместилась - страница
+    уступает недостающее.
+
+    Стороны считаются порознь и гасят друг друга: открыты обе - страница
+    остаётся на месте.
+  */
+  /*
+    Насколько уехала страница. Той же величиной двигаются кнопки, висящие
+    поверх страницы: без этого они остаются на месте, пока всё едет.
+  */
+  body {
+    --shell-shift: 0px;
+  }
+
+  /*
+    Насколько страница уступает панели. Величина одна на все случаи: панель
+    занимает поле сбоку, а чего в поле не хватило - на столько страница
+    и отъезжает.
+
+    Отсюда сами собой получаются три знакомых случая, и порогов в точках
+    экрана для них не нужно - всё считается от ширин:
+
+      поле шире панели   - уступать нечего, страница стоит;
+      поле есть, но уже  - страница отдаёт разницу;
+      поля нет вовсе     - страница отдаёт всю ширину панели.
+  */
+  body:is([data-side-panel-left], [data-side-panel-right]) {
+    --shell-shift: calc(
+      max(0px, var(--side-panel-left) - var(--side-gutter)) -
+        max(0px, var(--side-panel-right) - var(--side-gutter))
+    );
+  }
+
   body:is([data-side-panel-left], [data-side-panel-right]) [data-site-shell] {
-    transform: translateX(calc(var(--side-panel-left) - var(--side-panel-right)));
+    margin-left: var(--shell-shift);
+    margin-right: calc(-1 * var(--shell-shift));
+  }
+
+  /*
+    Сдвиг сделан отступами, а не сдвигом слоя: сдвинутый слой отменяет липкость
+    внутри себя - шапка сайта отлипала и уезжала вверх вместе со страницей,
+    вместе с кнопкой меню. Отступы этого не делают.
+  */
+  /*
+    Пока тянут край окна - никакого движения: величины считаются от ширины
+    окна, и переход заставлял бы страницу догонять курсор.
+  */
+  body[data-resizing] [data-site-shell],
+  body[data-resizing] .side-panel--push,
+  body[data-resizing] .action-button--floating {
+    transition: none;
   }
 
   [data-site-shell] {
-    transition: transform var(--panel-motion-duration) var(--panel-motion-ease);
+    transition:
+      margin-left var(--panel-motion-duration) var(--panel-motion-ease),
+      margin-right var(--panel-motion-duration) var(--panel-motion-ease);
   }
 
-  @media (min-width: 1024px) {
-    /* На широком экране страница не двигается вовсе: по бокам от неё и так
-     * свободное поле, и панель занимает его, ничего не отодвигая. Сдвиг
-     * остаётся узкому экрану, где встать колонке негде. */
-    body:is([data-side-panel-left], [data-side-panel-right]) [data-site-shell] {
-      transform: none;
-      margin-left: 0;
-      margin-right: 0;
+  /*
+    На мелком экране панель приходит от края окна и толкает страницу: панель
+    и содержимое едут одновременно, в одну сторону и с одной скоростью - как
+    сдвинутый лист бумаги. Выхода из-под края тут быть не может: свободного
+    поля сбоку нет вовсе.
+
+    Состояние описано здесь, а не классами на элементе: классы-утилиты лежат
+    слоем выше правил и перебивали бы их.
+  */
+  .side-panel--push {
+    top: 0;
+    width: var(--side-panel-width);
+    /*
+      Заливка панели светлее подложки, на которой она лежит: раньше было
+      наоборот, и панель читалась серой плашкой сбоку. Берём цвет листа -
+      панель своих цветов не заводит и палитру не подменяет.
+    */
+    --side-panel-bg: var(--color-bg);
+    background: var(--side-panel-bg);
+    /* Между: ниже средней секции, но выше шапки и подвала. */
+    z-index: 15;
+    /*
+      Закрытая панель ещё и снимается совсем: содержимое над ней местами
+      просвечивает - шапка сайта полупрозрачная, - и панель проступала сквозь
+      неё, хотя её никто не открывал. Видимость гаснет после того, как панель
+      уехала, иначе движения не будет видно.
+    */
+    visibility: hidden;
+    /*
+      Движение у панели ровно одно - собственный выезд. Когда она вдобавок
+      переезжала вслед за краем секции, два движения складывались и панель
+      расходилась со страницей: содержимое додвигалось уже после неё.
+    */
+    transition:
+      transform var(--panel-motion-duration) var(--panel-motion-ease),
+      left var(--panel-motion-duration) var(--panel-motion-ease),
+      right var(--panel-motion-duration) var(--panel-motion-ease),
+      visibility 0s linear var(--panel-motion-duration);
+  }
+
+  /*
+    Панель стоит у края средней секции: край считается от сдвига страницы,
+    поэтому где страница едет - панель идёт вместе с ней тем же движением,
+    и стыка между ними не видно.
+
+    Здесь описан случай без полей - окно по ширине равно самой секции.
+    Прятать панель некуда, поэтому закрытая ждёт за краем окна, а на открытии
+    они со страницей едут одним листом справа налево.
+  */
+  .side-panel--push[data-side='right'] {
+    left: calc(50% + min(50vw, var(--container-wide) / 2) + var(--shell-shift));
+    right: auto;
+    transform: translateX(0);
+  }
+
+  /* Левая зеркально. */
+  .side-panel--push[data-side='left'] {
+    right: calc(50% + min(50vw, var(--container-wide) / 2) - var(--shell-shift));
+    left: auto;
+    transform: translateX(0);
+  }
+
+  /*
+    Как только сбоку появляется поле, закрытая панель прячется под лист целиком
+    и при открытии выходит из-под его края. Спрятать её наполовину нельзя:
+    хвост остаётся торчать в поле и виден, хотя панель никто не открывал.
+
+    Порог здесь - ширина самой средней секции, а не выбранная точка экрана:
+    ровно с неё у страницы появляются поля. Числом он записан потому, что
+    условие по ширине окна переменных не понимает; величина та же, что
+    у --container-wide.
+  */
+  @media (min-width: 1300px) {
+    .side-panel--push[data-side='right'] {
+      transform: translateX(-100%);
     }
 
-    /* Панель проступает из-под страницы, а не влетает от края экрана: она лежит
-     * ниже слоя контента и проявляется на месте. */
-    .side-panel--push {
-      transform: none;
-      z-index: 10;
-      opacity: 0;
-      clip-path: inset(0 0 0 100%);
-      transition:
-        opacity var(--panel-motion-duration) var(--panel-motion-ease),
-        clip-path var(--panel-motion-duration) var(--panel-motion-ease);
+    .side-panel--push[data-side='left'] {
+      transform: translateX(100%);
     }
 
     .side-panel--push[data-open='true'] {
-      opacity: 1;
-      clip-path: inset(0 0 0 0);
+      transform: translateX(0);
     }
+  }
 
-    /* Слева раскрывается зеркально: от своего края к середине. */
-    .side-panel--push[data-side='left'] {
-      clip-path: inset(0 100% 0 0);
-    }
+  .side-panel--push[data-open='true'] {
+    transform: translateX(0);
+    visibility: visible;
+    transition:
+      transform var(--panel-motion-duration) var(--panel-motion-ease),
+      left var(--panel-motion-duration) var(--panel-motion-ease),
+      right var(--panel-motion-duration) var(--panel-motion-ease),
+      visibility 0s;
+  }
 
-    .side-panel--push[data-side='left'][data-open='true'] {
-      clip-path: inset(0 0 0 0);
-    }
+  /*
+    Полосы шапки. Средняя - над содержимым и над панелью; боковые - ниже
+    панели, чтобы приехавшая панель их закрывала.
+
+    Фон и размытие только у средней: по краям под шапкой ничего не проезжает,
+    и полоса фона там лишь мешала бы панели.
+  */
+  .header-center {
+    position: relative;
+    z-index: 30;
+    background: color-mix(in oklab, var(--color-page-bg) 80%, transparent);
+    backdrop-filter: blur(12px);
+  }
+
+  .header-side {
+    position: relative;
+    z-index: 5;
+  }
+
+  /*
+    Слои вокруг панели: средняя секция выше неё и закрывает собой, а шапка
+    с подвалом ниже - они растянуты на всю ширину и даже сдвинутые заходили бы
+    под панель полосой фона.
+
+    Слоя самим местам шапки и подвала не задаём. Номер при относительном
+    положении заводит собственный ящик слоёв, и полосы внутри спорят уже
+    только друг с другом: центральная полоса шапки, какой бы высокий номер
+    ей ни поставили, наружу не поднимается - панель приезжает и накрывает её,
+    срезая пункты меню. Без номера полосы остаются в общем ящике страницы
+    и меряются с панелью напрямую: боковые ниже неё, центральная выше.
+  */
+  [data-slot='center'] {
+    position: relative;
+    z-index: 20;
+  }
+
+  /*
+    Средняя секция подведена под шапку: её лист начинается от самого верха,
+    а содержимое отступает вниз ровно на высоту шапки и остаётся на месте.
+
+    Шапка полупрозрачна и с размытием, поэтому сквозь неё видно то, что лежит
+    ниже: без подведённого листа там просвечивала приехавшая панель. Теперь
+    под шапкой лист секции, и панель, заезжая за него, пропадает целиком.
+
+    Только когда шапка есть: без неё поднимать нечего.
+  */
+  [data-slot='top'] + [data-slot='center'] {
+    margin-top: calc(-1 * var(--header-height));
+    padding-top: var(--header-height);
+  }
+
+  /*
+    Слоя местам шапки и подвала не задаём: номер при положении заводит
+    собственный ящик, и полосы внутри перестают спорить с панелью снаружи -
+    приехавшая панель накрывала центральную полосу и срезала пункты меню.
+  */
+  [data-slot='top'] {
+    position: relative;
+  }
+
+  /*
+    Липкость включает владелец галочкой в настройках сайта. Липнет само место
+    шапки, а не шапка внутри него: липкость держится в пределах родителя,
+    а он ростом ровно с шапку - она уехала бы вместе с ним за верх экрана.
+
+    Слоя месту по-прежнему не задаём, иначе полосы внутри перестанут спорить
+    с панелью; липкость собственного ящика слоёв не заводит.
+  */
+  [data-slot='top'][data-sticky] {
+    position: sticky;
+    top: 0;
+  }
+
+  /*
+    Подвал выше панели: он идёт полосой во всю ширину окна, и приехавшая
+    панель ложилась на него концом, перекрывая строку с правами. Делить его
+    на части, как шапку, незачем - под панель ему заезжать нечем.
+  */
+  [data-slot='bottom'] {
+    position: relative;
+    z-index: 20;
   }
 }
 
@@ -424,26 +757,23 @@
     показывает, чей это сайт.
   */
   .video-vidstack {
+    /*
+      Меню плеера идёт в теме сайта. Плеер сторонний и красит его своими
+      переменными: без этого фон брался из светлой ветки, а текст из тёмной -
+      выходило белым по белому, читать нечего.
+
+      Задаём именно переменные плеера, а не переопределяем его правила: так
+      он остаётся обновляемым, и наши цвета - из палитры сайта.
+    */
+    --media-menu-bg: var(--color-surface);
+    --media-menu-text-color: var(--color-ink);
+    --media-menu-text-secondary-color: var(--color-muted);
+    --media-menu-divider: 1px solid var(--color-border);
     --video-brand: var(--color-accent);
     --video-focus-ring-color: var(--color-accent);
     --video-border-radius: 12px;
     --media-brand: var(--color-accent);
     width: 100%;
-  }
-
-  /*
-    Карточки в панели держатся на виду, пока прокручивается страница.
-
-    Только на широком и достаточно высоком окне: в горизонтальной ориентации и
-    на телефоне от липкого блока видно пустоту и край первой карточки, а до
-    самих карточек там и так легко дотянуться сверху.
-  */
-  @media (min-width: 1024px) and (min-height: 700px) {
-    .side-panel__body {
-      position: sticky;
-      top: 0;
-      align-self: flex-start;
-    }
   }
 
   /*

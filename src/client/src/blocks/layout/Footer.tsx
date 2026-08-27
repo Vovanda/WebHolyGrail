@@ -57,6 +57,14 @@ export function Footer({
   // контент-менеджеру управление footer-nav через CMS без правки кода.
   const settingsNav = settings.footerNav?.length ? settings.footerNav : (settings.mainNav ?? []);
   const year = new Date().getFullYear();
+  const version = process.env.NEXT_PUBLIC_WHG_VERSION;
+  /*
+    Отпечаток сборки - тот самый, что вшит в образ и отдаётся проверкой
+    здоровья: он показывает коммит, который реально собрался, а не тот,
+    что собирались собрать. Подвал рисуется на сервере, поэтому читается
+    в рантайме, без подстановки на сборке.
+  */
+  const commit = process.env.BUILD_SHA?.slice(0, 7);
 
   const hasDocs = docs.length > 0;
   const hasProject = project.length > 0;
@@ -85,7 +93,7 @@ export function Footer({
               target="_blank"
               rel="noopener noreferrer"
               aria-label={`${siteName} on GitHub`}
-              className="mt-4 inline-flex h-9 w-9 items-center justify-center rounded-md border border-border text-muted hover:text-ink hover:bg-surface transition-colors"
+              className="icon-button icon-button--outlined mt-4"
             >
               <Github size={16} />
             </a>
@@ -158,6 +166,10 @@ export function Footer({
               >
                 Web Holy Grail
               </a>
+              {/* Версия платформы и отпечаток сборки: по ним видно, что именно
+                  выложено, без чтения журнала выкладки. */}
+              {version && <span> · {version}</span>}
+              {commit && <span className="opacity-70"> · {commit}</span>}
             </div>
           )}
         </div>

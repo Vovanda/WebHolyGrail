@@ -15,16 +15,32 @@ type Variant = 'wave' | 'line' | 'dots' | 'gradient';
 export function WaveDivider({
   node,
 }: {
-  readonly node: BlockNode & { data?: { variant?: string; flipped?: boolean } };
+  readonly node: BlockNode & {
+    data?: { variant?: string; flipped?: boolean; space?: 'none' | 'sm' | 'md' | 'lg' | 'xl' };
+  };
   readonly settings: SiteSettings;
 }) {
   const variant = (node.data?.variant ?? 'wave') as Variant;
   const flipped = node.data?.flipped === true;
+  /*
+    Воздух вокруг разделителя один на все виды и задаётся здесь, а не соседями.
+    Раньше у волны была своя высота, а у линии, точек и градиента - никакой,
+    и вокруг них дышало по-разному.
+  */
 
-  if (variant === 'line') return <LineSep />;
-  if (variant === 'dots') return <DotsSep />;
-  if (variant === 'gradient') return <GradientSep />;
-  return <WaveSep flipped={flipped} />;
+  return (
+    <div className="block-space">
+      {variant === 'line' ? (
+        <LineSep />
+      ) : variant === 'dots' ? (
+        <DotsSep />
+      ) : variant === 'gradient' ? (
+        <GradientSep />
+      ) : (
+        <WaveSep flipped={flipped} />
+      )}
+    </div>
+  );
 }
 
 function WaveSep({ flipped }: { readonly flipped: boolean }) {
