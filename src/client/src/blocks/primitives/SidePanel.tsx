@@ -100,14 +100,21 @@ export function SidePanel({
     };
   }, [open, alignTop, followTrigger]);
 
+  /*
+    Сколько отодвинуто с каждой стороны. Стороны считаются порознь: при
+    открытой левой и открывшейся правой страница доезжает на разницу одним
+    движением. С общим признаком на обе стороны сдвиг менял знак и проходил
+    через ноль - страница дёргалась к исходному месту и обратно.
+  */
   useEffect(() => {
     if (!open) return;
     const body = document.body;
-    body.dataset['sidePanel'] = side;
-    body.style.setProperty('--side-panel-width', width);
+    const key = side === 'left' ? '--side-panel-left' : '--side-panel-right';
+    body.dataset[side === 'left' ? 'sidePanelLeft' : 'sidePanelRight'] = 'open';
+    body.style.setProperty(key, width);
     return () => {
-      delete body.dataset['sidePanel'];
-      body.style.removeProperty('--side-panel-width');
+      delete body.dataset[side === 'left' ? 'sidePanelLeft' : 'sidePanelRight'];
+      body.style.removeProperty(key);
     };
   }, [open, side, width]);
 

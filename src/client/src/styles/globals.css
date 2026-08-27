@@ -127,21 +127,20 @@
     /* Одно движение на панель и страницу. */
     --panel-motion-duration: 320ms;
     --panel-motion-ease: cubic-bezier(0.32, 0.72, 0, 1);
-  }
-
-  body[data-side-panel='left'] [data-site-shell] {
-    transform: translateX(var(--side-panel-width, 20rem));
-  }
-
-  body[data-side-panel='right'] [data-site-shell] {
-    transform: translateX(calc(-1 * var(--side-panel-width, 20rem)));
+    /* Сколько отодвинуто с каждой стороны. */
+    --side-panel-left: 0px;
+    --side-panel-right: 0px;
   }
 
   /*
-    Страница и панель едут одним движением: одинаковая длительность и одна
-    кривая. С разными настройками панель успевает выехать раньше, и страница
-    догоняет её отдельным рывком - выглядит как две несвязанные анимации.
+    Страница отодвигается на разницу между сторонами. Открыты обе - сдвиги
+    гасят друг друга, открыта одна - страница уезжает от неё. Такой счёт даёт
+    одно движение и когда вторая панель открывается поверх первой.
   */
+  body:is([data-side-panel-left], [data-side-panel-right]) [data-site-shell] {
+    transform: translateX(calc(var(--side-panel-left) - var(--side-panel-right)));
+  }
+
   [data-site-shell] {
     transition: transform var(--panel-motion-duration) var(--panel-motion-ease);
   }
@@ -149,17 +148,10 @@
   @media (min-width: 1024px) {
     /* На широком экране контент не выталкиваем, а ужимаем: место есть,
      * и терять правый край страницы незачем. */
-    body[data-side-panel='left'] [data-site-shell],
-    body[data-side-panel='right'] [data-site-shell] {
+    body:is([data-side-panel-left], [data-side-panel-right]) [data-site-shell] {
       transform: none;
-    }
-
-    body[data-side-panel='left'] [data-site-shell] {
-      margin-left: var(--side-panel-width, 20rem);
-    }
-
-    body[data-side-panel='right'] [data-site-shell] {
-      margin-right: var(--side-panel-width, 20rem);
+      margin-left: var(--side-panel-left);
+      margin-right: var(--side-panel-right);
     }
 
     [data-site-shell] {
@@ -395,17 +387,6 @@
     --video-border-radius: 12px;
     --media-brand: var(--color-accent);
     width: 100%;
-  }
-
-  /*
-    На телефоне громкость крутят кнопками устройства, поэтому ползунок здесь
-    только занимает место. Кнопка выключения звука остаётся: беззвучно смотрят
-    в транспорте и рядом со спящими, и качельки для этого неудобны.
-  */
-  @media (width < 640px) {
-    .video-vidstack .vds-volume-slider {
-      display: none;
-    }
   }
 
   /*

@@ -106,11 +106,10 @@ export function VideoPlayerVidstack({
         </MediaProvider>
 
         {/*
-          Полный набор управления на любом экране. Библиотека по умолчанию
-          переходит на узком экране к сокращённому виду, где нет ни звука, ни
-          выбора качества, и человек остаётся без половины кнопок.
+          Раскладку выбирает сама библиотека: у неё свои виды для широкого и
+          узкого экрана, и подмена одного другим разносит кнопки по кадру.
         */}
-        <DefaultVideoLayout icons={defaultLayoutIcons} translations={RU} smallLayoutWhen={false} />
+        <DefaultVideoLayout icons={defaultLayoutIcons} translations={RU} />
       </MediaPlayer>
 
       {/* Переход по набору: у готового слоя таких кнопок нет, ставим поверх кадра. */}
