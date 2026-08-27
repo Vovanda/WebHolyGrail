@@ -264,6 +264,26 @@ const RU: Record<string, string> = {
   Off: 'Выключено',
   Default: 'Обычное',
   Audio: 'Звук',
+  // Кнопки, которые библиотека подписывает по-своему: на живом сайте они
+  // оставались единственными английскими словами среди русских.
+  PiP: 'Отдельным окном',
+  Fullscreen: 'Во весь экран',
+  AirPlay: 'Трансляция на устройство',
+  'Google Cast': 'Трансляция на телевизор',
+  Connected: 'подключено',
+  Disconnected: 'не подключено',
+  Connecting: 'подключается',
+  'Seek:': 'Перемотка:',
+  Continue: 'Продолжить',
+  Replay: 'Сначала',
+  Announcements: 'Объявления',
+  'Font Styles': 'Шрифт субтитров',
+  'Text Background': 'Фон текста',
+  'Display Background': 'Фон поля',
+  Size: 'Размер',
+  Color: 'Цвет',
+  Opacity: 'Прозрачность',
+  Reset: 'Сбросить',
 };
 
 function PrevIcon() {
