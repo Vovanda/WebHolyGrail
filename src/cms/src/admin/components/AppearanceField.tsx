@@ -45,7 +45,10 @@ const KNOWN: Record<string, { label: string; kind: ControlKind; hint?: string; p
   'border-radius': {
     label: 'Скругление углов',
     kind: 'corners',
-    hint: 'верх-лево, верх-право, низ-право, низ-лево',
+    // Пример пишется так, как его примет браузер: значения углов разделяет
+    // пробел. Перечисление через запятую человек повторяет буквально, а такое
+    // объявление браузер молча отбрасывает.
+    hint: '16px 16px 0 0 - верхние скруглены, нижние нет',
     preset: '16px',
   },
   background: { label: 'Заливка', kind: 'color', preset: 'var(--color-surface)' },
@@ -620,8 +623,17 @@ const AppearanceField: TextFieldClientComponent = ({ field, path }) => {
                       removeRow(index);
                     }
                   }}
-                  placeholder="значение"
-                  style={{ ...cellStyle, flex: 1, opacity: row.on ? 1 : 0.5 }}
+                  placeholder={describe(row.prop).hint ?? 'значение'}
+                  style={{
+                    ...cellStyle,
+                    flex: 1,
+                    opacity: row.on ? 1 : 0.5,
+                    // Непонятое значение видно сразу по полю, а не по значку
+                    // рядом: значок ищут глазами, а рамку - нет.
+                    borderColor: understood(row.prop, row.value)
+                      ? undefined
+                      : 'var(--theme-warning-500, #d99000)',
+                  }}
                 />
                 {row.swatch && (
                   <span
@@ -647,10 +659,14 @@ const AppearanceField: TextFieldClientComponent = ({ field, path }) => {
 
                 {!understood(row.prop, row.value) && (
                   <span
-                    title="Браузер этого не понял - проверьте написание. Значение сохранится."
-                    style={{ color: 'var(--theme-warning-600, #a86400)' }}
+                    title="Значение сохранится, но на странице не подействует."
+                    style={{
+                      color: 'var(--theme-warning-600, #a86400)',
+                      whiteSpace: 'nowrap',
+                      fontSize: 12,
+                    }}
                   >
-                    ?
+                    браузер не понял
                   </span>
                 )}
               </div>
