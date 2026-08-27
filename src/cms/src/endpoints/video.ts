@@ -2,6 +2,11 @@ import type { Endpoint } from 'payload';
 
 import { payloadEntitlements } from '../lib/video/entitlement-source';
 import { entitlementPolicy } from '../lib/video/entitlements';
+import {
+  checkRedeemAttempt,
+  forgetRedeemMisses,
+  noteRedeemMiss,
+} from '../lib/video/redeem-throttle';
 import { issueViewerToken, readViewerToken, withGrantedPlaylist } from '../lib/video/envelope';
 import { grantStreamAccess, type StreamRecord } from '../lib/video/grant-access';
 import { masterKey, unwrapSecret } from '../lib/video/key-vault';
@@ -33,6 +38,23 @@ const json = (body: unknown, status = 200): Response =>
  * перезагрузку страницы. Без этого зритель вводит код, страница обновляется,
  * сервер выписывает новый пустой токен — и замок возвращается.
  */
+/**
+ * Чем различаем обратившихся при счёте попыток.
+ *
+ * @remarks
+ * Берём адрес из заголовков обратного прокси, а при их отсутствии - токен
+ * зрителя. Точность здесь не нужна: задача - сбить перебор, а не опознать
+ * человека.
+ */
+function clientKey(req: { headers?: { get(name: string): string | null } }): string {
+  const headers = req.headers;
+  const forwarded = headers?.get('x-forwarded-for')?.split(',')[0]?.trim();
+  if (forwarded) return forwarded;
+  const real = headers?.get('x-real-ip')?.trim();
+  if (real) return real;
+  return tokenFromCookie(req as never) ?? 'unknown';
+}
+
 const VIEWER_COOKIE = 'whg-viewer';
 
 /** Ответ с токеном, который браузер запомнит. */
@@ -627,6 +649,25 @@ export const videoRedeemEndpoint: Endpoint = {
     const code = normalizeAccessCode(raw);
     if (!code) return json({ error: 'not-found' }, 404);
 
+    /*
+      Подбор кода отсекаем по адресу обратившегося: шесть символов машина
+      перебирает за часы, а живой человек ошибается два-три раза подряд.
+
+      Ответ при этом тот же, что и на неверный код: по разнице между «не тот
+      код» и «слишком часто» перебор понимал бы, что нащупал верный.
+    */
+    const client = clientKey(req);
+    const attempt = checkRedeemAttempt(client);
+    if (!attempt.allowed) {
+      return new Response(JSON.stringify({ error: 'invalid' }), {
+        status: 429,
+        headers: {
+          'content-type': 'application/json; charset=utf-8',
+          'retry-after': String(attempt.retryAfterSeconds),
+        },
+      });
+    }
+
     const found = await req.payload.find({
       collection: 'access-codes',
       where: { code: { equals: code } },
@@ -669,8 +710,15 @@ export const videoRedeemEndpoint: Endpoint = {
       // какой израсходован. Отдельно остаётся требование входа — оно про
       // самого зрителя, а не про код.
       const reason = result.reason === 'sign-in-required' ? 'sign-in-required' : 'invalid';
+      // Промах засчитываем только когда дело в самом коде: требование входа -
+      // про зрителя, и наказывать за него нечем.
+      if (reason === 'invalid') noteRedeemMiss(client);
       return json({ error: reason }, 403);
     }
+
+    // Код подошёл - счёт промахов обнуляется: человек, ошибшийся пару раз,
+    // дальше работает без задержек.
+    forgetRedeemMisses(client);
 
     const next = withGrantedPlaylist(token, result.playlistId, appSecret(), nowSeconds());
     // Токен просрочен или испорчен: выдавать право в него бессмысленно, а
