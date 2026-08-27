@@ -23,11 +23,33 @@ export interface LayoutPushPanelProps {
   readonly children: ReactNode;
 }
 
+/**
+ * Ширина панели с оглядкой на экран.
+ *
+ * @remarks
+ * В раскладке ширину задают числом - «двадцать пять em», не думая про телефон.
+ * На узком экране такая панель вылезает за край: заголовок обрезается, а
+ * полоска страницы сбоку, по которой видно, что страница никуда не делась,
+ * пропадает вовсе.
+ *
+ * Поэтому здесь ширина ограничивается долей экрана. Ограничение живёт в слое
+ * раскладки, а не в конфиге: иначе каждый, кто заводит панель, должен помнить
+ * про телефон и писать одно и то же.
+ */
+export function widthWithinScreen(width: string | undefined): string | undefined {
+  if (!width) return undefined;
+  // Уже посчитанное значение не трогаем: автор знал, что делал.
+  if (width.includes('min(') || width.includes('vw')) return width;
+  return `min(${width}, 88vw)`;
+}
+
 export function LayoutPushPanel({ side, width, title, children }: LayoutPushPanelProps) {
+  const panelWidth = widthWithinScreen(width);
+
   return (
     <SidePanel
       side={side}
-      {...(width ? { width } : {})}
+      {...(panelWidth ? { width: panelWidth } : {})}
       title={title}
       trigger={({ open, isOpen }) => (
         <button
