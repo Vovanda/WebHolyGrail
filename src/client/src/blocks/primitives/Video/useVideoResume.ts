@@ -28,6 +28,38 @@ export interface VideoResumeOptions {
 /** Как часто сохранять место: чаще - лишние записи, реже - потеря минуты. */
 const SAVE_EVERY_MS = 5000;
 
+/**
+ * Стоит ли возвращать зрителя к сохранённому месту.
+ *
+ * @remarks
+ * Вынесено отдельно, потому что здесь и живут все решения: остальное в хуке -
+ * подписка на события. Ошибка тут стоит дорого - человек попадает на титры
+ * вместо начала или теряет место, до которого досмотрел.
+ */
+export function shouldResume({
+  saved,
+  duration,
+  stopBefore,
+  hasTimecode,
+}: {
+  /** Сохранённое место, если оно есть. */
+  readonly saved: number | null;
+  readonly duration: number;
+  /** За сколько секунд до конца перестаём считать место осмысленным. */
+  readonly stopBefore: number;
+  /** В адресе указано конкретное место. */
+  readonly hasTimecode: boolean;
+}): boolean {
+  // Таймкод в адресе главнее памяти: человек открыл ссылку на конкретное место.
+  if (hasTimecode) return false;
+  if (saved === null || saved <= 0) return false;
+  if (!duration) return false;
+  // Досмотренную запись открывают заново: вернуть на титры хуже, чем ничего.
+  // Граница строгая: когда до конца остаётся ровно отведённый запас, запись
+  // уже досмотрена.
+  return saved < duration - stopBefore;
+}
+
 export function useVideoResume(
   video: React.RefObject<HTMLVideoElement | null>,
   { mediaId, startAfter = 15, stopBefore = 20 }: VideoResumeOptions,
@@ -44,12 +76,10 @@ export function useVideoResume(
     const restore = () => {
       if (restored || !media.duration) return;
       restored = true;
-      // Таймкод в адресе главнее памяти: человек открыл ссылку на конкретное место.
-      if (new URLSearchParams(window.location.search).has('t')) return;
       const saved = read(key);
-      if (saved === null) return;
-      if (saved > media.duration - stopBefore) return;
-      media.currentTime = saved;
+      const hasTimecode = new URLSearchParams(window.location.search).has('t');
+      if (!shouldResume({ saved, duration: media.duration, stopBefore, hasTimecode })) return;
+      media.currentTime = saved as number;
     };
 
     let lastSave = 0;
