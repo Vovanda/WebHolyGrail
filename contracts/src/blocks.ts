@@ -235,16 +235,31 @@ export const APPEARANCE_WARNING =
  * Не прошло проверку - стиль не применяется вовсе: сломанная страница хуже,
  * чем не сработавшая настройка.
  *
+ * Целится правило либо в сам помеченный элемент, либо в его прямого потомка.
+ * Второе нужно там, где признак стоит на обёртке вокруг блока: отступы и
+ * скругление задаёт собственный класс блока, и с обёртки до него не достать -
+ * владелец пишет padding, а на странице ничего не меняется.
+ *
  * @example
  * scopedAppearance('b7', 'margin: 40px 0; [data-part="title"] { font-size: 32px }')
  * // '[data-block="b7"] { margin: 40px 0; [data-part="title"] { font-size: 32px } }'
+ *
+ * @example
+ * scopedAppearance('b7', 'padding-top: 0', 'child')
+ * // '[data-block="b7"] > * { padding-top: 0 }'
  */
-export function scopedAppearance(blockId: string, source: string | null | undefined): string {
+export function scopedAppearance(
+  blockId: string,
+  source: string | null | undefined,
+  target: 'self' | 'child' = 'self',
+): string {
   const css = (source ?? '').replace(/<\/?style/gi, '').trim();
   if (!css) return '';
   if (!balanced(css)) return '';
 
-  return `[data-block="${blockId}"] { ${css} }`;
+  const selector =
+    target === 'child' ? `[data-block="${blockId}"] > *` : `[data-block="${blockId}"]`;
+  return `${selector} { ${css} }`;
 }
 
 /** Скобки уравновешены и нигде не закрываются раньше, чем открылись. */
