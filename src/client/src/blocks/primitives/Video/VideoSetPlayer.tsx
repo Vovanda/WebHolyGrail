@@ -20,6 +20,8 @@ const VIEWS: ReadonlyArray<{ value: SetView; label: string }> = [
   { value: 'panel', label: 'Панелью' },
 ];
 import { VideoSetList } from './VideoSetList';
+import { neighboursOf } from './selected-video';
+import { useSelectedVideo } from './useSelectedVideo';
 
 /**
  * Плейлист видео с плеером: слева видео, справа список.
@@ -87,11 +89,12 @@ export function VideoSetPlayer({
     return () => window.removeEventListener(ACCESS_GRANTED_EVENT, onGranted);
   }, []);
 
-  // Начинаем с первого, который вообще может играть: если открыт только третий
-  // видео, показывать заглушку вместо него незачем.
-  const [current, setCurrent] = useState<VideoSetItem | null>(
-    () => items.find((item) => !item.locked && item.ready && item.playlistUrl) ?? null,
-  );
+  /*
+    Выбранное видео живёт в адресе, а не здесь: так ссылка на нужное видео
+    работает сама собой, «назад» возвращает к предыдущему, а список может
+    стоять хоть в боковой панели, которую собирает лейаут.
+  */
+  const { current, select: setCurrent } = useSelectedVideo(items);
 
   /*
     Вид списка переключается на месте: рядом с плеером или боковой панелью,
@@ -122,10 +125,7 @@ export function VideoSetPlayer({
     Соседи текущего видео среди тех, что вообще могут играть. Закрытые и ещё
     не нарезанные пропускаем: стрелка, ведущая на замок, обрывает просмотр.
   */
-  const playable = items.filter((item) => !item.locked && item.ready && item.playlistUrl);
-  const at = current ? playable.findIndex((item) => item.id === current.id) : -1;
-  const prev = at > 0 ? playable[at - 1] : undefined;
-  const next = at >= 0 && at < playable.length - 1 ? playable[at + 1] : undefined;
+  const { prev, next } = neighboursOf(items, current);
 
   return (
     <div
