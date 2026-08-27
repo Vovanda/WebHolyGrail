@@ -139,8 +139,12 @@ export function VideoSetPlayer({
         </div>
         {current?.playlistUrl ? (
           <>
+            {/*
+              Плеер живёт один на весь просмотр: при переходе к следующему видео
+              меняется только источник. Пересоздание рвало ползунки библиотеки -
+              она роняла ошибки в консоль на каждой смене.
+            */}
             <VideoPlayer
-              key={String(current.id)}
               ui={playerUi}
               deniedSettings={deniedSettings}
               src={current.playlistUrl}

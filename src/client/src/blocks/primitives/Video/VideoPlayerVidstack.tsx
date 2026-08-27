@@ -1,7 +1,7 @@
 'use client';
 
 import Hls from 'hls.js';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   isHLSProvider,
   MediaPlayer,
@@ -117,10 +117,15 @@ export function VideoPlayerVidstack({
   // собирается здесь же.
   const thumbnails = useMemo(() => storyboardTrackUrl(storyboard), [storyboard]);
 
-  const loader = useMemo(
-    () => createEnvelopeLoader({ mediaId, token, onFailure: setDenied }),
-    [mediaId, token],
-  );
+  // Загрузчик один на всё время просмотра: он узнаёт запрос ключа по виду
+  // адреса, а не по номеру видео, поэтому переход к следующему его не трогает.
+  const loader = useMemo(() => createEnvelopeLoader({ token, onFailure: setDenied }), [token]);
+
+  // Отказ прошлого видео к следующему не относится: без сброса зритель увидел
+  // бы заглушку там, где всё открыто.
+  useEffect(() => {
+    setDenied(null);
+  }, [mediaId]);
 
   if (denied && denied !== 'error') {
     return (

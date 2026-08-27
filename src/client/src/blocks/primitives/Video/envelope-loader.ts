@@ -14,11 +14,15 @@ import Hls from 'hls.js';
  * именем, совпадения не было, и ключ уходил без токена.
  *
  * Общий для обоих слоёв управления: сам плеер о шифровании ничего не знает.
+ *
+ * Загрузчик не привязан к конкретному видео: запрос ключа узнаётся по виду
+ * адреса, а не по номеру внутри него. Иначе при переходе к следующему видео
+ * плейлиста пришлось бы собирать плеер заново - а вместе с ним пересоздавать
+ * ползунки, на чём библиотека спотыкается и сыплет ошибками в консоль.
  */
 export type EnvelopeFailure = 'sign-in-required' | 'not-entitled' | 'not-ready' | 'error';
 
 export interface EnvelopeLoaderOptions {
-  readonly mediaId: string | number;
   /** Токен зрителя: им вскрывается конверт с ключом. */
   readonly token: string;
   /** Ключ не выдан - показать причину вместо кадра. */
@@ -28,15 +32,17 @@ export interface EnvelopeLoaderOptions {
 /** Причины, о которых сервер говорит прямо; остальное показываем как сбой. */
 const KNOWN: ReadonlyArray<string> = ['sign-in-required', 'not-entitled', 'not-ready'];
 
-export function createEnvelopeLoader({ mediaId, token, onFailure }: EnvelopeLoaderOptions) {
-  const envelopePath = `/api/video/${mediaId}/envelope`;
+/** Как выглядит запрос ключа: номер видео внутри может быть любым. */
+const ENVELOPE_PATH = /\/api\/video\/[^/]+\/envelope/;
+
+export function createEnvelopeLoader({ token, onFailure }: EnvelopeLoaderOptions) {
   const DefaultLoader = Hls.DefaultConfig.loader;
 
   return class EnvelopeAwareLoader extends DefaultLoader {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- контракт загрузчика задан библиотекой
     load(context: any, config: any, callbacks: any): void {
       const url = String(context?.url ?? '');
-      if (!url.includes(envelopePath)) {
+      if (!ENVELOPE_PATH.test(url)) {
         super.load(context, config, callbacks);
         return;
       }
