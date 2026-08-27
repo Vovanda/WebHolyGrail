@@ -720,7 +720,20 @@ export const videoRedeemEndpoint: Endpoint = {
     // дальше работает без задержек.
     forgetRedeemMisses(client);
 
-    const next = withGrantedPlaylist(token, result.playlistId, appSecret(), nowSeconds());
+    /*
+      Срок права переносим в токен: код открывает курс на недели, а токен без
+      продления умирал бы за вечер, и человек шёл бы за новым кодом каждый день.
+    */
+    const grantedUntil = result.expiresAt
+      ? Math.floor(new Date(result.expiresAt).getTime() / 1000)
+      : null;
+    const next = withGrantedPlaylist(
+      token,
+      result.playlistId,
+      appSecret(),
+      nowSeconds(),
+      grantedUntil,
+    );
     // Токен просрочен или испорчен: выдавать право в него бессмысленно, а
     // погашение засчитывать нечестно — код должен остаться рабочим.
     if (!next) return json({ error: 'bad-token' }, 403);

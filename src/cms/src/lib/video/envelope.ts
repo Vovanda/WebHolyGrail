@@ -13,8 +13,20 @@ import { createCipheriv, createHmac, randomBytes, timingSafeEqual } from 'node:c
  * проверяет подпись и время. Ни таблицы сессий, ни ротации по таймеру.
  */
 
-/** Сколько живёт токен зрителя. Дольше сессии он не нужен. */
+/** Сколько живёт токен зрителя без прав из кода: дольше сессии он не нужен. */
 const TOKEN_TTL_SECONDS = 12 * 60 * 60;
+
+/**
+ * Потолок срока токена.
+ *
+ * @remarks
+ * Право из кода живёт свой срок - курс открывают на месяцы, - и токен обязан
+ * дожить до его конца, иначе зритель добывал бы новый код каждый вечер.
+ *
+ * Но и вечным он быть не может: ключ конверта лежит внутри, и токен, забытый
+ * на чужом устройстве, остаётся рабочим ровно столько, сколько мы позволим.
+ */
+const MAX_TOKEN_TTL_SECONDS = 400 * 24 * 60 * 60;
 
 /** Разделитель частей токена: полезная часть и подпись. */
 const SEPARATOR = '.';
@@ -78,22 +90,33 @@ export function issueViewerToken(
  * Пересобирает токен с добавленным набором.
  *
  * @remarks
- * Ключ и срок сохраняются: у зрителя уже идёт просмотр, и подмена ключа
- * посреди сеанса оборвала бы воспроизведение.
+ * Ключ сохраняется: у зрителя уже идёт просмотр, и подмена ключа посреди
+ * сеанса оборвала бы воспроизведение.
+ *
+ * Срок продлевается до конца права: код открывает курс на недели, а токен без
+ * продления умирал бы за вечер, и человек шёл бы за новым кодом каждый день.
+ * Сокращать срок при этом нельзя - другое право в том же токене живёт дольше.
  */
 export function withGrantedPlaylist(
   token: string,
   playlistId: string | number,
   appSecret: string,
   nowSeconds: number,
+  grantedUntilSeconds?: number | null,
 ): string | null {
   const parsed = readViewerToken(token, appSecret, nowSeconds);
   if (!parsed.ok) return null;
 
-  const granted = parsed.granted.includes(playlistId)
-    ? parsed.granted
-    : [...parsed.granted, playlistId];
-  return buildToken(parsed.key, parsed.expires, granted, appSecret);
+  // Сравниваем строками: из токена набор приходит строкой, из базы числом, и
+  // прямое сравнение не находило совпадения - повторное погашение того же кода
+  // дописывало набор ещё раз, и список рос с каждой попыткой.
+  const already = parsed.granted.some((id) => String(id) === String(playlistId));
+  const granted = already ? parsed.granted : [...parsed.granted, playlistId];
+
+  const wanted = grantedUntilSeconds ?? parsed.expires;
+  const expires = Math.min(Math.max(parsed.expires, wanted), nowSeconds + MAX_TOKEN_TTL_SECONDS);
+
+  return buildToken(parsed.key, expires, granted, appSecret);
 }
 
 function buildToken(
