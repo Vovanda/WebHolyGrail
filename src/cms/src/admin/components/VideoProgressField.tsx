@@ -1,7 +1,7 @@
 'use client';
 
 import { useDocumentInfo } from '@payloadcms/ui';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Ход нарезки в карточке записи.
@@ -17,6 +17,12 @@ import { useEffect, useState } from 'react';
 export function VideoProgressField() {
   const { id } = useDocumentInfo();
   const [state, setState] = useState<{ status: string; percent: number } | null>(null);
+  /*
+    По двум замерам видно скорость, а из неё - сколько осталось. Голый процент
+    отвечает «сколько сделано», а человека занимает другое: ждать ему минуту
+    или полчаса.
+  */
+  const marks = useRef<Array<{ at: number; percent: number }>>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -27,7 +33,15 @@ export function VideoProgressField() {
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null);
       if (!alive || !doc?.hls) return;
-      setState({ status: String(doc.hls.status ?? ''), percent: Number(doc.hls.progress ?? 0) });
+      const percent = Number(doc.hls.progress ?? 0);
+      const seen = marks.current;
+      if (!seen.length || percent > (seen.at(-1)?.percent ?? 0)) {
+        seen.push({ at: Date.now(), percent });
+        // Держим только последние замеры: старые считают среднюю скорость за
+        // всю нарезку, а она к концу успевает измениться.
+        if (seen.length > 6) seen.shift();
+      }
+      setState({ status: String(doc.hls.status ?? ''), percent });
     };
 
     void read();
@@ -45,11 +59,14 @@ export function VideoProgressField() {
 
   const percent = Math.max(0, Math.min(100, state.percent));
   const waiting = state.status === 'pending';
+  const left = waiting ? null : estimateLeft(marks.current, percent);
 
   return (
     <div style={{ marginBottom: '1rem' }}>
       <div style={{ marginBottom: '.35rem', fontSize: '.8rem', opacity: 0.75 }}>
-        {waiting ? 'Ждёт очереди на нарезку' : `Нарезается: ${percent}%`}
+        {waiting
+          ? 'Ждёт очереди на нарезку'
+          : `Нарезается: ${percent}%${left ? ` · осталось ${left}` : ''}`}
       </div>
 
       <div
@@ -76,4 +93,35 @@ export function VideoProgressField() {
       </div>
     </div>
   );
+}
+
+/**
+ * Сколько ещё ждать.
+ *
+ * @remarks
+ * Считаем по скорости последних замеров, а не всей нарезки: к концу она
+ * меняется, и средняя за всё время обманывает.
+ *
+ * Пока замеров мало или запись почти готова, ничего не показываем: неверная
+ * оценка хуже её отсутствия.
+ */
+function estimateLeft(
+  marks: ReadonlyArray<{ at: number; percent: number }>,
+  percent: number,
+): string | null {
+  if (marks.length < 2 || percent >= 98) return null;
+
+  const first = marks[0]!;
+  const last = marks.at(-1)!;
+  const grew = last.percent - first.percent;
+  const spent = last.at - first.at;
+  if (grew <= 0 || spent <= 0) return null;
+
+  const secondsLeft = Math.round(((100 - percent) / grew) * (spent / 1000));
+  if (secondsLeft < 20) return 'меньше минуты';
+  if (secondsLeft < 90) return 'около минуты';
+
+  const minutes = Math.round(secondsLeft / 60);
+  if (minutes < 60) return `примерно ${minutes} мин`;
+  return `больше часа`;
 }
