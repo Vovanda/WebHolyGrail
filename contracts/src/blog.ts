@@ -330,22 +330,6 @@ export interface DemoAccessBlockData {
   readonly text?: string;
 }
 
-/**
- * Плейлист боковой панелью, объявляемой раскладкой.
- *
- * @remarks
- * Отдельно от блока на странице: у панели нет ни плеера, ни обложки, ни
- * заголовков - только список, а стоит она не в теле страницы, а сбоку от неё.
- * Общий блок с флагом «я в панели» знал бы, где стоит, и перестал быть чистой
- * функцией от пропсов (R5).
- *
- * С каким видео список согласован, панель узнаёт из адреса: плеер живёт в
- * другой ветке разметки, и пропсом до него не дотянуться.
- */
-export interface VideoSetPanelBlockData {
-  readonly playlist?: { id: string | number } | string | number | null;
-}
-
 export interface VideoSetBlockData {
   readonly heading?: string;
   readonly subtitle?: string;
@@ -358,6 +342,22 @@ export interface VideoSetBlockData {
    * странице.
    */
   readonly mode?: 'player' | 'list';
+  /**
+   * Как показывать список плейлиста рядом с плеером.
+   *
+   * @remarks
+   * Виды взаимоисключающие: колонка стоит рядом, лента лежит под плеером,
+   * панель прячет список за кнопкой в углу и освобождает место.
+   */
+  readonly listView?: 'column' | 'row' | 'panel';
+  /**
+   * Дать посетителю переключать вид.
+   *
+   * @remarks
+   * Нужно витрине шаблона: там переключатель показывает, что вид настраивается.
+   * На обычном сайте вид выбирает владелец.
+   */
+  readonly showViewSwitch?: boolean;
   readonly showCover?: boolean;
   readonly showTitle?: boolean;
   readonly showDescription?: boolean;

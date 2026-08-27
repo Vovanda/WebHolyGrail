@@ -86,7 +86,6 @@ export type {
   VideoStream,
   VideoBlockData,
   VideoSetBlockData,
-  VideoSetPanelBlockData,
   DemoAccessBlockData,
   VideoSetItem,
   VideoSetRef,
