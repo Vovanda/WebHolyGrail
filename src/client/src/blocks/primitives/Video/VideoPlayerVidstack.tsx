@@ -14,11 +14,17 @@ import { DefaultVideoLayout, defaultLayoutIcons } from '@vidstack/react/player/l
 import '@vidstack/react/player/styles/default/theme.css';
 import '@vidstack/react/player/styles/default/layouts/video.css';
 
-import type { VideoChapter, VideoStoryboard, VideoSubtitleTrack } from 'contracts';
+import type {
+  VideoChapter,
+  VideoDeniedSettings,
+  VideoStoryboard,
+  VideoSubtitleTrack,
+} from 'contracts';
 
 import { cn } from '@/lib/utils';
 
 import { chaptersTrackUrl } from './chapters-track';
+import { VideoDenied } from './VideoDenied';
 import { storyboardTrackUrl } from './storyboard-track';
 import { useMiniPlayer } from './useMiniPlayer';
 import { createEnvelopeLoader, type EnvelopeFailure } from './envelope-loader';
@@ -58,13 +64,8 @@ export type VideoPlayerVidstackProps = VideoPlayerChromeProps & {
   readonly mini?: boolean;
   /** Кадры для перемотки: полоса времени показывает кадр под курсором. */
   readonly storyboard?: VideoStoryboard | null | undefined;
-};
-
-/** Текст отказа. Владелец переопределяет его в настройках сайта. */
-const DENIED_TEXT: Record<string, string> = {
-  'sign-in-required': 'Откроется по коду доступа',
-  'not-entitled': 'Откроется по коду доступа',
-  'not-ready': 'Видео ещё готовится к показу',
+  /** Что показать вместо закрытой записи: задаётся владельцем в настройках. */
+  readonly deniedSettings?: VideoDeniedSettings | undefined;
 };
 
 export function VideoPlayerVidstack({
@@ -83,6 +84,7 @@ export function VideoPlayerVidstack({
   durationSeconds = null,
   mini = false,
   storyboard = null,
+  deniedSettings,
 }: VideoPlayerVidstackProps) {
   const [denied, setDenied] = useState<EnvelopeFailure | null>(null);
 
@@ -112,15 +114,12 @@ export function VideoPlayerVidstack({
 
   if (denied && denied !== 'error') {
     return (
-      <div
-        className={cn(
-          'flex aspect-video flex-col items-center justify-center gap-3 rounded-xl border border-border bg-surface text-center',
-          className,
-        )}
-        style={poster ? { backgroundImage: `url(${poster})`, backgroundSize: 'cover' } : undefined}
-      >
-        <p className="text-body font-medium text-ink">{DENIED_TEXT[denied]}</p>
-      </div>
+      <VideoDenied
+        reason={denied}
+        settings={deniedSettings}
+        poster={poster}
+        className={className}
+      />
     );
   }
 

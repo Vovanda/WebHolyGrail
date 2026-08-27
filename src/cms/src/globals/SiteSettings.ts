@@ -535,6 +535,48 @@ export const SiteSettings: GlobalConfig = {
           },
         },
         {
+          name: 'denied',
+          label: 'Вместо закрытой записи',
+          type: 'group',
+          admin: {
+            description:
+              'Что видит зритель, которому запись пока не открыта. Обложка остаётся на месте, поверх неё - текст и кнопка.',
+          },
+          fields: [
+            {
+              name: 'title',
+              label: 'Текст',
+              type: 'text',
+              defaultValue: 'Откроется по коду доступа',
+            },
+            {
+              name: 'note',
+              label: 'Пояснение под текстом',
+              type: 'text',
+              admin: { description: 'Необязательно. Например, где взять код.' },
+            },
+            {
+              name: 'actionLabel',
+              label: 'Надпись на кнопке',
+              type: 'text',
+              admin: { description: 'Пусто - кнопки не будет.' },
+            },
+            {
+              name: 'actionHref',
+              label: 'Куда ведёт кнопка',
+              type: 'text',
+              admin: { description: 'Адрес страницы с покупкой, входом или условиями.' },
+            },
+            {
+              name: 'notReadyTitle',
+              label: 'Пока запись готовится',
+              type: 'text',
+              defaultValue: 'Видео ещё готовится к показу',
+              admin: { description: 'Показывается, пока нарезка не закончилась.' },
+            },
+          ],
+        },
+        {
           name: 'codeLength',
           label: 'Длина кода доступа',
           type: 'select',

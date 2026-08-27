@@ -90,4 +90,23 @@ export interface VideoSettings {
    * меняется владельцем без выкладки (R0).
    */
   readonly playerUi?: 'vidstack' | 'chrome';
+  /** Что показывать вместо закрытой записи. */
+  readonly denied?: VideoDeniedSettings;
+}
+
+/**
+ * Заглушка вместо закрытой записи.
+ *
+ * @remarks
+ * Зритель, которому запись не открыта, должен понимать, что делать дальше.
+ * Владелец задаёт это сам: у одного сайта это код доступа, у другого подписка,
+ * у третьего вход в учётную запись.
+ */
+export interface VideoDeniedSettings {
+  readonly title?: string;
+  readonly note?: string;
+  readonly actionLabel?: string;
+  readonly actionHref?: string;
+  /** Текст на время, пока нарезка ещё идёт. */
+  readonly notReadyTitle?: string;
 }

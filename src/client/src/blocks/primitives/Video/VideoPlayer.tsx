@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from 'react';
 
-import type { VideoChapter, VideoStoryboard, VideoSubtitleTrack } from 'contracts';
+import type {
+  VideoChapter,
+  VideoDeniedSettings,
+  VideoStoryboard,
+  VideoSubtitleTrack,
+} from 'contracts';
 
 import { VideoPlayerChrome, type VideoPlayerChromeProps } from './VideoPlayerChrome';
 import { VideoPlayerVidstack } from './VideoPlayerVidstack';
@@ -29,6 +34,8 @@ export type VideoPlayerProps = VideoPlayerChromeProps & {
   readonly mini?: boolean;
   /** Кадры для перемотки: показывает только новый слой управления. */
   readonly storyboard?: VideoStoryboard | null | undefined;
+  /** Что показать вместо закрытой записи: задаётся владельцем в настройках. */
+  readonly deniedSettings?: VideoDeniedSettings | undefined;
   /**
    * Какой слой управления рисовать.
    *
@@ -63,7 +70,8 @@ export function VideoPlayer({ ui: asked, ...props }: VideoPlayerProps) {
 
   // Прежний слой субтитров не рисует: он остаётся для сравнения и уйдёт, когда
   // выбор устоится.
-  const { subtitles, chapters, durationSeconds, mini, storyboard, ...common } = props;
+  const { subtitles, chapters, durationSeconds, mini, storyboard, deniedSettings, ...common } =
+    props;
   return ui === 'vidstack' ? (
     <VideoPlayerVidstack
       {...common}
@@ -72,6 +80,7 @@ export function VideoPlayer({ ui: asked, ...props }: VideoPlayerProps) {
       durationSeconds={durationSeconds}
       mini={mini ?? false}
       storyboard={storyboard}
+      deniedSettings={deniedSettings}
     />
   ) : (
     <VideoPlayerChrome {...common} />

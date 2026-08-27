@@ -91,6 +91,7 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
       {withPlayer && token ? (
         <VideoSetPlayer
           playerUi={settings.video?.playerUi}
+          deniedSettings={settings.video?.denied}
           title={heading}
           items={items}
           token={token}

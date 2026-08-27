@@ -26,7 +26,13 @@ export type {
 
 export type { PageDoc, PageSeo } from './pages';
 
-export type { SiteSettings, ContactsInfo, SocialLink, VideoSettings } from './globals';
+export type {
+  SiteSettings,
+  ContactsInfo,
+  SocialLink,
+  VideoSettings,
+  VideoDeniedSettings,
+} from './globals';
 
 export type { ThemeConfig, ThemeName } from './theme';
 

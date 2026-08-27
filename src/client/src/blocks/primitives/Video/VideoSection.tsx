@@ -71,6 +71,7 @@ export async function VideoSection({ node, settings, className }: VideoSectionPr
       {token && stream.status === 'ready' ? (
         <VideoPlayer
           ui={settings.video?.playerUi}
+          deniedSettings={settings.video?.denied}
           src={stream.playlistUrl}
           token={token}
           mediaId={stream.id}

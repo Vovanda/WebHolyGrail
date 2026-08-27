@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { VideoSetItem } from 'contracts';
+import type { VideoSetItem, VideoDeniedSettings } from 'contracts';
 
 import { cn } from '@/lib/utils';
 
@@ -45,6 +45,8 @@ export interface VideoSetPlayerProps {
   readonly title?: string | undefined;
   /** Какой слой управления рисовать: приходит из настроек сайта. */
   readonly playerUi?: 'vidstack' | 'chrome' | undefined;
+  /** Что показать вместо закрытой записи: приходит из настроек сайта. */
+  readonly deniedSettings?: VideoDeniedSettings | undefined;
   readonly className?: string;
 }
 
@@ -55,6 +57,7 @@ export function VideoSetPlayer({
   setCode,
   title,
   playerUi,
+  deniedSettings,
   className,
 }: VideoSetPlayerProps) {
   /**
@@ -158,6 +161,7 @@ export function VideoSetPlayer({
             <VideoPlayer
               key={String(current.id)}
               ui={playerUi}
+              deniedSettings={deniedSettings}
               src={current.playlistUrl}
               token={token}
               mediaId={current.id}
