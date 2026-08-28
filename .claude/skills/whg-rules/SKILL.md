@@ -5,7 +5,10 @@ description: 9 архитектурных правил Web Holy Grail из docs/
 
 # Skill: whg-rules
 
-> 9 правил Web Holy Grail. Применяй при любом архитектурном выборе.
+> Правила Web Holy Grail. Применяй при любом архитектурном выборе.
+>
+> Свод целиком - [`docs/whg/30-philosophy.md`](../../../docs/whg/30-philosophy.md).
+> Набор кубиков и правила показа - [`docs/ux/primitives/README.md`](../../../docs/ux/primitives/README.md).
 
 ## Когда триггерить
 
@@ -22,8 +25,9 @@ description: 9 архитектурных правил Web Holy Grail из docs/
 
 ## Методология: как проектировать компонент
 
-Правила говорят, чего нельзя. Порядок действий - здесь. Пропущенный шаг даёт
-ошибку, которую каждое правило по отдельности не ловит.
+Правила ([свод](../../../docs/whg/30-philosophy.md)) говорят, чего нельзя.
+Порядок действий - здесь. Пропущенный шаг даёт ошибку, которую каждое правило
+по отдельности не ловит.
 
 **1. Назови данные.** Что показываем: набор видео, перечень услуг, список
 документов. Данные - это то, что лежит в базе и приходит извне.
@@ -95,6 +99,148 @@ description: 9 архитектурных правил Web Holy Grail из docs/
   можно, но снаружи это должно выглядеть как примитив: те же настройки, та же
   разметка, те же сигналы.
 - **Называется по предмету, а не по вёрстке.** Плейлист, а не список видео.
+
+### Примеры
+
+**Примитив не знает предмета.**
+
+```tsx
+// хорошо: видит массив и функцию показа, про поля не спрашивает
+<CardRows items={items} columns={3} tileLayout={layout}>
+  {(item, index, place) => <FeatureCard item={item} large={place.large} />}
+</CardRows>
+
+// плохо: примитив полез в предмет
+<CardRows items={videos} showDuration showLock />
+```
+
+**Поведение приходит из данных, а не настройкой.**
+
+```tsx
+// хорошо: карточка решает по своим полям
+if (item.details) return <button onClick={open}>…</button>;
+if (item.href) return <Link href={item.href}>…</Link>;
+return <div>…</div>;
+
+// плохо: режим сверху
+<Card item={item} behaviour="popup" />;
+```
+
+**Два представления - два компонента.**
+
+```ts
+// плохо: было у сетки фич, убрано 29.08.2026
+layout: 'grid' | 'carousel'
+
+// плохо: сейчас у плейлиста
+orientation: 'vertical' | 'horizontal' | 'grid'
+
+// хорошо: представление выбирается снаружи
+<CardRows …>{card}</CardRows>
+<CarouselDeck …>{card}</CarouselDeck>
+```
+
+**Компонент знает своё, а не чужое.**
+
+```tsx
+// хорошо: плейлист знает про воспроизведение
+<Playlist videos={videos} playing={code} />
+
+// плохо: список знает, что стоит в узкой колонке
+<VideoSetList orientation="vertical" maxHeight={480} limit={20} />
+```
+
+**Компонент выставляет свойства примитива наружу.**
+
+```tsx
+// хорошо: раскладка доходит до владельца
+export function Tiles({ items, tileLayout, tileLayoutMd, tileLayoutSm }) {
+  return <CardRows items={items} tileLayout={tileLayout} …>{card}</CardRows>;
+}
+
+// плохо: примитив умеет, но снаружи не достать
+export function Tiles({ items }) {
+  return <CardRows items={items}>{card}</CardRows>;
+}
+```
+
+**Имя по предмету, не по вёрстке.**
+
+```
+хорошо: Playlist, Specialists, Documents
+плохо:  VideoSetList, CardRows, StackTransparency
+```
+
+### Примеры
+
+**Примитив не знает предмета.**
+
+```tsx
+// хорошо: видит массив и функцию показа, про поля не спрашивает
+<CardRows items={items} columns={3} tileLayout={layout}>
+  {(item, index, place) => <FeatureCard item={item} large={place.large} />}
+</CardRows>
+
+// плохо: примитив полез в предмет
+<CardRows items={videos} showDuration showLock />
+```
+
+**Поведение приходит из данных, а не настройкой.**
+
+```tsx
+// хорошо: карточка решает по своим полям
+if (item.details) return <button onClick={open}>…</button>;
+if (item.href) return <Link href={item.href}>…</Link>;
+return <div>…</div>;
+
+// плохо: режим сверху
+<Card item={item} behaviour="popup" />;
+```
+
+**Два представления - два компонента.**
+
+```ts
+// плохо: было у сетки фич, убрано 29.08.2026
+layout: 'grid' | 'carousel'
+
+// плохо: сейчас у плейлиста
+orientation: 'vertical' | 'horizontal' | 'grid'
+
+// хорошо: представление выбирается снаружи
+<CardRows …>{card}</CardRows>
+<CarouselDeck …>{card}</CarouselDeck>
+```
+
+**Компонент знает своё, а не чужое.**
+
+```tsx
+// хорошо: плейлист знает про воспроизведение
+<Playlist videos={videos} playing={code} />
+
+// плохо: список знает, что стоит в узкой колонке
+<VideoSetList orientation="vertical" maxHeight={480} limit={20} />
+```
+
+**Компонент выставляет свойства примитива наружу.**
+
+```tsx
+// хорошо: раскладка доходит до владельца
+export function Tiles({ items, tileLayout, tileLayoutMd, tileLayoutSm }) {
+  return <CardRows items={items} tileLayout={tileLayout} …>{card}</CardRows>;
+}
+
+// плохо: примитив умеет, но снаружи не достать
+export function Tiles({ items }) {
+  return <CardRows items={items}>{card}</CardRows>;
+}
+```
+
+**Имя по предмету, не по вёрстке.**
+
+```
+хорошо: Playlist, Specialists, Documents
+плохо:  VideoSetList, CardRows, StackTransparency
+```
 
 ### Признаки, что шаг пропущен
 
