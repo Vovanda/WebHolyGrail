@@ -29,7 +29,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { REGISTRY, readRegistry } from './lib/zones.mjs';
+import { REGISTRY, classify, readRegistry } from './lib/zones.mjs';
 
 // ─── Аргументы ─────────────────────────────────────────────────────────
 
@@ -118,22 +118,30 @@ if (zones.size === 0) {
   );
 }
 
-/** Пути зоны, свёрнутые до каталогов: так вывод остаётся читаемым. */
-function pathsOf(zone) {
-  const files = [...zones.entries()].filter(([, z]) => z === zone).map(([rel]) => rel);
-  const dirs = new Set();
-  for (const rel of files) {
-    const parts = rel.split('/');
-    dirs.add(parts.length > 1 ? parts.slice(0, -1).join('/') + '/' : rel);
-  }
-  // вложенные каталоги свёрнуты в родительский: обход и так рекурсивный
-  return [...dirs]
-    .filter((d) => ![...dirs].some((other) => other !== d && d.startsWith(other)))
+/** Файлы зоны - ровно те, что размечены. Не каталоги. */
+function filesOf(zone) {
+  return [...zones.entries()]
+    .filter(([, z]) => z === zone)
+    .map(([rel]) => rel)
     .sort();
 }
 
-const MIRROR = pathsOf('mirror');
-const OVERLAY = pathsOf('overlay');
+/*
+  Раскладываем пофайлово, а не по каталогам.
+
+  Свёртка до каталога тянула вместе с нашими файлами всё, что лежит рядом:
+  на первом же живом сайте так поехали база сайта и следы сборки. Реестр знает
+  каждый файл поимённо - по нему и работаем.
+*/
+const MIRROR = filesOf('mirror');
+const OVERLAY = filesOf('overlay');
+
+/** Каталоги с нашими зеркальными файлами: там ищем своё устаревшее. */
+const MIRROR_DIRS = [
+  ...new Set(
+    MIRROR.filter((rel) => rel.includes('/')).map((rel) => rel.split('/').slice(0, -1).join('/')),
+  ),
+].sort();
 
 if (includeClaude) {
   MIRROR.push('CLAUDE.md');
@@ -216,10 +224,11 @@ function relToInstance(target) {
  * Один проход раскладки. Первый идёт разведкой, без записи.
  */
 function pass() {
-  console.log(`\n→ Mirror (${MIRROR.length} путей, устаревшее внутри них удаляется)\n`);
+  console.log(`\n→ Mirror (${MIRROR.length} файлов, наше устаревшее рядом удаляется)\n`);
   for (const rel of MIRROR) syncPath(rel, true);
+  sweepStale();
 
-  console.log(`\n→ Overlay (${OVERLAY.length} путей, downstream-добавки сохраняются)\n`);
+  console.log(`\n→ Overlay (${OVERLAY.length} файлов, ваши добавки сохраняются)\n`);
   for (const rel of OVERLAY) syncPath(rel, false);
 
   // package.json целиком не копируется: там имя пакета, версия и зависимости
@@ -551,6 +560,48 @@ function syncScripts() {
       console.log(`      стало: ${d.now}`);
     }
     if (own.length > 0) console.log(`  · ${rel}: своих команд инстанса ${own.length}, не трогаем`);
+  }
+}
+
+/**
+ * Убирает наше устаревшее: файл лежит в зеркальной папке, синк его когда-то принёс,
+ * а в шаблоне его больше нет.
+ *
+ * Чужого не трогает вовсе - его никто сюда не клал; правленного нашего тоже:
+ * это уже работа сайта, даже если вещь из шаблона ушла.
+ */
+function sweepStale() {
+  const ours = new Set(MIRROR);
+  for (const dir of MIRROR_DIRS) {
+    const full = path.join(INSTANCE, dir);
+    if (!fs.existsSync(full)) continue;
+    for (const entry of fs.readdirSync(full, { withFileTypes: true })) {
+      if (!entry.isFile() || isExcluded(entry.name)) continue;
+      const rel = `${dir}/${entry.name}`;
+      if (ours.has(rel)) continue;
+
+      /*
+        Собственность сайта не трогаем, даже если она когда-то попала в перечень
+        по ошибке. Иначе уборка сносит имя пакета, вход контракта и прочее, без чего
+        сайт перестаёт существовать - поймано ровно этим на первом живом прогоне.
+      */
+      if (classify(rel) !== 'mirror') continue;
+
+      const mark = previous.get(rel);
+      if (mark === undefined) {
+        if (!firstMeeting) foreign.push(rel);
+        continue;
+      }
+      if (mark && fingerprint(path.join(INSTANCE, rel)) !== mark) {
+        placed.set(rel, mark);
+        continue;
+      }
+      if (writing || dryRun) {
+        console.log(`  - ${rel}`);
+        stats.deleted++;
+      }
+      if (shouldWrite()) fs.rmSync(path.join(INSTANCE, rel), { force: true });
+    }
   }
 }
 

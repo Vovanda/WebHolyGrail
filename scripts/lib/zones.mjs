@@ -57,7 +57,14 @@ const RULES = [
   [/^scripts\/seeds\//, 'skip'],
   [/^src\/cms\/src\/seed\//, 'skip'],
   [/^contracts\/src\/index\.ts$/, 'skip'],
+  // Оба макета - инстансовые: там шрифты и брендинг конкретного сайта.
+  [/^src\/client\/src\/app\/layout\.tsx$/, 'skip'],
   [/^src\/client\/src\/app\/\(site\)\/layout\.tsx$/, 'skip'],
+  // Данные сайта и следы сборки не возим вовсе.
+  [/^src\/cms\/data\//, 'skip'],
+  [/\.tsbuildinfo$/, 'skip'],
+  // сборка создаёт их сама
+  [/next-env\.d\.ts$/, 'skip'],
   [/^docs\/(infra|secrets)\//, 'skip'],
   [/^docs\/infra-journal\.md$/, 'skip'],
   [/^\.github\/workflows\/template-cleanup\.yml$/, 'skip'],

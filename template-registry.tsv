@@ -177,7 +177,6 @@ mirror	src/client/src/app/api/geo/route.ts
 mirror	src/client/src/app/api/health/route.ts
 mirror	src/client/src/app/internal/video/demo-code/route.ts
 mirror	src/client/src/app/internal/video/redeem/route.ts
-mirror	src/client/src/app/layout.tsx
 mirror	src/client/src/app/not-found.tsx
 mirror	src/client/src/app/robots.ts
 mirror	src/client/src/app/sitemap.ts
@@ -345,7 +344,6 @@ mirror	src/client/tailwind.config.ts
 mirror	src/client/tsconfig.json
 mirror	src/client/vitest.config.ts
 mirror	src/cms/.gitignore
-mirror	src/cms/data/.gitkeep
 mirror	src/cms/Dockerfile
 overlay	src/cms/migrations/20260627_094405_initial.json
 overlay	src/cms/migrations/20260627_094405_initial.ts
@@ -447,6 +445,7 @@ mirror	src/cms/README.md
 mirror	src/cms/scripts/check-schema-drift.ts
 mirror	src/cms/scripts/ensure-importmap.mjs
 mirror	src/cms/scripts/README.md
+mirror	src/cms/scripts/rewrap-video-secrets.ts
 mirror	src/cms/src/admin/components/AppearanceField.tsx
 mirror	src/cms/src/admin/components/ColorField.tsx
 mirror	src/cms/src/admin/components/ComplianceNotice.tsx
