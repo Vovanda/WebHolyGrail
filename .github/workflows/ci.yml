@@ -60,6 +60,11 @@ jobs:
           S3_SECRET_ACCESS_KEY: ci-dummy
         run: pnpm --filter cms run check:schema
 
+      # Разметка файлов шаблона должна совпадать с деревом: иначе добавленное
+      # не доедет до сайтов, и узнается это через прогон обновления на живом.
+      - name: Template zones registry
+        run: node scripts/zones.mjs --check
+
       - run: pnpm -r lint
 
       - run: pnpm -r test

@@ -4,6 +4,10 @@
 
 pnpm exec lint-staged
 
+# Разметка файлов шаблона: новый файл получает зону сам, иначе он молча
+# не доедет до сайтов. Обновляем по изменившимся и кладём в этот же коммит.
+node scripts/zones.mjs >/dev/null && git add template-registry.tsv
+
 if command -v gitleaks >/dev/null 2>&1; then
   gitleaks protect --staged --redact --config .gitleaks.toml
 else
