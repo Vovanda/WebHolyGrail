@@ -16,21 +16,35 @@ export interface BlockPartRow {
 }
 
 const CLIENT = path.resolve(process.cwd(), '../client/src');
-const REGISTRY = path.join(CLIENT, 'layouts/site-layout/block-registry.tsx');
+
+/*
+  Реестров два: набор движка и сборка сайта. Блок ищется в обоих - иначе состав
+  не находится ровно для тех блоков, что приехали из шаблона, и подсказка
+  с селекторами оказывается пустой там, где она нужнее всего.
+*/
+const REGISTRIES = [
+  path.join(CLIENT, 'layouts/site-layout/block-registry.engine.tsx'),
+  path.join(CLIENT, 'layouts/site-layout/block-registry.tsx'),
+];
 
 /** Какой компонент рисует блок: `'hero': (node) => <Hero …`. */
 function componentOf(blockType: string): string | null {
-  if (!existsSync(REGISTRY)) return null;
-  const source = readFileSync(REGISTRY, 'utf8');
+  for (const registry of REGISTRIES) {
+    if (!existsSync(registry)) continue;
+    const source = readFileSync(registry, 'utf8');
 
-  // Ключ в реестре пишут и в кавычках, и без: 'hero-split' рядом с videoSet.
-  const pair = [...source.matchAll(/'?([\w-]+)'?:\s*\([^)]*\)\s*=>\s*\(?\s*<(\w+)/g)].find(
-    ([, type]) => type === blockType,
-  );
-  const component = pair?.[2];
-  if (!component) return null;
+    // Ключ в реестре пишут и в кавычках, и без: 'hero-split' рядом с videoSet.
+    const pair = [...source.matchAll(/'?([\w-]+)'?:\s*\([^)]*\)\s*=>\s*\(?\s*<(\w+)/g)].find(
+      ([, type]) => type === blockType,
+    );
+    const component = pair?.[2];
+    if (!component) continue;
 
-  return imports(REGISTRY, source)[component] ?? null;
+    const found = imports(registry, source)[component];
+    if (found) return found;
+  }
+
+  return null;
 }
 
 /** Собственные модули проекта: чужие пакеты обходить незачем. */
