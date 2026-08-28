@@ -342,6 +342,60 @@ if (!dryRun) {
   console.log(`\n  ✓ .template-version → ${versionFile}`);
 }
 
+/*
+  Точка сборки сайта обязана подключать набор движка - иначе приехавшее в наборе
+  до сайта не доходит: коллекция лежит файлом, а в сборке её нет, и проверка типов
+  падает на ссылке в несуществующее. Ловить это молча проверкой типов дорого,
+  поэтому говорим сразу и готовой строкой.
+*/
+const SEAMS = [
+  {
+    файл: 'contracts/src/index.ts',
+    признак: "from './engine'",
+    строка: "export * from './engine';",
+  },
+  {
+    файл: 'src/cms/src/payload.config.ts',
+    признак: 'engineCollections',
+    строка: 'collections: [...engineCollections, /* свои */].map(withAutoSlug),',
+  },
+  {
+    файл: 'src/cms/src/payload.config.ts',
+    признак: 'engineTasks',
+    строка: 'jobs: { tasks: [...engineTasks, /* свои */], ... }',
+  },
+  {
+    файл: 'src/cms/src/blocks/index.ts',
+    признак: 'ENGINE_PAGE_BLOCKS',
+    строка: 'export const PAGE_BLOCKS = [...ENGINE_PAGE_BLOCKS, /* свои */];',
+  },
+  {
+    файл: 'src/client/src/layouts/site-layout/block-registry.tsx',
+    признак: 'engineRegistry',
+    строка: 'const REGISTRY = { ...engineRegistry, /* свои */ };',
+  },
+];
+
+const seamGaps = [];
+for (const seam of SEAMS) {
+  const full = path.join(INSTANCE, seam.файл);
+  if (!fs.existsSync(full)) continue;
+  if (!fs.readFileSync(full, 'utf8').includes(seam.признак)) seamGaps.push(seam);
+}
+
+if (seamGaps.length > 0) {
+  console.log(`
+⚠ Точки сборки не подключают набор движка (${seamGaps.length}):
+`);
+  for (const seam of seamGaps) {
+    console.log(`   ${seam.файл}`);
+    console.log(`      добавьте: ${seam.строка}`);
+  }
+  console.log(
+    `${String.fromCharCode(10)}  Без этого приехавшее в наборе до сайта не дойдёт: файл лежит, а в сборке его нет.`,
+  );
+}
+
 if (foreign.length > 0) {
   console.log(`
 → Ваши файлы в наших папках (${foreign.length}, не тронуты):
