@@ -109,8 +109,9 @@ export {
   completeLayout,
   layoutAreas,
   layout,
+  layouts,
   tileName,
   tileIndex,
 } from './grid-areas';
-export type { Area, Cell, Layout } from './grid-areas';
+export type { Area, Cell, Layout, Layouts } from './grid-areas';
 export { balancedRows, splitIntoRows } from './grid-rows';

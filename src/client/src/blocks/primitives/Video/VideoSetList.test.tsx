@@ -93,6 +93,7 @@ describe('VideoSetList сеткой', () => {
 
     expect(html).toContain('data-layout="custom"');
     // первое видео тянется через два ряда - так его и написали
-    expect(html).toContain('grid-row:1 / span 2');
+    // на большом экране первое видео занимает два ряда
+    expect(html).toContain('--lg-rows:2');
   });
 });

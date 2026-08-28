@@ -1,4 +1,5 @@
-import { layout, tileIndex } from 'contracts';
+import { layouts, tileIndex } from 'contracts';
+import type { Cell } from 'contracts';
 
 import { cn } from '@/lib/utils';
 
@@ -31,6 +32,8 @@ export function CardRows<T>({
   columns = 3,
   gap = 'md',
   tileLayout,
+  tileLayoutMd,
+  tileLayoutSm,
   as = 'div',
   className,
   children,
@@ -39,8 +42,12 @@ export function CardRows<T>({
   /** Сколько карточек помещается в ряд на широком экране. */
   readonly columns?: number;
   readonly gap?: 'sm' | 'md' | 'lg';
-  /** Раскладка владельца; пусто - фигура считается сама. */
+  /** Раскладка владельца на большом экране; пусто - фигура считается сама. */
   readonly tileLayout?: string | null | undefined;
+  /** То же на среднем экране, от 768 до 1023 точек. */
+  readonly tileLayoutMd?: string | null | undefined;
+  /** То же на малом экране, до 767 точек. */
+  readonly tileLayoutSm?: string | null | undefined;
   /**
    * Каким тегом собрать сетку. Список документов и подобное остаётся списком:
    * рисовать перечень набором div значило бы отобрать его смысл у тех,
@@ -52,11 +59,21 @@ export function CardRows<T>({
 }) {
   if (items.length === 0) return null;
 
-  const grid = layout(tileLayout, items.length, columns);
-  if (!grid) return null;
+  const grid = layouts(
+    { lg: tileLayout, md: tileLayoutMd, sm: tileLayoutSm },
+    items.length,
+    columns,
+  );
+  if (!grid.lg) return null;
 
-  // Порядок чтения: сверху вниз, слева направо.
-  const reading = [...grid.cells].sort(
+  const at = (cells: ReadonlyArray<Cell> | undefined, name: string) =>
+    cells?.find((cell) => cell.name === name);
+
+  /*
+    Порядок в разметке берётся с малого экрана: там плитки идут ровно так, как
+    лежат, и переставить их некому. На экранах пошире порядок задают позиции.
+  */
+  const reading = [...(grid.sm?.cells ?? grid.lg.cells)].sort(
     (left, right) => left.row - right.row || left.column - right.column,
   );
 
@@ -74,18 +91,18 @@ export function CardRows<T>({
       data-tiles={items.length}
       data-columns={columns}
       data-layout={tileLayout?.trim() ? 'custom' : 'auto'}
-      className={cn(
-        'flex flex-wrap justify-center',
-        GAP[gap].flow,
-        'lg:grid',
-        GAP[gap].grid,
-        className,
-      )}
+      className={cn('grid', GAP[gap].flow, GAP[gap].grid, className)}
+      /*
+        Долей столько, сколько нужно этой ширине. Медиазапрос в разметку не
+        положишь, поэтому число долей приезжает переменными, а выбирает между
+        ними правило в стилях.
+      */
       style={
         {
-          '--card-columns': columns,
           '--card-gap': GAP[gap].value,
-          gridTemplateColumns: `repeat(${grid.columns}, minmax(0, 1fr))`,
+          '--tiles-sm': grid.sm?.columns ?? 2,
+          '--tiles-md': grid.md?.columns ?? 4,
+          '--tiles-lg': grid.lg.columns,
         } as React.CSSProperties
       }
     >
@@ -95,31 +112,41 @@ export function CardRows<T>({
         карточки текут потоком - там его задаёт только разметка, и без этого
         заданная перестановка на телефоне пропадала.
       */}
-      {reading.map((at) => {
-        const index = tileIndex(at.name);
+      {reading.map((cell) => {
+        const index = tileIndex(cell.name);
         const item = items[index];
         if (item === undefined) return null;
 
+        const lg = at(grid.lg?.cells, cell.name) ?? cell;
+        const md = at(grid.md?.cells, cell.name) ?? lg;
+        const sm = at(grid.sm?.cells, cell.name) ?? md;
+
         return (
           <Tile
-            key={at.name}
+            key={cell.name}
             data-part="tile"
-            data-tile={at?.name}
-            data-row={at?.row}
-            data-span={at ? at.width / 2 : undefined}
-            className={cn(
-              'basis-full sm:basis-[calc((100%-var(--card-gap))/2)]',
-              // Ниже широкого ширина карточки считается от числа колонок:
-              // фигура здесь не участвует, карточки просто текут.
-              'lg:basis-auto',
-            )}
+            data-tile={cell.name}
+            data-row={lg.row}
+            data-span={lg.width / 2}
+            /*
+              Место плитки на каждой ширине - переменными по той же причине:
+              инлайн-стиль про медиазапросы не знает.
+            */
             style={
-              at
-                ? {
-                    gridColumn: `${at.column} / span ${at.width}`,
-                    gridRow: `${at.row} / span ${at.height}`,
-                  }
-                : undefined
+              {
+                '--sm-col': sm.column,
+                '--sm-span': sm.width,
+                '--sm-row': sm.row,
+                '--sm-rows': sm.height,
+                '--md-col': md.column,
+                '--md-span': md.width,
+                '--md-row': md.row,
+                '--md-rows': md.height,
+                '--lg-col': lg.column,
+                '--lg-span': lg.width,
+                '--lg-row': lg.row,
+                '--lg-rows': lg.height,
+              } as React.CSSProperties
             }
           >
             {children(item, index)}

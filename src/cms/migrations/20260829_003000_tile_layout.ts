@@ -2,8 +2,9 @@
 import { type MigrateDownArgs, type MigrateUpArgs, sql } from '@payloadcms/db-sqlite';
 
 /*
-  Раскладка плиток именами областей: «a b c e : a b d d». Пусто означает, что
-  фигура считается сама, поэтому колонка без умолчания.
+  Раскладка плиток именами областей: «a b c e : a b d d». Записей три, по ширинам
+  окна - большой экран, средний, малый. Пусто означает, что фигура на этой ширине
+  считается сама, поэтому колонки без умолчания.
 
   Поле стоит у сетки фич, секции статей и списка документов. Каждый блок лежит
   в нескольких коллекциях, у каждой своя таблица, плюс теневые таблицы черновиков -
@@ -29,7 +30,7 @@ const TABLES = [
   'specialists_blocks_document_list',
 ];
 
-const COLUMN = 'tile_layout';
+const COLUMNS = ['tile_layout', 'tile_layout_md', 'tile_layout_sm'];
 
 async function hasTable(db: MigrateUpArgs['db'], table: string) {
   const rows = await db.all(
@@ -46,15 +47,19 @@ async function hasColumn(db: MigrateUpArgs['db'], table: string, column: string)
 export async function up({ db }: MigrateUpArgs): Promise<void> {
   for (const table of TABLES) {
     if (!(await hasTable(db, table))) continue;
-    if (await hasColumn(db, table, COLUMN)) continue;
-    await db.run(sql.raw(`ALTER TABLE \`${table}\` ADD \`${COLUMN}\` text;`));
+    for (const column of COLUMNS) {
+      if (await hasColumn(db, table, column)) continue;
+      await db.run(sql.raw(`ALTER TABLE \`${table}\` ADD \`${column}\` text;`));
+    }
   }
 }
 
 export async function down({ db }: MigrateDownArgs): Promise<void> {
   for (const table of TABLES) {
     if (!(await hasTable(db, table))) continue;
-    if (!(await hasColumn(db, table, COLUMN))) continue;
-    await db.run(sql.raw(`ALTER TABLE \`${table}\` DROP COLUMN \`${COLUMN}\`;`));
+    for (const column of COLUMNS) {
+      if (!(await hasColumn(db, table, column))) continue;
+      await db.run(sql.raw(`ALTER TABLE \`${table}\` DROP COLUMN \`${column}\`;`));
+    }
   }
 }

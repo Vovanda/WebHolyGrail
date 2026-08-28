@@ -24,17 +24,33 @@ describe('CardRows', () => {
     expect(names(html)).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']);
   });
 
-  it('с записью идёт порядком, который задал владелец', () => {
+  it('порядок в разметке берётся с малого экрана', () => {
     const html = renderToStaticMarkup(
-      <CardRows items={eight} tileLayout="f 2a g : h 2a : b c d e">
+      <CardRows
+        items={eight}
+        tileLayout="f 2a g : h 2a : b c d e"
+        tileLayoutSm="f a : g h : b c : d e"
+      >
         {(item) => <span>{item}</span>}
       </CardRows>,
     );
 
-    // сверху вниз, слева направо - так же, как это читается в записи
+    // там плитки идут ровно как лежат, и переставить их некому
     expect(names(html)).toEqual(['f', 'a', 'g', 'h', 'b', 'c', 'd', 'e']);
-    // и содержимое едет со своей карточкой, а не остаётся на месте
+    // содержимое едет со своей карточкой, а не остаётся на месте
     expect(html.indexOf('Шестая')).toBeLessThan(html.indexOf('Первая'));
+  });
+
+  it('на каждой ширине своё место', () => {
+    const html = renderToStaticMarkup(
+      <CardRows items={eight} tileLayout="f 2a g : h 2a : b c d e" tileLayoutMd="2a : b c">
+        {(item) => <span>{item}</span>}
+      </CardRows>,
+    );
+
+    // крупная на большом занимает две колонки, на среднем тоже, но в своей фигуре
+    expect(html).toContain('--lg-span:4');
+    expect(html).toContain('--md-span:4');
   });
 
   it('крупная карточка занимает столько, сколько написано', () => {

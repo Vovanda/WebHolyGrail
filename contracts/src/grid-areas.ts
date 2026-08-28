@@ -343,3 +343,37 @@ export function layout(
 
   return { cells, columns: width * 2 };
 }
+
+/** Раскладки блока на все ширины. */
+export interface Layouts {
+  readonly lg: Layout | null;
+  readonly md: Layout | null;
+  readonly sm: Layout | null;
+}
+
+/**
+ * Раскладки на три ширины: широкий экран, планшет, телефон.
+ *
+ * @remarks
+ * Каждая ширина считается отдельно и своей вместимостью: на широком в ряд
+ * помещается столько, сколько задал блок, на планшете двое, на телефоне один.
+ *
+ * Незаполненная запись не наследуется от соседней: фигура, придуманная для
+ * четырёх колонок, на телефоне раздавила бы карточки. Пусто означает «посчитай
+ * сама», и правило подбора там то же самое.
+ */
+export function layouts(
+  raw: {
+    readonly lg?: string | null | undefined;
+    readonly md?: string | null | undefined;
+    readonly sm?: string | null | undefined;
+  },
+  count: number,
+  perRow: number,
+): Layouts {
+  return {
+    lg: layout(raw.lg, count, perRow),
+    md: layout(raw.md, count, 2),
+    sm: layout(raw.sm, count, 1),
+  };
+}

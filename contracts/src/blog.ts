@@ -116,6 +116,8 @@ export interface ArticlesSectionData {
   readonly title?: string;
   /** Раскладка плиток именами областей: «a b c e : a b d d». Пусто - считается сама. */
   readonly tileLayout?: string | null;
+  readonly tileLayoutMd?: string | null;
+  readonly tileLayoutSm?: string | null;
   readonly description?: string;
   readonly source: 'latest' | 'by-tag' | 'by-thread' | 'manual';
   readonly tag?: BlogTag | string | number | null;

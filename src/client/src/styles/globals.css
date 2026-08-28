@@ -890,3 +890,46 @@
     }
   }
 }
+
+@layer components {
+  /*
+    Сетка плиток: место каждой карточки на своей ширине окна.
+
+    Позиции считаются в contracts и приезжают переменными - в инлайн-стиль
+    медиазапрос не положишь, а фигура на большом экране, среднем и малом разная.
+    Здесь правило только выбирает, какую пару переменных взять.
+
+    Ширины те же, что подписаны в админке: малый до 767, средний от 768,
+    большой от 1024.
+  */
+  [data-part='tiles'] {
+    grid-template-columns: repeat(var(--tiles-sm), minmax(0, 1fr));
+  }
+
+  [data-part='tile'] {
+    grid-column: var(--sm-col) / span var(--sm-span);
+    grid-row: var(--sm-row) / span var(--sm-rows);
+  }
+
+  @media (min-width: 768px) {
+    [data-part='tiles'] {
+      grid-template-columns: repeat(var(--tiles-md), minmax(0, 1fr));
+    }
+
+    [data-part='tile'] {
+      grid-column: var(--md-col) / span var(--md-span);
+      grid-row: var(--md-row) / span var(--md-rows);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    [data-part='tiles'] {
+      grid-template-columns: repeat(var(--tiles-lg), minmax(0, 1fr));
+    }
+
+    [data-part='tile'] {
+      grid-column: var(--lg-col) / span var(--lg-span);
+      grid-row: var(--lg-row) / span var(--lg-rows);
+    }
+  }
+}

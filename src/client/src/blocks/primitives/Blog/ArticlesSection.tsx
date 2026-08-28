@@ -69,6 +69,8 @@ export async function ArticlesSection({ node, settings, className }: ArticlesSec
         variant={listVariant(data.layout)}
         featured={data.layout === 'featured-first'}
         tileLayout={data.tileLayout}
+        tileLayoutMd={data.tileLayoutMd}
+        tileLayoutSm={data.tileLayoutSm}
       />
 
       {cta && (

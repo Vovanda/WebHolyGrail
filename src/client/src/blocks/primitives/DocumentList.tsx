@@ -29,6 +29,8 @@ export interface DocumentListData {
   readonly layout?: 'cards' | 'list';
   /** Раскладка плиток именами областей. Пусто - фигура считается сама. */
   readonly tileLayout?: string | null | undefined;
+  readonly tileLayoutMd?: string | null | undefined;
+  readonly tileLayoutSm?: string | null | undefined;
 }
 
 type MediaLike = {
@@ -155,6 +157,8 @@ export function DocumentList({
                 columns={3}
                 gap="sm"
                 tileLayout={data.tileLayout}
+                tileLayoutMd={data.tileLayoutMd}
+                tileLayoutSm={data.tileLayoutSm}
                 className="mt-6"
               >
                 {(doc) => card(doc)}

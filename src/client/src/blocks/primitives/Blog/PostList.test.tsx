@@ -96,7 +96,7 @@ describe('PostList', () => {
     );
 
     // плитки раскладываются рядами: доля ряда у карточки и никаких разделителей
-    expect(html).toContain('--card-columns');
+    expect(html).toContain('--tiles-lg');
     expect(html).not.toContain('border-t border-border');
   });
 });
