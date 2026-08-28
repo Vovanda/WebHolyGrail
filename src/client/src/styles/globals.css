@@ -856,28 +856,36 @@
     Зазор один на всё: расстояние между плитками и отступ у края ленты, когда
     край задан зазором. Так лента читается ровной.
   */
-  [data-part='carousel'] {
+  /*
+    Селекторы обёрнуты в :where - он обнуляет вес правила.
+
+    Иначе базовое значение весит два признака, а правка из «Вида блока» целится
+    в одну часть и весит меньше: владелец пишет свой отступ, ничего не меняется,
+    и причину не найти. С нулевым весом побеждает любое правило поверх, а между
+    собой эти разбираются порядком записи.
+  */
+  :where([data-part='carousel']) {
     --carousel-gap: 0.75rem;
   }
 
-  [data-part='carousel'][data-gap='sm'] {
+  :where([data-part='carousel'][data-gap='sm']) {
     --carousel-gap: 0.5rem;
   }
 
-  [data-part='carousel'][data-gap='lg'] {
+  :where([data-part='carousel'][data-gap='lg']) {
     --carousel-gap: 1rem;
   }
 
   @media (min-width: 768px) {
-    [data-part='carousel'] {
+    :where([data-part='carousel']) {
       --carousel-gap: 1rem;
     }
 
-    [data-part='carousel'][data-gap='sm'] {
+    :where([data-part='carousel'][data-gap='sm']) {
       --carousel-gap: 0.5rem;
     }
 
-    [data-part='carousel'][data-gap='lg'] {
+    :where([data-part='carousel'][data-gap='lg']) {
       --carousel-gap: 1.25rem;
     }
   }

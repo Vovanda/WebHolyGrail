@@ -242,11 +242,11 @@ export const APPEARANCE_WARNING =
  *
  * @example
  * scopedAppearance('b7', 'margin: 40px 0; [data-part="title"] { font-size: 32px }')
- * // '[data-block="b7"] { margin: 40px 0; [data-part="title"] { font-size: 32px } }'
+ * // '[data-block="b7"][data-block="b7"] { margin: 40px 0; [data-part="title"] { font-size: 32px } }'
  *
  * @example
  * scopedAppearance('b7', 'padding-top: 0', 'child')
- * // '[data-block="b7"] > * { padding-top: 0 }'
+ * // '[data-block="b7"][data-block="b7"] > * { padding-top: 0 }'
  */
 export function scopedAppearance(
   blockId: string,
@@ -257,8 +257,21 @@ export function scopedAppearance(
   if (!css) return '';
   if (!balanced(css)) return '';
 
-  const selector =
-    target === 'child' ? `[data-block="${blockId}"] > *` : `[data-block="${blockId}"]`;
+  /*
+    Признак блока повторяется дважды - это утяжеляет правило владельца.
+
+    Иначе переопределяется не всё: у частей компонента свойства заданы готовыми
+    классами, и правило по признаку части весит ровно столько же, сколько класс.
+    При равном весе побеждает то, что идёт в каскаде позже, а стили сборки
+    подключаются последними - владелец пишет высоту и не понимает, почему ничего
+    не изменилось.
+
+    Повтор адресует тот же самый элемент и ничего не ломает, зато поднимает вес
+    всего вложенного: и правила по части, и по тегу, и по классу. Каскадные слои
+    дали бы это чище, но у нас их в собранных стилях нет вовсе.
+  */
+  const scope = `[data-block="${blockId}"][data-block="${blockId}"]`;
+  const selector = target === 'child' ? `${scope} > *` : scope;
   return `${selector} { ${css} }`;
 }
 
