@@ -29,6 +29,8 @@ export interface FeatureGridData {
   readonly heading?: string;
   readonly subtitle?: string;
   readonly layout?: 'grid' | 'carousel';
+  /** Раскладка плиток именами областей: «a b c e : a b d d». Пусто - считается сама. */
+  readonly tileLayout?: string | null;
   readonly items?: readonly {
     readonly icon: string;
     readonly title: string;
@@ -320,7 +322,12 @@ export function FeatureGrid({
         {isCarousel ? (
           <CardCarousel items={items} onOpen={setOpenIdx} />
         ) : (
-          <CardRows items={items} columns={3} className="mt-10 md:mt-12">
+          <CardRows
+            items={items}
+            columns={3}
+            tileLayout={data.tileLayout}
+            className="mt-10 md:mt-12"
+          >
             {(item, i) => <FeatureCard item={item} ratio="4/3" onOpen={() => setOpenIdx(i)} />}
           </CardRows>
         )}
