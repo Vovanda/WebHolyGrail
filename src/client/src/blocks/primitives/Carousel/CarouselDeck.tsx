@@ -238,14 +238,27 @@ export function CarouselDeck({
     };
   }, [embla]);
 
-  // Ход останавливается там же: уместившейся ленте ехать некуда.
+  /*
+    Ход останавливается там же: уместившейся ленте ехать некуда.
+
+    Заводить ход можно только когда есть что листать. Дополнение движка считает
+    следующий кадр по списку положений, и на ленте без них падает изнутри - вместе
+    с ним падает вся страница. Поймано на живом сайте: там нашлась лента с одним
+    кадром, и после обновления страница снесла себя целиком.
+  */
   useEffect(() => {
     if (!embla) return;
     const auto = embla.plugins().autoScroll ?? embla.plugins().autoplay;
     if (!auto) return;
-    if (fits) auto.stop();
-    else if (!auto.isPlaying()) auto.play();
-  }, [embla, fits]);
+
+    const есть = embla.scrollSnapList().length > 1;
+    try {
+      if (fits || !есть) auto.stop();
+      else if (!auto.isPlaying()) auto.play();
+    } catch {
+      /* движок не готов - ход заведётся на следующей перерисовке */
+    }
+  }, [embla, fits, count]);
 
   useEffect(() => {
     if (!embla || activeIndex === undefined) return;
