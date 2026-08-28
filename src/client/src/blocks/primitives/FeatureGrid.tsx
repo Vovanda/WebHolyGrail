@@ -81,6 +81,8 @@ function CardMedia({
   ratio,
   natural = false,
   onPick,
+  frameHref,
+  frameExternal = false,
 }: {
   readonly urls: readonly string[];
   readonly alt: string;
@@ -95,28 +97,55 @@ function CardMedia({
   readonly natural?: boolean;
   /** Клик по картинке — открыть её крупно. */
   readonly onPick?: (index: number) => void;
+  /**
+   * Куда ведёт сам кадр.
+   *
+   * @remarks
+   * Лента лежит выше слоя, который делает карточку нажимаемой целиком, иначе
+   * стрелки не поймали бы ни указателя, ни нажатия. Поэтому кадру ссылку
+   * приходится отдавать отдельно - без неё нажатие на картинку ничего бы
+   * не делало, хотя вся карточка вокруг ведёт на страницу.
+   */
+  readonly frameHref?: string;
+  readonly frameExternal?: boolean;
 }) {
   const ratioClass = natural ? '' : RATIO_CLASS[ratio];
 
-  const picture = (url: string, i: number) => (
-    /* eslint-disable-next-line @next/next/no-img-element */
-    <img
-      data-part="card-media"
-      src={url}
-      alt={alt}
-      {...(onPick ? { onClick: () => onPick(i), role: 'button', tabIndex: 0 } : {})}
-      className={
-        natural ? `w-full ${onPick ? 'cursor-zoom-in' : ''}` : 'h-full w-full object-cover'
-      }
-    />
-  );
+  const picture = (url: string, i: number) => {
+    const img = (
+      /* eslint-disable-next-line @next/next/no-img-element */
+      <img
+        data-part="card-media"
+        src={url}
+        alt={alt}
+        {...(onPick ? { onClick: () => onPick(i), role: 'button', tabIndex: 0 } : {})}
+        className={
+          natural ? `w-full ${onPick ? 'cursor-zoom-in' : ''}` : 'h-full w-full object-cover'
+        }
+      />
+    );
+    if (!frameHref) return img;
+    return (
+      <Link
+        href={frameHref}
+        {...(frameExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+        aria-label={alt}
+        tabIndex={-1}
+        className="block h-full w-full"
+      >
+        {img}
+      </Link>
+    );
+  };
 
   if (urls.length <= 1) {
     return <div className={`${ratioClass} overflow-hidden bg-surface`}>{picture(urls[0]!, 0)}</div>;
   }
 
   return (
-    <div className="overflow-hidden bg-surface">
+    /* Лента лежит выше слоя, которым нажимается карточка целиком: иначе слой
+       перехватывал бы и указатель, и нажатие, а стрелки не проявлялись бы. */
+    <div className="relative z-10 overflow-hidden bg-surface">
       <CarouselDeck
         mode="single"
         loop
@@ -160,7 +189,16 @@ function FeatureCard({
     <>
       {urls.length > 0 ? (
         <div className="-mx-5 -mt-5 mb-4">
-          <CardMedia urls={urls} alt={item.title} ratio={ratio} />
+          <CardMedia
+            urls={urls}
+            alt={item.title}
+            ratio={ratio}
+            {...(item.details
+              ? { onPick: onOpen }
+              : href
+                ? { frameHref: href, frameExternal: isExternal(href) }
+                : {})}
+          />
         </div>
       ) : (
         <div className="mx-auto mb-3">
@@ -194,37 +232,45 @@ function FeatureCard({
 
   const baseClass = `relative h-full overflow-hidden rounded-xl border border-border bg-bg p-5 text-center hover:shadow-md transition-shadow ${spanClass ?? ''}`;
   const interactiveClass = `${baseClass} group cursor-pointer hover:border-accent/40 text-inherit`;
+  /*
+    Нажатие на карточку целиком берёт отдельный слой поверх содержимого, а не
+    сама карточка: внутри неё живут стрелки и точки галереи, а кнопка в кнопке
+    и ссылка вокруг кнопки - разметка, которую браузер не принимает. Слой лежит
+    ниже органов управления, поэтому листание достаётся им.
+  */
+  const coverClass = 'absolute inset-0 z-0';
 
   if (item.details) {
     return (
-      <button
-        type="button"
-        onClick={onOpen}
-        data-part="card"
-        className={interactiveClass}
-        aria-label={`Подробнее: ${item.title}`}
-      >
+      <div data-part="card" className={interactiveClass}>
         {body}
-      </button>
+        <button
+          type="button"
+          onClick={onOpen}
+          className={coverClass}
+          aria-label={`Подробнее: ${item.title}`}
+        />
+      </div>
     );
   }
   if (href) {
     const external = isExternal(href);
     const Arrow = external ? ArrowUpRight : ArrowRight;
     return (
-      <Link
-        href={href}
-        {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-        data-part="card"
-        className={interactiveClass}
-      >
+      <div data-part="card" className={interactiveClass}>
         {body}
         <Arrow
           size={16}
           aria-hidden="true"
           className="absolute top-4 right-4 text-muted/60 group-hover:text-accent transition-colors"
         />
-      </Link>
+        <Link
+          href={href}
+          {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+          className={coverClass}
+          aria-label={item.title}
+        />
+      </div>
     );
   }
   return (

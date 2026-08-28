@@ -259,7 +259,7 @@ export function CarouselDeck({
           className={cn(
             'flex justify-center',
             controls === 'overlay'
-              ? 'pointer-events-none absolute inset-x-0 bottom-2 gap-1.5'
+              ? 'pointer-events-none absolute inset-x-0 bottom-2 z-10 gap-1.5'
               : 'mt-4 gap-2',
           )}
         >
