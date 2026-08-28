@@ -189,7 +189,7 @@ function FeatureCard({
   const body = (
     <>
       {urls.length > 0 ? (
-        <div className="-mx-5 -mt-5 mb-4">
+        <div data-part="card-media" className="-mx-5 -mt-5 mb-4">
           <CardMedia
             urls={urls}
             alt={item.title}
@@ -208,9 +208,9 @@ function FeatureCard({
         а под ним зияла пустота. Картинка в эту группу не входит - она прижата
         к верхнему краю карточки, иначе отошла бы от него.
       */}
-      <div className="flex flex-1 flex-col justify-center">
+      <div data-part="card-content" className="flex flex-1 flex-col justify-center">
         {urls.length === 0 && (
-          <div className="mx-auto mb-3">
+          <div data-part="card-icon" className="mx-auto mb-3">
             <Icon
               icon={item.icon}
               label={item.title}
