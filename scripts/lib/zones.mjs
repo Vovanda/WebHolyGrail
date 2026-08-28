@@ -56,7 +56,14 @@ const RULES = [
   [/^src\/client\/src\/site\.config\.ts$/, 'skip'],
   [/^scripts\/seeds\//, 'skip'],
   [/^src\/cms\/src\/seed\//, 'skip'],
+  /*
+    Точки сборки - собственность сайта: там он дописывает своё доменное к набору
+    движка. Возить их нельзя, иначе обновление стирает эту регистрацию (R10).
+    Сами наборы движка - файлы с именем engine - ездят и всегда полны.
+  */
   [/^contracts\/src\/index\.ts$/, 'skip'],
+  [/^src\/cms\/src\/blocks\/index\.ts$/, 'skip'],
+  [/^src\/client\/src\/layouts\/site-layout\/block-registry\.tsx$/, 'skip'],
   // Оба макета - инстансовые: там шрифты и брендинг конкретного сайта.
   [/^src\/client\/src\/app\/layout\.tsx$/, 'skip'],
   [/^src\/client\/src\/app\/\(site\)\/layout\.tsx$/, 'skip'],

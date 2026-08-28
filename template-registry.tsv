@@ -305,7 +305,7 @@ mirror	src/client/src/blocks/system/PageOutlet.tsx
 mirror	src/client/src/layouts/ContentFrame.tsx
 mirror	src/client/src/layouts/presets/classic.ts
 mirror	src/client/src/layouts/presets/fallback-site-settings.ts
-mirror	src/client/src/layouts/site-layout/block-registry.tsx
+mirror	src/client/src/layouts/site-layout/block-registry.engine.tsx
 mirror	src/client/src/layouts/site-layout/index.ts
 mirror	src/client/src/layouts/site-layout/panel-routes.test.ts
 mirror	src/client/src/layouts/site-layout/panel-routes.ts
@@ -483,12 +483,12 @@ mirror	src/cms/src/blocks/CtaBanner.ts
 mirror	src/cms/src/blocks/CustomMarkup.ts
 mirror	src/cms/src/blocks/DemoAccess.ts
 mirror	src/cms/src/blocks/DocumentList.ts
+mirror	src/cms/src/blocks/engine.ts
 mirror	src/cms/src/blocks/FaqAccordion.ts
 mirror	src/cms/src/blocks/FeatureGrid.ts
 mirror	src/cms/src/blocks/Hero.ts
 mirror	src/cms/src/blocks/HeroCinematic.ts
 mirror	src/cms/src/blocks/HeroSplit.ts
-mirror	src/cms/src/blocks/index.ts
 mirror	src/cms/src/blocks/InstallSnippet.ts
 mirror	src/cms/src/blocks/PageRef.ts
 mirror	src/cms/src/blocks/Prose.ts
