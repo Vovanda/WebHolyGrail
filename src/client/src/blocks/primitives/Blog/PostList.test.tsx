@@ -95,7 +95,8 @@ describe('PostList', () => {
       <PostList articles={[article({ id: 1 })]} globalBlog={globalBlog} variant="grid" />,
     );
 
-    expect(html).toContain('grid-cols-1');
+    // плитки раскладываются рядами: доля ряда у карточки и никаких разделителей
+    expect(html).toContain('--card-columns');
     expect(html).not.toContain('border-t border-border');
   });
 });

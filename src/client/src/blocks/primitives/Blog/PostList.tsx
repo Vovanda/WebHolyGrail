@@ -2,6 +2,7 @@ import type { BlogArticle, BlogGlobalSettings } from 'contracts';
 
 import { cn } from '@/lib/utils';
 
+import { CardRows } from '../CardRows';
 import { PostCard } from './PostCard';
 
 /**
@@ -77,21 +78,17 @@ export function PostList({
       <div className={cn('flex flex-col gap-12', className)}>
         <PostCard article={hero} globalBlog={globalBlog} variant="hero" />
         {rest.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            {rest.map((article) => (
-              <PostCard key={article.id} article={article} globalBlog={globalBlog} variant="card" />
-            ))}
-          </div>
+          <CardRows items={rest} gap="lg">
+            {(article) => <PostCard article={article} globalBlog={globalBlog} variant="card" />}
+          </CardRows>
         )}
       </div>
     );
   }
 
   return (
-    <div className={cn('grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8', className)}>
-      {articles.map((article) => (
-        <PostCard key={article.id} article={article} globalBlog={globalBlog} variant="card" />
-      ))}
-    </div>
+    <CardRows items={articles} gap="lg" {...(className ? { className } : {})}>
+      {(article) => <PostCard article={article} globalBlog={globalBlog} variant="card" />}
+    </CardRows>
   );
 }

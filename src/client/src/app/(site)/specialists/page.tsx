@@ -7,6 +7,7 @@ import { permanentRedirect } from 'next/navigation';
 
 import { CATALOG_RENAMED, catalogPath } from '@/lib/catalog-path';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
+import { CardRows } from '@/blocks/primitives/CardRows';
 import { CatalogFilters } from '@/blocks/primitives/CatalogFilters';
 import { RatingStars } from '@/blocks/primitives/RatingStars';
 
@@ -158,22 +159,15 @@ export default async function SpecialistsPage({ searchParams }: { searchParams: 
           Здесь пока никого нет. Попробуйте другой город или загляните позже.
         </p>
       ) : (
-        <div
-          className={
-            // Одна карточка в двухколоночной сетке садится в левую колонку, и
-            // половина экрана остаётся пустой — заметнее всего в ландшафте.
-            people.length === 1
-              ? 'grid max-w-sm gap-4'
-              : people.length === 2
-                ? 'grid max-w-3xl gap-4 sm:grid-cols-2'
-                : 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
-          }
-        >
-          {people.map((doc) => {
+        /* Неполный ряд обёртка ставит по центру сама: прежде здесь стояли
+           условия на одну и на две карточки, чтобы они не садились в левую
+           колонку и не оставляли половину экрана пустой. */
+        <CardRows items={people}>
+          {(doc) => {
             const name = cities.find((c) => String(c.id) === cityIdOf(doc))?.name;
-            return <Card key={String(doc.id)} doc={doc} {...(name ? { cityName: name } : {})} />;
-          })}
-        </div>
+            return <Card doc={doc} {...(name ? { cityName: name } : {})} />;
+          }}
+        </CardRows>
       )}
     </div>
   );

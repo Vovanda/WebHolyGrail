@@ -11,6 +11,7 @@ import {
 } from '@/lib/api-client';
 
 import { catalogPath } from '@/lib/catalog-path';
+import { CardRows } from './CardRows';
 import { RatingStars } from './RatingStars';
 import { SpecialistTop, type TopCity, type TopPerson } from './SpecialistTop';
 
@@ -199,8 +200,8 @@ async function CitiesView({ data }: { readonly data: SpecialistDirectoryData }) 
             {data.emptyText ?? 'Скоро здесь появятся специалисты.'}
           </p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {shown.map((city) => {
+          <CardRows items={shown}>
+            {(city) => {
               const count = counts.get(String(city.id)) ?? 0;
               return (
                 <Link
@@ -217,8 +218,8 @@ async function CitiesView({ data }: { readonly data: SpecialistDirectoryData }) 
                   </p>
                 </Link>
               );
-            })}
-          </div>
+            }}
+          </CardRows>
         )}
         <MoreLink data={data} />
       </div>
@@ -352,21 +353,11 @@ export async function SpecialistDirectory({
                 {city.name}
               </h3>
             )}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {people.map((doc) => (
-                <Card key={String(doc.id)} doc={doc} />
-              ))}
-            </div>
+            <CardRows items={people}>{(doc) => <Card doc={doc} />}</CardRows>
           </div>
         ))}
 
-        {noCity.length > 0 && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {noCity.map((doc) => (
-              <Card key={String(doc.id)} doc={doc} />
-            ))}
-          </div>
-        )}
+        {noCity.length > 0 && <CardRows items={noCity}>{(doc) => <Card doc={doc} />}</CardRows>}
 
         <MoreLink data={data} />
       </div>

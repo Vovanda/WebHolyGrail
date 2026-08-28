@@ -16,6 +16,13 @@ import { cn } from '@/lib/utils';
  * Иначе внутри каждого ряда получались бы обрубки вида «две и одна», а второй
  * набор карточек под узкие экраны раздувал бы разметку вдвое.
  */
+/** Зазор одной мерой: между карточками, между рядами и в расчёте ширины. */
+const GAP = {
+  sm: { flow: 'gap-3 md:gap-4', rows: 'lg:space-y-4', row: 'lg:gap-4', value: '1rem' },
+  md: { flow: 'gap-4 md:gap-5', rows: 'lg:space-y-5', row: 'lg:gap-5', value: '1.25rem' },
+  lg: { flow: 'gap-6 md:gap-8', rows: 'lg:space-y-8', row: 'lg:gap-8', value: '2rem' },
+} as const;
+
 export function CardRows<T>({
   items,
   columns = 3,
@@ -26,7 +33,7 @@ export function CardRows<T>({
   readonly items: readonly T[];
   /** Сколько карточек помещается в ряд на широком экране. */
   readonly columns?: number;
-  readonly gap?: 'sm' | 'md';
+  readonly gap?: 'sm' | 'md' | 'lg';
   readonly className?: string;
   readonly children: (item: T, index: number) => React.ReactNode;
 }) {
@@ -39,15 +46,15 @@ export function CardRows<T>({
     <div
       className={cn(
         'flex flex-wrap justify-center',
-        gap === 'sm' ? 'gap-3 md:gap-4' : 'gap-4 md:gap-5',
+        GAP[gap].flow,
         'lg:block',
-        gap === 'sm' ? 'lg:space-y-4' : 'lg:space-y-5',
+        GAP[gap].rows,
         className,
       )}
       style={
         {
           '--card-columns': columns,
-          '--card-gap': gap === 'sm' ? '1rem' : '1.25rem',
+          '--card-gap': GAP[gap].value,
         } as React.CSSProperties
       }
     >
@@ -55,14 +62,7 @@ export function CardRows<T>({
         const start = offset;
         offset += row.length;
         return (
-          <div
-            key={rowIndex}
-            className={cn(
-              'contents',
-              'lg:flex lg:justify-center',
-              gap === 'sm' ? 'lg:gap-4' : 'lg:gap-5',
-            )}
-          >
+          <div key={rowIndex} className={cn('contents', 'lg:flex lg:justify-center', GAP[gap].row)}>
             {row.map((item, i) => (
               <div
                 key={i}

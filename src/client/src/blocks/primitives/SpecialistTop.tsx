@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import { CardRows } from './CardRows';
 import { RatingStars } from './RatingStars';
 
 /**
@@ -156,19 +157,11 @@ export function SpecialistTop({
       {shown.length === 0 ? (
         <p className="text-center text-muted">{emptyText ?? 'Скоро здесь появятся специалисты.'}</p>
       ) : (
-        <div
-          className={
-            // Одна карточка в двухколоночной сетке садится в левую колонку, и
-            // половина экрана остаётся пустой — заметнее всего в ландшафте.
-            shown.length === 1
-              ? 'mx-auto grid max-w-sm gap-4'
-              : shown.length === 2
-                ? 'mx-auto grid max-w-3xl gap-4 sm:grid-cols-2'
-                : 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
-          }
-        >
-          {shown.map((p) => (
-            <Link key={p.id} href={p.slug ? `${basePath}/${p.slug}` : '#'} className="no-underline">
+        /* Неполный ряд обёртка ставит по центру сама: прежде здесь стояли
+           условия на одну и на две карточки. */
+        <CardRows items={shown}>
+          {(p) => (
+            <Link href={p.slug ? `${basePath}/${p.slug}` : '#'} className="no-underline">
               <article
                 data-part="card"
                 className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-accent"
@@ -216,8 +209,8 @@ export function SpecialistTop({
                 </div>
               </article>
             </Link>
-          ))}
-        </div>
+          )}
+        </CardRows>
       )}
 
       {moreLabel && moreHref && (
