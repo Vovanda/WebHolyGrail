@@ -31,6 +31,7 @@ export function CardRows<T>({
   columns = 3,
   gap = 'md',
   tileLayout,
+  as = 'div',
   className,
   children,
 }: {
@@ -40,6 +41,12 @@ export function CardRows<T>({
   readonly gap?: 'sm' | 'md' | 'lg';
   /** Раскладка владельца; пусто - фигура считается сама. */
   readonly tileLayout?: string | null | undefined;
+  /**
+   * Каким тегом собрать сетку. Список документов и подобное остаётся списком:
+   * рисовать перечень набором div значило бы отобрать его смысл у тех,
+   * кто слушает страницу, а не смотрит.
+   */
+  readonly as?: 'div' | 'ul';
   readonly className?: string;
   readonly children: (item: T, index: number) => React.ReactNode;
 }) {
@@ -48,8 +55,11 @@ export function CardRows<T>({
   const grid = layout(tileLayout, items.length, columns);
   if (!grid) return null;
 
+  const Grid = as;
+  const Tile = as === 'ul' ? 'li' : 'div';
+
   return (
-    <div
+    <Grid
       data-part="tiles"
       /*
         Разметка для своего стиля блока: сколько плиток, во сколько колонок они
@@ -80,7 +90,7 @@ export function CardRows<T>({
         const at = grid.cells[index];
 
         return (
-          <div
+          <Tile
             key={index}
             data-part="tile"
             data-tile={at?.name}
@@ -102,9 +112,9 @@ export function CardRows<T>({
             }
           >
             {children(item, index)}
-          </div>
+          </Tile>
         );
       })}
-    </div>
+    </Grid>
   );
 }

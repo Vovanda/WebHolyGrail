@@ -1,5 +1,6 @@
 import type { BlockNode, MediaRef, SiteSettings } from 'contracts';
 
+import { CardRows } from '@/blocks/primitives/CardRows';
 import { resolveMediaUrl } from '@/lib/media';
 
 /**
@@ -79,26 +80,82 @@ export function DocumentList({
           </p>
         )}
 
-        <ul
-          className={
-            asCards
-              ? 'mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
-              : 'mt-6 divide-y divide-border border-y border-border'
+        {(() => {
+          /*
+            Документы разбираются до разметки: без ссылки документ не показывается
+            вовсе, а сетке нужно знать точное число плиток - иначе она посчитает
+            ряды по тем, которых не будет видно.
+          */
+          const docs = items
+            .map((item) => {
+              const media = (typeof item.file === 'object' ? item.file : null) as MediaLike | null;
+              return {
+                item,
+                media,
+                href: resolveMediaUrl(item.file) ?? '',
+                title: item.title?.trim() || media?.filename || 'Документ',
+                meta: [kindOf(media?.mimeType), humanSize(media?.filesize)]
+                  .filter(Boolean)
+                  .join(' · '),
+                preview: resolveMediaUrl(media?.preview as MediaRef | null | undefined),
+              };
+            })
+            .filter((doc) => Boolean(doc.href));
+
+          if (docs.length === 0) return null;
+
+          const card = ({ item, media, href, title, meta, preview }: (typeof docs)[number]) => (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-part="card"
+              className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface no-underline transition-colors hover:border-accent"
+            >
+              {preview ? (
+                // eslint-disable-next-line @next/next/no-img-element -- источник S3 нашей CMS
+                <img
+                  data-part="card-media"
+                  src={preview}
+                  alt=""
+                  aria-hidden="true"
+                  className="aspect-[3/4] w-full border-b border-border object-cover object-top"
+                />
+              ) : (
+                <div
+                  aria-hidden="true"
+                  className="flex aspect-[3/4] w-full items-center justify-center border-b border-border bg-accent-soft text-2xl font-semibold uppercase text-accent"
+                >
+                  {kindOf(media?.mimeType)}
+                </div>
+              )}
+              <div className="flex flex-1 flex-col gap-1 p-4">
+                <span data-part="card-title" className="font-medium text-ink">
+                  {title}
+                </span>
+                {item.note && (
+                  <span data-part="card-subtitle" className="text-sm text-muted">
+                    {item.note}
+                  </span>
+                )}
+                <span data-part="card-caption" className="mt-auto pt-2 text-sm text-accent">
+                  Скачать · {meta}
+                </span>
+              </div>
+            </a>
+          );
+
+          if (asCards) {
+            return (
+              <CardRows as="ul" items={docs} columns={3} gap="sm" className="mt-6">
+                {(doc) => card(doc)}
+              </CardRows>
+            );
           }
-        >
-          {items.map((item, index) => {
-            const media = (typeof item.file === 'object' ? item.file : null) as MediaLike | null;
-            const href = resolveMediaUrl(item.file);
-            const title = item.title?.trim() || media?.filename || 'Документ';
-            const meta = [kindOf(media?.mimeType), humanSize(media?.filesize)]
-              .filter(Boolean)
-              .join(' · ');
-            const preview = resolveMediaUrl(media?.preview as MediaRef | null | undefined);
 
-            if (!href) return null;
-
-            if (!asCards) {
-              return (
+          return (
+            <ul className="mt-6 divide-y divide-border border-y border-border">
+              {docs.map(({ item, href, title, meta }, index) => (
                 <li key={index} data-part="item">
                   <a
                     href={href}
@@ -113,53 +170,10 @@ export function DocumentList({
                     <span className="shrink-0 text-sm text-muted">{meta}</span>
                   </a>
                 </li>
-              );
-            }
-
-            return (
-              <li key={index}>
-                <a
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-part="card"
-                  className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface no-underline transition-colors hover:border-accent"
-                >
-                  {preview ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- источник S3 нашей CMS
-                    <img
-                      data-part="card-media"
-                      src={preview}
-                      alt=""
-                      aria-hidden="true"
-                      className="aspect-[3/4] w-full border-b border-border object-cover object-top"
-                    />
-                  ) : (
-                    <div
-                      aria-hidden="true"
-                      className="flex aspect-[3/4] w-full items-center justify-center border-b border-border bg-accent-soft text-2xl font-semibold uppercase text-accent"
-                    >
-                      {kindOf(media?.mimeType)}
-                    </div>
-                  )}
-                  <div className="flex flex-1 flex-col gap-1 p-4">
-                    <span data-part="card-title" className="font-medium text-ink">
-                      {title}
-                    </span>
-                    {item.note && (
-                      <span data-part="card-subtitle" className="text-sm text-muted">
-                        {item.note}
-                      </span>
-                    )}
-                    <span data-part="card-caption" className="mt-auto pt-2 text-sm text-accent">
-                      Скачать · {meta}
-                    </span>
-                  </div>
-                </a>
-              </li>
-            );
-          })}
-        </ul>
+              ))}
+            </ul>
+          );
+        })()}
       </div>
     </section>
   );
