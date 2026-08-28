@@ -1,4 +1,4 @@
-import { layout } from 'contracts';
+import { layout, tileIndex } from 'contracts';
 
 import { cn } from '@/lib/utils';
 
@@ -55,6 +55,11 @@ export function CardRows<T>({
   const grid = layout(tileLayout, items.length, columns);
   if (!grid) return null;
 
+  // Порядок чтения: сверху вниз, слева направо.
+  const reading = [...grid.cells].sort(
+    (left, right) => left.row - right.row || left.column - right.column,
+  );
+
   const Grid = as;
   const Tile = as === 'ul' ? 'li' : 'div';
 
@@ -84,14 +89,20 @@ export function CardRows<T>({
         } as React.CSSProperties
       }
     >
-      {items.map((item, index) => {
-        // Ячейки отсортированы по имени, а имя это и есть номер карточки:
-        // n-я карточка встаёт в n-ю ячейку.
-        const at = grid.cells[index];
+      {/*
+        Карточки идут в том порядке, в каком их поставил владелец, а не в том,
+        в каком они лежат в блоке. На широком экране порядок задаёт сетка, но ниже
+        карточки текут потоком - там его задаёт только разметка, и без этого
+        заданная перестановка на телефоне пропадала.
+      */}
+      {reading.map((at) => {
+        const index = tileIndex(at.name);
+        const item = items[index];
+        if (item === undefined) return null;
 
         return (
           <Tile
-            key={index}
+            key={at.name}
             data-part="tile"
             data-tile={at?.name}
             data-row={at?.row}

@@ -190,6 +190,22 @@ export function tileName(index: number): string {
 }
 
 /**
+ * Место карточки по её имени: «a» первая, «b» вторая.
+ *
+ * @remarks
+ * Обратное к `tileName`. Нужно, чтобы разложить карточки в том порядке, в каком
+ * их поставил владелец: на широком экране порядок задаёт сетка, а в потоке -
+ * только порядок в разметке.
+ */
+export function tileIndex(name: string): number {
+  let index = 0;
+  for (const letter of name) {
+    index = index * 26 + (letter.charCodeAt(0) - 96);
+  }
+  return index - 1;
+}
+
+/**
  * Достроить запись до полной: то, чего владелец не описал, доложить самим.
  *
  * @remarks

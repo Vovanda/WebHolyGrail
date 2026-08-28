@@ -208,6 +208,7 @@ mirror	src/client/src/blocks/primitives/Blog/ThreadsSection.tsx
 mirror	src/client/src/blocks/primitives/BrandMark.tsx
 mirror	src/client/src/blocks/primitives/Breadcrumbs.tsx
 mirror	src/client/src/blocks/primitives/BuiltWith.tsx
+mirror	src/client/src/blocks/primitives/CardRows.test.tsx
 mirror	src/client/src/blocks/primitives/CardRows.tsx
 mirror	src/client/src/blocks/primitives/Carousel/CarouselDeck.test.tsx
 mirror	src/client/src/blocks/primitives/Carousel/CarouselDeck.tsx
