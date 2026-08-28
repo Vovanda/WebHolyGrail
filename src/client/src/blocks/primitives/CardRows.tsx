@@ -27,6 +27,18 @@ const GAP = {
   lg: { flow: 'gap-6 md:gap-8', grid: 'lg:gap-8', value: '2rem' },
 } as const;
 
+/** Область, отведённая элементу. */
+export interface TilePlace {
+  /** Сколько колонок занимает на большом экране. */
+  readonly span: number;
+  /** В каком ряду стоит на большом экране. */
+  readonly row: number;
+  /** Сколько рядов занимает. */
+  readonly rows: number;
+  /** Крупнее обычной - занимает больше одной колонки или ряда. */
+  readonly large: boolean;
+}
+
 export function CardRows<T>({
   items,
   columns = 3,
@@ -55,7 +67,14 @@ export function CardRows<T>({
    */
   readonly as?: 'div' | 'ul';
   readonly className?: string | undefined;
-  readonly children: (item: T, index: number) => React.ReactNode;
+  /**
+   * Как показать элемент в отведённой ему области.
+   *
+   * Примитив область только выделяет: сколько колонок занимает, в каком ряду
+   * стоит, крупная ли она. Что там нарисовать и как отозваться на клик - решает
+   * сам элемент.
+   */
+  readonly children: (item: T, index: number, place: TilePlace) => React.ReactNode;
 }) {
   if (items.length === 0) return null;
 
@@ -150,7 +169,12 @@ export function CardRows<T>({
               } as React.CSSProperties
             }
           >
-            {children(item, index)}
+            {children(item, index, {
+              span: lg.width / 2,
+              row: lg.row,
+              rows: lg.height,
+              large: lg.width > 2 || lg.height > 1,
+            })}
           </Tile>
         );
       })}

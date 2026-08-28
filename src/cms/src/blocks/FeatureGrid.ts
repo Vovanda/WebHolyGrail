@@ -24,20 +24,6 @@ const featureGrid: Block = {
       type: 'text',
     },
     {
-      name: 'layout',
-      label: 'Раскладка',
-      type: 'select',
-      defaultValue: 'grid',
-      options: [
-        { label: 'Сетка — видно все карточки сразу', value: 'grid' },
-        { label: 'Карусель — листается, для длинных списков и превью', value: 'carousel' },
-      ],
-      admin: {
-        description:
-          'Сетка — когда карточек 3–7 и важно показать плейлист целиком. Карусель — когда их много или каждая держит крупное превью.',
-      },
-    },
-    {
       name: 'items',
       label: 'Карточки фич',
       type: 'array',

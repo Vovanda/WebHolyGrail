@@ -25,9 +25,10 @@ import { parseAreas } from 'contracts';
  * где-то другое имя, где-то другая подсказка, где-то забыли проверку.
  */
 
-const NOTE =
-  'Имена областей, ряды через двоеточие: «a b : a c». Повтор - числом: «3a». Точка - пустое место. ' +
-  'Минус выключает карточку: «-f». Решётка в начале строки откладывает запись, не стирая её.';
+const HOW =
+  'Имя в соседних ячейках - карточка шире, в двух рядах - выше. ' +
+  'Повтор «2a». Пустое место «.». Скрыть карточку «-f». ' +
+  'Закомментировать строку целиком: «#a b : c d».';
 
 function check(value: unknown): string | true {
   const raw = typeof value === 'string' ? value.trim() : '';
@@ -46,10 +47,7 @@ export const TILE_LAYOUT_FIELDS: Field[] = [
     label: 'Раскладка плиток',
     admin: {
       initCollapsed: true,
-      description:
-        'Фигура задаётся отдельно на три ширины окна. Заполнять все три не обязательно: ' +
-        'там, где пусто, плитки встают сами - тем же правилом, что и на большом экране, ' +
-        'только в ряд помещается меньше.',
+      description: HOW,
     },
     fields: [
       {
@@ -57,7 +55,7 @@ export const TILE_LAYOUT_FIELDS: Field[] = [
         label: 'Большой экран - от 1024 точек',
         type: 'text',
         admin: {
-          description: `${NOTE} Пусто - плитки встают сами.`,
+          description: 'Пусто - плитки встают сами.',
           placeholder: 'a a b : a a c : d e c',
         },
         validate: check,
@@ -67,7 +65,7 @@ export const TILE_LAYOUT_FIELDS: Field[] = [
         label: 'Средний экран - от 768 до 1023 точек',
         type: 'text',
         admin: {
-          description: `${NOTE} Пусто - плитки встают сами, по двое в ряд.`,
+          description: 'Пусто - по двое в ряд.',
           placeholder: 'a a : b c',
         },
         validate: check,
@@ -77,7 +75,7 @@ export const TILE_LAYOUT_FIELDS: Field[] = [
         label: 'Малый экран - до 767 точек',
         type: 'text',
         admin: {
-          description: `${NOTE} Пусто - плитки идут столбиком.`,
+          description: 'Пусто - столбиком.',
           placeholder: 'a : b : c',
         },
         validate: check,
@@ -86,10 +84,20 @@ export const TILE_LAYOUT_FIELDS: Field[] = [
   },
 ];
 
-/** Помощник: вернёт копию блока с полями раскладки в конце. */
+/**
+ * Помощник: вернёт копию блока с полями раскладки.
+ *
+ * @remarks
+ * Раскладка встаёт перед списком карточек, а не в конце: она про то, как они
+ * лягут, и читается раньше, чем сам список. Списки бывают длинными, и настройка
+ * под ними теряется.
+ */
 export function withTileLayout(block: Block): Block {
+  const at = block.fields.findIndex((field) => 'name' in field && field.name === 'items');
+  if (at < 0) return { ...block, fields: [...block.fields, ...TILE_LAYOUT_FIELDS] };
+
   return {
     ...block,
-    fields: [...block.fields, ...TILE_LAYOUT_FIELDS],
+    fields: [...block.fields.slice(0, at), ...TILE_LAYOUT_FIELDS, ...block.fields.slice(at)],
   };
 }

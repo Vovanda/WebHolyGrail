@@ -8,7 +8,6 @@ import type { BlockNode, MediaRef, SiteSettings } from 'contracts';
 import { CarouselDeck, CarouselItem } from '@/blocks/primitives/Carousel';
 import { CardRows } from '@/blocks/primitives/CardRows';
 import { resolveMediaUrl } from '@/lib/media';
-import { cn } from '@/lib/utils';
 
 import { Icon } from './Icon';
 import { PhotoLightbox } from './PhotoLightbox';
@@ -28,7 +27,6 @@ import { PhotoLightbox } from './PhotoLightbox';
 export interface FeatureGridData {
   readonly heading?: string;
   readonly subtitle?: string;
-  readonly layout?: 'grid' | 'carousel';
   /** Раскладка плиток именами областей: «a b c e : a b d d». Пусто - считается сама. */
   readonly tileLayout?: string | null;
   readonly tileLayoutMd?: string | null;
@@ -307,14 +305,13 @@ export function FeatureGrid({
   const heading = data.heading;
   const subtitle = data.subtitle;
   const items = data.items ?? [];
-  const isCarousel = data.layout === 'carousel';
 
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   if (items.length === 0) return null;
 
   return (
-    <section className={cn('block-space', isCarousel && 'bg-page-bg')}>
+    <section className="block-space">
       <div className="mx-auto max-w-wide px-4 md:px-6">
         {heading && (
           <h2
@@ -330,57 +327,21 @@ export function FeatureGrid({
           </p>
         )}
 
-        {isCarousel ? (
-          <CardCarousel items={items} onOpen={setOpenIdx} />
-        ) : (
-          <CardRows
-            items={items}
-            columns={3}
-            tileLayout={data.tileLayout}
-            tileLayoutMd={data.tileLayoutMd}
-            tileLayoutSm={data.tileLayoutSm}
-            className="mt-10 md:mt-12"
-          >
-            {(item, i) => <FeatureCard item={item} ratio="4/3" onOpen={() => setOpenIdx(i)} />}
-          </CardRows>
-        )}
+        <CardRows
+          items={items}
+          columns={3}
+          tileLayout={data.tileLayout}
+          tileLayoutMd={data.tileLayoutMd}
+          tileLayoutSm={data.tileLayoutSm}
+          className="mt-10 md:mt-12"
+        >
+          {(item, i) => <FeatureCard item={item} ratio="4/3" onOpen={() => setOpenIdx(i)} />}
+        </CardRows>
       </div>
       {openIdx !== null && items[openIdx] && (
         <FeatureModal item={items[openIdx]!} onClose={() => setOpenIdx(null)} />
       )}
     </section>
-  );
-}
-
-/**
- * Карусель карточек — для длинных списков и крупных превью, когда сетка
- * заставила бы скроллить страницу.
- */
-function CardCarousel({
-  items,
-  onOpen,
-}: {
-  readonly items: NonNullable<FeatureGridData['items']>;
-  readonly onOpen: (idx: number) => void;
-}) {
-  return (
-    <CarouselDeck
-      mode="row"
-      gap="md"
-      edge="gap"
-      arrows
-      dots
-      loop
-      marquee
-      label="Возможности"
-      className="mt-10"
-    >
-      {items.map((item, i) => (
-        <CarouselItem key={i} className="basis-[85%] sm:basis-1/2 lg:basis-1/3 xl:basis-1/4">
-          <FeatureCard item={item} ratio="16/10" onOpen={() => onOpen(i)} />
-        </CarouselItem>
-      ))}
-    </CarouselDeck>
   );
 }
 
