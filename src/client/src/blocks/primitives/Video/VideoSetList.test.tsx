@@ -63,3 +63,36 @@ describe('VideoSetList', () => {
     expect(html).toContain('нет видео');
   });
 });
+
+describe('VideoSetList сеткой', () => {
+  const eight = Array.from({ length: 8 }, (_unused, index) =>
+    video({ id: index + 1, code: `code${index}00`, title: `Видео ${index + 1}` }),
+  );
+
+  it('раскладывает видео плитками', () => {
+    const html = renderToStaticMarkup(
+      <VideoSetList items={eight} channel="channel" orientation="grid" />,
+    );
+
+    expect(html).toContain('data-part="tiles"');
+    expect(html).toContain('data-tiles="8"');
+    expect(html).toContain('data-layout="auto"');
+    // восемь карточек - восемь плиток, ни одна не потерялась
+    expect(html.split('data-part="tile"').length - 1).toBe(8);
+  });
+
+  it('берёт заданную владельцем фигуру', () => {
+    const html = renderToStaticMarkup(
+      <VideoSetList
+        items={eight.slice(0, 5)}
+        channel="channel"
+        orientation="grid"
+        tileLayout="a b c e : a b d d"
+      />,
+    );
+
+    expect(html).toContain('data-layout="custom"');
+    // первое видео тянется через два ряда - так его и написали
+    expect(html).toContain('grid-row:1 / span 2');
+  });
+});

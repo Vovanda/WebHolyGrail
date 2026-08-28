@@ -1,6 +1,7 @@
 import type { VideoSetItem } from 'contracts';
 
 import { CarouselDeck, CarouselItem } from '@/blocks/primitives/Carousel';
+import { CardRows } from '@/blocks/primitives/CardRows';
 import { ScrollList } from '@/blocks/primitives/ScrollList';
 
 import { VideoSetCard } from './VideoSetCard';
@@ -28,7 +29,9 @@ export interface VideoSetListProps {
    * `vertical` — колонкой: рядом с плеером и когда видео много.
    * `horizontal` — лентой: под плеером, где вертикаль отняла бы всю высоту.
    */
-  readonly orientation?: 'vertical' | 'horizontal';
+  readonly orientation?: 'vertical' | 'horizontal' | 'grid';
+  /** Раскладка плиток, когда плейлист показан сеткой. Пусто - считается сама. */
+  readonly tileLayout?: string | null | undefined;
   /**
    * Потолок высоты колонки.
    *
@@ -61,6 +64,7 @@ export function VideoSetList({
   items,
   channel,
   orientation = 'vertical',
+  tileLayout,
   maxHeight,
   limit,
   currentCode = null,
@@ -83,13 +87,37 @@ export function VideoSetList({
       item={item}
       index={index + 1}
       channel={channel}
-      orientation={orientation}
+      orientation={orientation === 'grid' ? 'vertical' : orientation}
       current={item.code === currentCode}
       setCode={setCode}
       onSelect={onSelect}
       unlocking={unlocking}
     />
   ));
+
+  /*
+    Сеткой плейлист показывается тем же примитивом, что и остальные плитки сайта:
+    ряды подбираются без сироты, а владелец может задать свою фигуру - выделить
+    первое видео крупным, увести какое-то вниз. Ничего своего здесь не считается.
+  */
+  if (orientation === 'grid') {
+    return (
+      <CardRows items={items} columns={3} gap="md" tileLayout={tileLayout} className={className}>
+        {(item, index) => (
+          <VideoSetCard
+            item={item}
+            index={index + 1}
+            channel={channel}
+            orientation="vertical"
+            current={item.code === currentCode}
+            setCode={setCode}
+            onSelect={onSelect}
+            unlocking={unlocking}
+          />
+        )}
+      </CardRows>
+    );
+  }
 
   /*
     Лентой плейлист листается пальцем и стрелками - той же каруселью, что и

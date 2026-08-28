@@ -47,7 +47,7 @@ export function CardRows<T>({
    * кто слушает страницу, а не смотрит.
    */
   readonly as?: 'div' | 'ul';
-  readonly className?: string;
+  readonly className?: string | undefined;
   readonly children: (item: T, index: number) => React.ReactNode;
 }) {
   if (items.length === 0) return null;
