@@ -67,7 +67,7 @@ git push --no-verify
 ### gitleaks
 
 - `.gitleaks.toml` — allowlist по paths для **скачанных read-only** skills (`infisical-*`, `payload`, `cms-migration`) которые могут содержать пример-токены в своих docs.
-- Для **наших** файлов (`.claude/skills/whg-*`, `docs/`, scripts) — inline `# gitleaks:allow` на конкретной строке если ложное срабатывание (см. `feedback_gitleaks_inline_vs_paths`).
+- Для **наших** файлов (`.claude/skills/whg-*`, `docs/`, scripts) — inline `# gitleaks:allow` на конкретной строке если ложное срабатывание.
 
 ### Infisical
 

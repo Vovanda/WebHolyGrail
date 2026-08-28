@@ -165,5 +165,5 @@ Skill — для агента (компактно, action-oriented). Docs — д
 ## Связанные
 
 - [`docs/whg/30-philosophy.md`](../../../docs/whg/30-philosophy.md) — R-правила
-- [`feedback_triple_path_no_ai_lockin`](../../) memory — UI/AI/Shell, AI как один из путей
-- [`feedback_detect_instance_offer_readme`](../../) memory — instance vs template detection
+- `docs/whg/30-philosophy.md` — R-правила, на которые опираются skills
+- `whg-session-start` — что читать в начале сессии и куда идти за уточнением

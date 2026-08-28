@@ -409,7 +409,7 @@ ssh deploy@vps "cd /opt/sites/<site> && bash deploy/prod/deploy.sh <sha>"
 
 ## Triple path (UI / AI / Shell)
 
-Согласно `feedback_triple_path_no_ai_lockin.md`:
+Каждый путь работает сам по себе - через UI, через агента и через оболочку:
 
 ### UI path (для человека через браузер)
 
@@ -476,7 +476,7 @@ with open("all-secrets.json", "w", encoding="utf-8") as f:
     json.dump(out, f, indent=2, ensure_ascii=False)
 ```
 
-Сохранить в MCP private memory (encrypted-at-rest у провайдера), удалить локальный JSON.
+Убрать выгрузку в защищённое хранилище своей стороны и удалить локальный JSON: в репозитории ему места нет.
 
 **2. Teardown:**
 
