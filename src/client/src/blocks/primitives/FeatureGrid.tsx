@@ -6,6 +6,7 @@ import { ArrowRight, ArrowUpRight, X } from 'lucide-react';
 import type { BlockNode, MediaRef, SiteSettings } from 'contracts';
 
 import { CarouselDeck, CarouselItem } from '@/blocks/primitives/Carousel';
+import { CardRows } from '@/blocks/primitives/CardRows';
 import { resolveMediaUrl } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
@@ -174,12 +175,10 @@ function CardMedia({
 function FeatureCard({
   item,
   ratio,
-  spanClass,
   onOpen,
 }: {
   readonly item: FeatureItem;
   readonly ratio: MediaRatio;
-  readonly spanClass?: string;
   readonly onOpen: () => void;
 }) {
   const urls = imageUrls(item);
@@ -213,7 +212,11 @@ function FeatureCard({
       )}
       <div
         data-part="card-title"
-        className="font-display font-semibold text-ink text-sm md:text-base"
+        lang="ru"
+        /* Длинное название разрывается по слогам, а совсем длинное слово -
+           в любом месте: иначе «Металлоконструкции и перегородки» вылезали
+           за край карточки в ландшафте телефона. */
+        className="font-display font-semibold text-ink text-sm md:text-base hyphens-auto break-words"
       >
         {item.title}
       </div>
@@ -230,7 +233,8 @@ function FeatureCard({
     </>
   );
 
-  const baseClass = `relative h-full overflow-hidden rounded-xl border border-border bg-bg p-5 text-center hover:shadow-md transition-shadow ${spanClass ?? ''}`;
+  const baseClass =
+    'relative h-full overflow-hidden rounded-xl border border-border bg-bg p-5 text-center hover:shadow-md transition-shadow';
   const interactiveClass = `${baseClass} group cursor-pointer hover:border-accent/40 text-inherit`;
   /*
     Нажатие на карточку целиком берёт отдельный слой поверх содержимого, а не
@@ -296,9 +300,6 @@ export function FeatureGrid({
 
   if (items.length === 0) return null;
 
-  // 7 items → 2-3-2 шахматка на desktop (6-col grid).
-  const isSevenCheckerboard = !isCarousel && items.length === 7;
-
   return (
     <section className={cn('block-space', isCarousel && 'bg-page-bg')}>
       <div className="mx-auto max-w-wide px-4 md:px-6">
@@ -319,42 +320,9 @@ export function FeatureGrid({
         {isCarousel ? (
           <CardCarousel items={items} onOpen={setOpenIdx} />
         ) : (
-          <div
-            className={
-              isSevenCheckerboard
-                ? 'mt-10 md:mt-12 grid gap-4 md:gap-5 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6'
-                : 'mt-10 md:mt-12 grid gap-4 md:gap-5'
-            }
-            style={
-              !isSevenCheckerboard
-                ? { gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }
-                : undefined
-            }
-          >
-            {items.map((item, i) => {
-              const isLast = i === items.length - 1;
-              // Растягивать одинокую карточку последнего ряда есть смысл только
-              // когда рядов больше одного. На четырёх карточках ряд и так полный,
-              // а col-span раздувал последнюю во всю ширину.
-              const mayHang = items.length >= 5;
-              const hangingMobile = mayHang && isLast && items.length % 2 === 1 ? 'col-span-2' : '';
-              const hangingSm = mayHang && isLast && items.length % 3 === 1 ? 'sm:col-span-3' : '';
-              const lgSpan = isSevenCheckerboard
-                ? i < 2 || i > 4
-                  ? 'lg:col-span-3'
-                  : 'lg:col-span-2'
-                : '';
-              return (
-                <FeatureCard
-                  key={i}
-                  item={item}
-                  ratio="4/3"
-                  spanClass={[hangingMobile, hangingSm, lgSpan].filter(Boolean).join(' ')}
-                  onOpen={() => setOpenIdx(i)}
-                />
-              );
-            })}
-          </div>
+          <CardRows items={items} columns={3} className="mt-10 md:mt-12">
+            {(item, i) => <FeatureCard item={item} ratio="4/3" onOpen={() => setOpenIdx(i)} />}
+          </CardRows>
         )}
       </div>
       {openIdx !== null && items[openIdx] && (
