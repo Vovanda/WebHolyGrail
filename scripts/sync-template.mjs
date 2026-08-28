@@ -3,7 +3,7 @@
  * sync-template — обновить инстанс Holy Grail из template (WHG).
  *
  * Usage:
- *   node scripts/sync-template.mjs <instance-path> [--ref main|<branch>|<tag>|<sha>]
+ *   node scripts/sync-template.mjs <instance-path> [--ref main|<ветка>|<тег>|<отпечаток>]
  *                                                  [--repo <path-or-url>]
  *                                                  [--dry-run] [--include-claude]
  *
@@ -77,6 +77,8 @@ const SCRIPT_DIR = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([
 const isUrl = /^(https?:\/\/|git@)/.test(repo) || /^[\w-]+\/[\w-]+$/.test(repo);
 let sourceDir;
 let cleanupSource = false;
+let worktreePath = '';
+let worktreeOf = '';
 
 if (!repo) {
   sourceDir = path.resolve(SCRIPT_DIR, '..');
@@ -99,6 +101,58 @@ if (!repo) {
 }
 
 const sourceSha = safeGit(['rev-parse', '--short', 'HEAD'], sourceDir) ?? 'unknown';
+/*
+  Источник - отправленная версия, а не рабочее дерево.
+
+  Обновление тянет из шаблона, и локальная правка уехала бы на сайт, не пройдя ни
+  проверок, ни выкладки. А маркер в сайте указывал бы на отпечаток, которого нет
+  в истории - разобраться потом, что там стоит, невозможно.
+
+  Поэтому берём то, что лежит в общей истории: временное рабочее дерево на нужной
+  ветке. Рабочая копия при этом остаётся нетронутой, и можно спокойно править
+  шаблон, пока идёт круг.
+*/
+if (!repo) {
+  /*
+    Что просили: имя ветки или отпечаток коммита - хоть целиком, хоть началом.
+    Ветку берём отправленную, отпечаток - как он есть: он уже указывает на точку
+    в истории, и добавлять к нему origin бессмысленно.
+  */
+  const asCommit = safeGit(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`], sourceDir);
+  const isBranch = Boolean(
+    safeGit(['rev-parse', '--verify', '--quiet', `refs/heads/${ref}`], sourceDir),
+  );
+  let source = `origin/${ref}`;
+
+  if (asCommit && !isBranch) {
+    source = ref;
+    console.log(`→ Источник задан отпечатком: ${asCommit.trim().slice(0, 12)}`);
+  } else if (!safeGit(['rev-parse', '--verify', '--quiet', source], sourceDir)) {
+    fail(
+      `ERROR: не нашлось ни отправленной ветки origin/${ref}, ни коммита ${ref}.` +
+        `${String.fromCharCode(10)}  Отправь шаблон, укажи другую ветку через --ref` +
+        ` или источник явно: --repo <путь-или-адрес>`,
+    );
+  }
+
+  if (source.startsWith('origin/')) {
+    const ahead = (safeGit(['log', '--oneline', `${source}..HEAD`], sourceDir) ?? '').trim();
+    if (ahead) {
+      console.log(
+        `→ В шаблоне есть неотправленное (${ahead.split(String.fromCharCode(10)).length} коммитов) - берём отправленное`,
+      );
+    }
+  }
+
+  const checkout = fs.mkdtempSync(path.join(os.tmpdir(), 'whg-src-'));
+  fs.rmSync(checkout, { recursive: true, force: true });
+  git(['worktree', 'add', '--detach', '--quiet', checkout, source], sourceDir);
+  worktreeOf = sourceDir;
+  worktreePath = checkout;
+  sourceDir = checkout;
+  cleanupSource = false;
+}
+
 console.log(`→ Source: ${sourceDir} @ ${ref} (${sourceSha})`);
 console.log(`→ Target: ${INSTANCE}`);
 
@@ -288,6 +342,9 @@ if (conflicts.length > 0 || edited.length > 0) {
   console.log('──────────────────────────────────────────────');
 
   if (cleanupSource) fs.rmSync(sourceDir, { recursive: true, force: true });
+  if (worktreePath) {
+    safeGit(['worktree', 'remove', '--force', worktreePath], worktreeOf);
+  }
   process.exit(1);
 }
 
@@ -446,6 +503,9 @@ if (migrate) {
 }
 
 if (cleanupSource) fs.rmSync(sourceDir, { recursive: true, force: true });
+if (worktreePath) {
+  safeGit(['worktree', 'remove', '--force', worktreePath], worktreeOf);
+}
 
 console.log('\n──────────────────────────────────────────────');
 console.log(
@@ -861,11 +921,18 @@ function restoreExecutableBits() {
   return fixed;
 }
 
+/*
+  Сравниваем без учёта переводов строк.
+
+  На Windows история переписывает их при записи в рабочее дерево, и один и тот же
+  файл лежит в шаблоне с одним концом строки, а в сайте с другим. Побайтовое
+  сравнение объявляло такие файлы разными: прогон останавливался на «правлено
+  на месте» там, где различий по существу не было ни одного.
+*/
 function sameContent(a, b) {
-  const sa = fs.statSync(a);
-  const sb = fs.statSync(b);
-  if (sa.size !== sb.size) return false;
-  return fs.readFileSync(a).equals(fs.readFileSync(b));
+  const normalise = (file) =>
+    fs.readFileSync(file).toString('binary').split(String.fromCharCode(13)).join('');
+  return normalise(a) === normalise(b);
 }
 
 function git(argv, cwd) {
