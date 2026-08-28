@@ -108,3 +108,19 @@ describe('раскладка в долях', () => {
     expect(grid?.cells.find((cell) => cell.name === 'd')).toMatchObject({ width: 4, row: 2 });
   });
 });
+
+describe('плитка на несколько рядов и короткий ряд', () => {
+  it('ряд с высокой плиткой не сдвигается: иначе плитки налезают друг на друга', () => {
+    // третий ряд короче на одну, но в нём стоит «a» высотой в два ряда
+    const grid = layout('b c d e : f a a g : h a a', 8, 4);
+    const cells = new Map(grid?.cells.map((cell) => [cell.name, cell]));
+
+    const a = cells.get('a');
+    const h = cells.get('h');
+    expect(a).toMatchObject({ column: 3, row: 2, width: 4, height: 2 });
+    // «h» стоит слева, а не под серединой: иначе оно оказалось бы под «a»
+    expect(h).toMatchObject({ column: 1, row: 3 });
+    // области не пересекаются по долям
+    expect((h?.column ?? 0) + (h?.width ?? 0)).toBeLessThanOrEqual(a?.column ?? 0);
+  });
+});

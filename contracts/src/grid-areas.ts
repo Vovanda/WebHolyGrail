@@ -298,10 +298,22 @@ export function layout(
     )
     .filter((length) => length > 0);
 
+  /*
+    Ряд, в котором стоит плитка на несколько рядов, не сдвигается: сдвинуть его
+    к центру значило бы развести соседние ряды одной плитки по разным местам,
+    и она налезла бы на чужие. Такой ряд остаётся слева, а пустое место копится
+    у края - это заметно, но целая фигура важнее.
+  */
+  const tall = new Set<number>();
+  for (const area of areas) {
+    if (area.height <= 1) continue;
+    for (let row = area.row; row < area.row + area.height; row += 1) tall.add(row);
+  }
+
   const cells = areas.map((area) => {
     let shift = Number.POSITIVE_INFINITY;
     for (let row = area.row; row < area.row + area.height; row += 1) {
-      shift = Math.min(shift, width - (lengths[row - 1] ?? width));
+      shift = Math.min(shift, tall.has(row) ? 0 : width - (lengths[row - 1] ?? width));
     }
 
     return {
