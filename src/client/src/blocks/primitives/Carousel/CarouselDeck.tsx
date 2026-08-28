@@ -139,24 +139,12 @@ export interface CarouselDeckProps {
   и первая карточка вставала вплотную к краю окна. Набивка в основу входит,
   поэтому счёт сходится. Ровно так это описано в документации движка.
 */
-const GAP: Record<NonNullable<CarouselDeckProps['gap']>, string> = {
-  sm: '-ml-2 [&>*]:pl-2',
-  md: '-ml-3 [&>*]:pl-3 md:-ml-4 md:[&>*]:pl-4',
-  lg: '-ml-4 [&>*]:pl-4 md:-ml-5 md:[&>*]:pl-5',
-};
 
 const EDGE: Record<NonNullable<CarouselDeckProps['edge']>, string> = {
   none: '',
   gap: '',
   sm: 'px-3',
   md: 'px-4 md:px-6',
-};
-
-/** Отступ по краям, равный зазору между карточками. */
-const EDGE_AS_GAP: Record<NonNullable<CarouselDeckProps['gap']>, string> = {
-  sm: 'px-2',
-  md: 'px-3 md:px-4',
-  lg: 'px-4 md:px-5',
 };
 
 export function CarouselDeck({
@@ -231,6 +219,34 @@ export function CarouselDeck({
     };
   }, [embla]);
 
+  const [fits, setFits] = useState(false);
+
+  useEffect(() => {
+    if (!embla) return;
+    const measure = () => {
+      const viewport = embla.rootNode();
+      const slides = embla.slideNodes();
+      const width = slides.reduce((sum, node) => sum + node.getBoundingClientRect().width, 0);
+      setFits(width <= viewport.clientWidth + 1);
+    };
+    measure();
+    embla.on('reInit', measure);
+    embla.on('resize', measure);
+    return () => {
+      embla.off('reInit', measure);
+      embla.off('resize', measure);
+    };
+  }, [embla]);
+
+  // Ход останавливается там же: уместившейся ленте ехать некуда.
+  useEffect(() => {
+    if (!embla) return;
+    const auto = embla.plugins().autoScroll ?? embla.plugins().autoplay;
+    if (!auto) return;
+    if (fits) auto.stop();
+    else if (!auto.isPlaying()) auto.play();
+  }, [embla, fits]);
+
   useEffect(() => {
     if (!embla || activeIndex === undefined) return;
     if (embla.selectedScrollSnap() !== activeIndex) embla.scrollTo(activeIndex);
@@ -246,18 +262,38 @@ export function CarouselDeck({
     Признаки приходят от самой ленты и учитывают её настоящую ширину.
   */
   const single = count <= 1;
-  const scrollable = loop || canPrev || canNext;
+  /*
+    Инвариант: если плитки со своими отступами умещаются в окно целиком,
+    листать нечего. Тогда лишние и стрелки, и точки, и ход - иначе лента
+    дёргается на месте: в круге движок мечется между двумя положениями,
+    а на глаз это читается как рывки влево-вправо.
+
+    Признак не от числа плиток, а от их настоящей ширины: одна и та же лента
+    умещается на широком экране и не умещается на среднем.
+  */
+  const scrollable = !fits && (loop || canPrev || canNext);
 
   return (
-    <div className={cn('relative', controls === 'overlay' && 'group/deck', className)}>
+    <div
+      data-part="carousel"
+      data-gap={gap}
+      className={cn('relative', controls === 'overlay' && 'group/deck', className)}
+    >
       <div
-        className={cn('overflow-hidden', edge === 'gap' ? EDGE_AS_GAP[gap] : EDGE[edge])}
+        data-part="carousel-viewport"
+        className={cn('overflow-hidden', edge === 'gap' ? 'px-[var(--carousel-gap)]' : EDGE[edge])}
         ref={viewportRef}
       >
         <div
           /* Карточки тянутся до общей высоты: иначе соседи разной длины дают
              рваный нижний край ленты. */
-          className={cn('flex items-stretch', GAP[gap])}
+          data-part="carousel-track"
+          className={cn(
+            'flex items-stretch',
+            // Зазор берётся из переменной, а не из класса: так его переопределяют
+            // видом блока - той же строкой «свойство: значение», что и отступы.
+            '-ml-[var(--carousel-gap)] [&>*]:pl-[var(--carousel-gap)]',
+          )}
           style={{ ...(height ? { height } : {}), ...(aspect ? { aspectRatio: aspect } : {}) }}
           role="group"
           aria-roledescription="carousel"
@@ -284,8 +320,9 @@ export function CarouselDeck({
         </>
       )}
 
-      {dots && !single && (
+      {dots && !single && !fits && (
         <div
+          data-part="carousel-dots"
           className={cn(
             'flex justify-center',
             controls === 'overlay'
@@ -297,6 +334,7 @@ export function CarouselDeck({
             <button
               key={i}
               type="button"
+              data-part="carousel-dot"
               onClick={(e) => {
                 stopClick(e);
                 embla?.scrollTo(i);
@@ -341,9 +379,18 @@ export function CarouselItem({
    */
   readonly width?: 'full' | 'auto' | string;
 }) {
-  const fixed = width !== 'full' && width !== 'auto' ? width : undefined;
+  /*
+    Заданная мера - это видимая ширина плитки. Зазор живёт набивкой внутри неё,
+    поэтому к основе он добавляется отдельно: иначе плитки молча ужимались бы
+    на его величину, лента из шести кадров вдруг умещалась бы в окно целиком,
+    и движок схлопывал бы положения - на глаз это читалось как дёрганье ленты
+    влево-вправо на месте.
+  */
+  const fixed =
+    width !== 'full' && width !== 'auto' ? `calc(${width} + var(--carousel-gap))` : undefined;
   return (
     <div
+      data-part="carousel-item"
       className={cn(
         // Карточка занимает всю высоту ленты, а содержимое внутри тянется до
         // её низа: так у ряда ровный край независимо от длины подписей.
@@ -385,6 +432,8 @@ function CarouselArrow({
   return (
     <button
       type="button"
+      data-part="carousel-arrow"
+      data-side={side}
       onClick={(e) => {
         stopClick(e);
         onClick();

@@ -843,3 +843,42 @@
     pointer-events: none;
   }
 }
+
+@layer components {
+  /*
+    Меры карусели.
+
+    Значения лежат здесь, а не в разметке компонента: правка из «Вида блока»
+    приходит обычным правилом, вне слоёв, и потому берёт верх над этими. Стиль,
+    записанный в разметке, перебить нечем - владелец задал бы отступ и не понял,
+    почему ничего не изменилось.
+
+    Зазор один на всё: расстояние между плитками и отступ у края ленты, когда
+    край задан зазором. Так лента читается ровной.
+  */
+  [data-part='carousel'] {
+    --carousel-gap: 0.75rem;
+  }
+
+  [data-part='carousel'][data-gap='sm'] {
+    --carousel-gap: 0.5rem;
+  }
+
+  [data-part='carousel'][data-gap='lg'] {
+    --carousel-gap: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    [data-part='carousel'] {
+      --carousel-gap: 1rem;
+    }
+
+    [data-part='carousel'][data-gap='sm'] {
+      --carousel-gap: 0.5rem;
+    }
+
+    [data-part='carousel'][data-gap='lg'] {
+      --carousel-gap: 1.25rem;
+    }
+  }
+}

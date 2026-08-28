@@ -23,10 +23,13 @@ describe('CarouselDeck', () => {
     expect(html.match(/<article>/g)).toHaveLength(5);
   });
 
-  it('карточке отдаётся заданная ширина', () => {
+  it('заданная мера остаётся видимой шириной карточки', () => {
     const html = renderToStaticMarkup(<CarouselDeck>{cards(2)}</CarouselDeck>);
-    expect(html).toContain('flex-basis:16rem');
-    expect(html).toContain('width:16rem');
+    // зазор живёт набивкой внутри карточки, поэтому к основе добавляется отдельно:
+    // иначе карточки ужимались бы на его величину, лента из шести кадров умещалась
+    // бы в окно целиком, и движок схлопывал бы положения
+    expect(html).toContain('flex-basis:calc(16rem + var(--carousel-gap))');
+    expect(html).toContain('width:calc(16rem + var(--carousel-gap))');
   });
 
   it('кадр во всю ширину занимает ленту целиком', () => {
@@ -63,7 +66,22 @@ describe('CarouselDeck', () => {
     // gap работает между соседями по разметке, а в круге движок уносит карточки
     // сдвигом - и на стыке зазор пропадал. Внутренний отступ едет вместе с карточкой.
     expect(html).not.toMatch(/class="[^"]*\bgap-\d/);
-    expect(html).toContain('pl-3');
+    expect(html).toContain('pl-[var(--carousel-gap)]');
+  });
+
+  it('меры берутся из переменной, а не из разметки', () => {
+    const html = renderToStaticMarkup(<CarouselDeck gap="lg">{cards(3)}</CarouselDeck>);
+    // значение лежит в слое стилей: правка из «Вида блока» приходит вне слоёв
+    // и берёт верх, а стиль, записанный в разметке, перебить было бы нечем
+    expect(html).toContain('data-gap="lg"');
+    expect(html).not.toContain('--carousel-gap:');
+  });
+
+  it('части размечены - до каждой можно дотянуться видом блока', () => {
+    const html = renderToStaticMarkup(<CarouselDeck dots>{cards(3)}</CarouselDeck>);
+    for (const part of ['carousel', 'carousel-viewport', 'carousel-track', 'carousel-item']) {
+      expect(html).toContain(`data-part="${part}"`);
+    }
   });
 
   it('отступ по краям держит первую карточку от края экрана', () => {
