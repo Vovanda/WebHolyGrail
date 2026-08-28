@@ -50,6 +50,15 @@ export function CardRows<T>({
 
   return (
     <div
+      data-part="tiles"
+      /*
+        Разметка для своего стиля блока: сколько плиток, во сколько колонок они
+        лежат и своя ли это фигура. Так правило можно нацелить на сетку
+        определённого размера, не подписывая каждый блок руками.
+      */
+      data-tiles={items.length}
+      data-columns={columns}
+      data-layout={tileLayout?.trim() ? 'custom' : 'auto'}
       className={cn(
         'flex flex-wrap justify-center',
         GAP[gap].flow,
@@ -73,6 +82,10 @@ export function CardRows<T>({
         return (
           <div
             key={index}
+            data-part="tile"
+            data-tile={at?.name}
+            data-row={at?.row}
+            data-span={at ? at.width / 2 : undefined}
             className={cn(
               'basis-full sm:basis-[calc((100%-var(--card-gap))/2)]',
               // Ниже широкого ширина карточки считается от числа колонок:

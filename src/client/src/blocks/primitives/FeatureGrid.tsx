@@ -201,42 +201,51 @@ function FeatureCard({
                 : {})}
           />
         </div>
-      ) : (
-        <div className="mx-auto mb-3">
-          <Icon
-            icon={item.icon}
-            label={item.title}
-            size={48}
-            background="accent-soft"
-            innerScale={0.55}
-          />
-        </div>
-      )}
-      <div
-        data-part="card-title"
-        lang="ru"
-        /* Длинное название разрывается по слогам, а совсем длинное слово -
+      ) : null}
+      {/*
+        Содержимое стоит по середине оставшейся высоты: карточка, растянутая
+        раскладкой через два ряда, иначе держала бы текст у верхнего края,
+        а под ним зияла пустота. Картинка в эту группу не входит - она прижата
+        к верхнему краю карточки, иначе отошла бы от него.
+      */}
+      <div className="flex flex-1 flex-col justify-center">
+        {urls.length === 0 && (
+          <div className="mx-auto mb-3">
+            <Icon
+              icon={item.icon}
+              label={item.title}
+              size={48}
+              background="accent-soft"
+              innerScale={0.55}
+            />
+          </div>
+        )}
+        <div
+          data-part="card-title"
+          lang="ru"
+          /* Длинное название разрывается по слогам, а совсем длинное слово -
            в любом месте: иначе «Металлоконструкции и перегородки» вылезали
            за край карточки в ландшафте телефона. */
-        className="font-display font-semibold text-ink text-sm md:text-base hyphens-auto break-words"
-      >
-        {item.title}
+          className="font-display font-semibold text-ink text-sm md:text-base hyphens-auto break-words"
+        >
+          {item.title}
+        </div>
+        {item.subtitle && (
+          <div data-part="card-subtitle" className="text-xs text-muted mt-1">
+            {item.subtitle}
+          </div>
+        )}
+        {item.description && (
+          <div data-part="card-body" className="text-xs text-muted/80 mt-2 leading-snug">
+            {item.description}
+          </div>
+        )}
       </div>
-      {item.subtitle && (
-        <div data-part="card-subtitle" className="text-xs text-muted mt-1">
-          {item.subtitle}
-        </div>
-      )}
-      {item.description && (
-        <div data-part="card-body" className="text-xs text-muted/80 mt-2 leading-snug">
-          {item.description}
-        </div>
-      )}
     </>
   );
 
   const baseClass =
-    'relative h-full overflow-hidden rounded-xl border border-border bg-bg p-5 text-center hover:shadow-md transition-shadow';
+    'relative flex h-full flex-col overflow-hidden rounded-xl border border-border bg-bg p-5 text-center hover:shadow-md transition-shadow';
   const interactiveClass = `${baseClass} group cursor-pointer hover:border-accent/40 text-inherit`;
   /*
     Нажатие на карточку целиком берёт отдельный слой поверх содержимого, а не
