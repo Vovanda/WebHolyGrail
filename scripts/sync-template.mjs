@@ -23,10 +23,13 @@
  * `migrations/`, `site.config.ts`, `.env*`, `.infisical.json` — там merge-зона
  * или instance-owned контент.
  */
+import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+
+import { REGISTRY, readRegistry } from './lib/zones.mjs';
 
 // ─── Аргументы ─────────────────────────────────────────────────────────
 
@@ -36,12 +39,14 @@ let ref = 'main';
 let repo = '';
 let dryRun = false;
 let includeClaude = false;
+let force = false;
 
 for (let i = 0; i < args.length; i++) {
   const arg = args[i];
   if (arg === '--ref') ref = args[++i];
   else if (arg === '--repo') repo = args[++i];
   else if (arg === '--dry-run') dryRun = true;
+  else if (arg === '--force') force = true;
   else if (arg === '--include-claude') includeClaude = true;
   else if (arg === '--help' || arg === '-h') {
     console.log(readHelp());
@@ -95,176 +100,44 @@ const sourceSha = safeGit(['rev-parse', '--short', 'HEAD'], sourceDir) ?? 'unkno
 console.log(`→ Source: ${sourceDir} @ ${ref} (${sourceSha})`);
 console.log(`→ Target: ${INSTANCE}`);
 
-// ─── Whitelists ────────────────────────────────────────────────────────
-
-/** Зеркалим: устаревшие файлы внутри этих путей удаляются. */
-const MIRROR = [
-  // Client
-  'src/client/src/ui/',
-  'src/client/src/blocks/primitives/',
-  'src/client/src/blocks/layout/',
-  'src/client/src/blocks/system/',
-  'src/client/src/layouts/',
-  'src/client/src/styles/',
-
-  // Конфиги сборки клиента. Едут вместе с tokens.css: маппинг «токен → утилита»
-  // живёт в tailwind.config, и без него новый токен приезжает в инстанс мёртвым —
-  // класс в JSX есть, утилиты нет, стиль молча не применяется. Инстансы эти
-  // файлы не кастомизируют: по R2 все значения и так в CSS-переменных.
-  'src/client/tailwind.config.ts',
-  'src/client/postcss.config.mjs',
-  'src/client/vitest.config.ts',
-
-  // Контекст сборки образа. Правила одинаковы у всех инстансов, а ошибка в них
-  // тихая: файл просто не доезжает в образ, и сайт отдаёт 404 на собственную
-  // статику — так пропадал логотип, пока `**/*.png` резал и `public/`.
-  '.dockerignore',
-
-  // CI и деплой. Вся инстанс-специфика в них уже вынесена в GH vars/secrets,
-  // так что чинится деплой один раз в шаблоне и доезжает до всех сайтов.
-  // template-cleanup.yml сюда не входит — он про сам шаблон.
-  '.github/workflows/ci.yml',
-  '.github/workflows/deploy.yml',
-
-  // Блог — generic-маршруты движка. Инстансу без блога они не мешают:
-  // пустые коллекции → /blog отдаёт «пока статей нет».
-  'src/client/src/app/(site)/blog/',
-  'src/client/src/app/sitemap.ts',
-  'src/client/src/app/robots.ts',
-  'src/client/src/app/api/geo/',
-  // Catchall — рендер страниц из Payload по slug, чистый generic: доменные
-  // маршруты инстанса живут отдельными папками и его не трогают. Инстансовый
-  // layout.tsx сюда не входит — там шрифты и брендинг конкретного сайта.
-  'src/client/src/app/(site)/[[...slug]]/page.tsx',
-  'src/client/src/app/(site)/specialists/',
-  'src/client/src/app/not-found.tsx',
-
-  // CMS — generic collections + блоки
-  'src/cms/src/blocks/',
-  'src/cms/src/collections/Pages.ts',
-  'src/cms/src/collections/Media.ts',
-  'src/cms/src/collections/Users.ts',
-  'src/cms/src/collections/FormSubmissions.ts',
-  'src/cms/src/collections/ReusableBlocks.ts',
-  'src/cms/src/collections/SocialPosts.ts',
-  'src/cms/src/collections/Comments.ts',
-  'src/cms/src/collections/FaqGroups.ts',
-  'src/cms/src/collections/Articles.ts',
-  'src/cms/src/collections/Authors.ts',
-  'src/cms/src/collections/Tags.ts',
-  'src/cms/src/collections/Threads.ts',
-  // Каталог специалистов: generic-механика «люди по городам»
-  'src/cms/src/collections/Cities.ts',
-  'src/cms/src/collections/Specialists.ts',
-  'src/cms/src/globals/SiteSettings.ts',
-  // Generic-хелперы CMS (транслитерация slug и т.п.) — на них ссылаются
-  // коллекции из MIRROR, без них инстанс просто не соберётся.
-  'src/cms/src/lib/',
-  // Админ-компоненты полей + копия палитр. Копия обязана совпадать с
-  // client-версией (R3 не даёт cms импортировать из client), и разъезд этих
-  // двух файлов ничем не заметен — значит ездить они должны вместе.
-  'src/cms/src/admin/',
-  'src/cms/scripts/check-schema-drift.ts',
-  'src/cms/scripts/ensure-importmap.mjs',
-
-  // Contracts — только generic
-  'contracts/src/blocks.ts',
-  'contracts/src/faq.ts',
-  'contracts/src/forms.ts',
-  'contracts/src/globals.ts',
-  'contracts/src/layout.ts',
-  'contracts/src/media.ts',
-  'contracts/src/notices.ts',
-  'contracts/src/pages.ts',
-  'contracts/src/reusable.ts',
-  'contracts/src/social.ts',
-  'contracts/src/theme.ts',
-  'contracts/src/blog.ts',
-
-  // Deploy
-  'deploy/',
-
-  // Root scripts
-  'dev.sh',
-  'dev-setup.sh',
-  'scripts/sync-template.mjs',
-  'scripts/sync-template.sh',
-  // Остальные generic-скрипты обвязки. Без них инстанс навсегда остаётся с той
-  // версией, что была на момент `Use this template`: новые флаги (--extra-domains),
-  // новые GH-переменные и фиксы bootstrap'а до него не доезжают.
-  // `scripts/seeds/` намеренно не здесь — там контент конкретного сайта.
-  'scripts/setup-infisical.ts',
-  'scripts/sync-infisical.ts',
-  'scripts/infisical-template.ts',
-  'scripts/bootstrap-site-on-vps.sh',
-  'scripts/README.md',
-
-  // Generic configs
-  'commitlint.config.js',
-  'pnpm-workspace.yaml',
-  'tsconfig.base.json',
-  '.husky/',
-  '.gitleaks.toml',
-  '.changeset/config.json',
-  '.editorconfig',
-  '.prettierrc.json',
-  '.prettierignore',
-  '.gitattributes',
-  '.env.local.example',
-  '.npmrc',
-
-  // Issue templates
-  '.github/ISSUE_TEMPLATE/',
-];
-
-/** Overlay: обновляем существующее, downstream-добавки не удаляем. */
-const OVERLAY = [
-  // Миграции едут вместе со схемой, иначе инстанс обновляет коллекции и блоки,
-  // а таблиц под них не получает. Именно overlay: доменные миграции инстанса
-  // должны остаться. `migrations/index.ts` после синка пересобирается по
-  // фактическому составу каталога — см. rebuildMigrationsIndex().
-  'src/cms/migrations/',
-  // Хелперы клиента — целиком, как и миграции. Пофайловый список приходилось
-  // пополнять на каждый новый хелпер, и это забывалось: файл оставался в
-  // шаблоне, инстанс получал код, который его импортирует, и сборка падала на
-  // «Cannot find module». Overlay, а не mirror, потому что инстанс заводит в
-  // lib/ и свои модули — mirror снёс бы их как «устаревшее».
-  'src/client/src/lib/',
-  // Чеклист деплоя — точка входа, на которую ссылается CLAUDE.md.
-  'DEPLOY.md',
-  // Статика фронта. Overlay: свои картинки инстанса остаются на месте, а
-  // generic-файлы шаблона (иконка вкладки) обновляются.
-  'src/client/public/',
-
-  // Документация движка. Описания интерфейса нужны сайтам так же, как правила:
-  // по ним собирают блоки и правят вид, и без них инстанс остаётся с кодом,
-  // о котором ничего не написано.
-  'docs/whg/',
-  'docs/stack/',
-  'docs/ux/',
-];
+// ─── Зоны ──────────────────────────────────────────────────────────────
 
 /*
-  Skills переносятся списком папок, а не перечислением каждой: пофайловый список
-  отставал молча - новый навык оставался в шаблоне, а инстанс о нём не узнавал,
-  и никто этого не замечал, пока не спрашивали «почему у меня нет».
+  Зоны берутся из реестра шаблона, а не из перечней внутри этого файла.
 
-  Наши - по префиксу, скачанные у поставщиков - по именам, потому что их состав
-  задаём не мы.
+  Перечень отставал молча: добавленный в шаблон файл просто не доезжал до сайтов,
+  и узнавалось это случайно - так остались за бортом пять навыков и вся папка
+  описаний интерфейса. Реестр обновляет разметчик по правилам, и оба смотрят
+  на одно и то же.
 */
-const VENDOR_SKILLS = ['payload', 'cms-migration'];
-
-for (const name of fs.existsSync(path.join(sourceDir, '.claude/skills'))
-  ? fs.readdirSync(path.join(sourceDir, '.claude/skills'))
-  : []) {
-  const generic =
-    name.startsWith('whg-') || name.startsWith('infisical-') || VENDOR_SKILLS.includes(name);
-  if (generic) OVERLAY.push(`.claude/skills/${name}/`);
+const zones = readRegistry(sourceDir);
+if (zones.size === 0) {
+  fail(
+    `ERROR: разметка не найдена в источнике (${REGISTRY}).
+` + '  Собери её в шаблоне: node scripts/zones.mjs --all',
+  );
 }
+
+/** Пути зоны, свёрнутые до каталогов: так вывод остаётся читаемым. */
+function pathsOf(zone) {
+  const files = [...zones.entries()].filter(([, z]) => z === zone).map(([rel]) => rel);
+  const dirs = new Set();
+  for (const rel of files) {
+    const parts = rel.split('/');
+    dirs.add(parts.length > 1 ? parts.slice(0, -1).join('/') + '/' : rel);
+  }
+  // вложенные каталоги свёрнуты в родительский: обход и так рекурсивный
+  return [...dirs]
+    .filter((d) => ![...dirs].some((other) => other !== d && d.startsWith(other)))
+    .sort();
+}
+
+const MIRROR = pathsOf('mirror');
+const OVERLAY = pathsOf('overlay');
 
 if (includeClaude) {
   MIRROR.push('CLAUDE.md');
-  console.log('  ↳ --include-claude: CLAUDE.md included (перезапишет локальные правки)');
+  MIRROR.push('README.md');
 }
 
 /** Пакеты, у которых команды общие: корень и три рабочих. */
@@ -283,21 +156,133 @@ const isExcluded = (name) => EXCLUDED_NAMES.has(name) || name.endsWith('.local')
 
 const stats = { copied: 0, deleted: 0, skipped: 0, missing: [] };
 
-console.log(`\n→ Mirror (${MIRROR.length} путей, устаревшее внутри них удаляется)\n`);
-for (const rel of MIRROR) syncPath(rel, true);
+/*
+  Перечень положенного - память синка о том, какие файлы в инстанс принёс он сам.
 
-console.log(`\n→ Overlay (${OVERLAY.length} путей, downstream-добавки сохраняются)\n`);
-for (const rel of OVERLAY) syncPath(rel, false);
+  Без него зеркало не отличает наше устаревшее от чужого самодельного: и то,
+  и другое просто «нет в шаблоне». Раньше удалялось и то, и другое, поэтому свой
+  примитив сайта пропадал молча, а обнаруживалось это упавшей сборкой.
 
-// package.json целиком не копируется: там имя пакета, версия и зависимости
-// инстанса. Но команды сборки и проверок в нём общие, и без этого правка команды
-// в шаблоне до сайтов не доезжала — файл-помощник приезжал, а вызов его нет.
-syncScripts();
+  Теперь удаляется только то, что синк когда-то принёс. Всё остальное остаётся
+  на месте, а прогон останавливается со столкновением: имя занято чужим файлом,
+  его надо переименовать или унести в свою доменную папку.
+*/
+const MANIFEST = path.join(INSTANCE, '.template-manifest');
+const MANIFEST_VERSION = 1;
 
-// index.ts миграций — общий файл шаблона и инстанса. Копировать его нельзя:
-// upstream-версия не знает про доменные миграции инстанса и молча выключила бы
-// их из прогона. Собираем список заново по тому, что реально лежит в каталоге.
-rebuildMigrationsIndex();
+/** Прошлый перечень: путь -> отпечаток содержимого, каким его положил синк. */
+const previous = new Map();
+if (fs.existsSync(MANIFEST)) {
+  for (const line of fs.readFileSync(MANIFEST, 'utf8').split(String.fromCharCode(10))) {
+    const row = line.trim();
+    if (!row || row.startsWith('#')) continue;
+    const gap = row.lastIndexOf(' ');
+    if (gap === -1) previous.set(row, '');
+    else previous.set(row.slice(0, gap), row.slice(gap + 1));
+  }
+}
+
+/*
+  Первое знакомство: перечня ещё нет, потому что сайт обновлялся прежней версией
+  синка. Тогда всё, что лежит в зонах, считается нашим - оно и приехало отсюда,
+  просто список тогда не вёлся. Иначе первый же прогон объявил бы чужим весь сайт
+  и встал стеной столкновений.
+*/
+const firstMeeting = previous.size === 0;
+
+/** Что положил этот прогон: путь -> отпечаток. */
+const placed = new Map();
+/** Имя занято чужим файлом. */
+const conflicts = [];
+/** Наш файл, правленный на месте: перезапись потеряла бы правку. */
+const edited = [];
+/** Ваши файлы в наших папках: не трогаем, но говорим о них. */
+const foreign = [];
+
+/** Разведка идёт без записи: сперва узнаём о столкновениях, потом трогаем сайт. */
+let writing = false;
+const shouldWrite = () => writing && !dryRun;
+
+function fingerprint(file) {
+  return createHash('sha1').update(fs.readFileSync(file)).digest('hex').slice(0, 12);
+}
+
+/** Путь относительно корня инстанса, всегда через прямые косые. */
+function relToInstance(target) {
+  return path.relative(INSTANCE, target).split(path.sep).join('/');
+}
+
+/**
+ * Один проход раскладки. Первый идёт разведкой, без записи.
+ */
+function pass() {
+  console.log(`\n→ Mirror (${MIRROR.length} путей, устаревшее внутри них удаляется)\n`);
+  for (const rel of MIRROR) syncPath(rel, true);
+
+  console.log(`\n→ Overlay (${OVERLAY.length} путей, downstream-добавки сохраняются)\n`);
+  for (const rel of OVERLAY) syncPath(rel, false);
+
+  // package.json целиком не копируется: там имя пакета, версия и зависимости
+  // инстанса. Но команды сборки и проверок в нём общие, и без этого правка команды
+  // в шаблоне до сайтов не доезжала — файл-помощник приезжал, а вызов его нет.
+  syncScripts();
+
+  // index.ts миграций — общий файл шаблона и инстанса. Копировать его нельзя:
+  // upstream-версия не знает про доменные миграции инстанса и молча выключила бы
+  // их из прогона. Собираем список заново по тому, что реально лежит в каталоге.
+  rebuildMigrationsIndex();
+}
+
+/*
+  Сперва разведка, потом запись.
+
+  Если остановиться посреди раскладки, сайт останется наполовину обновлённым -
+  часть файлов новая, часть старая, и это хуже обеих крайностей. Поэтому сначала
+  проходим всё вхолостую, собираем столкновения, и только на чистом результате
+  трогаем сайт.
+*/
+const quiet = console.log;
+if (!dryRun) console.log = () => {};
+pass();
+console.log = quiet;
+
+if (conflicts.length > 0 || edited.length > 0) {
+  console.log('\n──────────────────────────────────────────────');
+  if (conflicts.length > 0) {
+    console.log(`\n⚠ Имя занято чужим файлом (${conflicts.length}):\n`);
+    for (const rel of conflicts.slice(0, 40)) console.log(`   ${rel}`);
+    if (conflicts.length > 40) console.log(`   … и ещё ${conflicts.length - 40}`);
+    console.log(
+      '\n  Синхронизация не выполнена. Эти файлы синк сюда не клал, а имена нужны ему:\n' +
+        '  наши компоненты ссылаются на них, и подмена сломала бы и ваше, и наше.\n' +
+        '  Переименуйте их или унесите в свою доменную папку и запустите снова.',
+    );
+  }
+  if (edited.length > 0) {
+    console.log(`\n⚠ Наши файлы правлены на месте (${edited.length}):\n`);
+    for (const rel of edited.slice(0, 40)) console.log(`   ${rel}`);
+    if (edited.length > 40) console.log(`   … и ещё ${edited.length - 40}`);
+    console.log(
+      '\n  Обновление затёрло бы эти правки. Перенесите их в свою доменную папку\n' +
+        '  либо предложите в шаблон.',
+    );
+  }
+  console.log('\n  Продавить и обновить всё равно: --force\n');
+  console.log('──────────────────────────────────────────────');
+  if (cleanupSource) fs.rmSync(sourceDir, { recursive: true, force: true });
+  process.exit(1);
+}
+
+// Разведка прошла чисто - идём настоящим проходом.
+if (!dryRun) {
+  placed.clear();
+  foreign.length = 0;
+  stats.copied = 0;
+  stats.deleted = 0;
+  stats.skipped = 0;
+  writing = true;
+  pass();
+}
 
 // На Windows нет POSIX-бита: git пишет новый файл как 100644, и на VPS
 // `deploy.sh` не запускается — GH Actions падает на «found but not executable»
@@ -309,6 +294,26 @@ if (fixedModes.length > 0) {
 }
 
 if (!dryRun) {
+  /*
+    Перечень положенного: память синка о том, что он сюда принёс. По нему
+    следующий прогон отличит наше устаревшее от чужого самодельного и не удалит
+    того, чего не клал.
+  */
+  fs.writeFileSync(
+    MANIFEST,
+    [
+      '# Что положил сюда синк шаблона. Правится только им.',
+      `manifest_version=${MANIFEST_VERSION}`,
+      `source_sha=${sourceSha}`,
+      '',
+      ...[...placed.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([rel, mark]) => `${rel} ${mark}`),
+      '',
+    ].join(String.fromCharCode(10)),
+  );
+  console.log(`\n  ✓ .template-manifest → ${placed.size} файлов`);
+
   const versionFile = path.join(INSTANCE, '.template-version');
   const previous = fs.existsSync(versionFile)
     ? (fs.readFileSync(versionFile, 'utf8').match(/^source_sha=(.*)$/m)?.[1] ?? '')
@@ -326,6 +331,19 @@ if (!dryRun) {
     ].join('\n'),
   );
   console.log(`\n  ✓ .template-version → ${versionFile}`);
+}
+
+if (foreign.length > 0) {
+  console.log(`
+→ Ваши файлы в наших папках (${foreign.length}, не тронуты):
+`);
+  for (const rel of foreign.slice(0, 20)) console.log(`   ${rel}`);
+  if (foreign.length > 20) console.log(`   … и ещё ${foreign.length - 20}`);
+  console.log(
+    `
+  Место рискованное: при следующем обновлении это имя может занять наш файл.
+  Надёжнее держать своё в доменной папке - её синк не обходит вовсе.`,
+  );
 }
 
 if (cleanupSource) fs.rmSync(sourceDir, { recursive: true, force: true });
@@ -375,26 +393,87 @@ function copyDir(src, dst, mirror, label) {
     else copyFile(s, d, rel);
   }
 
-  // Аналог rsync --delete: то, чего в источнике больше нет.
+  /*
+    Убираем устаревшее - но только то, что синк сам когда-то принёс: путь есть
+    в перечне положенного с прошлого прогона, а в шаблоне его больше нет.
+
+    Чужой файл в той же папке не наш: его никто не приносил, значит его завёл
+    сам сайт. Такой не трогаем, а собираем столкновением.
+  */
   if (mirror && fs.existsSync(dst)) {
     for (const entry of fs.readdirSync(dst, { withFileTypes: true })) {
       if (keep.has(entry.name) || isExcluded(entry.name)) continue;
       const victim = path.join(dst, entry.name);
-      console.log(`  - ${label}${entry.name}${entry.isDirectory() ? '/' : ''}`);
-      stats.deleted++;
-      if (!dryRun) fs.rmSync(victim, { recursive: true, force: true });
+      const rel = relToInstance(victim);
+      const ours = previous.has(rel) || [...previous.keys()].some((x) => x.startsWith(`${rel}/`));
+
+      /*
+        Чужого не трогаем и прогон из-за него не останавливаем: шаблон такого файла
+        не кладёт, значит затирать нечего. Но говорим о нём - он лежит в нашей папке,
+        и при следующем обновлении это имя может занять наш файл.
+
+        На первом знакомстве перечня нет, и чужим считается всё подряд -
+        там молчим, иначе вывод утонет в ложных срабатываниях.
+      */
+      if (!ours) {
+        if (!firstMeeting) foreign.push(rel + (entry.isDirectory() ? '/' : ''));
+        continue;
+      }
+
+      /*
+        Наше устаревшее удаляем - но только нетронутым. Правленный файл это уже
+        работа сайта, и она остаётся, даже если из шаблона вещь ушла.
+      */
+      const mark = previous.get(rel);
+      if (!entry.isDirectory() && mark && fingerprint(victim) !== mark) {
+        placed.set(rel, mark);
+        continue;
+      }
+
+      if (writing || dryRun) {
+        console.log(`  - ${label}${entry.name}${entry.isDirectory() ? '/' : ''}`);
+        stats.deleted++;
+      }
+      if (shouldWrite()) fs.rmSync(victim, { recursive: true, force: true });
     }
   }
 }
 
 function copyFile(src, dst, label) {
-  if (fs.existsSync(dst) && sameContent(src, dst)) {
+  const rel = relToInstance(dst);
+  const exists = fs.existsSync(dst);
+
+  /*
+    Файл на месте, но синк его туда не клал - имя занято чужим. Не трогаем:
+    наши компоненты ссылаются на это имя, и подмена файла ломает и то, и другое.
+  */
+  if (exists && !previous.has(rel) && !firstMeeting) {
+    if (!force) {
+      conflicts.push(rel);
+      return;
+    }
+  } else if (exists && previous.get(rel) && fingerprint(dst) !== previous.get(rel)) {
+    /*
+      Наш файл, но правленный на месте: перезапись потеряла бы правку молча.
+      Продавить можно явно - тогда правка уходит, и человек знает об этом заранее.
+    */
+    if (!force) {
+      edited.push(rel);
+      return;
+    }
+  }
+
+  placed.set(rel, fingerprint(src));
+
+  if (exists && sameContent(src, dst)) {
     stats.skipped++;
     return;
   }
-  console.log(`  ${fs.existsSync(dst) ? 'M' : '+'} ${label}`);
-  stats.copied++;
-  if (dryRun) return;
+  if (writing || dryRun) {
+    console.log(`  ${exists ? 'M' : '+'} ${label}`);
+    stats.copied++;
+  }
+  if (!shouldWrite()) return;
   fs.mkdirSync(path.dirname(dst), { recursive: true });
   fs.copyFileSync(src, dst);
 }
