@@ -70,11 +70,23 @@ describe('сокращённая запись', () => {
   });
 });
 
-describe('запись не складывается в сетку', () => {
-  it('ряды разной длины отбрасываются', () => {
-    expect(parseAreas('a b : c')).toBeNull();
+describe('ряды бывают разной длины', () => {
+  it('короткий ряд не ломает запись: 3 2 3 это a b c : d e : f g h', () => {
+    const areas = parseAreas('a b c : d e : f g h');
+    expect(areas).not.toBeNull();
+    expect(areas?.map((area) => area.name)).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']);
+    // средний ряд короче, но плитки в нём остаются на своих местах слева направо
+    expect(areas?.find((area) => area.name === 'd')?.row).toBe(2);
+    expect(areas?.find((area) => area.name === 'e')?.column).toBe(2);
   });
 
+  it('ширину сетки задаёт самый длинный ряд', () => {
+    expect(areasWidth('a b c : d e')).toBe(3);
+    expect(areasWidth('a b : c d e f')).toBe(4);
+  });
+});
+
+describe('запись не складывается в сетку', () => {
   it('имя вразброс отбрасывается: такой фигуры не бывает', () => {
     expect(parseAreas('a b : b a')).toBeNull();
     expect(parseAreas('a a : b c : a b')).toBeNull();
@@ -88,8 +100,9 @@ describe('запись не складывается в сетку', () => {
 });
 
 describe('ширина сетки', () => {
-  it('считается по первому ряду', () => {
+  it('считается по самому длинному ряду', () => {
     expect(areasWidth('a b c : d e f')).toBe(3);
+    expect(areasWidth('a b : c d e')).toBe(3);
     expect(areasWidth('')).toBeNull();
   });
 });

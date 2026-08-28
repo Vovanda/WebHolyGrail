@@ -83,6 +83,9 @@ mirror	contracts/src/forms.ts
 mirror	contracts/src/globals.ts
 mirror	contracts/src/grid-areas.test.ts
 mirror	contracts/src/grid-areas.ts
+mirror	contracts/src/grid-layout.test.ts
+mirror	contracts/src/grid-rows.test.ts
+mirror	contracts/src/grid-rows.ts
 mirror	contracts/src/layout.ts
 mirror	contracts/src/media.ts
 mirror	contracts/src/notices.ts
@@ -316,7 +319,6 @@ mirror	src/client/src/layouts/site-layout/SiteLayout.tsx
 overlay	src/client/src/lib/analytics.tsx
 overlay	src/client/src/lib/api-client.ts
 overlay	src/client/src/lib/blog-settings.ts
-overlay	src/client/src/lib/card-rows.test.ts
 overlay	src/client/src/lib/card-rows.ts
 overlay	src/client/src/lib/catalog-path.ts
 overlay	src/client/src/lib/contrast.test.ts
@@ -439,6 +441,7 @@ overlay	src/cms/migrations/20260828_010500_block_appearance_css.json
 overlay	src/cms/migrations/20260828_010500_block_appearance_css.ts
 overlay	src/cms/migrations/20260828_043500_block_space_settings.json
 overlay	src/cms/migrations/20260828_043500_block_space_settings.ts
+overlay	src/cms/migrations/20260829_003000_tile_layout.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/check-schema-drift.ts

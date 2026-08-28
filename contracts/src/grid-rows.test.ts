@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { balancedRows, splitIntoRows } from './card-rows';
+import { balancedRows, splitIntoRows } from './grid-rows';
 
 /**
  * Требование владельца к раскладке: фигура читается одинаково сверху вниз,
