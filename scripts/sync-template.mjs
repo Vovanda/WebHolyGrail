@@ -40,6 +40,7 @@ let repo = '';
 let dryRun = false;
 let includeClaude = false;
 let force = false;
+let migrate = true;
 
 for (let i = 0; i < args.length; i++) {
   const arg = args[i];
@@ -47,6 +48,7 @@ for (let i = 0; i < args.length; i++) {
   else if (arg === '--repo') repo = args[++i];
   else if (arg === '--dry-run') dryRun = true;
   else if (arg === '--force') force = true;
+  else if (arg === '--no-migrate') migrate = false;
   else if (arg === '--include-claude') includeClaude = true;
   else if (arg === '--help' || arg === '-h') {
     console.log(readHelp());
@@ -211,8 +213,14 @@ const foreign = [];
 let writing = false;
 const shouldWrite = () => writing && !dryRun;
 
+/*
+  Отпечаток берётся без учёта концов строк: их меняют настройки истории и
+  форматирование при записи, а смысл файла остаётся тем же. Иначе каждый файл,
+  прошедший через форматтер, выглядел бы правленным вручную.
+*/
 function fingerprint(file) {
-  return createHash('sha1').update(fs.readFileSync(file)).digest('hex').slice(0, 12);
+  const text = fs.readFileSync(file).toString('binary').split(String.fromCharCode(13)).join('');
+  return createHash('sha1').update(text, 'binary').digest('hex').slice(0, 12);
 }
 
 /** Путь относительно корня инстанса, всегда через прямые косые. */
@@ -278,6 +286,7 @@ if (conflicts.length > 0 || edited.length > 0) {
   }
   console.log('\n  Продавить и обновить всё равно: --force\n');
   console.log('──────────────────────────────────────────────');
+
   if (cleanupSource) fs.rmSync(sourceDir, { recursive: true, force: true });
   process.exit(1);
 }
@@ -409,6 +418,33 @@ if (foreign.length > 0) {
   );
 }
 
+/*
+  История миграций проверяется после раскладки: приехавшая миграция движка может
+  описывать то же, что сайт когда-то сгенерировал себе сам. Базу не трогаем -
+  называем столкновения и просим разобрать.
+*/
+if (migrate) {
+  const clashes = migrationClashes();
+  if (clashes.length > 0) {
+    console.log(
+      `${String.fromCharCode(10)}⚠ В истории миграций две записи об одном (${clashes.length}):${String.fromCharCode(10)}`,
+    );
+    for (const { what, files } of clashes.slice(0, 12)) {
+      console.log(`   ${what}`);
+      for (const file of files) console.log(`      ${file}`);
+    }
+    if (clashes.length > 12) console.log(`   … и ещё ${clashes.length - 12}`);
+    console.log(
+      String.fromCharCode(10) +
+        '  Прогон миграций на этом упадёт: движок сверяет применённое по именам файлов' +
+        String.fromCharCode(10) +
+        '  и вторую запись считает новой. Разберите, какая из них лишняя - обычно та,' +
+        String.fromCharCode(10) +
+        '  что сайт сгенерировал себе сам до того, как это появилось в шаблоне.',
+    );
+  }
+}
+
 if (cleanupSource) fs.rmSync(sourceDir, { recursive: true, force: true });
 
 console.log('\n──────────────────────────────────────────────');
@@ -437,7 +473,7 @@ function syncPath(rel, mirror) {
     return;
   }
   if (fs.statSync(src).isDirectory()) copyDir(src, dst, mirror, rel);
-  else copyFile(src, dst, rel);
+  else copyFile(src, dst, rel, mirror);
 }
 
 function copyDir(src, dst, mirror, label) {
@@ -453,7 +489,7 @@ function copyDir(src, dst, mirror, label) {
     const d = path.join(dst, entry.name);
     const rel = `${label}${entry.name}${entry.isDirectory() ? '/' : ''}`;
     if (entry.isDirectory()) copyDir(s, d, mirror, `${rel}`);
-    else copyFile(s, d, rel);
+    else copyFile(s, d, rel, mirror);
   }
 
   /*
@@ -502,23 +538,39 @@ function copyDir(src, dst, mirror, label) {
   }
 }
 
-function copyFile(src, dst, label) {
+function copyFile(src, dst, label, mirror = true) {
   const rel = relToInstance(dst);
   const exists = fs.existsSync(dst);
 
   /*
     Файл на месте, но синк его туда не клал - имя занято чужим. Не трогаем:
     наши компоненты ссылаются на это имя, и подмена файла ломает и то, и другое.
+
+    Только для зеркала: наложение по природе своей чужого не трогает, и там
+    совпадение имени - обычное дело. Иначе прогон объявлял чужими все миграции
+    сайта разом.
   */
-  if (exists && !previous.has(rel) && !firstMeeting) {
+  if (mirror && exists && !previous.has(rel) && !firstMeeting) {
     if (!force) {
       conflicts.push(rel);
       return;
     }
-  } else if (exists && previous.get(rel) && fingerprint(dst) !== previous.get(rel)) {
+  } else if (
+    mirror &&
+    exists &&
+    previous.get(rel) &&
+    fingerprint(dst) !== previous.get(rel) &&
+    // отпечаток мог разойтись и не от правки - например, после форматирования.
+    // Сверяемся с самим шаблоном: совпало содержимое - файл не тронут.
+    !sameContent(src, dst)
+  ) {
     /*
-      Наш файл, но правленный на месте: перезапись потеряла бы правку молча.
-      Продавить можно явно - тогда правка уходит, и человек знает об этом заранее.
+      Наш файл в зеркальной папке, но правленный на месте: перезапись потеряла бы
+      правку молча. Продавить можно явно - тогда правка уходит, и человек знает
+      об этом заранее.
+
+      В наложении так не поступаем: там правки сайта уважаются по природе зоны,
+      и останавливать прогон из-за них незачем.
     */
     if (!force) {
       edited.push(rel);
@@ -693,6 +745,56 @@ function sweepStale() {
       if (shouldWrite()) fs.rmSync(path.join(INSTANCE, rel), { force: true });
     }
   }
+}
+
+/**
+ * Ищет в истории миграций две записи об одном и том же.
+ *
+ * @remarks
+ * Такое возникает, когда сайт сам сгенерировал миграцию под блок, которого тогда
+ * ещё не было в шаблоне: позже шаблон заводит свою, и в каталоге оказываются два
+ * файла, создающие одну таблицу или добавляющие одну колонку. Движок сверяет
+ * применённое по именам файлов, поэтому вторую считает новой - и прогон падает
+ * на «таблица уже существует».
+ *
+ * Сам синк базу не трогает и ничего не генерирует: он называет столкновения
+ * и останавливается, чтобы человек разобрал их осознанно.
+ */
+function migrationClashes() {
+  const dir = path.join(INSTANCE, 'src/cms/migrations');
+  if (!fs.existsSync(dir)) return [];
+
+  const CREATE = /CREATE TABLE\s+(?:IF NOT EXISTS\s+)?([a-z_0-9]+)/;
+  const ADD = /ALTER TABLE\s+([a-z_0-9]+)\s+ADD\s+([a-z_0-9]+)/;
+  // временные таблицы приёма пересоздания живут внутри одной миграции
+  const temporary = (name) => name.startsWith('new_') || name.startsWith('__new');
+
+  const seen = new Map();
+  for (const file of fs.readdirSync(dir).sort()) {
+    if (!file.endsWith('.ts') || file === 'index.ts') continue;
+    const text = fs.readFileSync(path.join(dir, file), 'utf8');
+    // смотрим только прямой ход: обратный по природе своей отменяет сделанное
+    const forward = text.split('export async function down')[0];
+    for (const line of forward.split(String.fromCharCode(10))) {
+      const cleaned = line.replace(/[\\`]/g, '');
+      const created = CREATE.exec(cleaned);
+      if (created && !temporary(created[1])) {
+        const key = `таблица ${created[1]}`;
+        if (!seen.has(key)) seen.set(key, new Set());
+        seen.get(key).add(file);
+      }
+      const added = ADD.exec(cleaned);
+      if (added && !temporary(added[1])) {
+        const key = `колонка ${added[1]}.${added[2]}`;
+        if (!seen.has(key)) seen.set(key, new Set());
+        seen.get(key).add(file);
+      }
+    }
+  }
+
+  return [...seen.entries()]
+    .filter(([, files]) => files.size > 1)
+    .map(([what, files]) => ({ what, files: [...files] }));
 }
 
 function rebuildMigrationsIndex() {
