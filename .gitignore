@@ -60,6 +60,8 @@ Thumbs.db
 desktop.ini
 
 # --- Claude session ---
+# Личная папка: снимок сессии и план работы. В репозитории им делать нечего -
+# синк унёс бы их в каждый сайт как чужой мусор.
 .claude/session-context/
 .claude/scheduled_tasks.lock
 .claude/settings.local.json
