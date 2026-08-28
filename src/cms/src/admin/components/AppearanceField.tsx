@@ -295,6 +295,19 @@ const AppearanceField: TextFieldClientComponent = ({ field, path }) => {
     значение уже некуда.
   */
   const [empty, setEmpty] = useState<readonly string[]>([]);
+  /*
+    Набранное, пока человек печатает. Держим его рядом с тем стилем, из которого
+    оно собрано: без этого строки каждый раз получались бы разбором готового
+    CSS, а разбор обрезает края - пробел исчезал прямо под пальцами, значение
+    в поле переставало совпадать с набранным, и курсор уезжал в конец.
+
+    Как только стиль меняется не отсюда - откатом или правкой кодом, - помеченный
+    css расходится с нынешним, и строки снова читаются из стиля.
+  */
+  const [typed, setTyped] = useState<{
+    css: string;
+    rows: readonly { prop: string; value: string; on: boolean }[];
+  } | null>(null);
 
   /*
     Из чего состоит блок. Читается из кода самих компонентов по запросу:
@@ -358,13 +371,16 @@ const AppearanceField: TextFieldClientComponent = ({ field, path }) => {
   */
   const OFF = '/* off */ ';
   const shown = [...props, ...empty.filter((prop) => !props.includes(prop))];
-  const rows = shown.map((prop) => {
+  const parsed = shown.map((prop) => {
     const raw = declarations[prop] ?? '';
     const on = !raw.startsWith(OFF);
-    const value = on ? raw : raw.slice(OFF.length);
-    const palette = PALETTE_COLORS.find((c) => c.value === value);
-    const swatch = palette?.sample ?? (/^#|^rgb|^hsl/i.test(value) ? value : '');
-    return { prop, value, on, swatch };
+    return { prop, value: on ? raw : raw.slice(OFF.length), on };
+  });
+
+  const rows = (typed?.css === css ? typed.rows : parsed).map((row) => {
+    const palette = PALETTE_COLORS.find((c) => c.value === row.value);
+    const swatch = palette?.sample ?? (/^#|^rgb|^hsl/i.test(row.value) ? row.value : '');
+    return { ...row, swatch };
   });
 
   const writeRows = (next: readonly { prop: string; value: string; on: boolean }[]) => {
@@ -375,7 +391,11 @@ const AppearanceField: TextFieldClientComponent = ({ field, path }) => {
       values[row.prop] = row.on ? row.value : `${OFF}${row.value}`;
       order.push(row.prop);
     }
-    setValue(compose(values, order, dark));
+    const nextCss = compose(values, order, dark);
+    // Набранное запоминается вместе со стилем, который из него собрался:
+    // в стиль края обрезаются, а в поле остаётся то, что человек напечатал.
+    setTyped({ css: nextCss, rows: next.map(({ prop, value, on }) => ({ prop, value, on })) });
+    setValue(nextCss);
   };
 
   const toggleRow = (index: number) => {
