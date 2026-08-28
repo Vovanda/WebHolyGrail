@@ -1,4 +1,4 @@
-import { layouts, tileIndex } from 'contracts';
+import { layouts } from 'contracts';
 import type { Cell } from 'contracts';
 
 import { cn } from '@/lib/utils';
@@ -66,8 +66,9 @@ export function CardRows<T>({
   );
   if (!grid.lg) return null;
 
-  const at = (cells: ReadonlyArray<Cell> | undefined, name: string) =>
-    cells?.find((cell) => cell.name === name);
+  // Ищем по номеру карточки, а не по имени: досчитанным имени не дают.
+  const at = (cells: ReadonlyArray<Cell> | undefined, index: number) =>
+    cells?.find((cell) => cell.index === index);
 
   /*
     Порядок в разметке берётся с малого экрана: там плитки идут ровно так, как
@@ -113,19 +114,19 @@ export function CardRows<T>({
         заданная перестановка на телефоне пропадала.
       */}
       {reading.map((cell) => {
-        const index = tileIndex(cell.name);
+        const index = cell.index;
         const item = items[index];
         if (item === undefined) return null;
 
-        const lg = at(grid.lg?.cells, cell.name) ?? cell;
-        const md = at(grid.md?.cells, cell.name) ?? lg;
-        const sm = at(grid.sm?.cells, cell.name) ?? md;
+        const lg = at(grid.lg?.cells, index) ?? cell;
+        const md = at(grid.md?.cells, index) ?? lg;
+        const sm = at(grid.sm?.cells, index) ?? md;
 
         return (
           <Tile
-            key={cell.name}
+            key={index}
             data-part="tile"
-            data-tile={cell.name}
+            data-tile={cell.name || index + 1}
             data-row={lg.row}
             data-span={lg.width / 2}
             /*

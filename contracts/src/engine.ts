@@ -103,15 +103,6 @@ export { resolveDisplay } from './blog';
  * Раскладка плиток: разбором пользуются и сайт, и админка - она проверяет
  * введённую строку и говорит человеку, что не так.
  */
-export {
-  parseAreas,
-  areasWidth,
-  completeLayout,
-  layoutAreas,
-  layout,
-  layouts,
-  tileName,
-  tileIndex,
-} from './grid-areas';
+export { parseAreas, hiddenTiles, areasWidth, placeAll, layout, layouts } from './grid-areas';
 export type { Area, Cell, Layout, Layouts } from './grid-areas';
 export { balancedRows, splitIntoRows } from './grid-rows';

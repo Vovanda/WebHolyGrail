@@ -10,15 +10,16 @@ import { areasWidth, parseAreas, type Area } from './grid-areas';
 describe('разбор областей', () => {
   it('плитка занимает колонку в двух рядах', () => {
     expect(parseAreas('a b : a c')).toEqual([
-      { name: 'a', column: 1, row: 1, width: 1, height: 2 },
-      { name: 'b', column: 2, row: 1, width: 1, height: 1 },
-      { name: 'c', column: 2, row: 2, width: 1, height: 1 },
+      { name: 'a', index: 0, column: 1, row: 1, width: 1, height: 2 },
+      { name: 'b', index: 1, column: 2, row: 1, width: 1, height: 1 },
+      { name: 'c', index: 2, column: 2, row: 2, width: 1, height: 1 },
     ]);
   });
 
   it('плитка растягивается по горизонтали', () => {
     expect(parseAreas('a a : b c')?.[0]).toEqual({
       name: 'a',
+      index: 0,
       column: 1,
       row: 1,
       width: 2,
@@ -42,6 +43,7 @@ describe('разбор областей', () => {
     // Четвёртая плитка легла во второй ряд и заняла две колонки.
     expect(areas?.find((a: Area) => a.name === 'd')).toEqual({
       name: 'd',
+      index: 3,
       column: 3,
       row: 2,
       width: 2,

@@ -26,6 +26,8 @@ import { balancedRows } from './grid-rows';
 /** Место плитки в сетке: с какой колонки и строки начинается и сколько занимает. */
 export interface Area {
   readonly name: string;
+  /** Какая это карточка по счёту: место имени среди остальных, по алфавиту. */
+  readonly index: number;
   readonly column: number;
   readonly row: number;
   readonly width: number;
@@ -42,8 +44,69 @@ const HOLE = '.';
  * Число без имени пропускаем: «3» само по себе ничего не называет, и угадывать
  * за человека имя не стоит.
  */
+/**
+ * Ряд в отдельные ячейки.
+ *
+ * @remarks
+ * Пробелы не обязательны: имя это один знак, точка - одно пустое место, число
+ * перед именем - повтор. Поэтому «a b c», «abc» и «3a» разбираются одинаково
+ * уверенно, а человек пишет как ему удобно.
+ *
+ * Имена однобуквенные нарочно. Слитную запись иначе не прочесть: «aa» - это две
+ * плитки или двадцать седьмая? После «z» идут заглавные, и этого хватает
+ * на полсотни плиток в одном блоке.
+ */
+function cells(
+  row: string,
+): { ok: ReadonlyArray<string>; off: ReadonlyArray<string> } | { bad: string } {
+  const out: string[] = [];
+  const off: string[] = [];
+
+  for (const chunk of row.trim().split(/\s+/).filter(Boolean)) {
+    let rest = chunk;
+
+    while (rest) {
+      const hidden = rest.startsWith('-');
+      if (hidden) rest = rest.slice(1);
+
+      const found = rest.match(/^(\d*)(.)/);
+      if (!found) return { bad: `«${chunk}» - число ничего не называет` };
+
+      const times = found[1] ? Number(found[1]) : 1;
+      const knak = found[2] as string;
+      rest = rest.slice(found[0].length);
+
+      if (!Number.isInteger(times) || times < 1) return { bad: `«${chunk}» - негодный повтор` };
+      if (hidden && found[1]) {
+        return { bad: `«${chunk}» - у выключенной карточки размера нет` };
+      }
+      if (knak !== HOLE && !/^[a-zA-Z]$/.test(knak)) {
+        return { bad: `«${knak}» - имя пишется буквой` };
+      }
+
+      /*
+        Выключенная карточка места не занимает, но из счёта не выпадает: её имя
+        участвует в порядке наравне с остальными, иначе соседи поехали бы
+        номерами. В ряд она просто не попадает.
+      */
+      if (hidden) {
+        off.push(knak);
+        continue;
+      }
+
+      for (let at = 0; at < times; at += 1) out.push(knak);
+    }
+  }
+
+  return { ok: out, off };
+}
+
 function expand(cells: ReadonlyArray<string>): ReadonlyArray<string> {
   return cells.flatMap((cell) => {
+    // Точка - один знак, одно место. Написанные слитно считаются каждая за своё:
+    // «.....» это пять пустых мест, а не имя из точек.
+    if (/^\.+$/.test(cell)) return Array.from({ length: cell.length }, () => HOLE);
+
     const short = cell.match(/^(\d+)(.+)$/);
     if (!short) return [cell];
 
@@ -64,20 +127,36 @@ function expand(cells: ReadonlyArray<string>): ReadonlyArray<string> {
  * фигуру хуже, чем не взять её - человек хотя бы увидит, что раскладка
  * не применилась.
  */
+/*
+  Номера выключенных карточек, по записи. Разбор проходит запись один раз, а
+  достройке нужно знать, кого не досчитывать: без этого выключенная вернулась бы
+  хвостом, как будто её просто забыли назвать.
+*/
+const hiddenByRecord = new Map<string, ReadonlySet<number>>();
+
+/** Какие карточки выключены этой записью. */
+export function hiddenTiles(raw: string | null | undefined): ReadonlySet<number> {
+  if (!raw) return new Set();
+  parseAreas(raw);
+  return hiddenByRecord.get(raw) ?? new Set();
+}
+
 export function parseAreas(raw: string | null | undefined): ReadonlyArray<Area> | null {
   if (!raw) return null;
 
-  const rows = raw
-    .split(':')
-    .map((row) =>
-      expand(
-        row
-          .trim()
-          .split(/[\s,]+/)
-          .filter(Boolean),
-      ),
-    )
-    .filter((row) => row.length > 0);
+  /*
+    Решётка в начале выключает запись, не стирая её: фигура не применяется, текст
+    остаётся на месте. Так сравнивают «с фигурой и без», не набирая строку заново.
+  */
+  if (raw.trim().startsWith('#')) return null;
+
+  const read = raw.split(':').map((row) => cells(row));
+  if (read.some((row) => 'bad' in row)) return null;
+
+  const rows = read.map((row) => ('ok' in row ? row.ok : [])).filter((row) => row.length > 0);
+
+  // Выключенные участвуют только в порядке имён, в сетку они не идут.
+  const off = new Set(read.flatMap((row) => ('off' in row ? row.off : [])));
 
   if (rows.length === 0) return null;
 
@@ -125,24 +204,36 @@ export function parseAreas(raw: string | null | undefined): ReadonlyArray<Area> 
     }
   }
 
-  // По имени, а не по появлению в строке: имя означает номер плитки, и именно
-  // им дизайнер переставляет карточки местами.
-  return (
-    [...seen.keys()]
-      // Сперва по длине, потом по алфавиту: после «z» имена удваиваются, и простое
-      // сравнение строк поставило бы «aa» перед «b», перепутав порядок карточек.
-      .sort((left, right) => left.length - right.length || left.localeCompare(right))
-      .map((name) => {
-        const box = seen.get(name) as { top: number; left: number; bottom: number; right: number };
-        return {
-          name,
-          column: box.left + 1,
-          row: box.top + 1,
-          width: box.right - box.left + 1,
-          height: box.bottom - box.top + 1,
-        };
-      })
+  /*
+    Порядок имён и есть порядок карточек: первое по алфавиту имя означает первую
+    карточку блока, второе - вторую. Само имя роли не играет, важно его место
+    среди остальных.
+
+    Выключенные имена в этот порядок входят наравне с видимыми - иначе соседи
+    поехали бы номерами, стоило кому-то выключиться.
+  */
+  const order = [...new Set([...seen.keys(), ...off])].sort((left, right) =>
+    left.localeCompare(right),
   );
+
+  hiddenByRecord.set(
+    raw,
+    new Set(order.map((name, index) => (seen.has(name) ? -1 : index)).filter((at) => at >= 0)),
+  );
+
+  return order
+    .filter((name) => seen.has(name))
+    .map((name) => {
+      const box = seen.get(name) as { top: number; left: number; bottom: number; right: number };
+      return {
+        name,
+        index: order.indexOf(name),
+        column: box.left + 1,
+        row: box.top + 1,
+        width: box.right - box.left + 1,
+        height: box.bottom - box.top + 1,
+      };
+    });
 }
 
 /**
@@ -166,102 +257,82 @@ export function areasWidth(raw: string | null | undefined): number | null {
     .filter((row) => row.length > 0);
   if (!rows || rows.length === 0) return null;
 
-  return Math.max(...rows.map((row) => row.length));
+  /*
+    Ряд без единого имени в ширине не участвует: точки уточняют положение имён,
+    а уточнять там нечего - остаётся только высота пустой строки. Иначе длинная
+    строка точек раздувала бы всю сетку.
+  */
+  const named = rows.filter((row) => row.some((cell) => cell !== HOLE));
+
+  return Math.max(...(named.length > 0 ? named : rows).map((row) => row.length));
 }
 
 /**
- * Имя плитки по её месту в блоке: первая - «a», вторая - «b».
+ * Места всех карточек блока: заданные владельцем и досчитанные.
  *
  * @remarks
- * После двадцать шестой имена удваиваются - «aa», «ab». Блоков с таким числом
- * плиток мы не видели, но обрывать счёт на «z» значило бы молча потерять
- * карточки.
+ * Заданное разбирается из записи, остальное досчитывается сразу местами, а не
+ * дописывается в текст. Текст - только вход от человека: в нём имя занимает один
+ * знак, и на полусотне карточек имена кончаются. Досчитывать через него значило
+ * бы упереться в алфавит там, где карточек тысяча, хотя человек такую сетку
+ * и не пишет руками.
+ *
+ * Досчитанное встаёт под заданным, сбалансированными рядами - тем же правилом,
+ * что и сетка без записи вовсе.
  */
-export function tileName(index: number): string {
-  let rest = index;
-  let name = '';
-
-  do {
-    name = String.fromCharCode(97 + (rest % 26)) + name;
-    rest = Math.floor(rest / 26) - 1;
-  } while (rest >= 0);
-
-  return name;
-}
-
-/**
- * Место карточки по её имени: «a» первая, «b» вторая.
- *
- * @remarks
- * Обратное к `tileName`. Нужно, чтобы разложить карточки в том порядке, в каком
- * их поставил владелец: на широком экране порядок задаёт сетка, а в потоке -
- * только порядок в разметке.
- */
-export function tileIndex(name: string): number {
-  let index = 0;
-  for (const letter of name) {
-    index = index * 26 + (letter.charCodeAt(0) - 96);
-  }
-  return index - 1;
-}
-
-/**
- * Достроить запись до полной: то, чего владелец не описал, доложить самим.
- *
- * @remarks
- * Порядок такой: берём имена всех плиток блока, вычитаем те, что владелец уже
- * поставил, оставшиеся раскладываем сбалансированными рядами и дописываем
- * следом за заданным.
- *
- * Хвост считается сам по себе, от вместимости ряда у блока, а не от ширины
- * написанной фигуры: владелец описывает начало, а не задаёт ритм всему
- * остальному.
- *
- * Имена оставшихся идут по алфавиту - иначе плитки встали бы не на свои места:
- * имя означает номер карточки в блоке.
- */
-export function completeLayout(
+export function placeAll(
   raw: string | null | undefined,
   count: number,
   perRow: number,
-): string | null {
+): { readonly areas: ReadonlyArray<Area>; readonly rows: ReadonlyArray<number> } | null {
   if (count <= 0) return null;
 
-  const all = Array.from({ length: count }, (_unused, index) => tileName(index));
-  const taken = new Set((parseAreas(raw) ?? []).map((area) => area.name));
-  const free = all.filter((name) => !taken.has(name));
+  const asked = parseAreas(raw) ?? [];
+  const width = areasWidth(raw) ?? 0;
+  const taken = new Set([...asked.map((area) => area.index), ...hiddenTiles(raw)]);
 
-  const rows: string[] = [];
-  const asked = parseAreas(raw) ? raw?.trim() : null;
-  if (asked) rows.push(asked);
+  const askedRows = asked.reduce((most, area) => Math.max(most, area.row + area.height - 1), 0);
+  const rows: number[] = [];
+  for (let row = 1; row <= askedRows; row += 1) {
+    rows.push(
+      asked
+        .filter((area) => area.row <= row && row < area.row + area.height)
+        .reduce((sum, area) => sum + area.width, 0),
+    );
+  }
 
+  const free: number[] = [];
+  for (let index = 0; index < count; index += 1) {
+    if (!taken.has(index)) free.push(index);
+  }
+
+  const areas: Area[] = [...asked];
   let offset = 0;
+  let row = askedRows;
+
   for (const length of balancedRows(free.length, Math.max(1, Math.floor(perRow)))) {
-    rows.push(free.slice(offset, offset + length).join(' '));
+    row += 1;
+    rows.push(length);
+    for (let at = 0; at < length; at += 1) {
+      const index = free[offset + at];
+      if (index === undefined) break;
+      /*
+        Досчитанной карточке имя не нужно: назвать её человек не просил, а имена
+        на большом наборе кончились бы. Ей хватает номера.
+      */
+      areas.push({ name: '', index, column: at + 1, row, width: 1, height: 1 });
+    }
     offset += length;
   }
 
-  return rows.length > 0 ? rows.join(' : ') : null;
-}
-
-/**
- * Области всех плиток блока: заданные владельцем и доложенные самими.
- *
- * @remarks
- * То, что уходит в разметку. Заданное и доложенное к этому месту уже неразличимы -
- * сетка получает одну фигуру.
- */
-export function layoutAreas(
-  raw: string | null | undefined,
-  count: number,
-  perRow: number,
-): ReadonlyArray<Area> | null {
-  return parseAreas(completeLayout(raw, count, perRow));
+  return { areas, rows: rows.length > 0 ? rows : [Math.max(width, 1)] };
 }
 
 /** Место плитки в сетке, готовое для разметки: доли, а не ячейки записи. */
 export interface Cell {
   readonly name: string;
+  /** Номер карточки по счёту. */
+  readonly index: number;
   /** С какой доли начинается, считая от единицы. */
   readonly column: number;
   readonly row: number;
@@ -280,60 +351,39 @@ export interface Layout {
  * Раскладка, готовая к разметке: короткий ряд стоит по центру.
  *
  * @remarks
- * Сетка считается в половинных долях - долей вдвое больше, чем колонок,
- * а плитка занимает две. Иначе короткий ряд не поставить по центру: при трёх
+ * Сетка считается в половинных долях - долей вдвое больше, чем колонок, а
+ * карточка занимает две. Иначе короткий ряд не поставить по центру: при трёх
  * колонках ряд из двух оставляет одну свободную, а половину колонки не занять.
- * В долях свободных остаётся две, по одной с каждого края, и ряд встаёт ровно
- * посередине.
  *
- * Плитка, растянутая через ряды разной длины, берёт наименьший сдвиг из своих -
- * так она не вылезает за край сетки.
+ * Ряд, в котором стоит карточка на несколько рядов, не сдвигается: сдвинуть его
+ * к центру значило бы развести её соседние ряды по разным местам, и она налезла
+ * бы на чужие.
  */
 export function layout(
   raw: string | null | undefined,
   count: number,
   perRow: number,
 ): Layout | null {
-  const record = completeLayout(raw, count, perRow);
-  const areas = parseAreas(record);
-  if (!areas || !record) return null;
+  const placed = placeAll(raw, count, perRow);
+  if (!placed) return null;
 
-  const width = areasWidth(record) ?? 0;
-  if (width <= 0) return null;
+  const width = Math.max(...placed.rows, 1);
 
-  const lengths = record
-    .split(':')
-    .map(
-      (row) =>
-        expand(
-          row
-            .trim()
-            .split(/[\s,]+/)
-            .filter(Boolean),
-        ).length,
-    )
-    .filter((length) => length > 0);
-
-  /*
-    Ряд, в котором стоит плитка на несколько рядов, не сдвигается: сдвинуть его
-    к центру значило бы развести соседние ряды одной плитки по разным местам,
-    и она налезла бы на чужие. Такой ряд остаётся слева, а пустое место копится
-    у края - это заметно, но целая фигура важнее.
-  */
   const tall = new Set<number>();
-  for (const area of areas) {
+  for (const area of placed.areas) {
     if (area.height <= 1) continue;
     for (let row = area.row; row < area.row + area.height; row += 1) tall.add(row);
   }
 
-  const cells = areas.map((area) => {
+  const cells = placed.areas.map((area) => {
     let shift = Number.POSITIVE_INFINITY;
     for (let row = area.row; row < area.row + area.height; row += 1) {
-      shift = Math.min(shift, tall.has(row) ? 0 : width - (lengths[row - 1] ?? width));
+      shift = Math.min(shift, tall.has(row) ? 0 : width - (placed.rows[row - 1] ?? width));
     }
 
     return {
       name: area.name,
+      index: area.index,
       column: (area.column - 1) * 2 + (Number.isFinite(shift) ? shift : 0) + 1,
       row: area.row,
       width: area.width * 2,

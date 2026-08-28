@@ -26,11 +26,15 @@ import { parseAreas } from 'contracts';
  */
 
 const NOTE =
-  'Имена областей, ряды через двоеточие: «a b : a c». Повтор - числом: «3a». Точка - пустое место.';
+  'Имена областей, ряды через двоеточие: «a b : a c». Повтор - числом: «3a». Точка - пустое место. ' +
+  'Минус выключает карточку: «-f». Решётка в начале строки откладывает запись, не стирая её.';
 
 function check(value: unknown): string | true {
   const raw = typeof value === 'string' ? value.trim() : '';
   if (!raw) return true;
+
+  // Решётка в начале выключает запись, не стирая её - это не ошибка.
+  if (raw.startsWith('#')) return true;
   return parseAreas(raw)
     ? true
     : 'Запись не складывается в сетку: имя должно занимать цельный прямоугольник.';
@@ -54,7 +58,7 @@ export const TILE_LAYOUT_FIELDS: Field[] = [
         type: 'text',
         admin: {
           description: `${NOTE} Пусто - плитки встают сами.`,
-          placeholder: 'a b c : a b d',
+          placeholder: 'a a b : a a c : d e c',
         },
         validate: check,
       },

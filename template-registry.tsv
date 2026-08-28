@@ -81,9 +81,9 @@ mirror	contracts/src/engine.ts
 mirror	contracts/src/faq.ts
 mirror	contracts/src/forms.ts
 mirror	contracts/src/globals.ts
+mirror	contracts/src/grid-areas.spec.test.ts
 mirror	contracts/src/grid-areas.test.ts
 mirror	contracts/src/grid-areas.ts
-mirror	contracts/src/grid-layout.test.ts
 mirror	contracts/src/grid-rows.test.ts
 mirror	contracts/src/grid-rows.ts
 mirror	contracts/src/layout.ts
@@ -128,6 +128,7 @@ overlay	docs/ux/extending.md
 overlay	docs/ux/layout/panels.md
 overlay	docs/ux/layout/README.md
 overlay	docs/ux/primitives/README.md
+overlay	docs/ux/primitives/tiles-notation.md
 overlay	docs/ux/primitives/tiles.md
 overlay	docs/whg/00-overview.md
 overlay	docs/whg/15-vision.md

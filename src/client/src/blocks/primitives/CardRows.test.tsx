@@ -12,16 +12,17 @@ import { CardRows } from './CardRows';
 const eight = ['Первая', 'Вторая', 'Третья', 'Четвёртая', 'Пятая', 'Шестая', 'Седьмая', 'Восьмая'];
 
 function names(html: string): string[] {
-  return [...html.matchAll(/data-tile="([a-z]+)"/g)].map(([, name]) => name as string);
+  return [...html.matchAll(/data-tile="([a-zA-Z0-9]+)"/g)].map(([, name]) => name as string);
 }
 
 describe('CardRows', () => {
-  it('без записи идёт своим порядком', () => {
+  it('без записи идёт своим порядком, а карточки идут номерами', () => {
     const html = renderToStaticMarkup(
       <CardRows items={eight}>{(item) => <span>{item}</span>}</CardRows>,
     );
 
-    expect(names(html)).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']);
+    // имени владелец не давал - в разметке стоит номер карточки
+    expect(names(html)).toEqual(['1', '2', '3', '4', '5', '6', '7', '8']);
   });
 
   it('порядок в разметке берётся с малого экрана', () => {
@@ -60,6 +61,9 @@ describe('CardRows', () => {
       </CardRows>,
     );
 
-    expect(html).toContain('data-tile="a" data-row="1" data-span="2"');
+    // на большом экране первая карточка занимает две колонки - четыре доли
+    expect(html).toContain('--lg-span:4');
+    // а на малом фигуры нет, и она обычной ширины
+    expect(html).toContain('--sm-span:2');
   });
 });
