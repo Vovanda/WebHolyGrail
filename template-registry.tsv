@@ -445,6 +445,7 @@ overlay	src/cms/migrations/20260828_010500_block_appearance_css.json
 overlay	src/cms/migrations/20260828_010500_block_appearance_css.ts
 overlay	src/cms/migrations/20260828_043500_block_space_settings.json
 overlay	src/cms/migrations/20260828_043500_block_space_settings.ts
+overlay	src/cms/migrations/20260829_003000_tile_layout.json
 overlay	src/cms/migrations/20260829_003000_tile_layout.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
