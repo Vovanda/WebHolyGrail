@@ -40,6 +40,18 @@ export interface CarouselDeckProps {
   readonly arrows?: boolean;
   /** Точки под лентой: сколько всего и где сейчас. */
   readonly dots?: boolean;
+  /**
+   * Где стоят стрелки и точки.
+   *
+   * @remarks
+   * `outside` - за краем ленты и под ней: место есть, ничего не закрывается.
+   *
+   * `overlay` - поверх самого кадра, мельче и полупрозрачно. Нужно там, где
+   * лента вставлена в чужую рамку и вокруг неё места нет: картинка в карточке,
+   * баннер во всю ширину. Стрелки там появляются под указателем, а пальцем
+   * листают жестом.
+   */
+  readonly controls?: 'outside' | 'overlay';
   /** Идти по кругу. */
   readonly loop?: boolean;
   /** Пауза между кадрами, мс. Без значения листание только руками. */
@@ -138,6 +150,7 @@ export function CarouselDeck({
   mode = 'row',
   arrows = true,
   dots = false,
+  controls = 'outside',
   loop = false,
   autoplay,
   marquee = false,
@@ -206,7 +219,7 @@ export function CarouselDeck({
   const scrollable = loop || canPrev || canNext;
 
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn('relative', controls === 'overlay' && 'group/deck', className)}>
       <div
         className={cn('overflow-hidden', edge === 'gap' ? EDGE_AS_GAP[gap] : EDGE[edge])}
         ref={viewportRef}
@@ -226,23 +239,48 @@ export function CarouselDeck({
 
       {arrows && !single && scrollable && (
         <>
-          <CarouselArrow side="left" onClick={prev} disabled={!loop && !canPrev} />
-          <CarouselArrow side="right" onClick={next} disabled={!loop && !canNext} />
+          <CarouselArrow
+            side="left"
+            onClick={prev}
+            disabled={!loop && !canPrev}
+            controls={controls}
+          />
+          <CarouselArrow
+            side="right"
+            onClick={next}
+            disabled={!loop && !canNext}
+            controls={controls}
+          />
         </>
       )}
 
       {dots && !single && (
-        <div className="mt-4 flex justify-center gap-2">
+        <div
+          className={cn(
+            'flex justify-center',
+            controls === 'overlay'
+              ? 'pointer-events-none absolute inset-x-0 bottom-2 gap-1.5'
+              : 'mt-4 gap-2',
+          )}
+        >
           {Array.from({ length: count }, (_, i) => (
             <button
               key={i}
               type="button"
-              onClick={() => embla?.scrollTo(i)}
+              onClick={(e) => {
+                stopClick(e);
+                embla?.scrollTo(i);
+              }}
               aria-label={`Кадр ${i + 1}`}
               aria-current={i === current}
               className={cn(
-                'h-2 rounded-full transition-all',
-                i === current ? 'w-5 bg-accent' : 'w-2 bg-border hover:bg-border-strong',
+                'rounded-full transition-all',
+                controls === 'overlay' ? 'pointer-events-auto h-1.5' : 'h-2',
+                i === current
+                  ? cn('bg-accent', controls === 'overlay' ? 'w-4' : 'w-5')
+                  : controls === 'overlay'
+                    ? 'w-1.5 bg-bg/70'
+                    : 'w-2 bg-border hover:bg-border-strong',
               )}
             />
           ))}
@@ -290,32 +328,64 @@ export function CarouselItem({
   );
 }
 
+/**
+ * Нажатие на орган управления никуда не всплывает.
+ *
+ * @remarks
+ * Ленту вставляют и в карточку, которая целиком ссылка. Без этого нажатие
+ * на стрелку листало бы кадр и заодно уводило со страницы.
+ */
+function stopClick(e: React.MouseEvent) {
+  e.preventDefault();
+  e.stopPropagation();
+}
+
 function CarouselArrow({
   side,
   onClick,
   disabled,
+  controls,
 }: {
   readonly side: 'left' | 'right';
   readonly onClick: () => void;
   readonly disabled: boolean;
+  readonly controls: NonNullable<CarouselDeckProps['controls']>;
 }) {
+  const overlay = controls === 'overlay';
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={(e) => {
+        stopClick(e);
+        onClick();
+      }}
       disabled={disabled}
       aria-label={side === 'left' ? 'Назад' : 'Вперёд'}
       className={cn(
         // На телефоне листают пальцем, и стрелки там только закрывают картинку.
         // Видны и на узком экране: листать пальцем можно, но без стрелок
         // не видно, что лента вообще листается.
-        'absolute top-1/2 z-10 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center',
-        'rounded-full border border-border bg-bg text-muted transition-all',
-        'hover:text-ink hover:shadow-md disabled:opacity-40 disabled:hover:shadow-none',
-        side === 'left' ? 'left-0 -translate-x-3' : 'right-0 translate-x-3',
+        'absolute top-1/2 z-10 inline-flex -translate-y-1/2 items-center justify-center',
+        'rounded-full border border-border text-muted transition-all',
+        'hover:text-ink disabled:opacity-40',
+        overlay
+          ? // Поверх кадра стрелка не должна его закрывать: мельче, полупрозрачна
+            // и выходит из тени только под указателем.
+            cn(
+              'h-8 w-8 bg-bg/85 opacity-0 group-hover/deck:opacity-100 focus-visible:opacity-100',
+              side === 'left' ? 'left-2' : 'right-2',
+            )
+          : cn(
+              'h-10 w-10 bg-bg hover:shadow-md disabled:hover:shadow-none',
+              side === 'left' ? 'left-0 -translate-x-3' : 'right-0 translate-x-3',
+            ),
       )}
     >
-      {side === 'left' ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+      {side === 'left' ? (
+        <ChevronLeft className={overlay ? 'h-4 w-4' : 'h-5 w-5'} />
+      ) : (
+        <ChevronRight className={overlay ? 'h-4 w-4' : 'h-5 w-5'} />
+      )}
     </button>
   );
 }

@@ -1,9 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import useEmblaCarousel from 'embla-carousel-react';
-import { ArrowRight, ArrowUpRight, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, X } from 'lucide-react';
 import type { BlockNode, MediaRef, SiteSettings } from 'contracts';
 
 import { CarouselDeck, CarouselItem } from '@/blocks/primitives/Carousel';
@@ -62,11 +61,19 @@ const RATIO_CLASS: Record<MediaRatio, string> = {
   '16/10': 'aspect-[16/10]',
 };
 
+/** То же соотношение значением: лента примитива берёт его настройкой, не классом. */
+const RATIO_VALUE: Record<MediaRatio, string> = {
+  '4/3': '4 / 3',
+  '16/10': '16 / 10',
+};
+
 /**
- * Картинки карточки: одна — статично, несколько — слайдер.
+ * Картинки карточки: одна - статично, несколько - листаются примитивом.
  *
- * Карточка целиком бывает ссылкой, поэтому стрелки слайдера гасят click —
- * иначе листание уводило бы со страницы.
+ * @remarks
+ * Стрелки и точки стоят поверх кадра: вокруг картинки в карточке места нет.
+ * Нажатие на них не всплывает - карточка целиком бывает ссылкой, и листание
+ * иначе уводило бы со страницы.
  */
 function CardMedia({
   urls,
@@ -89,98 +96,42 @@ function CardMedia({
   /** Клик по картинке — открыть её крупно. */
   readonly onPick?: (index: number) => void;
 }) {
-  const many = urls.length > 1;
   const ratioClass = natural ? '' : RATIO_CLASS[ratio];
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, []);
-  const [selected, setSelected] = useState(0);
 
-  useEffect(() => {
-    if (!emblaApi) return;
-    const onSelect = () => setSelected(emblaApi.selectedScrollSnap());
-    onSelect();
-    emblaApi.on('select', onSelect);
-    return () => {
-      emblaApi.off('select', onSelect);
-    };
-  }, [emblaApi]);
-
-  const step = useCallback(
-    (e: React.MouseEvent, dir: 1 | -1) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (dir === 1) emblaApi?.scrollNext();
-      else emblaApi?.scrollPrev();
-    },
-    [emblaApi],
+  const picture = (url: string, i: number) => (
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img
+      data-part="card-media"
+      src={url}
+      alt={alt}
+      {...(onPick ? { onClick: () => onPick(i), role: 'button', tabIndex: 0 } : {})}
+      className={
+        natural ? `w-full ${onPick ? 'cursor-zoom-in' : ''}` : 'h-full w-full object-cover'
+      }
+    />
   );
 
-  if (!many) {
-    return (
-      <div className={`${ratioClass} overflow-hidden bg-surface`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          data-part="card-media"
-          src={urls[0]}
-          alt={alt}
-          {...(onPick ? { onClick: () => onPick(0), role: 'button', tabIndex: 0 } : {})}
-          className={
-            natural ? `w-full ${onPick ? 'cursor-zoom-in' : ''}` : 'h-full w-full object-cover'
-          }
-        />
-      </div>
-    );
+  if (urls.length <= 1) {
+    return <div className={`${ratioClass} overflow-hidden bg-surface`}>{picture(urls[0]!, 0)}</div>;
   }
 
   return (
-    <div className="group/media relative overflow-hidden bg-surface">
-      <div className="overflow-hidden" ref={emblaRef}>
-        <div className="flex">
-          {urls.map((url, i) => (
-            <div key={i} className="min-w-0 flex-[0_0_100%]">
-              <div className={ratioClass}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  data-part="card-media"
-                  src={url}
-                  alt={alt}
-                  {...(onPick ? { onClick: () => onPick(i), role: 'button', tabIndex: 0 } : {})}
-                  className={
-                    natural
-                      ? `w-full ${onPick ? 'cursor-zoom-in' : ''}`
-                      : 'h-full w-full object-cover'
-                  }
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <button
-        type="button"
-        onClick={(e) => step(e, -1)}
-        aria-label="Предыдущая картинка"
-        className="absolute left-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-bg/85 text-muted opacity-0 transition-opacity hover:text-ink group-hover/media:opacity-100 focus-visible:opacity-100"
+    <div className="overflow-hidden bg-surface">
+      <CarouselDeck
+        mode="single"
+        loop
+        arrows
+        dots
+        controls="overlay"
+        label={alt}
+        {...(natural ? {} : { aspect: RATIO_VALUE[ratio] })}
       >
-        <ChevronLeft size={16} />
-      </button>
-      <button
-        type="button"
-        onClick={(e) => step(e, 1)}
-        aria-label="Следующая картинка"
-        className="absolute right-2 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-bg/85 text-muted opacity-0 transition-opacity hover:text-ink group-hover/media:opacity-100 focus-visible:opacity-100"
-      >
-        <ChevronRight size={16} />
-      </button>
-      <div className="absolute inset-x-0 bottom-2 flex justify-center gap-1.5">
-        {urls.map((_, i) => (
-          <span
-            key={i}
-            className={`h-1.5 rounded-full transition-all ${
-              i === selected ? 'w-4 bg-accent' : 'w-1.5 bg-bg/70'
-            }`}
-          />
+        {urls.map((url, i) => (
+          <CarouselItem key={i} width="full">
+            {picture(url, i)}
+          </CarouselItem>
         ))}
-      </div>
+      </CarouselDeck>
     </div>
   );
 }
