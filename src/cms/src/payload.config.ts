@@ -9,26 +9,10 @@ import { en } from '@payloadcms/translations/languages/en';
 import { buildConfig } from 'payload';
 import sharp from 'sharp';
 
-import { Users } from './collections/Users';
-import { Media } from './collections/Media';
-import { Pages } from './collections/Pages';
-import { FormSubmissions } from './collections/FormSubmissions';
-import { ReusableBlocks } from './collections/ReusableBlocks';
-import { SocialPosts } from './collections/SocialPosts';
-import { Comments } from './collections/Comments';
-import { FaqGroups } from './collections/FaqGroups';
-import { Articles } from './collections/Articles';
-import { Threads } from './collections/Threads';
-import { Tags } from './collections/Tags';
 import { adoptEnvToggles } from './lib/toggles/adopt';
-import { Authors } from './collections/Authors';
-import { Cities } from './collections/Cities';
-import { Specialists } from './collections/Specialists';
-import { Playlists } from './collections/Playlists';
-import { Entitlements } from './collections/Entitlements';
-import { AccessCodes } from './collections/AccessCodes';
-import { FeatureToggles } from './collections/FeatureToggles';
 import { SiteSettings } from './globals/SiteSettings';
+import { Users } from './collections/Users';
+import { engineCollections } from './collections/engine';
 import { withAutoSlug } from './lib/slug';
 import { BuildHlsTask } from './jobs/build-hls.task';
 import { PurgeVideosTask } from './jobs/purge-videos.task';
@@ -89,9 +73,15 @@ function parseOrigins(csv: string | undefined, fallback: string): string[] {
  * - sharp — обработка картинок при загрузке Media.
  * - S3-storage — generic adapter (VK Cloud / Yandex / S3 / R2 — endpoint в env).
  *
- * Доменные коллекции (Dogs/Patients/Vehicles/Menu/...) добавляйте здесь же.
- * Generic CMS-фичи (SocialPosts/Comments) включены по дефолту — удалите если
- * не нужны для конкретного сайта.
+ * Доменные коллекции сайта (собаки, пациенты, техника, меню) дописываются
+ * в `collections` следом за набором движка:
+ *
+ * ```ts
+ * collections: [...engineCollections, Dogs, Litters].map(withAutoSlug),
+ * ```
+ *
+ * Разделы движка, которые сайту не нужны, отсюда не выкидываются - они прячутся
+ * переключателем в рантайме.
  */
 export default buildConfig({
   admin: {
@@ -108,44 +98,16 @@ export default buildConfig({
       beforeDashboard: ['/admin/components/ComplianceNotice#ComplianceNotice'],
     },
   },
-  /**
-   * Порядок здесь задаёт порядок разделов в админке.
-   *
-   * @remarks
-   * Сверху то, куда заходят каждый день, снизу служебное. Поэтому первым идёт
-   * контент, за ним обращения от посетителей: непрочитанная заявка стоит
-   * дороже, чем ненаписанная статья. Настройки и учётные записи — последними:
-   * их трогают редко, а место наверху они занимали постоянно.
-   */
-  collections: [
-    // Контент — то, из чего состоит сайт.
-    Pages,
-    ReusableBlocks,
-    FaqGroups,
-    // Обращения — то, ради чего сайт обычно и заводят.
-    FormSubmissions,
-    // Блог (#43): Articles, Threads, Tags, Authors. Имя `Articles` постоянное —
-    // слот `posts` свободен (после #49), но `articles` конкретнее отражает функцию.
-    Articles,
-    Threads,
-    Tags,
-    Authors,
-    // Медиа: сами файлы, плейлисты видео, права на них и коды, которые эти права
-    // выдают. Доступ живёт рядом с видео, а не отдельным разделом — человек ищет
-    // его там, где лежит сам файл.
-    Media,
-    Playlists,
-    Entitlements,
-    AccessCodes,
-    // Каталог специалистов по городам (тренеры, мастера, врачи).
-    Cities,
-    Specialists,
-    SocialPosts,
-    Comments,
-    // Что на сайте включено: значения по окружениям, меняются без выкладки.
-    FeatureToggles,
-    Users,
-  ].map(withAutoSlug),
+  /*
+    Точка сборки принадлежит сайту: сперва всё из движка, ниже своё доменное.
+
+    Раньше список стоял здесь целиком, и это разъезжалось: общая коллекция
+    появлялась в шаблоне, приезжала файлом, а в сборке сайта её не было -
+    и проверка типов падала на ссылке из блока в несуществующую коллекцию.
+
+    Порядок разделов админки задаёт сам набор движка; своё дописывается следом.
+  */
+  collections: [...engineCollections].map(withAutoSlug),
   globals: [SiteSettings],
   /**
    * Выдача доступа к видео. Живёт рядом с коллекциями, а не внутри `media`:
