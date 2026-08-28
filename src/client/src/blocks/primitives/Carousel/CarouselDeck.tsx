@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import AutoScroll from 'embla-carousel-auto-scroll';
@@ -179,19 +179,35 @@ export function CarouselDeck({
   className,
   label,
 }: CarouselDeckProps) {
-  const plugins = [];
-  if (transition === 'fade') plugins.push(Fade());
-  if (marquee)
-    plugins.push(AutoScroll({ speed, stopOnInteraction: false, stopOnMouseEnter: pauseOnHover }));
-  else if (autoplay)
-    plugins.push(
-      Autoplay({ delay: autoplay, stopOnInteraction: false, stopOnMouseEnter: pauseOnHover }),
-    );
+  /*
+    Набор дополнений считается один раз. Собранный заново при каждой перерисовке,
+    он заставлял движок заводиться заново, а самоход после перезавода стоял
+    на месте: примитив запоминает число кадров сразу после первого показа, так что
+    перерисовка случается всегда - и лента, которой задано непрерывное движение,
+    не трогалась вовсе.
+  */
+  const plugins = useMemo(() => {
+    const list = [];
+    if (transition === 'fade') list.push(Fade());
+    if (marquee)
+      list.push(AutoScroll({ speed, stopOnInteraction: false, stopOnMouseEnter: pauseOnHover }));
+    else if (autoplay)
+      list.push(
+        Autoplay({ delay: autoplay, stopOnInteraction: false, stopOnMouseEnter: pauseOnHover }),
+      );
+    return list;
+  }, [transition, marquee, speed, pauseOnHover, autoplay]);
 
-  const [viewportRef, embla] = useEmblaCarousel(
-    { loop, align: mode === 'single' ? 'center' : 'start', containScroll: 'trimSnaps' },
-    plugins,
+  const options = useMemo(
+    () => ({
+      loop,
+      align: mode === 'single' ? ('center' as const) : ('start' as const),
+      containScroll: 'trimSnaps' as const,
+    }),
+    [loop, mode],
   );
+
+  const [viewportRef, embla] = useEmblaCarousel(options, plugins);
 
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
