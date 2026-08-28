@@ -15,7 +15,6 @@
     "build": "pnpm -r run build",
     "lint": "pnpm -r run lint",
     "test": "pnpm -r run test",
-    "typecheck": "pnpm -r run typecheck",
     "smoke": "pnpm --filter client run smoke",
     "compose:up": "infisical run -- docker compose -f deploy/local/docker-compose.yml up -d",
     "compose:down": "docker compose -f deploy/local/docker-compose.yml down",

@@ -136,7 +136,6 @@ const MIRROR = [
   // маршруты инстанса живут отдельными папками и его не трогают. Инстансовый
   // layout.tsx сюда не входит — там шрифты и брендинг конкретного сайта.
   'src/client/src/app/(site)/[[...slug]]/page.tsx',
-  'src/client/src/app/(site)/s/',
   'src/client/src/app/(site)/specialists/',
   'src/client/src/app/not-found.tsx',
 
@@ -264,6 +263,14 @@ if (includeClaude) {
   console.log('  ↳ --include-claude: CLAUDE.md included (перезапишет локальные правки)');
 }
 
+/** Пакеты, у которых команды общие: корень и три рабочих. */
+const SCRIPT_PACKAGES = [
+  'package.json',
+  'contracts/package.json',
+  'src/client/package.json',
+  'src/cms/package.json',
+];
+
 /** Не копируем и не удаляем — instance-owned либо мусор сборки. */
 const EXCLUDED_NAMES = new Set(['domain', 'node_modules', '.next', 'dist']);
 const isExcluded = (name) => EXCLUDED_NAMES.has(name) || name.endsWith('.local');
@@ -277,6 +284,11 @@ for (const rel of MIRROR) syncPath(rel, true);
 
 console.log(`\n→ Overlay (${OVERLAY.length} путей, downstream-добавки сохраняются)\n`);
 for (const rel of OVERLAY) syncPath(rel, false);
+
+// package.json целиком не копируется: там имя пакета, версия и зависимости
+// инстанса. Но команды сборки и проверок в нём общие, и без этого правка команды
+// в шаблоне до сайтов не доезжала — файл-помощник приезжал, а вызов его нет.
+syncScripts();
 
 // index.ts миграций — общий файл шаблона и инстанса. Копировать его нельзя:
 // upstream-версия не знает про доменные миграции инстанса и молча выключила бы
@@ -393,6 +405,72 @@ function copyFile(src, dst, label) {
  * своих миграций (если копировать upstream-файл), либо список без новых
  * upstream-миграций (если не копировать вовсе).
  */
+/**
+ * Сливает поле scripts по ключам: команда из шаблона добавляется или обновляется,
+ * а имя пакета, версия и зависимости инстанса остаются нетронутыми.
+ *
+ * Свои команды инстанса не удаляются — он вправе завести собственные. А вот общий
+ * ключ со своим значением - это отставшая копия, а не кастомизация: инстанс-специфика
+ * у нас живёт в переменных окружения, не в командах. Такое значение обновляется,
+ * и в выводе печатается, что было и что стало.
+ *
+ * Ровно на этом ловилась случайно падающая сборка (#92): шаблон давно зовёт своего
+ * помощника, который проверяет результат генерации и повторяет попытку, а инстансы
+ * остались на прямом вызове. Файл-помощник к ним приезжал, вызов - нет.
+ */
+function syncScripts() {
+  console.log(`
+→ Scripts (${SCRIPT_PACKAGES.length} package.json, сливаются по ключам)
+`);
+  for (const rel of SCRIPT_PACKAGES) {
+    const from = path.join(sourceDir, rel);
+    const to = path.join(INSTANCE, rel);
+    if (!fs.existsSync(from) || !fs.existsSync(to)) continue;
+
+    const upstream = JSON.parse(fs.readFileSync(from, 'utf8'));
+    const instance = JSON.parse(fs.readFileSync(to, 'utf8'));
+    const theirs = upstream.scripts ?? {};
+    const ours = instance.scripts ?? {};
+
+    const added = [];
+    const differs = [];
+    for (const [key, value] of Object.entries(theirs)) {
+      if (!(key in ours)) {
+        ours[key] = value;
+        added.push(key);
+      } else if (ours[key] !== value) {
+        differs.push({ key, was: ours[key], now: value });
+        ours[key] = value;
+      }
+    }
+    // Свои команды инстанса: считаем их только чтобы сказать, что не тронули.
+    const own = Object.keys(ours).filter((key) => !(key in theirs));
+
+    if (added.length === 0 && differs.length === 0) {
+      stats.skipped++;
+      continue;
+    }
+
+    if (!dryRun) {
+      instance.scripts = ours;
+      fs.writeFileSync(
+        to,
+        `${JSON.stringify(instance, null, 2)}
+`,
+      );
+    }
+    stats.copied++;
+
+    if (added.length > 0) console.log(`  ${dryRun ? '=' : '+'} ${rel}: ${added.join(', ')}`);
+    for (const d of differs) {
+      console.log(`  ${dryRun ? '=' : '~'} ${rel}: scripts.${d.key} обновлена`);
+      console.log(`      было:  ${d.was}`);
+      console.log(`      стало: ${d.now}`);
+    }
+    if (own.length > 0) console.log(`  · ${rel}: своих команд инстанса ${own.length}, не трогаем`);
+  }
+}
+
 function rebuildMigrationsIndex() {
   const dir = path.join(INSTANCE, 'src/cms/migrations');
   const indexFile = path.join(dir, 'index.ts');
