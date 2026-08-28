@@ -12,7 +12,16 @@
 
 ## При старте сессии
 
-Прежде чем что-то делать — **детект, на чём ты находишься**:
+**Первым делом — активируй skill `whg-session-start` и выполни его.** Он задаёт порядок:
+план, снимок прошлой сессии, R-правила, память, состояние выкладки; и говорит, какой
+документ открыть под какую зону работы.
+
+**R-правила нерушимы.** Это не рекомендации: на шаблоне живут пять сайтов, и всё, что
+здесь меняется, уезжает к ним синком. Удалённый файл зеркало уносит из каждого, забранная
+настройка ломает вид, собранный владельцем в админке. Нарушение правила роняет сайты
+разом, а не «снижает качество» — поэтому сначала документ и план, потом код.
+
+Дальше — **детект, на чём ты находишься**:
 
 ```bash
 # 1. Имя репо (приоритет если git remote есть):
@@ -60,20 +69,21 @@ basename "$(pwd)"
 
 ## Skills (триггерить при попадании в зону)
 
-| Skill                                     | Когда                                                                         |
-| ----------------------------------------- | ----------------------------------------------------------------------------- |
-| `whg-rules`                               | Архитектурный выбор: блок / contracts / collection / URL-схема                |
-| `whg-layouts`                             | SiteLayout / PanelConfig / Header/Footer/NavDrawer                            |
-| `whg-modals`                              | Detail-модалка сущности (карточка с overlay)                                  |
-| `whg-ui-reference`                        | Создаёшь UI-блок / страницу / визуальную композицию                           |
-| `whg-infisical`                           | Секреты — bootstrap, ротация, новая env-переменная                            |
-| `whg-template-sync`                       | Подтянуть upstream WHG generic                                                |
-| `whg-scaffold`                            | (upstream only) — создание нового инстанса                                    |
-| `whg-payload-jobs`                        | Payload Jobs Queue в нашем стиле (поверх официального)                        |
-| `whg-payload-migration`                   | Миграции Payload в нашем blue-green deploy.sh                                 |
-| `whg-skill-authoring`                     | Создаёшь / обновляешь наш `whg-*` skill — правила naming, inline vs reference |
-| `payload`, `cms-migration`, `infisical-*` | Скачанные официальные — базовое знание от вендоров                            |
-| `frontend-design`                         | UI с дизайн-усилиями                                                          |
+| Skill                                     | Когда                                                                                |
+| ----------------------------------------- | ------------------------------------------------------------------------------------ |
+| `whg-session-start`                       | **Первым в каждой сессии** и перед правкой примитива, блока, настройки или удалением |
+| `whg-rules`                               | Архитектурный выбор: блок / contracts / collection / URL-схема                       |
+| `whg-layouts`                             | SiteLayout / PanelConfig / Header/Footer/NavDrawer                                   |
+| `whg-modals`                              | Detail-модалка сущности (карточка с overlay)                                         |
+| `whg-ui-reference`                        | Создаёшь UI-блок / страницу / визуальную композицию                                  |
+| `whg-infisical`                           | Секреты — bootstrap, ротация, новая env-переменная                                   |
+| `whg-template-sync`                       | Подтянуть upstream WHG generic                                                       |
+| `whg-scaffold`                            | (upstream only) — создание нового инстанса                                           |
+| `whg-payload-jobs`                        | Payload Jobs Queue в нашем стиле (поверх официального)                               |
+| `whg-payload-migration`                   | Миграции Payload в нашем blue-green deploy.sh                                        |
+| `whg-skill-authoring`                     | Создаёшь / обновляешь наш `whg-*` skill — правила naming, inline vs reference        |
+| `payload`, `cms-migration`, `infisical-*` | Скачанные официальные — базовое знание от вендоров                                   |
+| `frontend-design`                         | UI с дизайн-усилиями                                                                 |
 
 ## Наполнение сайта — только через API Payload
 
@@ -110,6 +120,7 @@ curl -X PATCH "$SITE/api/pages/1" -H "Authorization: JWT $TOKEN" -d @page.json
 - `bg-[#hex]` / inline-color (R2 — токены)
 - Деструктив на prod без явного «ок»
 - Изобретать обобщения раньше второго случая (R9)
+- Удалять из шаблона то, на что ссылаются сайты, и забирать настройку блока (R10)
 - Создавать новые репо для sub-products одной компании — растим в этом же (R4)
 
 ## Stop-conditions
