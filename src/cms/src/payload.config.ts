@@ -13,9 +13,8 @@ import { adoptEnvToggles } from './lib/toggles/adopt';
 import { SiteSettings } from './globals/SiteSettings';
 import { Users } from './collections/Users';
 import { engineCollections } from './collections/engine';
+import { engineTasks } from './jobs/engine';
 import { withAutoSlug } from './lib/slug';
-import { BuildHlsTask } from './jobs/build-hls.task';
-import { PurgeVideosTask } from './jobs/purge-videos.task';
 import {
   videoAccessEndpoint,
   videoByCodeEndpoint,
@@ -146,7 +145,8 @@ export default buildConfig({
    * рядом с "Редакторы" вместо скрытой технической collection.
    */
   jobs: {
-    tasks: [BuildHlsTask, PurgeVideosTask],
+    // Сперва задания движка, ниже свои: набор ездит обновлением целиком.
+    tasks: [...engineTasks],
     // Один воркер за раз: ffmpeg живёт на той же машине, что и сайт, и
     // параллельное кодирование нескольких видео придушит выдачу страниц.
     autoRun: [{ cron: '* * * * *', allQueues: true, limit: 1 }],
