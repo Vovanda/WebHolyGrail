@@ -58,6 +58,14 @@ describe('CarouselDeck', () => {
     expect(html).toContain('aspect-ratio:16 / 9');
   });
 
+  it('зазор несёт сама карточка, а не промежуток между соседями', () => {
+    const html = renderToStaticMarkup(<CarouselDeck>{cards(3)}</CarouselDeck>);
+    // gap работает между соседями по разметке, а в круге движок уносит карточки
+    // сдвигом - и на стыке зазор пропадал. Внутренний отступ едет вместе с карточкой.
+    expect(html).not.toMatch(/class="[^"]*\bgap-\d/);
+    expect(html).toContain('pl-3');
+  });
+
   it('отступ по краям держит первую карточку от края экрана', () => {
     const withEdge = renderToStaticMarkup(<CarouselDeck edge="md">{cards(2)}</CarouselDeck>);
     const without = renderToStaticMarkup(<CarouselDeck>{cards(2)}</CarouselDeck>);
