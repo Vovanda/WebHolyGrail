@@ -1,5 +1,7 @@
 import type { Block } from 'payload';
 
+import { withTileLayout } from './_tile-layout';
+
 /**
  * ArticlesSection — секция статей на любой странице (R5++).
  *
@@ -13,7 +15,7 @@ import type { Block } from 'payload';
  * его одинаково (R5++). Сама выборка живёт в клиентском компоненте — блок
  * хранит только параметры запроса (R0).
  */
-export const ArticlesSectionBlock: Block = {
+const articlesSectionBlockBase: Block = {
   slug: 'articles-section',
   labels: { singular: 'Секция статей', plural: 'Секции статей' },
   fields: [
@@ -123,3 +125,5 @@ export const ArticlesSectionBlock: Block = {
     },
   ],
 };
+
+export const ArticlesSectionBlock: Block = withTileLayout(articlesSectionBlockBase);

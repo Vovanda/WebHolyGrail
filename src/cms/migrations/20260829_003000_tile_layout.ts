@@ -5,9 +5,10 @@ import { type MigrateDownArgs, type MigrateUpArgs, sql } from '@payloadcms/db-sq
   Раскладка плиток именами областей: «a b c e : a b d d». Пусто означает, что
   фигура считается сама, поэтому колонка без умолчания.
 
-  Блок сетки лежит в нескольких коллекциях и у каждой своя таблица, плюс теневые
-  таблицы черновиков - колонка добавляется во все, иначе поле пропадёт там, где
-  его забыли.
+  Поле стоит у сетки фич, секции статей и списка документов. Каждый блок лежит
+  в нескольких коллекциях, у каждой своя таблица, плюс теневые таблицы черновиков -
+  колонка добавляется во все. Забыть хоть одну нельзя: Payload падает на чтении
+  коллекции целиком, а не только на этом блоке.
 */
 
 const TABLES = [
@@ -16,6 +17,16 @@ const TABLES = [
   'reusable_blocks_blocks_feature_grid',
   '_reusable_blocks_v_blocks_feature_grid',
   'specialists_blocks_feature_grid',
+  'pages_blocks_articles_section',
+  '_pages_v_blocks_articles_section',
+  'reusable_blocks_blocks_articles_section',
+  '_reusable_blocks_v_blocks_articles_section',
+  'specialists_blocks_articles_section',
+  'pages_blocks_document_list',
+  '_pages_v_blocks_document_list',
+  'reusable_blocks_blocks_document_list',
+  '_reusable_blocks_v_blocks_document_list',
+  'specialists_blocks_document_list',
 ];
 
 const COLUMN = 'tile_layout';

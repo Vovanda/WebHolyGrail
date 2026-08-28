@@ -68,6 +68,7 @@ export async function ArticlesSection({ node, settings, className }: ArticlesSec
         globalBlog={globalBlog}
         variant={listVariant(data.layout)}
         featured={data.layout === 'featured-first'}
+        tileLayout={data.tileLayout}
       />
 
       {cta && (

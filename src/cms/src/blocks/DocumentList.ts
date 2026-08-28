@@ -1,5 +1,7 @@
 import type { Block } from 'payload';
 
+import { withTileLayout } from './_tile-layout';
+
 /**
  * Документы для скачивания: карта предприятия, лицензии, допуски, прайс.
  *
@@ -12,7 +14,7 @@ import type { Block } from 'payload';
  * Для B2B-сайта это не декоративная секция: реквизиты и допуски — первое, что
  * ищет снабженец перед тем, как отправить запрос.
  */
-export const DocumentListBlock: Block = {
+const documentListBlockBase: Block = {
   slug: 'document-list',
   labels: { singular: 'Документы', plural: 'Блоки документов' },
   fields: [
@@ -76,3 +78,5 @@ export const DocumentListBlock: Block = {
     },
   ],
 };
+
+export const DocumentListBlock: Block = withTileLayout(documentListBlockBase);

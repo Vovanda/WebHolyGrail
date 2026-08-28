@@ -27,6 +27,8 @@ export interface DocumentListData {
   readonly description?: string;
   readonly items?: readonly DocumentItem[];
   readonly layout?: 'cards' | 'list';
+  /** Раскладка плиток именами областей. Пусто - фигура считается сама. */
+  readonly tileLayout?: string | null | undefined;
 }
 
 type MediaLike = {
@@ -147,7 +149,14 @@ export function DocumentList({
 
           if (asCards) {
             return (
-              <CardRows as="ul" items={docs} columns={3} gap="sm" className="mt-6">
+              <CardRows
+                as="ul"
+                items={docs}
+                columns={3}
+                gap="sm"
+                tileLayout={data.tileLayout}
+                className="mt-6"
+              >
                 {(doc) => card(doc)}
               </CardRows>
             );

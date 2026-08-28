@@ -21,6 +21,8 @@ export interface PostListProps {
   readonly globalBlog: BlogGlobalSettings;
   readonly featured?: boolean;
   readonly variant?: 'divided' | 'grid' | 'vertical';
+  /** Раскладка плиток именами областей. Пусто - фигура считается сама. */
+  readonly tileLayout?: string | null | undefined;
   readonly className?: string;
 }
 
@@ -29,6 +31,7 @@ export function PostList({
   globalBlog,
   featured = false,
   variant = 'divided',
+  tileLayout,
   className,
 }: PostListProps) {
   if (articles.length === 0) {
@@ -78,7 +81,7 @@ export function PostList({
       <div className={cn('flex flex-col gap-12', className)}>
         <PostCard article={hero} globalBlog={globalBlog} variant="hero" />
         {rest.length > 0 && (
-          <CardRows items={rest} gap="lg">
+          <CardRows items={rest} gap="lg" tileLayout={tileLayout}>
             {(article) => <PostCard article={article} globalBlog={globalBlog} variant="card" />}
           </CardRows>
         )}
@@ -87,7 +90,12 @@ export function PostList({
   }
 
   return (
-    <CardRows items={articles} gap="lg" {...(className ? { className } : {})}>
+    <CardRows
+      items={articles}
+      gap="lg"
+      tileLayout={tileLayout}
+      {...(className ? { className } : {})}
+    >
       {(article) => <PostCard article={article} globalBlog={globalBlog} variant="card" />}
     </CardRows>
   );
