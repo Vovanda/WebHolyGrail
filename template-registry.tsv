@@ -42,6 +42,7 @@ overlay	.claude/skills/payload/reference/HOOKS.md
 overlay	.claude/skills/payload/reference/PLUGIN-DEVELOPMENT.md
 overlay	.claude/skills/payload/reference/QUERIES.md
 overlay	.claude/skills/payload/SKILL.md
+overlay	.claude/skills/whg-components/SKILL.md
 overlay	.claude/skills/whg-deploy/SKILL.md
 overlay	.claude/skills/whg-git-commit/SKILL.md
 overlay	.claude/skills/whg-infisical/SKILL.md
