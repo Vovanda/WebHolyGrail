@@ -29,7 +29,8 @@
 │   │       ├── blocks/
 │   │       │   ├── primitives/      # L2 — generic molecules
 │   │       │   │   ├── Carousel/    # directory pattern: index.ts + variants + types
-│   │       │   │   │   ├── CarouselRows.tsx
+│   │       │   │   │   ├── CarouselDeck.tsx
+│   │       │   │   │   ├── PhotoDeck.tsx
 │   │       │   │   │   ├── types.ts
 │   │       │   │   │   └── index.ts
 │   │       │   │   ├── Separator/   # WaveDivider, future LineDivider, ...
