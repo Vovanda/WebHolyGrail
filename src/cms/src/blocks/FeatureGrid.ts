@@ -1,12 +1,14 @@
 import type { Block } from 'payload';
 
+import { withTileLayout } from './_tile-layout';
+
 /**
  * FeatureGrid — сетка карточек "что внутри" с иконкой/заголовком/описанием.
  *
  * Tip для админа: 3-7 карточек оптимально. На desktop ряд, на mobile wrap 2 в строке.
  * Используется как «что уже решено за вас» в дев-tool или «наши услуги» в business-сайтах.
  */
-export const FeatureGridBlock: Block = {
+const featureGrid: Block = {
   slug: 'feature-grid',
   labels: { singular: 'Сетка фич', plural: 'Сетки фич' },
   fields: [
@@ -98,3 +100,5 @@ export const FeatureGridBlock: Block = {
     },
   ],
 };
+
+export const FeatureGridBlock: Block = withTileLayout(featureGrid);

@@ -45,6 +45,7 @@ import * as migration_20260827_170342_header_sticky from './20260827_170342_head
 import * as migration_20260827_183513_block_appearance from './20260827_183513_block_appearance';
 import * as migration_20260828_010500_block_appearance_css from './20260828_010500_block_appearance_css';
 import * as migration_20260828_043500_block_space_settings from './20260828_043500_block_space_settings';
+import * as migration_20260829_003000_tile_layout from './20260829_003000_tile_layout';
 
 export const migrations = [
   {
@@ -281,5 +282,10 @@ export const migrations = [
     up: migration_20260828_043500_block_space_settings.up,
     down: migration_20260828_043500_block_space_settings.down,
     name: '20260828_043500_block_space_settings',
+  },
+  {
+    up: migration_20260829_003000_tile_layout.up,
+    down: migration_20260829_003000_tile_layout.down,
+    name: '20260829_003000_tile_layout',
   },
 ];
