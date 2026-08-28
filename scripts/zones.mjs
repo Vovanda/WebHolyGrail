@@ -16,12 +16,30 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { REGISTRY, classify, readRegistry, walk, writeRegistry } from './lib/zones.mjs';
+import { REGISTRY, classify, readRegistry, writeRegistry } from './lib/zones.mjs';
 
 const ROOT = path.resolve(
   path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')),
   '..',
 );
+
+/**
+ * Файлы шаблона - те, что под присмотром истории.
+ *
+ * Обходить дерево целиком нельзя: рядом лежит сгенерированное - типы и карта
+ * импортов, - которого в истории нет. Локально его может не быть вовсе, а в прогоне
+ * проверок оно появляется раньше разметки, и реестр каждый раз выглядел бы
+ * разошедшимся.
+ */
+function trackedFiles() {
+  return execFileSync('git', ['ls-files'], { cwd: ROOT, encoding: 'utf8' })
+    .split(String.fromCharCode(10))
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((rel) => !rel.split('/').some((part) => IGNORED.has(part)));
+}
+
+const IGNORED = new Set(['node_modules', '.next', 'dist', 'domain', '.tmp', '.playwright-mcp']);
 
 const args = process.argv.slice(2);
 const all = args.includes('--all');
@@ -58,13 +76,13 @@ if (print) {
   for (const [zone, n] of [...счёт.entries()].sort((a, b) => b[1] - a[1])) {
     console.log(`  ${zone.padEnd(10)} ${String(n).padStart(4)}`);
   }
-  const всего = walk(ROOT).length;
+  const всего = trackedFiles().length;
   console.log(`\n  в реестре ${registry.size}, файлов в дереве ${всего}\n`);
   process.exit(0);
 }
 
 const targets = all
-  ? walk(ROOT)
+  ? trackedFiles()
   : changedFiles().filter(
       (rel) => fs.existsSync(path.join(ROOT, rel)) && fs.statSync(path.join(ROOT, rel)).isFile(),
     );
