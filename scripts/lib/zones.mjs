@@ -71,6 +71,10 @@ const RULES = [
   [/^template-registry\.tsv$/, 'skip'],
 
   // Наложение: сайт добавляет своё в ту же папку.
+  // Индекс миграций синк пересобирает сам по фактическому составу каталога:
+  // возить его нельзя - у сайта свой набор, а копия из шаблона выключила бы
+  // его доменные миграции из прогона.
+  [/^src\/cms\/migrations\/index\.ts$/, 'skip'],
   [/^src\/cms\/migrations\//, 'overlay'],
   [/^src\/client\/src\/lib\//, 'overlay'],
   [/^src\/client\/public\//, 'overlay'],

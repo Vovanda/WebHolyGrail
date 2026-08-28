@@ -440,7 +440,6 @@ overlay	src/cms/migrations/20260828_010500_block_appearance_css.json
 overlay	src/cms/migrations/20260828_010500_block_appearance_css.ts
 overlay	src/cms/migrations/20260828_043500_block_space_settings.json
 overlay	src/cms/migrations/20260828_043500_block_space_settings.ts
-overlay	src/cms/migrations/index.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/check-schema-drift.ts

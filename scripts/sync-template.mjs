@@ -512,7 +512,7 @@ function copyFile(src, dst, label) {
  */
 function syncScripts() {
   console.log(`
-→ Scripts (${SCRIPT_PACKAGES.length} package.json, сливаются по ключам)
+→ Package.json (${SCRIPT_PACKAGES.length} файлов: команды и зависимости)
 `);
   for (const rel of SCRIPT_PACKAGES) {
     const from = path.join(sourceDir, rel);
@@ -521,9 +521,14 @@ function syncScripts() {
 
     const upstream = JSON.parse(fs.readFileSync(from, 'utf8'));
     const instance = JSON.parse(fs.readFileSync(to, 'utf8'));
+    let touched = false;
+
+    /*
+      Команды общие: своё значение у общего ключа - это отставшая копия,
+      а не настройка сайта. Обновляем и показываем, что было и что стало.
+    */
     const theirs = upstream.scripts ?? {};
     const ours = instance.scripts ?? {};
-
     const added = [];
     const differs = [];
     for (const [key, value] of Object.entries(theirs)) {
@@ -535,16 +540,41 @@ function syncScripts() {
         ours[key] = value;
       }
     }
-    // Свои команды инстанса: считаем их только чтобы сказать, что не тронули.
     const own = Object.keys(ours).filter((key) => !(key in theirs));
+    if (added.length || differs.length) {
+      instance.scripts = ours;
+      touched = true;
+    }
 
-    if (added.length === 0 && differs.length === 0) {
+    /*
+      Зависимости - иначе приехавший код не на чем держится: примитивы просят
+      движок листания и плеер, а их у сайта нет, и проверка типов падает
+      на «нет такого модуля». Добавляем недостающее; версии, которые сайт
+      выбрал сам, не трогаем - только называем.
+    */
+    const deps = [];
+    const versions = [];
+    for (const поле of ['dependencies', 'devDependencies']) {
+      const их = upstream[поле] ?? {};
+      const наши = instance[поле] ?? {};
+      for (const [имя, версия] of Object.entries(их)) {
+        if (!(имя in наши)) {
+          наши[имя] = версия;
+          deps.push(`${поле === 'devDependencies' ? 'dev:' : ''}${имя}`);
+        } else if (наши[имя] !== версия) {
+          versions.push(`${имя}: у вас ${наши[имя]}, в шаблоне ${версия}`);
+        }
+      }
+      if (Object.keys(наши).length) instance[поле] = наши;
+    }
+    if (deps.length) touched = true;
+
+    if (!touched) {
       stats.skipped++;
       continue;
     }
 
-    if (!dryRun) {
-      instance.scripts = ours;
+    if (shouldWrite()) {
       fs.writeFileSync(
         to,
         `${JSON.stringify(instance, null, 2)}
@@ -553,13 +583,19 @@ function syncScripts() {
     }
     stats.copied++;
 
-    if (added.length > 0) console.log(`  ${dryRun ? '=' : '+'} ${rel}: ${added.join(', ')}`);
+    if (added.length > 0)
+      console.log(`  ${dryRun ? '=' : '+'} ${rel}: команды ${added.join(', ')}`);
     for (const d of differs) {
-      console.log(`  ${dryRun ? '=' : '~'} ${rel}: scripts.${d.key} обновлена`);
+      console.log(`  ${dryRun ? '=' : '~'} ${rel}: команда ${d.key} обновлена`);
       console.log(`      было:  ${d.was}`);
       console.log(`      стало: ${d.now}`);
     }
-    if (own.length > 0) console.log(`  · ${rel}: своих команд инстанса ${own.length}, не трогаем`);
+    if (deps.length > 0) {
+      console.log(`  ${dryRun ? '=' : '+'} ${rel}: зависимости ${deps.join(', ')}`);
+      console.log('      после прогона нужна установка: pnpm install');
+    }
+    for (const v of versions) console.log(`  · ${rel}: ${v} - оставляем вашу`);
+    if (own.length > 0) console.log(`  · ${rel}: своих команд ${own.length}, не трогаем`);
   }
 }
 
