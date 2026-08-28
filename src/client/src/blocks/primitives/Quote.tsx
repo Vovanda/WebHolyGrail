@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import type { BlockNode, SiteSettings } from 'contracts';
 
 import { cn } from '@/lib/utils';
-import { Carousel } from './Carousel';
+import { PhotoDeck } from './Carousel';
 import { ContentFrame } from '@/layouts/ContentFrame';
 
 /**
@@ -207,14 +207,14 @@ function PhotoFrame({
   }
 
   return (
-    <Carousel
+    <PhotoDeck
       slides={photoUrls.map((url) => ({ url, alt }))}
       interval={5000}
       arrows
       swipe
       objectFit="cover"
       height="460px"
-      background="#F3EFE7"
+      background="var(--color-surface)"
       rounded="14px"
       lightboxGroupId={`quote-${alt || 'photo'}`.replace(/\s+/g, '-')}
     />
