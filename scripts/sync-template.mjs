@@ -236,27 +236,31 @@ const OVERLAY = [
   // generic-файлы шаблона (иконка вкладки) обновляются.
   'src/client/public/',
 
+  // Документация движка. Описания интерфейса нужны сайтам так же, как правила:
+  // по ним собирают блоки и правят вид, и без них инстанс остаётся с кодом,
+  // о котором ничего не написано.
   'docs/whg/',
   'docs/stack/',
-  '.claude/skills/whg-rules/',
-  '.claude/skills/whg-layouts/',
-  '.claude/skills/whg-modals/',
-  '.claude/skills/whg-ui-reference/',
-  '.claude/skills/whg-infisical/',
-  '.claude/skills/whg-template-sync/',
-  '.claude/skills/whg-payload-jobs/',
-  '.claude/skills/whg-payload-migration/',
-  '.claude/skills/whg-git-commit/',
-  '.claude/skills/payload/',
-  '.claude/skills/cms-migration/',
-  '.claude/skills/infisical-setup/',
-  '.claude/skills/infisical-self-host/',
-  '.claude/skills/infisical-secret-syncs/',
-  '.claude/skills/infisical-dynamic-secrets/',
-  '.claude/skills/infisical-agent/',
-  '.claude/skills/infisical-terraform/',
-  '.claude/skills/infisical-api/',
+  'docs/ux/',
 ];
+
+/*
+  Skills переносятся списком папок, а не перечислением каждой: пофайловый список
+  отставал молча - новый навык оставался в шаблоне, а инстанс о нём не узнавал,
+  и никто этого не замечал, пока не спрашивали «почему у меня нет».
+
+  Наши - по префиксу, скачанные у поставщиков - по именам, потому что их состав
+  задаём не мы.
+*/
+const VENDOR_SKILLS = ['payload', 'cms-migration'];
+
+for (const name of fs.existsSync(path.join(sourceDir, '.claude/skills'))
+  ? fs.readdirSync(path.join(sourceDir, '.claude/skills'))
+  : []) {
+  const generic =
+    name.startsWith('whg-') || name.startsWith('infisical-') || VENDOR_SKILLS.includes(name);
+  if (generic) OVERLAY.push(`.claude/skills/${name}/`);
+}
 
 if (includeClaude) {
   MIRROR.push('CLAUDE.md');
