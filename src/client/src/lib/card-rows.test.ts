@@ -3,26 +3,39 @@ import { describe, expect, it } from 'vitest';
 import { balancedRows, splitIntoRows } from './card-rows';
 
 /**
- * Таблица взята из issue #88: она и есть требование владельца к раскладке.
+ * Требование владельца к раскладке: фигура читается одинаково сверху вниз,
+ * а когда симметрий несколько - длинные ряды снаружи.
  */
 describe('balancedRows', () => {
-  it('при трёх колонках даёт ряды из issue', () => {
+  it('при трёх колонках раскладывает симметрично', () => {
     expect(balancedRows(1, 3)).toEqual([1]);
     expect(balancedRows(2, 3)).toEqual([2]);
     expect(balancedRows(3, 3)).toEqual([3]);
     expect(balancedRows(4, 3)).toEqual([2, 2]);
-    expect(balancedRows(5, 3)).toEqual([3, 2]);
     expect(balancedRows(6, 3)).toEqual([3, 3]);
-    expect(balancedRows(7, 3)).toEqual([3, 2, 2]);
+    expect(balancedRows(7, 3)).toEqual([2, 3, 2]);
     expect(balancedRows(8, 3)).toEqual([3, 2, 3]);
     expect(balancedRows(9, 3)).toEqual([3, 3, 3]);
+    expect(balancedRows(13, 3)).toEqual([3, 2, 3, 2, 3]);
+  });
+
+  it('из нескольких симметрий берёт ту, где длинные ряды по краям', () => {
+    // десять при трёх в ряду: 2 3 3 2 тоже палиндром, но края держат ширину
+    expect(balancedRows(10, 3)).toEqual([3, 2, 2, 3]);
+    expect(balancedRows(14, 4)).toEqual([4, 3, 3, 4]);
+  });
+
+  it('где симметрии не существует, длинный ряд идёт первым', () => {
+    // пять в два ряда: палиндрома из пяти не выходит никак
+    expect(balancedRows(5, 3)).toEqual([3, 2]);
+    expect(balancedRows(7, 4)).toEqual([4, 3]);
   });
 
   it('девять карточек при четырёх колонках не оставляют сироту', () => {
     // ловилось на живом сайте: выходило четыре, четыре и одна
     expect(balancedRows(9, 4)).toEqual([3, 3, 3]);
     expect(balancedRows(5, 4)).toEqual([3, 2]);
-    expect(balancedRows(10, 4)).toEqual([4, 3, 3]);
+    expect(balancedRows(10, 4)).toEqual([3, 4, 3]);
   });
 
   it('одинокий ряд появляется только там, где иначе нельзя', () => {

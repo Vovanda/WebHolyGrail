@@ -225,7 +225,6 @@ mirror	src/client/src/blocks/primitives/FaqAccordion/FaqAccordion.tsx
 mirror	src/client/src/blocks/primitives/FaqAccordion/FaqToggleAllButtons.tsx
 mirror	src/client/src/blocks/primitives/FaqAccordion/index.ts
 mirror	src/client/src/blocks/primitives/FeatureGrid.tsx
-mirror	src/client/src/blocks/primitives/Grid/rows.ts
 mirror	src/client/src/blocks/primitives/Hero.tsx
 mirror	src/client/src/blocks/primitives/HeroCinematic.tsx
 mirror	src/client/src/blocks/primitives/HeroSplit.tsx
