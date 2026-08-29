@@ -177,11 +177,29 @@
 ; даже находясь в платном плейлисте.
 (define-fun needsEntitlement ((v Video)) Bool (= (access v) Private))
 
-; Итог: закрытый видео открывается, если у зрителя есть право хотя бы на один
-; плейлист, куда этот видео входит. Есть право на любой из них — смотришь.
+; Право на саму запись. Выдаётся, когда запись продаётся отдельно или не лежит
+; ни в одной подборке: без него такую запись не открыть ничем, и закрытая
+; запись вне подборок становится тем, что нельзя открыть даже за деньги.
+(declare-fun purchasedVideo (Viewer Video) Bool)
+
+; Оно тоже закрепляется за учётной записью - по той же причине, что и право
+; на подборку: анониму его не за кем удержать.
+(assert (forall ((z Viewer) (v Video))
+  (=> (purchasedVideo z v) (signedIn z))))
+
+; Итог: закрытая запись открывается правом на неё саму либо правом на любую
+; подборку, куда она входит.
+;
+; Право на подборку перекрывает поштучный замок записи намеренно: серии продают
+; и по одной, и оптом, и купивший оптом не должен упираться в те, что кто-то
+; когда-то продал отдельно.
+;
+; Обратное неверно и здесь не выражено: из права на запись право на подборку
+; не следует - купил девятую серию, купил девятую серию.
 (define-fun mayWatch ((v Video) (z Viewer)) Bool
   (or (not (needsEntitlement v))
       (owns z v)
+      (purchasedVideo z v)
       (exists ((p Playlist)) (and (inPlaylist v p) (entitled z p)))))
 
 (define-fun envelopeIssuedWithEntitlements ((v Video) (z Viewer)) Bool
@@ -390,6 +408,8 @@
 (declare-const z Viewer)
 (assert (needsEntitlement v))
 (assert (forall ((p Playlist)) (not (entitled z p))))
+; Ни поштучного права: с ним запись открылась бы и без подборок.
+(assert (not (purchasedVideo z v)))
 ; Не автор видео: своё он смотрит независимо от прав.
 (assert (not (owns z v)))
 (assert (envelopeIssuedWithEntitlements v z))
@@ -408,6 +428,42 @@
 (assert (inPlaylist v p))
 (assert (entitled z p))
 (assert (envelopeIssuedWithEntitlements v z))
+(check-sat)
+(pop)
+
+;@TEST          Право на саму запись открывает её вне всяких подборок
+;@EXPECT        sat
+;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::право на саму запись
+(push)
+(declare-const v Video)
+(declare-const z Viewer)
+(assert (= (status v) Ready))
+(assert (needsEntitlement v))
+; Запись не лежит ни в одной подборке: раньше такую нельзя было открыть ничем.
+(assert (forall ((p Playlist)) (not (inPlaylist v p))))
+(assert (purchasedVideo z v))
+(assert (envelopeIssuedWithEntitlements v z))
+(check-sat)
+(pop)
+
+;@TEST          Право на одну запись не открывает соседнюю в той же подборке
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::поштучное право не растекается
+(push)
+(declare-const bought Video)
+(declare-const other Video)
+(declare-const p Playlist)
+(declare-const z Viewer)
+(assert (not (= bought other)))
+(assert (needsEntitlement other))
+(assert (inPlaylist bought p))
+(assert (inPlaylist other p))
+; Куплена одна запись, права на подборку нет.
+(assert (purchasedVideo z bought))
+(assert (not (purchasedVideo z other)))
+(assert (forall ((q Playlist)) (not (entitled z q))))
+(assert (not (owns z other)))
+(assert (envelopeIssuedWithEntitlements other z))
 (check-sat)
 (pop)
 
@@ -447,6 +503,8 @@
 (assert (forall ((q Playlist)) (=> (inPlaylist v q) (not (grantedInToken second q)))))
 ; Второй зритель посторонний: видео не его.
 (assert (not (owns second v)))
+; И поштучного права у него нет: с ним отказ был бы не про наследование.
+(assert (not (purchasedVideo second v)))
 (assert (envelopeIssuedWithEntitlements v second))
 (check-sat)
 (pop)
@@ -460,6 +518,8 @@
 (assert (needsEntitlement v))
 (assert (isAdmin z))
 (assert (not (owns z v)))
+; Роль сама по себе прав не даёт - ни на подборку, ни на запись.
+(assert (not (purchasedVideo z v)))
 (assert (forall ((p Playlist)) (not (purchased z p))))
 (assert (forall ((q Playlist)) (=> (inPlaylist v q) (not (grantedInToken z q)))))
 (assert (envelopeIssuedWithEntitlements v z))
@@ -492,6 +552,8 @@
 (assert (not (= mine other)))
 (assert (owns z mine))
 (assert (not (owns z other)))
+; Чужую запись он не покупал: иначе отказ был бы не про владение.
+(assert (not (purchasedVideo z other)))
 (assert (forall ((p Playlist)) (not (purchased z p))))
 (assert (forall ((q Playlist)) (=> (inPlaylist other q) (not (grantedInToken z q)))))
 (assert (envelopeIssuedWithEntitlements other z))
@@ -513,6 +575,8 @@
 (assert (forall ((p Playlist)) (=> (entitled z p) (= p other))))
 ; Зритель посторонний: своё он смотрел бы и без права.
 (assert (not (owns z v)))
+; И записи поштучно не покупал: речь про право на другую подборку.
+(assert (not (purchasedVideo z v)))
 (assert (envelopeIssuedWithEntitlements v z))
 (check-sat)
 (pop)

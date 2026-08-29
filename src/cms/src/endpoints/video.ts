@@ -888,7 +888,8 @@ export const videoRedeemEndpoint: Endpoint = {
         where: {
           and: [
             { viewer: { equals: req.user.id } },
-            { playlist: { equals: Number(result.playlistId) } },
+            { 'resource.value': { equals: Number(result.playlistId) } },
+            { 'resource.relationTo': { equals: 'playlists' } },
           ],
         },
         depth: 0,
@@ -906,7 +907,7 @@ export const videoRedeemEndpoint: Endpoint = {
           collection: 'entitlements',
           data: {
             viewer: req.user.id,
-            playlist: Number(result.playlistId),
+            resource: { relationTo: 'playlists', value: Number(result.playlistId) },
             source: 'promo',
             expiresAt: plan.expiresAt,
             note: `Код ${code}`,

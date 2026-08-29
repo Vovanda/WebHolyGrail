@@ -50,6 +50,7 @@ import * as migration_20260829_180805_media_preview_url from './20260829_180805_
 import * as migration_20260829_182606_media_pack_bytes from './20260829_182606_media_pack_bytes';
 import * as migration_20260829_185756_video_visibility from './20260829_185756_video_visibility';
 import * as migration_20260829_190150_playlist_access_removed from './20260829_190150_playlist_access_removed';
+import * as migration_20260829_200357_entitlement_resource from './20260829_200357_entitlement_resource';
 
 export const migrations = [
   {
@@ -311,5 +312,10 @@ export const migrations = [
     up: migration_20260829_190150_playlist_access_removed.up,
     down: migration_20260829_190150_playlist_access_removed.down,
     name: '20260829_190150_playlist_access_removed',
+  },
+  {
+    up: migration_20260829_200357_entitlement_resource.up,
+    down: migration_20260829_200357_entitlement_resource.down,
+    name: '20260829_200357_entitlement_resource',
   },
 ];

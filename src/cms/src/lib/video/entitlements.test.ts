@@ -12,8 +12,9 @@ import { entitlementPolicy, type EntitlementSource } from './entitlements.js';
 
 const NOW = new Date('2026-08-26T12:00:00Z');
 
-const policyWith = (entitled: ReadonlyArray<string | number>) => {
+const policyWith = (entitled: ReadonlyArray<string | number>, ownsVideoRight = false) => {
   const source: EntitlementSource = {
+    entitledToVideo: vi.fn(async () => ownsVideoRight),
     entitledPlaylistsFor: vi.fn(async () => entitled),
     playlistsContaining: vi.fn(async () => []),
   };
@@ -96,5 +97,30 @@ describe('доступ с правами на плейлисты', () => {
       allowed: false,
       reason: 'not-entitled',
     });
+  });
+
+  it('право на саму запись открывает её вне всяких подборок', async () => {
+    // Запись не лежит ни в одной подборке: без поштучного права такую
+    // не открыть ничем, и она становится тем, что нельзя купить.
+    const { policy } = policyWith([], true);
+    expect(await policy.decide(closedVideo, { userId: 42 })).toEqual({ allowed: true });
+  });
+
+  it('поштучное право не растекается на соседние записи', async () => {
+    // Купил девятую серию - купил девятую серию: у соседней своего права нет,
+    // и права на подборку тоже.
+    const { policy } = policyWith([], false);
+    expect(await policy.decide(closedVideo, { userId: 42 })).toEqual({
+      allowed: false,
+      reason: 'not-entitled',
+    });
+  });
+
+  it('право на подборку проверяется, даже когда поштучного нет', async () => {
+    // Порядок правил: сперва дешёвая проверка своей записи, потом подборки.
+    // Если бы вторая не срабатывала, купивший оптом упирался бы в замок.
+    const { policy, source } = policyWith([7], false);
+    expect(await policy.decide(closedVideo, { userId: 42 })).toEqual({ allowed: true });
+    expect(source.entitledToVideo).toHaveBeenCalled();
   });
 });

@@ -456,6 +456,8 @@ overlay	src/cms/migrations/20260829_185756_video_visibility.json
 overlay	src/cms/migrations/20260829_185756_video_visibility.ts
 overlay	src/cms/migrations/20260829_190150_playlist_access_removed.json
 overlay	src/cms/migrations/20260829_190150_playlist_access_removed.ts
+overlay	src/cms/migrations/20260829_200357_entitlement_resource.json
+overlay	src/cms/migrations/20260829_200357_entitlement_resource.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/backfill-pack-bytes.ts
