@@ -75,8 +75,24 @@ test.describe('Видео', () => {
     const response = await page.goto(DEMO_PATH);
     if (response?.status() === 404) test.skip(true, 'демо-страницы на этом сайте нет');
 
-    const locked = page.locator('[data-access-code]').first();
-    if ((await locked.count()) === 0) test.skip(true, 'закрытых видео на странице нет');
+    if ((await page.locator('[data-access-code]').count()) === 0) {
+      test.skip(true, 'закрытых видео на странице нет');
+    }
+
+    /*
+      Замки живут в панели плейлиста, а она бывает свёрнута - тогда они есть
+      в разметке, но невидимы, и нажать на них нельзя. Раньше тест брал первый
+      попавшийся и падал именно на этом: смотрел в закрытую панель.
+
+      Открываем её так же, как человек, - кнопкой рядом с плеером.
+    */
+    let locked = page.locator('[data-access-code]:visible').first();
+    if ((await locked.count()) === 0) {
+      const tab = page.getByRole('button', { name: 'Плейлист' });
+      if ((await tab.count()) === 0) test.skip(true, 'замки скрыты, а панели плейлиста нет');
+      await tab.click();
+      locked = page.locator('[data-access-code]:visible').first();
+    }
 
     // Нажатие на замок ведёт к вводу кода, а не в никуда.
     await locked.click();
