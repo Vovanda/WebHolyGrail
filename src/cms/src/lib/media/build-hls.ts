@@ -124,8 +124,13 @@ export async function buildHls({
     log('кадры для перемотки сняты');
   }
 
+  // Считаем по тем же кускам, которые только что уложили в хранилище: обходить
+  // его отдельным запросом ради суммы незачем.
+  const packBytes = result.files.reduce((sum, file) => sum + file.body.length, 0);
+
   await catalog.saveRendition(mediaId, {
     storyboard,
+    packBytes,
     playlistUrl: storage.urlForKey(`${prefix}/master.m3u8`),
     prefix,
     qualities: result.rungs.map((rung) => rung.height),

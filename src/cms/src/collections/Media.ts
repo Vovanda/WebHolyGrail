@@ -33,13 +33,13 @@ export const Media: CollectionConfig = {
   labels: { singular: 'Медиафайл', plural: 'Медиа' },
   admin: {
     useAsTitle: 'title',
-    // Название впереди имени файла: в списке ищут глазами по названию, а
-    // `lesson-4.mp4` о содержимом не говорит ничего. Описание из колонок убрано —
-    // у видео оно в несколько строк и разносит таблицу.
-    // Первой идёт обычная колонка: на ней Payload сам рисует ссылку на запись.
-    // Своя ячейка на первом месте подменяла бы эту обёртку, и строка переставала
-    // открываться - а в окне выбора воссозданная руками ссылка перехватывала бы выбор.
-    defaultColumns: ['filename', 'preview', 'caption', 'mimeType', 'updatedAt'],
+    // Первой идёт колонка без своей ячейки, и это не вкус: именно первой колонке
+    // Payload выдаёт обёртку - ссылку на запись в списке и кнопку выбора в окне
+    // выбора. Своя ячейка подменяет обёртку целиком, и запись перестаёт
+    // открываться, а файл - выбираться.
+    // Кадр показывает сама миниатюра имени файла: адрес кадра лежит рядом
+    // с записью, поэтому отдельная колонка превью больше не нужна.
+    defaultColumns: ['filename', 'caption', 'mimeType', 'updatedAt'],
     group: 'Медиа',
     /**
      * Обложки видео не показываются в общем списке.
@@ -151,39 +151,33 @@ export const Media: CollectionConfig = {
       },
     },
     {
-      /**
-       * Имя файла в списке - без значка файла рядом.
-       *
-       * @remarks
-       * Поле заводит сам Payload; здесь оно объявлено только ради своей ячейки
-       * в списке - остальное берётся из базового описания.
-       */
-      name: 'filename',
-      type: 'text',
-      // Подпись колонки берётся из словаря Payload: своё описание поля затирает
-      // базовое целиком, и без этой строки в шапке остаётся английское слово.
-      label: ({ t }) => t('upload:fileName'),
-      admin: {
-        components: {
-          Cell: '/admin/components/FileNameCell#FileNameCell',
-        },
-      },
-    },
-    {
       name: 'preview',
       label: 'Превью',
       type: 'upload',
       relationTo: 'media',
       admin: {
         readOnly: true,
-        components: {
-          // В списке вместо ссылки на документ показываем сам кадр: у видео
-          // штатная миниатюра Payload — серая иконка на все строки подряд.
-          Cell: '/admin/components/MediaThumbCell#MediaThumbCell',
-        },
         description:
           'Для PDF собирается само из первой страницы при загрузке. Заполнять вручную не нужно.',
       },
+    },
+    {
+      /**
+       * Адрес кадра, который показывается вместо самого файла.
+       *
+       * @remarks
+       * Кадр лежит отдельной записью, и связь на него хранит только номер.
+       * Список Payload грузит записи без вложенности, причём глубина нуля
+       * задана в самом списке, а не настройкой, - значит по связи адрес там
+       * не достать ни сейчас, ни после подъёма версии. Поэтому адрес лежит
+       * рядом с записью, и миниатюру рисует сам Payload всюду, где умеет:
+       * в списке, в окне выбора, в поле выбора файла и в карточке.
+       *
+       * Заполняется там же, где ставится сам кадр, и руками не правится.
+       */
+      name: 'previewUrl',
+      type: 'text',
+      admin: { hidden: true, readOnly: true },
     },
     {
       // The field name `prefix` is the convention of `@payloadcms/storage-s3` (it
@@ -297,19 +291,65 @@ export const Media: CollectionConfig = {
       admin: { position: 'sidebar', readOnly: true },
     },
     {
+      /**
+       * Кому выдаётся ключ.
+       *
+       * @remarks
+       * По умолчанию закрыто, и это не осторожность ради осторожности. Раньше
+       * значением по умолчанию было «всем»: платная запись открывалась любому
+       * с того мгновения, как дорезалась, и до того, как автор вспомнит
+       * переключить. Окном пользуется тот, кто первым обновит страницу канала.
+       *
+       * Обратное неверно: лишний раз открыть запись дёшево и обратимо, а
+       * утёкшую уже не закрыть - её успели скачать.
+       *
+       * У записей, залитых раньше, значение уже стоит в базе, и оно не меняется:
+       * открытое остаётся открытым.
+       */
       name: 'access',
-      label: 'Кто может смотреть',
+      label: 'Доступ',
       type: 'select',
-      defaultValue: 'public',
+      defaultValue: 'private',
       options: [
-        { label: 'Все', value: 'public' },
-        { label: 'Только авторизованные', value: 'private' },
+        { label: 'Открытое', value: 'public' },
+        { label: 'Закрытое', value: 'private' },
       ],
       admin: {
         position: 'sidebar',
         condition: (data) => String(data?.mimeType ?? '').startsWith('video/'),
         description:
-          'Переключается в любой момент: видео зашифровано в обоих режимах, меняется только то, кому выдаётся ключ. Перенарезка не требуется.',
+          'Закрытое отпирается кодом или правом на подборку. Новое видео закрыто, пока не открыли. Переключается в любой момент, перенарезка не нужна.',
+      },
+    },
+    {
+      /**
+       * Попадает ли запись в списки.
+       *
+       * @remarks
+       * Ось, независимая от доступа, и это не тонкость: без неё витрина
+       * собиралась сама из всего залитого, а платная запись успевала побывать
+       * на виду в промежутке между нарезкой и переключением доступа.
+       *
+       * Все четыре сочетания осмысленны. Закрытое опубликованное - витрина
+       * платного: видно, что есть, замок объясняет, почему не играет. Открытое
+       * скрытое - то, что раздают ссылкой, минуя списки. Скрытое закрытое -
+       * заготовка. Открытое опубликованное - обычная запись.
+       *
+       * Скрыто по умолчанию: показ - решение автора, а не следствие загрузки.
+       */
+      name: 'visibility',
+      label: 'Публикация',
+      type: 'select',
+      defaultValue: 'hidden',
+      options: [
+        { label: 'Опубликовано', value: 'published' },
+        { label: 'Скрыто', value: 'hidden' },
+      ],
+      admin: {
+        position: 'sidebar',
+        condition: (data) => String(data?.mimeType ?? '').startsWith('video/'),
+        description:
+          'Видно ли запись в списках канала. Доступа не касается: закрытое остаётся закрытым и опубликованным.',
       },
     },
     {
@@ -467,6 +507,23 @@ export const Media: CollectionConfig = {
             { name: 'frameHeight', type: 'number' },
             { name: 'intervalSeconds', type: 'number' },
           ],
+        },
+        {
+          /**
+           * Сколько весит нарезка целиком.
+           *
+           * @remarks
+           * Считается при разрезании по всем выданным кускам. Показывается
+           * вместо веса исходника: тот удаляется, и подпись под именем обещала
+           * файл, которого в хранилище нет.
+           *
+           * Пусто у записей, нарезанных до появления этого поля; тогда
+           * показывается прежний вес с оговоркой, что он от исходника.
+           */
+          name: 'packBytes',
+          label: 'Вес нарезки',
+          type: 'number',
+          admin: { readOnly: true },
         },
         {
           name: 'qualities',
@@ -664,18 +721,55 @@ export const Media: CollectionConfig = {
        * плейлист — это подборка, и её у видео может не быть вовсе.
        */
       ({ doc }) => {
-        const hls = doc?.hls as { status?: string; playlistUrl?: string | null } | undefined;
-        if (hls?.status === 'ready' && hls.playlistUrl) {
-          const preview = doc?.preview as { url?: string } | undefined;
-          return {
-            ...doc,
-            url: hls.playlistUrl,
-            // Миниатюрой служит снятый кадр: исходника, из которого Payload
-            // рисовал бы своё превью, больше нет.
-            ...(preview?.url ? { thumbnailURL: preview.url } : {}),
-          };
-        }
-        return doc;
+        /*
+          Миниатюрой служит снятый кадр. Адрес берётся из поля рядом с записью,
+          а не из связи: в списке связь приходит номером, и по ней адреса нет.
+          Развёрнутая связь остаётся запасным путём - для записей, у которых
+          поле ещё не заполнено.
+        */
+        const preview = doc?.preview as { url?: string } | number | string | undefined;
+        const posterUrl =
+          (typeof doc?.previewUrl === 'string' && doc.previewUrl) ||
+          (typeof preview === 'object' && preview !== null ? preview.url : undefined);
+
+        const hls = doc?.hls as
+          | {
+              status?: string;
+              playlistUrl?: string | null;
+              prefix?: string | null;
+              packBytes?: number | null;
+            }
+          | undefined;
+        const streamUrl = hls?.status === 'ready' ? (hls.playlistUrl ?? undefined) : undefined;
+
+        /*
+          Имя показывается такое, как объект называется в хранилище. Исходника
+          давно нет, а плашка обещала `lesson-4.mp4` и вела на манифест: человек
+          нажимал в расчёте посмотреть видео и получал список кусков. Теперь имя
+          и адрес говорят об одном и том же - о пакете нарезки. Смотрят видео
+          не отсюда, а по ссылке на страницу в блоке предпросмотра ниже.
+        */
+        const packName = streamUrl && hls?.prefix ? `${hls.prefix}/master.m3u8` : undefined;
+
+        /*
+          Весом называется вес нарезки, а не исходника: исходник удалён, и его
+          вес рядом с именем пакета сбивал с толку. Прежний вес не теряется -
+          он уезжает в поле рядом и показывается в предпросмотре с оговоркой,
+          что он от исходника. У записей, нарезанных до подсчёта, веса пакета
+          нет, и подпись остаётся прежней.
+        */
+        const packBytes = streamUrl ? (hls?.packBytes ?? undefined) : undefined;
+        const sourceFilesize = typeof doc?.filesize === 'number' ? doc.filesize : undefined;
+
+        if (!posterUrl && !streamUrl) return doc;
+
+        return {
+          ...doc,
+          ...(streamUrl ? { url: streamUrl } : {}),
+          ...(packName ? { filename: packName } : {}),
+          ...(posterUrl ? { thumbnailURL: posterUrl } : {}),
+          ...(packBytes ? { filesize: packBytes, sourceFilesize: sourceFilesize ?? null } : {}),
+        };
       },
       ({ doc }) => {
         if (!doc?.url) return doc;
@@ -768,7 +862,11 @@ export const Media: CollectionConfig = {
           const base = String(doc.filename ?? 'document').replace(/\.pdf$/i, '');
           const created = await req.payload.create({
             collection: 'media',
-            data: { alt: `Первая страница документа «${base}»`, prefix: 'previews' },
+            data: {
+              alt: `Первая страница документа «${base}»`,
+              prefix: POSTER_PREFIX,
+              derived: true,
+            },
             file: {
               data: preview,
               name: `${base}-preview.webp`,
@@ -779,9 +877,9 @@ export const Media: CollectionConfig = {
           await req.payload.update({
             collection: 'media',
             id: doc.id as string | number,
-            data: { preview: created.id },
+            data: { preview: created.id, previewUrl: created.url ?? null },
           });
-          return { ...doc, preview: created.id };
+          return { ...doc, preview: created.id, previewUrl: created.url ?? null };
         } catch {
           // Документ уже сохранён — превью не критично, добавится при повторной загрузке.
           return doc;

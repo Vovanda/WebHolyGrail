@@ -73,6 +73,12 @@ function makePorts(
       remove: vi.fn(async (key: string) => {
         calls.push(`remove:${key}`);
       }),
+      // При обычной нарезке не зовётся: вес известен из выданных кусков,
+      // а обход хранилища нужен только старым записям.
+      folderBytes: vi.fn(async (prefix: string) => {
+        calls.push(`folderBytes:${prefix}`);
+        return 0;
+      }),
       keyFromUrl: (url: string) => url.replace('https://cdn.example/', ''),
       urlForKey: (key: string) => `https://cdn.example/${key}`,
     },
@@ -146,6 +152,14 @@ describe('подготовка видео', () => {
     await run(ports);
     expect(saved[0]!.prefix).toMatch(/^u7\/hls\/[0-9a-f-]{36}$/);
     expect(saved[0]!.prefix).not.toContain('/1/');
+  });
+
+  it('вес нарезки считается по всем выданным кускам', async () => {
+    const { ports, saved } = makePorts();
+    await run(ports);
+    // '#EXTM3U' - семь байт, 'x' - один: вес пакета складывается из обоих кусков,
+    // а не берётся у одного плейлиста и не остаётся весом исходника.
+    expect(saved[0]!.packBytes).toBe(8);
   });
 
   it('две нарезки одного видео получают разные адреса', async () => {

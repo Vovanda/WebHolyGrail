@@ -46,6 +46,10 @@ import * as migration_20260827_183513_block_appearance from './20260827_183513_b
 import * as migration_20260828_010500_block_appearance_css from './20260828_010500_block_appearance_css';
 import * as migration_20260828_043500_block_space_settings from './20260828_043500_block_space_settings';
 import * as migration_20260829_003000_tile_layout from './20260829_003000_tile_layout';
+import * as migration_20260829_180805_media_preview_url from './20260829_180805_media_preview_url';
+import * as migration_20260829_182606_media_pack_bytes from './20260829_182606_media_pack_bytes';
+import * as migration_20260829_185756_video_visibility from './20260829_185756_video_visibility';
+import * as migration_20260829_190150_playlist_access_removed from './20260829_190150_playlist_access_removed';
 
 export const migrations = [
   {
@@ -287,5 +291,25 @@ export const migrations = [
     up: migration_20260829_003000_tile_layout.up,
     down: migration_20260829_003000_tile_layout.down,
     name: '20260829_003000_tile_layout',
+  },
+  {
+    up: migration_20260829_180805_media_preview_url.up,
+    down: migration_20260829_180805_media_preview_url.down,
+    name: '20260829_180805_media_preview_url',
+  },
+  {
+    up: migration_20260829_182606_media_pack_bytes.up,
+    down: migration_20260829_182606_media_pack_bytes.down,
+    name: '20260829_182606_media_pack_bytes',
+  },
+  {
+    up: migration_20260829_185756_video_visibility.up,
+    down: migration_20260829_185756_video_visibility.down,
+    name: '20260829_185756_video_visibility',
+  },
+  {
+    up: migration_20260829_190150_playlist_access_removed.up,
+    down: migration_20260829_190150_playlist_access_removed.down,
+    name: '20260829_190150_playlist_access_removed',
   },
 ];

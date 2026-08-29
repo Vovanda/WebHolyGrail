@@ -53,7 +53,7 @@ export function PlaylistItemRowLabel() {
   if (!video) return <span>Видео {order}</span>;
 
   const poster = typeof video.preview === 'object' && video.preview ? video.preview.url : undefined;
-  const title = video.caption?.trim() || video.filename || 'Видео';
+  const title = video.caption?.trim() || 'Видео';
   const duration = video.hls?.durationSeconds;
   const notReady = video.hls?.status && video.hls.status !== 'ready';
 

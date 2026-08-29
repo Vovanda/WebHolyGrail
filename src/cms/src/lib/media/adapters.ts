@@ -95,6 +95,23 @@ export function s3Storage(): StoragePort {
       } while (token);
     },
 
+    async folderBytes(prefix) {
+      let token: string | undefined;
+      let total = 0;
+      do {
+        const listed = await client.send(
+          new ListObjectsV2Command({
+            Bucket: bucket,
+            Prefix: `${prefix}/`,
+            ContinuationToken: token,
+          }),
+        );
+        for (const object of listed.Contents ?? []) total += object.Size ?? 0;
+        token = listed.IsTruncated ? listed.NextContinuationToken : undefined;
+      } while (token);
+      return total;
+    },
+
     async remove(key) {
       await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
     },
@@ -169,6 +186,7 @@ export function payloadCatalog(payload: Payload): CatalogPort {
             prefix: result.prefix,
             qualities: result.qualities.map((height) => ({ height })),
             durationSeconds: result.durationSeconds,
+            packBytes: result.packBytes,
             // Пустая лента - не беда: полоса времени просто останется без
             // подсказок, а всё остальное работает.
             storyboard: result.storyboard ?? {},
@@ -209,7 +227,9 @@ export function payloadCatalog(payload: Payload): CatalogPort {
       await payload.update({
         collection: 'media',
         id,
-        data: { preview: created.id },
+        // Адрес кадра ложится рядом со связью: список грузит записи без
+        // вложенности, и по связи адреса там не достать.
+        data: { preview: created.id, previewUrl: created.url ?? null },
         context: { skipHlsQueue: true },
       });
     },

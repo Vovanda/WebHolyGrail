@@ -17,6 +17,19 @@ import { useEffect, useRef, useState } from 'react';
  */
 type Status = 'pending' | 'processing' | 'ready' | 'failed';
 
+/** Вес человеческими словами: рядом с ним всегда стоит вес нарезки от Payload. */
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} Б`;
+  const units = ['КБ', 'МБ', 'ГБ'];
+  let value = bytes / 1024;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${units[unit]}`;
+}
+
 const LABEL: Record<Status, string> = {
   pending: 'В очереди на нарезку',
   processing: 'Нарезается',
@@ -31,6 +44,9 @@ export function VideoPreviewField() {
     shortCode?: string | null;
     uploadedBy?: { channel?: string | null } | string | number | null;
     preview?: { url?: string } | string | number | null;
+    // Вес исходника приходит отдельным полем: под именем стоит вес нарезки,
+    // а исходника в хранилище уже нет, и путать их нельзя.
+    sourceFilesize?: number | null;
     hls?: {
       status?: Status;
       qualities?: ReadonlyArray<{ height?: number | null }> | null;
@@ -136,7 +152,10 @@ export function VideoPreviewField() {
               duration
                 ? `${Math.floor(duration / 60)}:${String(duration % 60).padStart(2, '0')}`
                 : null,
-              'Исходник удалён — видео отдаётся нарезкой',
+              'Исходника нет: в хранилище лежит нарезка HLS',
+              typeof doc.sourceFilesize === 'number'
+                ? `исходник весил ${formatBytes(doc.sourceFilesize)}`
+                : null,
             ]
               .filter(Boolean)
               .join(' · ')

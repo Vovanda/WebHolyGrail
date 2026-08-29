@@ -51,6 +51,15 @@ export interface StoragePort {
   put(key: string, file: HlsFile): Promise<void>;
   /** Убирает всё под адресом — прошлую нарезку. */
   removeFolder(prefix: string): Promise<void>;
+  /**
+   * Сколько весит всё под адресом.
+   *
+   * @remarks
+   * Нужен только там, где вес нарезки не считался при разрезании: у записей,
+   * сделанных до появления подсчёта. При обычной нарезке сумма известна и так,
+   * и обходить хранилище незачем.
+   */
+  folderBytes(prefix: string): Promise<number>;
   /** Убирает один объект — исходник после нарезки. */
   remove(key: string): Promise<void>;
   /** Ключ объекта из его публичного адреса. */
@@ -80,6 +89,16 @@ export interface RenditionResult {
   readonly qualities: ReadonlyArray<number>;
   readonly durationSeconds: number | null;
   readonly secret: string;
+  /**
+   * Сколько весит нарезка целиком, со всеми качествами.
+   *
+   * @remarks
+   * Исходник после нарезки удаляется, а его вес остаётся записанным у файла -
+   * и подпись в админке обещает то, чего в хранилище давно нет. Поэтому вес
+   * пакета считается при разрезании: другого места, где известны все куски
+   * разом, нет, а обходить хранилище ради одной цифры дорого.
+   */
+  readonly packBytes: number;
   /** Лента кадров для перемотки: адрес и устройство сетки. */
   readonly storyboard: StoryboardRendition | null;
 }
