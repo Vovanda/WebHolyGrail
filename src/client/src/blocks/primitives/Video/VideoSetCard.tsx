@@ -24,7 +24,15 @@ export function VideoSetCard({
   unlocking,
 }: {
   item: VideoSetItem;
-  index: number;
+  /**
+   * Номер в перечне.
+   *
+   * @remarks
+   * Есть у подборки, где порядок и есть смысл: за первым уроком идёт второй.
+   * В витрине канала записи ничем не упорядочены, и номер там сообщал бы
+   * порядок, которого нет. Поэтому необязателен.
+   */
+  index?: number | undefined;
   channel: string | null;
   orientation: 'vertical' | 'horizontal';
   current: boolean;
@@ -96,7 +104,7 @@ export function VideoSetCard({
             current ? 'text-accent' : 'text-ink',
           )}
         >
-          {index}. {item.title}
+          {index === undefined ? item.title : `${index}. ${item.title}`}
         </span>
         {!playable && (
           <span className="flex items-center gap-1.5 text-sm text-muted">

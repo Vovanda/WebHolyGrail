@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import { PlaylistCard } from '@/blocks/primitives/Video/PlaylistCard';
+import { VideoSetCard } from '@/blocks/primitives/Video/VideoSetCard';
 import { getChannel } from '@/lib/api-client';
 
 /**
@@ -72,48 +73,27 @@ export default async function ChannelPage({ params }: { params: Promise<Params> 
             <h2 className="text-h4 font-display font-semibold tracking-tight text-ink">Записи</h2>
           )}
 
-          <div className="grid gap-5 md:gap-6 [grid-template-columns:repeat(auto-fill,minmax(min(100%,18rem),1fr))]">
+          {/*
+            Карточка та же, что в подборке: она уже умеет замок, затемнение
+            и подпись о том, почему запись не играет. Витрине это нужно ровно
+            так же - в ней стоит и платное. Номер не передаётся: в витрине
+            записи ничем не упорядочены.
+          */}
+          <ul className="grid list-none gap-5 p-0 md:gap-6 [grid-template-columns:repeat(auto-fill,minmax(min(100%,18rem),1fr))]">
             {data.videos.map((video) => (
-              <article
+              <VideoSetCard
                 key={video.code}
-                className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-paper transition-colors hover:border-border-strong"
-              >
-                <div className="relative overflow-hidden bg-surface">
-                  {video.poster ? (
-                    <img
-                      src={video.poster}
-                      alt=""
-                      loading="lazy"
-                      className="aspect-video w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                    />
-                  ) : (
-                    // Без обложки плитки в ряду разъезжаются по высоте.
-                    <div className="aspect-video w-full" aria-hidden="true" />
-                  )}
-                  {video.durationSeconds ? (
-                    <span className="absolute bottom-2 right-2 rounded bg-black/75 px-1.5 py-0.5 text-xs tabular-nums text-white">
-                      {formatDuration(video.durationSeconds)}
-                    </span>
-                  ) : null}
-                </div>
-                <h2 className="p-4 text-body font-medium leading-snug text-ink text-balance">
-                  <a
-                    href={`/@${data.channel}/v/${video.code}`}
-                    className="after:absolute after:inset-0 after:content-[''] group-hover:underline underline-offset-4"
-                  >
-                    {video.title}
-                  </a>
-                </h2>
-              </article>
+                item={video}
+                channel={data.channel}
+                orientation="horizontal"
+                current={false}
+                setCode={null}
+                unlocking={false}
+              />
             ))}
-          </div>
+          </ul>
         </section>
       )}
     </main>
   );
-}
-
-function formatDuration(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
 }

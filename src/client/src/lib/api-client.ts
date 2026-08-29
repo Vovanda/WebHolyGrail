@@ -627,12 +627,15 @@ export async function getVideoByCode(
   };
 }
 
-/** Видео в списке канала. */
-export interface ChannelVideo {
-  readonly code: string;
-  readonly title: string;
-  readonly poster: string | null;
-  readonly durationSeconds: number | null;
+/**
+ * Видео в списке канала.
+ *
+ * @remarks
+ * Тот же вид, что и у записи подборки, плюс дата: витрину рисует та же
+ * карточка, которая уже умеет замок и подпись о том, почему запись не играет.
+ * Свой вид означал бы вторую карточку с тем же смыслом.
+ */
+export interface ChannelVideo extends VideoSetItem {
   readonly createdAt: string | null;
 }
 
