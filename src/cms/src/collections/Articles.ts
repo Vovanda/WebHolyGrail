@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload';
 import { BlocksFeature, lexicalEditor } from '@payloadcms/richtext-lexical';
+
+import { CollapsibleBlock } from '../blocks/Collapsible';
 import { VideoBlock } from '../blocks/Video';
 import { VideoSetBlock } from '../blocks/VideoSet';
 
@@ -93,7 +95,7 @@ export const Articles: CollectionConfig = {
       editor: lexicalEditor({
         features: ({ defaultFeatures }) => [
           ...defaultFeatures,
-          BlocksFeature({ blocks: [VideoBlock, VideoSetBlock] }),
+          BlocksFeature({ blocks: [VideoBlock, VideoSetBlock, CollapsibleBlock] }),
         ],
       }),
     },

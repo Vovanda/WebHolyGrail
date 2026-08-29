@@ -35,6 +35,7 @@ import { ThreadsSection } from '@/blocks/primitives/Blog/ThreadsSection';
 import { DemoAccessSection } from '@/blocks/primitives/Video/DemoAccessSection';
 import { VideoSetSection } from '@/blocks/primitives/Video/VideoSetSection';
 import { VideoSection } from '@/blocks/primitives/Video/VideoSection';
+import { Collapsible } from '@/blocks/primitives/RichText/Collapsible';
 import { RichTextBlock } from '@/blocks/primitives/RichText';
 import { PageOutlet } from '@/blocks/system/PageOutlet';
 // WHG-specific landing blocks
@@ -86,6 +87,7 @@ export const engineRegistry: Record<string, BlockRenderer> = {
   'threads-section': (node) => <ThreadsSection node={node} />,
   video: (node, settings) => <VideoSection node={node} settings={settings} />,
   videoSet: (node, settings) => <VideoSetSection node={node} settings={settings} />,
+  collapsible: (node, settings) => <Collapsible node={node} settings={settings} />,
   demoAccess: (node) => <DemoAccessSection node={node} />,
   'rich-text': (node, settings) => <RichTextBlock node={node} settings={settings} />,
   'reusable-ref': (node, settings) => <ReusableRef node={node} settings={settings} />,

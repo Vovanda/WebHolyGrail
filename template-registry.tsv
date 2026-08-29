@@ -248,6 +248,7 @@ mirror	src/client/src/blocks/primitives/QuoteCycle.tsx
 mirror	src/client/src/blocks/primitives/RatingStars.tsx
 mirror	src/client/src/blocks/primitives/RequestForm.tsx
 mirror	src/client/src/blocks/primitives/ReusableRef.tsx
+mirror	src/client/src/blocks/primitives/RichText/Collapsible.tsx
 mirror	src/client/src/blocks/primitives/RichText/index.ts
 mirror	src/client/src/blocks/primitives/RichText/LexicalRenderer.tsx
 mirror	src/client/src/blocks/primitives/RichText/RichTextBlock.tsx
@@ -497,6 +498,7 @@ mirror	src/cms/src/blocks/BannerSlider.ts
 mirror	src/cms/src/blocks/BuiltWith.ts
 mirror	src/cms/src/blocks/Carousel.ts
 mirror	src/cms/src/blocks/CertifiedNotice.ts
+mirror	src/cms/src/blocks/Collapsible.ts
 mirror	src/cms/src/blocks/ComparisonTable.ts
 mirror	src/cms/src/blocks/CtaBanner.ts
 mirror	src/cms/src/blocks/CustomMarkup.ts
