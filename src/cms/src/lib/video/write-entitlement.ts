@@ -7,7 +7,7 @@ import { planEntitlement } from './keep-entitlement';
  *
  * @remarks
  * Отделено от того, кто это право выдал. Код, оплата и рука владельца приводят
- * к одному и тому же - записи «этому зрителю открыт этот ресурс до такого-то
+ * к одному и тому же - записи «этому зрителю открыт этот доступ до такого-то
  * числа», - и решать, заводить её или продлевать, каждому из них по-своему
  * незачем.
  *
@@ -16,15 +16,21 @@ import { planEntitlement } from './keep-entitlement';
  * своих правил.
  */
 
-/** Чем держится право: учётной записью или идентичностью из токена. */
+/** Чем держится право: учётной записью или маркером посетителя из токена. */
 export type GrantHolder =
   | { readonly kind: 'account'; readonly userId: string | number }
-  | { readonly kind: 'identity'; readonly ref: string };
+  | { readonly kind: 'identity'; readonly visitorMarker: string };
 
-/** На что выдаётся право. */
+/**
+ * На какой доступ выдаётся право.
+ *
+ * @remarks
+ * Право лежит на доступе, а не на материале: что именно откроется, знает сам
+ * доступ, и поменяется его состав - поменяется открытое, без единой правки
+ * в выданных правах.
+ */
 export interface GrantTarget {
-  readonly collection: 'playlists' | 'media';
-  readonly id: string | number;
+  readonly accessId: string | number;
 }
 
 export interface WriteGrantArgs {
@@ -43,10 +49,10 @@ export type WriteGrantResult = 'created' | 'extended' | 'kept';
 const holderWhere = (holder: GrantHolder): Where =>
   holder.kind === 'account'
     ? { viewer: { equals: holder.userId } }
-    : { ref: { equals: holder.ref } };
+    : { visitorMarker: { equals: holder.visitorMarker } };
 
 const holderData = (holder: GrantHolder): Record<string, unknown> =>
-  holder.kind === 'account' ? { viewer: holder.userId } : { ref: holder.ref };
+  holder.kind === 'account' ? { viewer: holder.userId } : { visitorMarker: holder.visitorMarker };
 
 export async function writeEntitlement({
   payload,
@@ -60,13 +66,9 @@ export async function writeEntitlement({
   // данных. Права от этого плодиться не должны: одинаковые записи в списке
   // не дают понять, что у зрителя открыто.
   const already = await payload.find({
-    collection: 'entitlements',
+    collection: 'media-access-rights',
     where: {
-      and: [
-        holderWhere(holder),
-        { 'resource.value': { equals: Number(target.id) } },
-        { 'resource.relationTo': { equals: target.collection } },
-      ],
+      and: [holderWhere(holder), { access: { equals: target.accessId } }],
     },
     depth: 0,
     limit: 1,
@@ -80,10 +82,10 @@ export async function writeEntitlement({
 
   if (plan.kind === 'create') {
     await payload.create({
-      collection: 'entitlements',
+      collection: 'media-access-rights',
       data: {
         ...holderData(holder),
-        resource: { relationTo: target.collection, value: Number(target.id) },
+        access: Number(target.accessId),
         source,
         expiresAt: plan.expiresAt,
         ...(note ? { note } : {}),
@@ -95,7 +97,7 @@ export async function writeEntitlement({
 
   if (plan.kind === 'extend') {
     await payload.update({
-      collection: 'entitlements',
+      collection: 'media-access-rights',
       id: plan.id,
       data: { expiresAt: plan.expiresAt },
       overrideAccess: true,

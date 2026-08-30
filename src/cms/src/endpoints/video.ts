@@ -1,11 +1,10 @@
 import type { Endpoint } from 'payload';
 
-import { payloadEntitlements } from '../lib/video/entitlement-source';
+import { accessContents, payloadEntitlements } from '../lib/video/entitlement-source';
 import { entitlementPolicy } from '../lib/video/entitlements';
 import { checkKeyRateShared } from '../lib/video/key-rate-store';
 import { rewriteManifest } from '../lib/video/manifest';
 import { checkRequestOrigin } from '../lib/video/request-origin';
-import { accessTarget } from '../lib/video/resource-field';
 import {
   checkRedeemAttempt,
   forgetRedeemMisses,
@@ -120,11 +119,11 @@ const nowSeconds = (): number => Math.floor(Date.now() / 1000);
  * Просроченный или испорченный токен идентичности не даёт: подпись не сошлась -
  * значит зритель неизвестен, а не «какой-нибудь».
  */
-function refFromCookie(req: { headers?: Headers }): string | undefined {
+function markerFromCookie(req: { headers?: Headers }): string | undefined {
   const saved = tokenFromCookie(req);
   if (!saved) return undefined;
   const checked = readViewerToken(saved, appSecret(), nowSeconds());
-  return checked.ok ? checked.ref : undefined;
+  return checked.ok ? checked.visitorMarker : undefined;
 }
 
 /**
@@ -142,7 +141,7 @@ function viewerOf(
 ): {
   userId: string | number | null;
   ownsVideo: boolean;
-  ref?: string | undefined;
+  visitorMarker?: string | undefined;
 } {
   const userId = req.user?.id ?? null;
   // Автор приходит номером при depth=0 и документом при depth=1 — сверяем оба вида.
@@ -154,7 +153,7 @@ function viewerOf(
   return {
     userId,
     ownsVideo: userId !== null && ownerId !== null && String(ownerId) === String(userId),
-    ref: refFromCookie(req),
+    visitorMarker: markerFromCookie(req),
   };
 }
 
@@ -843,7 +842,7 @@ export const videoRedeemEndpoint: Endpoint = {
     }
 
     const found = await req.payload.find({
-      collection: 'access-codes',
+      collection: 'media-access-codes',
       where: { code: { equals: code } },
       depth: 0,
       limit: 1,
@@ -853,8 +852,8 @@ export const videoRedeemEndpoint: Endpoint = {
     const doc = found.docs[0] as
       | {
           id: string | number;
-          resource?: { relationTo?: string; value?: unknown } | null;
-          playlist?: string | number;
+          access?: string | number | { id?: string | number } | null;
+          revoked?: boolean | null;
           maxUses?: number | null;
           usedCount?: number | null;
           expiresAt?: string | null;
@@ -863,21 +862,17 @@ export const videoRedeemEndpoint: Endpoint = {
         }
       | undefined;
 
-    /*
-      Новое поле «На что» умеет и подборку, и запись; прежнее вело только
-      к подборке. Читаем оба: коды, выданные до разведения, заполнены старым,
-      и отнимать у них работу нельзя (R10).
-    */
-    const target =
-      accessTarget(doc?.resource) ??
-      (doc?.playlist ? ({ kind: 'playlists', id: doc.playlist } as const) : null);
+    // С глубиной ноль в связи лежит номер, с большей - сам документ.
+    const accessId =
+      typeof doc?.access === 'object' && doc.access !== null ? doc.access.id : doc?.access;
 
     const result = redeemCode({
       code:
-        doc && target
+        doc && accessId !== undefined && accessId !== null
           ? {
               id: doc.id,
-              resource: target,
+              accessId,
+              revoked: doc.revoked === true,
               maxUses: doc.maxUses ?? null,
               usedCount: doc.usedCount ?? 0,
               expiresAt: doc.expiresAt ?? null,
@@ -919,7 +914,7 @@ export const videoRedeemEndpoint: Endpoint = {
 
     // Счётчик срабатываний растёт только после того, как право реально выдано.
     await req.payload.update({
-      collection: 'access-codes',
+      collection: 'media-access-codes',
       id: doc!.id,
       data: { usedCount: (doc!.usedCount ?? 0) + 1 },
       overrideAccess: true,
@@ -938,8 +933,8 @@ export const videoRedeemEndpoint: Endpoint = {
       holder:
         result.bind === 'account' && req.user?.id
           ? { kind: 'account', userId: req.user.id }
-          : { kind: 'identity', ref: checked.ref },
-      target: { collection: result.resource.kind, id: result.resource.id },
+          : { kind: 'identity', visitorMarker: checked.visitorMarker },
+      target: { accessId: result.accessId },
       grantedUntil: result.expiresAt ?? null,
       source: 'promo',
       note: `Код ${code}`,
@@ -949,16 +944,13 @@ export const videoRedeemEndpoint: Endpoint = {
       Продлённый токен запоминается браузером: без этого идентичность сменится
       на следующей же перезагрузке, и записанное право не найдётся.
 
-      В ответе и `resource`, и прежний `playlistId`: страница снимает замки
-      по второму, и убрать его - значит сломать её у всех сайтов разом (R10).
-      У кода на одиночную запись он пустует, там смотрят на `resource`.
+      В ответе - состав доступа: страница снимает замки по нему. Одного адреса
+      мало, доступ покрывает и подборки, и отдельные записи разом.
     */
+    const opened = await accessContents(req.payload, result.accessId);
+
     return jsonWithToken(
-      {
-        token: next,
-        resource: result.resource,
-        playlistId: result.resource.kind === 'playlists' ? result.resource.id : null,
-      },
+      { token: next, accessId: result.accessId, granted: opened },
       next,
       checked.expires,
     );
@@ -1127,7 +1119,7 @@ export const videoKeyEndpoint: Endpoint = {
       за обычное поведение. Владельцу это видно в журнале, решение - за ним.
     */
     const sharing = noteKeyRequest(
-      String(viewerOf(req, doc.uploadedBy).ref ?? req.user?.id ?? clientKey(req)),
+      String(viewerOf(req, doc.uploadedBy).visitorMarker ?? req.user?.id ?? clientKey(req)),
       clientKey(req),
       period ?? 0,
     );
@@ -1200,7 +1192,7 @@ export const videoRedeemLinkEndpoint: Endpoint = {
       token: address,
       holder: req.user?.id
         ? { kind: 'account', userId: req.user.id }
-        : { kind: 'identity', ref: checked.ref },
+        : { kind: 'identity', visitorMarker: checked.visitorMarker },
       now: new Date(),
     });
 
@@ -1236,10 +1228,12 @@ export const videoRedeemLinkEndpoint: Endpoint = {
       каналом и коротким кодом, поэтому адрес ищется отдельно - и может
       не найтись у только что залитого, тогда ведём на канал целиком.
     */
-    const target = await resourceAddress(req.payload, result.resource);
+    const opened = await accessContents(req.payload, result.accessId);
+    const first = opened[0];
+    const target = first ? await resourceAddress(req.payload, first) : null;
 
     return jsonWithToken(
-      { token: next, resource: result.resource, address: target },
+      { token: next, accessId: result.accessId, granted: opened, address: target },
       next,
       refreshed.ok ? refreshed.expires : checked.expires,
     );

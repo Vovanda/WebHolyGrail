@@ -6,21 +6,64 @@ import type { EntitlementSource, ViewerIdentity } from './entitlements';
  * Источник прав поверх Payload.
  *
  * @remarks
- * Право лежит на том, за что заплачено: на подборке или на самой записи. Вниз
- * оно распространяется при проверке, а не размножением записей, поэтому состав
- * подборки можно менять, ничего не догоняя.
+ * Право лежит на доступе, а не на каждом материале внутри, и вниз
+ * распространяется при проверке: доступ, в который входит подборка, открывает
+ * всё, что в ней лежит сейчас. Поэтому состав подборки меняется без единой
+ * догоняющей правки.
  *
- * Найти его можно двумя путями - по учётной записи и по опознанию, - и оба
- * равноправны: у вошедшего право держит учётная запись, у остальных идентичность,
- * выданное сервером при первой встрече. Ищем по обоим сразу, потому что взятое
- * по коду до входа обязано продолжать работать после.
+ * Живость считается, а не хранится флагом: истёкшее иначе ждало бы, пока его
+ * кто-нибудь погасит, и до тех пор пускало бы. Срок берётся по более раннему
+ * из двух - отсечки доступа и своего срока права.
  *
- * Права с истёкшим сроком отсекаются здесь же: подарок на неделю иначе работал бы
- * вечно.
+ * Ищем по учётной записи и по маркеру посетителя сразу: право, взятое по коду
+ * до входа, обязано продолжать работать после.
  */
+/** Один открытый предмет: подборка целиком или отдельная запись. */
+export interface GrantedItem {
+  readonly kind: 'playlists' | 'media';
+  readonly id: string | number;
+}
+
+/** С глубиной ноль в связи лежит номер, с большей — сам документ. */
+const idOf = (value: unknown): string | number | null => {
+  if (typeof value === 'number' || typeof value === 'string') return value;
+  if (typeof value === 'object' && value !== null && 'id' in value) {
+    const id = (value as { id?: unknown }).id;
+    if (typeof id === 'number' || typeof id === 'string') return id;
+  }
+  return null;
+};
+
+const listOf = (raw: unknown): ReadonlyArray<string | number> =>
+  Array.isArray(raw) ? raw.map(idOf).filter((id): id is string | number => id !== null) : [];
+
+/**
+ * Что открывает доступ: его подборки и его отдельные записи.
+ *
+ * @remarks
+ * Активация знает про право и не знает, что именно от него открылось: состав
+ * держит сам доступ. Страница же снимает замки поимённо, поэтому состав
+ * читается отдельным вопросом.
+ */
+export async function accessContents(
+  payload: Payload,
+  accessId: string | number,
+): Promise<ReadonlyArray<GrantedItem>> {
+  const doc = (await payload
+    .findByID({ collection: 'media-accesses', id: accessId, depth: 0, overrideAccess: true })
+    .catch(() => null)) as { playlists?: unknown; videos?: unknown } | null;
+
+  if (!doc) return [];
+
+  return [
+    ...listOf(doc.playlists).map((id) => ({ kind: 'playlists' as const, id })),
+    ...listOf(doc.videos).map((id) => ({ kind: 'media' as const, id })),
+  ];
+}
+
 export function payloadEntitlements(payload: Payload): EntitlementSource {
-  const alive = (expiresAt: string | null | undefined, now: Date): boolean =>
-    !expiresAt || new Date(expiresAt).getTime() > now.getTime();
+  const deadlineAlive = (deadline: string | null | undefined, now: Date): boolean =>
+    !deadline || new Date(deadline).getTime() > now.getTime();
 
   /**
    * Условия «право принадлежит этому зрителю».
@@ -28,17 +71,18 @@ export function payloadEntitlements(payload: Payload): EntitlementSource {
    * @remarks
    * Собирается по тому, что о зрителе известно, а не одним выражением с пустыми
    * значениями: `viewer равен null` нашёл бы все права, выданные не на учётную
-   * запись, - то есть чужие анонимные разом.
+   * запись, - то есть чужие разом.
    */
   const identityOf = (who: ViewerIdentity): Where[] => {
     const ways: Where[] = [];
     if (who.userId !== null && who.userId !== undefined) {
       ways.push({ viewer: { equals: who.userId } });
     }
-    if (who.ref) ways.push({ ref: { equals: who.ref } });
+    if (who.visitorMarker) ways.push({ visitorMarker: { equals: who.visitorMarker } });
     return ways;
   };
 
+  /** Подборки, в которых лежит эта запись: через них доступ покрывает её тоже. */
   const playlistsContaining = async (videoId: string | number) => {
     const found = await payload.find({
       collection: 'playlists',
@@ -50,64 +94,62 @@ export function payloadEntitlements(payload: Payload): EntitlementSource {
     return found.docs.map((doc) => doc.id);
   };
 
+  /**
+   * Доступы, покрывающие запись: напрямую или через подборку.
+   *
+   * @remarks
+   * Отсечка отсеивается здесь же - закрытый доступ не открывает ничего, сколько
+   * бы прав под ним ни выдали.
+   */
+  const coveringAccesses = async (videoId: string | number, now: Date) => {
+    const playlistIds = await playlistsContaining(videoId);
+    const ways: Where[] = [{ videos: { equals: videoId } }];
+    for (const id of playlistIds) ways.push({ playlists: { equals: id } });
+
+    const found = await payload.find({
+      collection: 'media-accesses',
+      where: { or: ways },
+      depth: 0,
+      limit: 50,
+      overrideAccess: true,
+    });
+
+    return found.docs
+      .filter((doc) => deadlineAlive((doc as { cutoff?: string | null }).cutoff, now))
+      .map((doc) => doc.id);
+  };
+
   return {
-    async entitledToVideo(videoId, who, now) {
+    async covered(videoId, who, now) {
       const ways = identityOf(who);
       if (ways.length === 0) return false;
 
-      const grants = await payload.find({
-        collection: 'entitlements',
+      const accessIds = await coveringAccesses(videoId, now);
+      if (accessIds.length === 0) return false;
+
+      // Перечисление равенств, а не «в списке»: у связи это превращается
+      // в негодный SQL и запрос падает.
+      const rights = await payload.find({
+        collection: 'media-access-rights',
         where: {
-          and: [
-            { or: ways },
-            { 'resource.value': { equals: videoId } },
-            { 'resource.relationTo': { equals: 'media' } },
-          ],
-        },
-        depth: 0,
-        limit: 10,
-        overrideAccess: true,
-      });
-
-      return grants.docs.some((raw) =>
-        alive((raw as { expiresAt?: string | null }).expiresAt, now),
-      );
-    },
-
-    async entitledPlaylistsFor(videoId, who, now) {
-      const ways = identityOf(who);
-      if (ways.length === 0) return [];
-
-      const ids = await playlistsContaining(videoId);
-      if (ids.length === 0) return [];
-
-      // Перечисление равенств, а не «в списке»: у связи, умеющей два вида
-      // объектов, второй превращается в негодный SQL и запрос падает.
-      const grants = await payload.find({
-        collection: 'entitlements',
-        where: {
-          and: [
-            { or: ways },
-            { 'resource.relationTo': { equals: 'playlists' } },
-            { or: ids.map((id) => ({ 'resource.value': { equals: id } })) },
-          ],
+          and: [{ or: ways }, { or: accessIds.map((id) => ({ access: { equals: id } })) }],
         },
         depth: 0,
         limit: 50,
         overrideAccess: true,
       });
 
-      return grants.docs.flatMap((raw) => {
-        const grant = raw as {
-          resource?: { value?: string | number } | string | number;
+      return rights.docs.some((raw) => {
+        const right = raw as {
           expiresAt?: string | null;
+          views?: number | null;
+          maxViews?: number | null;
         };
-        if (!alive(grant.expiresAt, now)) return [];
-        const target =
-          typeof grant.resource === 'object' && grant.resource !== null
-            ? grant.resource.value
-            : grant.resource;
-        return target === undefined ? [] : [target];
+        if (!deadlineAlive(right.expiresAt, now)) return false;
+        // Ноль и пусто в пределе значат «без ограничения»: это отсутствие
+        // условия, а не условие «ноль».
+        const limit = right.maxViews ?? 0;
+        return limit <= 0 || (right.views ?? 0) < limit;
       });
     },
   };

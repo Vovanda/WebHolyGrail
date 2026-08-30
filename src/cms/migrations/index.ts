@@ -61,6 +61,7 @@ import * as migration_20260830_143900_key_usage from './20260830_143900_key_usag
 import * as migration_20260830_151000_media_description from './20260830_151000_media_description';
 import * as migration_20260830_151500_video_block_flags from './20260830_151500_video_block_flags';
 import * as migration_20260830_171000_grant_minutes from './20260830_171000_grant_minutes';
+import * as migration_20260831_021500_media_access_model from './20260831_021500_media_access_model';
 
 export const migrations = [
   {
@@ -377,5 +378,10 @@ export const migrations = [
     up: migration_20260830_171000_grant_minutes.up,
     down: migration_20260830_171000_grant_minutes.down,
     name: '20260830_171000_grant_minutes',
+  },
+  {
+    up: migration_20260831_021500_media_access_model.up,
+    down: migration_20260831_021500_media_access_model.down,
+    name: '20260831_021500_media_access_model',
   },
 ];

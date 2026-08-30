@@ -59,7 +59,7 @@ export async function grantStreamAccess({
 
   const decision = await policy.decide(
     { id: video.id, access: video.access },
-    { ...viewer, ref: checked.ref },
+    { ...viewer, visitorMarker: checked.visitorMarker },
   );
   if (!decision.allowed) return { ok: false, reason: decision.reason };
 

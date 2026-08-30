@@ -8,7 +8,7 @@ const earlier = '2026-08-29T12:00:00.000Z';
 
 const link = (over: Partial<AccessLink> = {}): AccessLink => ({
   id: 1,
-  resource: { kind: 'playlists', id: 7 },
+  accessId: 7,
   revoked: false,
   maxUses: null,
   usedCount: 0,
@@ -18,15 +18,10 @@ const link = (over: Partial<AccessLink> = {}): AccessLink => ({
 });
 
 describe('погашение ссылки-приглашения', () => {
-  it('открывает подборку тому, у кого есть адрес, без входа', () => {
+  it('открывает доступ тому, у кого есть адрес, без учётной записи', () => {
     const result = redeemLink({ link: link(), viewerId: null, now });
 
-    expect(result).toEqual({
-      ok: true,
-      resource: { kind: 'playlists', id: 7 },
-      expiresAt: null,
-      bind: 'identity',
-    });
+    expect(result).toEqual({ ok: true, accessId: 7, expiresAt: null, bind: 'identity' });
   });
 
   it('вошедшему закрепляет право за учётной записью', () => {
@@ -35,14 +30,9 @@ describe('погашение ссылки-приглашения', () => {
     expect(result.ok && result.bind).toBe('account');
   });
 
-  it('открывает и одиночную запись', () => {
-    const result = redeemLink({
-      link: link({ resource: { kind: 'media', id: 15 } }),
-      viewerId: null,
-      now,
-    });
-
-    expect(result.ok && result.resource).toEqual({ kind: 'media', id: 15 });
+  it('ведёт к тому доступу, от которого выдана', () => {
+    const result = redeemLink({ link: link({ accessId: 15 }), viewerId: null, now });
+    expect(result.ok && result.accessId).toBe(15);
   });
 
   it('считает срок выданного права от дня погашения', () => {

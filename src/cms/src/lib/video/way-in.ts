@@ -1,19 +1,15 @@
 import type { Payload, Where } from 'payload';
 
 /**
- * Есть ли чем открыть закрытое: живой код или ссылка-приглашение.
+ * Есть ли чем открыть закрытое: живой код на доступ, который покрывает запись.
  *
  * @remarks
- * Форма ввода кода на странице закрытой записи имеет смысл, только если такой
- * код существует. Иначе человеку показывают поле, в которое нечего ввести,
- * и он уходит с ощущением, что сайт сломан.
+ * Форма ввода кода имеет смысл, только если такой код существует. Иначе человеку
+ * показывают поле, в которое нечего ввести.
  *
- * Живым считается способ, который сработает прямо сейчас: срок не вышел, предел
- * срабатываний не исчерпан, ссылка не отозвана. Просроченный код лежит в базе
- * годами и о применимости формы ничего не говорит.
- *
- * Открыть запись может и код на подборку, в которой она лежит, поэтому ищем
- * по обоим адресам сразу.
+ * Живой код - тот, что сработает прямо сейчас: не отозван, срок не вышел, предел
+ * срабатываний не исчерпан. Вид кода роли не играет: и диктуемый, и присылаемый
+ * открывают одинаково.
  */
 
 export interface WayInTarget {
@@ -27,38 +23,40 @@ const notExpired = (now: Date): Where => ({
 });
 
 /**
- * Куда смотреть: на саму запись и на подборки, в которых она лежит.
+ * Доступы, покрывающие цель: напрямую либо через подборку, в которой она лежит.
  *
  * @remarks
- * Связь, умеющая два вида объектов, сверяется перечислением равенств: оператор
- * «в списке» превращается для неё в негодный SQL.
+ * Перечисление равенств, а не «в списке»: у связи это превращается в негодный SQL.
  */
-async function addressesOf(payload: Payload, target: WayInTarget): Promise<ReadonlyArray<Where>> {
-  const own: Where = {
-    and: [
-      { 'resource.relationTo': { equals: target.kind } },
-      { 'resource.value': { equals: target.id } },
-    ],
-  };
-  if (target.kind === 'playlists') return [own];
+async function coveringAccesses(
+  payload: Payload,
+  target: WayInTarget,
+): Promise<ReadonlyArray<string | number>> {
+  const ways: Where[] =
+    target.kind === 'playlists'
+      ? [{ playlists: { equals: target.id } }]
+      : [{ videos: { equals: target.id } }];
 
-  const holders = await payload.find({
-    collection: 'playlists',
-    where: { 'items.video': { equals: target.id } },
+  if (target.kind === 'media') {
+    const holders = await payload.find({
+      collection: 'playlists',
+      where: { 'items.video': { equals: target.id } },
+      depth: 0,
+      limit: 50,
+      overrideAccess: true,
+    });
+    for (const doc of holders.docs) ways.push({ playlists: { equals: doc.id } });
+  }
+
+  const found = await payload.find({
+    collection: 'media-accesses',
+    where: { or: ways },
     depth: 0,
     limit: 50,
     overrideAccess: true,
   });
 
-  return [
-    own,
-    ...holders.docs.map((doc) => ({
-      and: [
-        { 'resource.relationTo': { equals: 'playlists' } },
-        { 'resource.value': { equals: doc.id } },
-      ],
-    })),
-  ];
+  return found.docs.map((doc) => doc.id);
 }
 
 export async function hasWayIn(
@@ -66,33 +64,26 @@ export async function hasWayIn(
   target: WayInTarget,
   now: Date = new Date(),
 ): Promise<boolean> {
-  const addresses = await addressesOf(payload, target);
+  const accessIds = await coveringAccesses(payload, target);
+  if (accessIds.length === 0) return false;
 
   const codes = await payload.find({
-    collection: 'access-codes',
-    where: { and: [{ or: [...addresses] }, notExpired(now)] },
+    collection: 'media-access-codes',
+    where: {
+      and: [
+        { or: accessIds.map((id) => ({ access: { equals: id } })) },
+        { revoked: { not_equals: true } },
+        notExpired(now),
+      ],
+    },
     depth: 0,
     limit: 50,
     overrideAccess: true,
   });
 
   // Предел срабатываний считаем здесь, а не запросом: сравнить два поля между
-  // собой фильтром нельзя, а кодов на один адрес всегда единицы.
-  const liveCode = codes.docs.some((raw) => {
-    const doc = raw as { maxUses?: number | null; usedCount?: number | null };
-    return doc.maxUses == null || (doc.usedCount ?? 0) < doc.maxUses;
-  });
-  if (liveCode) return true;
-
-  const links = await payload.find({
-    collection: 'access-links',
-    where: { and: [{ or: [...addresses] }, { revoked: { not_equals: true } }, notExpired(now)] },
-    depth: 0,
-    limit: 50,
-    overrideAccess: true,
-  });
-
-  return links.docs.some((raw) => {
+  // собой фильтром нельзя, а кодов на один доступ всегда единицы.
+  return codes.docs.some((raw) => {
     const doc = raw as { maxUses?: number | null; usedCount?: number | null };
     return doc.maxUses == null || (doc.usedCount ?? 0) < doc.maxUses;
   });

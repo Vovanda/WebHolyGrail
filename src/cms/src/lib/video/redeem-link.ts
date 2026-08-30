@@ -6,25 +6,18 @@
  * право «зритель × подборка или запись». Поэтому здесь решается только одно —
  * открывает ли она сейчас и на какой срок.
  *
- * Отдельно от погашения кода, потому что правила разные. Код спрашивает про вход:
- * он выдан человеку, и владелец решает, закреплять ли доступ за учётной записью.
- * Ссылка входа не требует по своей природе — она не про «кому», а про «всякому,
- * у кого есть адрес», — зато её отзывают, не дожидаясь срока, когда адрес ушёл
- * не туда.
+ * Отдельно от кода, потому что свойства разные: у ссылки срок обязателен и есть
+ * отзыв, а её адрес длинный и машинный - короткий подобрали бы перебором. Код же
+ * диктуют вслух, поэтому он короткий и в алфавите без похожих начертаний.
  *
  * Функция чистая: ей передают уже прочитанную ссылку и текущего зрителя, поэтому
  * просрочка, отзыв и исчерпанный предел проверяются без базы.
  */
 
-/** На что открывает ссылка: подборка целиком или одна запись. */
-export interface LinkResource {
-  readonly kind: 'playlists' | 'media';
-  readonly id: string | number;
-}
-
 export interface AccessLink {
   readonly id: string | number;
-  readonly resource: LinkResource;
+  /** От какого доступа выдана ссылка. */
+  readonly accessId: string | number;
   readonly revoked: boolean;
   readonly maxUses: number | null;
   readonly usedCount: number;
@@ -37,7 +30,7 @@ export interface AccessLink {
 export type RedeemLinkResult =
   | {
       readonly ok: true;
-      readonly resource: LinkResource;
+      readonly accessId: string | number;
       /** До какой даты действует выданное право; `null` — бессрочно. */
       readonly expiresAt: string | null;
       /**
@@ -84,7 +77,7 @@ export function redeemLink({ link, viewerId, now }: RedeemLinkArgs): RedeemLinkR
 
   return {
     ok: true,
-    resource: link.resource,
+    accessId: link.accessId,
     expiresAt,
     bind: viewerId === null ? 'identity' : 'account',
   };

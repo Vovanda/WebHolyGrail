@@ -22,12 +22,12 @@ import { generateLinkToken } from '../lib/video/link-token';
  * о ней выдавший; бессрочная означает, что подборка открыта навсегда всякому,
  * кто однажды получил адрес. Отзыв — на случай, когда ждать срока не хочется.
  */
-export const AccessLinks: CollectionConfig = {
-  slug: 'access-links',
+export const MediaAccessLinks: CollectionConfig = {
+  slug: 'media-access-links',
   labels: { singular: 'Ссылка-приглашение', plural: 'Ссылки-приглашения' },
   admin: {
     useAsTitle: 'label',
-    defaultColumns: ['label', 'resource', 'expiresAt', 'revoked', 'usedCount'],
+    defaultColumns: ['label', 'access', 'expiresAt', 'revoked', 'usedCount'],
     group: 'Медиа',
     description:
       'Открывают подборку или запись всякому, у кого есть адрес. В отличие от кодов доступа их не диктуют, а присылают.',
@@ -60,18 +60,17 @@ export const AccessLinks: CollectionConfig = {
     },
     {
       /**
-       * На что открывает — на подборку или на саму запись.
+       * От какого доступа выдана ссылка.
        *
        * @remarks
-       * Устроено так же, как у права: ссылку на одиночное видео присылают ничуть
-       * не реже, чем на подборку, и заводить ради этого вторую сущность незачем.
-       * Открытая подборка открывает всё, что в ней лежит, поэтому поменяется
-       * её состав — поменяется и то, что доступно по ссылке.
+       * Как право и код, ссылка ведёт к доступу, а не к материалу напрямую:
+       * что откроется, знает сам доступ, и меняется его состав - меняется
+       * открытое по ссылке.
        */
-      name: 'resource',
-      label: 'На что',
+      name: 'access',
+      label: 'Доступ',
       type: 'relationship',
-      relationTo: ['playlists', 'media'],
+      relationTo: 'media-accesses',
       required: true,
       index: true,
     },

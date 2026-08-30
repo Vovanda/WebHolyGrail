@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { redeemCode, type AccessCode } from './redeem.js';
 
 /**
- * Погашение кода.
+ * Зеркало секции о коде в spec/video/access-invariants.smt2.
  *
  * @remarks
- * Ошибка здесь дорогая в обе стороны: пустил лишнего — закрытое роздано бесплатно,
- * не пустил купившего — он пришёл с деньгами и упёрся в отказ.
+ * Ошибка здесь дорогая в обе стороны: пустил лишнего - закрытое роздано
+ * бесплатно, не пустил купившего - он пришёл с деньгами и упёрся в отказ.
  */
 
 const NOW = new Date('2026-08-26T12:00:00Z');
@@ -18,7 +18,8 @@ const minutesFromNow = (minutes: number) =>
 
 const code = (overrides: Partial<AccessCode> = {}): AccessCode => ({
   id: 1,
-  resource: { kind: 'playlists', id: 7 } as const,
+  accessId: 7,
+  revoked: false,
   maxUses: null,
   usedCount: 0,
   expiresAt: null,
@@ -29,14 +30,17 @@ const code = (overrides: Partial<AccessCode> = {}): AccessCode => ({
 const redeem = (c: AccessCode | null, viewerId: string | number | null = 42) =>
   redeemCode({ code: c, viewerId, now: NOW });
 
-describe('погашение кода', () => {
+describe('активация кода', () => {
   it('обладатель учётной записи получает право на плейлист', () => {
     const result = redeem(code());
-    expect(result).toMatchObject({
-      ok: true,
-      resource: { kind: 'playlists', id: 7 },
-      bind: 'account',
-      expiresAt: null,
+    expect(result).toMatchObject({ ok: true, accessId: 7, bind: 'account', expiresAt: null });
+  });
+
+  it('отозванный код не срабатывает', () => {
+    // Отзыв главнее срока и предела: он означает, что код ушёл не туда.
+    expect(redeem(code({ revoked: true, maxUses: 50, expiresAt: daysFromNow(30) }))).toMatchObject({
+      ok: false,
+      reason: 'revoked',
     });
   });
 

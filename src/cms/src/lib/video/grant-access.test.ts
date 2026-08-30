@@ -43,7 +43,7 @@ describe('токен зрителя', () => {
     const token = issueViewerToken(SECRET, NOW);
     const checked = readViewerToken(token.value, SECRET, NOW);
     expect(checked.ok).toBe(true);
-    if (checked.ok) expect(checked.ref).toBe(token.ref);
+    if (checked.ok) expect(checked.visitorMarker).toBe(token.visitorMarker);
   });
 
   it('подделанная подпись отвергается', () => {
@@ -148,7 +148,7 @@ describe('выдача доступа', () => {
       token: token.value,
       policy: {
         async decide(_video, viewer) {
-          return viewer.ref === token.ref
+          return viewer.visitorMarker === token.visitorMarker
             ? { allowed: true }
             : { allowed: false, reason: 'not-entitled' };
         },
@@ -173,7 +173,7 @@ describe('выдача доступа', () => {
       policy: {
         async decide(_video, viewer) {
           // Право записано на первого зрителя: у второго идентичность другое.
-          return viewer.ref === mine.ref
+          return viewer.visitorMarker === mine.visitorMarker
             ? { allowed: true }
             : { allowed: false, reason: 'not-entitled' };
         },

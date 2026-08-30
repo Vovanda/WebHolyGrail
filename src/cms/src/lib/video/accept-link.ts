@@ -1,7 +1,6 @@
 import type { Payload } from 'payload';
 
-import { redeemLink, type LinkResource } from './redeem-link';
-import { accessTarget } from './resource-field';
+import { redeemLink } from './redeem-link';
 import { writeEntitlement, type GrantHolder } from './write-entitlement';
 
 /**
@@ -28,7 +27,7 @@ export interface AcceptLinkArgs {
 export type AcceptLinkResult =
   | {
       readonly ok: true;
-      readonly resource: LinkResource;
+      readonly accessId: string | number;
       /** До какой даты выдано право; `null` — бессрочно. */
       readonly grantedUntil: string | null;
     }
@@ -40,7 +39,7 @@ export type AcceptLinkResult =
 /** Запись ссылки в том виде, в каком её отдаёт база. */
 interface LinkDoc {
   readonly id: string | number;
-  readonly resource?: { relationTo?: string; value?: unknown } | null;
+  readonly access?: string | number | { id?: string | number } | null;
   readonly revoked?: boolean | null;
   readonly maxUses?: number | null;
   readonly usedCount?: number | null;
@@ -62,7 +61,7 @@ export async function acceptLink({
   now,
 }: AcceptLinkArgs): Promise<AcceptLinkResult> {
   const found = await payload.find({
-    collection: 'access-links',
+    collection: 'media-access-links',
     where: { token: { equals: token } },
     depth: 0,
     limit: 1,
@@ -70,14 +69,16 @@ export async function acceptLink({
   });
 
   const doc = found.docs[0] as LinkDoc | undefined;
-  const resource = doc ? accessTarget(doc.resource) : null;
+  // С глубиной ноль в связи лежит номер, с большей - сам документ.
+  const accessId =
+    typeof doc?.access === 'object' && doc.access !== null ? doc.access.id : doc?.access;
 
   const verdict = redeemLink({
     link:
-      doc && resource
+      doc && accessId !== undefined && accessId !== null
         ? {
             id: doc.id,
-            resource,
+            accessId,
             revoked: doc.revoked === true,
             maxUses: doc.maxUses ?? null,
             usedCount: doc.usedCount ?? 0,
@@ -97,7 +98,7 @@ export async function acceptLink({
   // права: иначе одна и та же ссылка, нажатая дважды подряд, сработала бы
   // сверх своего предела.
   await payload.update({
-    collection: 'access-links',
+    collection: 'media-access-links',
     id: doc!.id,
     data: { usedCount: (doc!.usedCount ?? 0) + 1 },
     overrideAccess: true,
@@ -106,11 +107,11 @@ export async function acceptLink({
   await writeEntitlement({
     payload,
     holder,
-    target: { collection: verdict.resource.kind, id: verdict.resource.id },
+    target: { accessId: verdict.accessId },
     grantedUntil: verdict.expiresAt,
     source: 'invite',
     note: `Ссылка ${token.slice(0, 6)}…`,
   });
 
-  return { ok: true, resource: verdict.resource, grantedUntil: verdict.expiresAt };
+  return { ok: true, accessId: verdict.accessId, grantedUntil: verdict.expiresAt };
 }

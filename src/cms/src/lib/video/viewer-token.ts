@@ -58,7 +58,7 @@ export interface ViewerToken {
   /** До какой секунды действует: по нему живёт и кука, хранящая токен. */
   readonly expires: number;
   /** Идентичность зрителя: по нему находятся его права. */
-  readonly ref: ViewerRef;
+  readonly visitorMarker: VisitorMarker;
 }
 
 /**
@@ -75,7 +75,7 @@ export interface ViewerToken {
  * Идентичность случайно и выдаётся при первой встрече. Личности за ним нет: это
  * не имя человека, а имя его доступа.
  */
-export type ViewerRef = string;
+export type VisitorMarker = string;
 
 /**
  * Выдаёт токен зрителя.
@@ -87,10 +87,10 @@ export type ViewerRef = string;
 export function issueViewerToken(
   appSecret: string,
   nowSeconds: number,
-  ref: ViewerRef = base64url(randomBytes(12)),
+  visitorMarker: VisitorMarker = base64url(randomBytes(12)),
 ): ViewerToken {
   const expires = nowSeconds + TOKEN_TTL_SECONDS;
-  return { value: buildToken(expires, ref, appSecret), expires, ref };
+  return { value: buildToken(expires, visitorMarker, appSecret), expires, visitorMarker };
 }
 
 /**
@@ -117,11 +117,11 @@ export function withExtendedLife(
   const wanted = grantedUntilSeconds ?? parsed.expires;
   const expires = Math.min(Math.max(parsed.expires, wanted), nowSeconds + MAX_TOKEN_TTL_SECONDS);
 
-  return buildToken(expires, parsed.ref, appSecret);
+  return buildToken(expires, parsed.visitorMarker, appSecret);
 }
 
-function buildToken(expires: number, ref: ViewerRef, appSecret: string): string {
-  const payload = `${expires}${SEPARATOR}${ref}`;
+function buildToken(expires: number, visitorMarker: VisitorMarker, appSecret: string): string {
+  const payload = `${expires}${SEPARATOR}${visitorMarker}`;
   return `${payload}${SEPARATOR}${sign(payload, appSecret)}`;
 }
 
@@ -131,7 +131,7 @@ export type TokenCheck =
       readonly ok: true;
       readonly expires: number;
       /** Идентичность, по которому находятся права этого зрителя. */
-      readonly ref: ViewerRef;
+      readonly visitorMarker: VisitorMarker;
     }
   | { readonly ok: false; readonly reason: 'malformed' | 'signature' | 'expired' };
 
@@ -147,8 +147,8 @@ export function readViewerToken(token: string, appSecret: string, nowSeconds: nu
   const parts = token.split(SEPARATOR);
   if (parts.length !== PARTS) return { ok: false, reason: 'malformed' };
 
-  const [rawExpires, rawRef, signature] = parts as [string, string, string];
-  const expected = sign(`${rawExpires}${SEPARATOR}${rawRef}`, appSecret);
+  const [rawExpires, rawMarker, signature] = parts as [string, string, string];
+  const expected = sign(`${rawExpires}${SEPARATOR}${rawMarker}`, appSecret);
 
   const given = Buffer.from(signature);
   const wanted = Buffer.from(expected);
@@ -161,5 +161,5 @@ export function readViewerToken(token: string, appSecret: string, nowSeconds: nu
     return { ok: false, reason: 'expired' };
   }
 
-  return { ok: true, expires, ref: rawRef };
+  return { ok: true, expires, visitorMarker: rawMarker };
 }

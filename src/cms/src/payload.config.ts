@@ -32,7 +32,7 @@ import {
   videoRedeemLinkEndpoint,
 } from './endpoints/video';
 // Витринная ручка живёт в domain: сайту она не нужна, и синк туда не заходит.
-import { videoDemoCodeEndpoint } from './endpoints/domain/demo-code';
+import { videoDemoCodeEndpoint } from './endpoints/domain/whg/demo-code';
 import { togglesEndpoint } from './endpoints/toggles';
 import { blockPartsEndpoint } from './endpoints/block-parts';
 

@@ -1,6 +1,6 @@
 import type { Payload } from 'payload';
 
-import type { LinkResource } from './redeem-link';
+import type { GrantedItem } from './entitlement-source';
 
 /**
  * Адрес подборки или записи — канал и короткий код.
@@ -44,7 +44,7 @@ const channelOf = (owner: Owner): string | null =>
 
 export async function resourceAddress(
   payload: Payload,
-  resource: LinkResource,
+  resource: GrantedItem,
 ): Promise<ResourceAddress | null> {
   const doc = (await payload
     .findByID({
