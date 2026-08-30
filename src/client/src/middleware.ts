@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { PATHNAME_HEADER, SEARCH_HEADER } from '@/lib/pathname-header';
 
 /**
- * Адрес страницы для серверной раскладки.
+ * Адрес страницы для серверной раскладки и маркер посетителя.
  *
  * @remarks
  * Раскладка собирается в корневом layout, а он о запрошенном адресе ничего не
@@ -16,12 +16,39 @@ import { PATHNAME_HEADER, SEARCH_HEADER } from '@/lib/pathname-header';
  * Служебные пути пропускаем мимо: разбирать адрес картинки или сборки незачем,
  * а лишняя работа на каждом файле складывается в заметную.
  */
-export function middleware(request: NextRequest) {
+
+/** Кука с маркером посетителя; имя то же, что у выдачи в CMS. */
+const VIEWER_COOKIE = 'whg-viewer';
+
+const CMS_URL = process.env['NEXT_PUBLIC_CMS_URL'] ?? '';
+
+export async function middleware(request: NextRequest) {
   const headers = new Headers(request.headers);
   headers.set(PATHNAME_HEADER, request.nextUrl.pathname);
   headers.set(SEARCH_HEADER, request.nextUrl.search);
 
-  return NextResponse.next({ request: { headers } });
+  const response = NextResponse.next({ request: { headers } });
+
+  /*
+    Маркер выдаётся вместе со страницей, а не по промаху.
+
+    Плеер спрашивает ключ на каждое качество, и без маркера каждый такой запрос
+    получал отказ, шёл за токеном и повторялся - до первого кадра набегала
+    задержка, видная глазом. Здесь маркер уже есть к моменту первого запроса.
+  */
+  if (!request.cookies.has(VIEWER_COOKIE) && CMS_URL) {
+    const issued = await fetch(`${CMS_URL}/api/video/token`, {
+      method: 'POST',
+      cache: 'no-store',
+    }).catch(() => null);
+
+    const saved = issued?.headers.get('set-cookie');
+    // Выдача не ответила - не беда: загрузчик ключа заведёт маркер сам,
+    // как делал раньше. Страницу из-за этого не задерживаем.
+    if (saved) response.headers.set('set-cookie', saved);
+  }
+
+  return response;
 }
 
 export const config = {
