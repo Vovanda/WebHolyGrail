@@ -54,6 +54,7 @@ function makePorts(
           rungs: [{ height: 480, videoKbps: 1200, audioKbps: 96 }],
           durationSeconds: 42,
           secret: Buffer.from('0123456789abcdef'),
+          cryptoPeriod: 15,
           poster: Buffer.from('кадр'),
           storyboard: null,
         };
@@ -92,6 +93,7 @@ function makePorts(
         saved.push(result);
       }),
       ladder: vi.fn(async () => [{ height: 480, videoKbps: 1200, audioKbps: 96 }]),
+      cryptoPeriod: vi.fn(async () => 15),
       saveProgress: vi.fn(async () => undefined),
       savePoster: vi.fn(async () => {
         calls.push('savePoster');
@@ -103,7 +105,7 @@ function makePorts(
 }
 
 const run = (ports: VideoPorts) =>
-  buildHls({ ports, mediaId: 1, keyUri: 'https://site.example/api/video/1/envelope' });
+  buildHls({ ports, mediaId: 1, keyUri: 'https://site.example/api/video/1/key' });
 
 describe('подготовка видео', () => {
   it('оригинал удаляется после того, как вся раздача залита', async () => {

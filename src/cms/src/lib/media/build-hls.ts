@@ -72,6 +72,9 @@ export async function buildHls({
   const result = await encoder.transcode(source, {
     ladder: await catalog.ladder(),
     keyUri,
+    // Настройка спрашивается здесь и больше не спрашивается: у записи шаг
+    // остаётся тот, с которым она нарезана.
+    cryptoPeriod: await catalog.cryptoPeriod(),
     onProgress: (share) => {
       const percent = Math.round(share * 100);
       if (percent < lastReported + 5) return;
@@ -138,6 +141,7 @@ export async function buildHls({
     // Секрет хранится в каталоге и отдаётся только через эндпоинт, который
     // решает, кому можно. В раздачу он не попадает никогда.
     secret: result.secret.toString('base64'),
+    cryptoPeriod: result.cryptoPeriod,
   });
 
   // Обложку ставим только если редактор не задал свою: его кадр важнее

@@ -1,8 +1,11 @@
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
+import { renameSync, watch, writeFileSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
+import { periodKey } from './video/crypto-period';
 
 /**
  * Нарезка видео в HLS: лесенка качеств и мастер-плейлист.
@@ -43,7 +46,7 @@ export interface HlsRung {
  * Двух хватает: 480p вытягивает мобильный интернет на объекте, HD закрывает
  * остальное. Каждая лишняя ступень — это ещё одна дорожка в том же проходе и
  * место в хранилище, а разницу между 720p и 1080p на телефоне почти никто не
- * заметит. Плейлист настраивается владельцем в настройках сайта.
+ * заметит. Лестница настраивается владельцем в настройках сайта.
  */
 export const DEFAULT_LADDER: ReadonlyArray<HlsRung> = [
   { height: 480, videoKbps: 1200, audioKbps: 96 },
@@ -99,6 +102,14 @@ export interface HlsResult {
   readonly durationSeconds: number | null;
   /** Секрет AES-128. Хранить в базе, в раздачу не класть. */
   readonly secret: Buffer;
+  /**
+   * Сколько частей шло под одним ключом; `null` — вся запись под одним.
+   *
+   * @remarks
+   * Хранится у записи и служит признаком: у неё есть криптопериоды, значит запрос ключа
+   * без номера криптопериодовы отклоняется, и секрет наружу не уходит никогда.
+   */
+  readonly cryptoPeriod: number | null;
 }
 
 /** Лента кадров и её устройство: по нему собирается разметка для плеера. */
@@ -140,8 +151,18 @@ export function selectRungs(
   return fitting.length > 0 ? fitting : [ladder[0]!];
 }
 
-/** Высота и длительность исходника; `null` — если ffprobe не смог прочитать. */
-async function probe(input: string): Promise<{ height: number | null; duration: number | null }> {
+/**
+ * Высота, длительность и наличие звука; `null` — если ffprobe не смог прочитать.
+ *
+ * @remarks
+ * Звук приходится знать заранее: карта дорожек перечисляет их поимённо, и
+ * запись без звука с картой `v:0,a:0` роняет нарезку целиком - муксер отвечает
+ * «Variant stream info update failed». Немое видео обычное дело: съёмка
+ * с квадрокоптера, ускоренная запись, стоковый ролик.
+ */
+async function probe(
+  input: string,
+): Promise<{ height: number | null; duration: number | null; hasAudio: boolean }> {
   try {
     const out = await run('ffprobe', [
       '-v',
@@ -158,12 +179,26 @@ async function probe(input: string): Promise<{ height: number | null; duration: 
     ]);
     const height = /height=(\d+)/.exec(out)?.[1];
     const duration = /duration=([\d.]+)/.exec(out)?.[1];
+
+    const audio = await run('ffprobe', [
+      '-v',
+      'error',
+      '-select_streams',
+      'a',
+      '-show_entries',
+      'stream=codec_type',
+      '-of',
+      'csv=p=0',
+      input,
+    ]).catch(() => '');
+
     return {
       height: height ? Number(height) : null,
       duration: duration ? Math.round(Number(duration)) : null,
+      hasAudio: audio.trim().length > 0,
     };
   } catch {
-    return { height: null, duration: null };
+    return { height: null, duration: null, hasAudio: false };
   }
 }
 
@@ -181,10 +216,24 @@ export async function transcodeToHls(
   {
     ladder = DEFAULT_LADDER,
     keyUri,
+    cryptoPeriod = null,
     onProgress,
   }: {
     ladder?: ReadonlyArray<HlsRung>;
     keyUri: string;
+    /**
+     * Сколько частей идёт под одним ключом.
+     *
+     * @remarks
+     * `null` - вся запись под одним ключом, как было до появления криптопериодов.
+     *
+     * Величина приблизительная: муксер перечитывает файл ключа, уже начав
+     * очередную часть, поэтому граница приходится на часть позже задуманного.
+     * Точность здесь и не нужна - это мера того, что отдаёт утёкший ключ, -
+     * а вот номер криптопериодовы в адресе точен всегда: его пишет сам муксер там, где
+     * ключ сменился на самом деле.
+     */
+    cryptoPeriod?: number | null;
     /**
      * Сколько записи уже обработано, от нуля до единицы.
      *
@@ -204,15 +253,59 @@ export async function transcodeToHls(
     const input = join(work, 'source');
     await writeFile(input, source);
 
-    const { height: sourceHeight, duration } = await probe(input);
+    const { height: sourceHeight, duration, hasAudio } = await probe(input);
     const rungs = selectRungs(ladder, sourceHeight);
 
     const secret = randomBytes(16);
     const keyFile = join(work, 'enc.key');
-    await writeFile(keyFile, secret);
     const keyInfo = join(work, 'enc.keyinfo');
-    // Формат keyinfo: адрес для плеера, локальный файл ключа, вектор.
-    await writeFile(keyInfo, `${keyUri}\n${keyFile}\n${randomBytes(16).toString('hex')}\n`);
+
+    const split = typeof cryptoPeriod === 'number' && cryptoPeriod >= 1;
+
+    /*
+      Формат keyinfo: адрес для плеера, локальный файл ключа, вектор.
+
+      У записи с криптопериодми ключ меняется по ходу: на границе сюда кладётся ключ
+      следующей криптопериодовы и адрес с её номером. Муксер перечитывает файл сам, а
+      номер попадает в манифест ровно там, где ключ сменился, - поэтому выдаче
+      не приходится вычислять границу, она берёт номер из запроса.
+
+      Свой вектор на криптопериодову обязателен: одинаковый вектор при одинаковом ключе
+      выдаёт повторы.
+    */
+    const putPeriod = (period: number): void => {
+      // У каждой криптопериодовы свой файл ключа, и прежний не переписывается: муксер
+      // читает его когда сам решит, и подмена под ним отдала бы половину
+      // старого ключа с половиной нового.
+      const periodFile = split ? `${keyFile}.${period}` : keyFile;
+      writeFileSync(periodFile, split ? periodKey(secret, period) : secret);
+
+      /*
+        Сам keyinfo подменяем переименованием: запись на месте муксер иногда
+        застаёт на середине, и нарезка падает на невнятной ошибке.
+
+        Windows переименовать поверх открытого файла не даёт, и муксер держит
+        keyinfo открытым ровно в момент чтения. Поэтому несколько попыток,
+        а если система так и не пустила - пишем на месте: это возвращает
+        прежний риск, но он меньше, чем оборванная нарезка.
+      */
+      const uri = split ? `${keyUri}?p=${period}` : keyUri;
+      const line = `${uri}\n${periodFile}\n${randomBytes(16).toString('hex')}\n`;
+      const draft = `${keyInfo}.${period}`;
+      writeFileSync(draft, line);
+
+      for (let attempt = 0; ; attempt += 1) {
+        try {
+          renameSync(draft, keyInfo);
+          return;
+        } catch {
+          if (attempt >= 20) break;
+        }
+      }
+      writeFileSync(keyInfo, line);
+    };
+
+    putPeriod(0);
 
     const out = join(work, 'out');
     await mkdir(out, { recursive: true });
@@ -228,8 +321,9 @@ export async function transcodeToHls(
       args.push(
         '-map',
         '0:v:0',
-        '-map',
-        '0:a:0?',
+        // Дорожку звука берём только когда она есть: карта ниже перечисляет
+        // дорожки поимённо, и обещанная, но отсутствующая роняет нарезку.
+        ...(hasAudio ? ['-map', '0:a:0'] : []),
         // Чётная ширина обязательна для H.264 — на нечётной кодек падает.
         `-filter:v:${index}`,
         `scale=-2:${rung.height}`,
@@ -243,10 +337,7 @@ export async function transcodeToHls(
         `${Math.round(rung.videoKbps * 1.07)}k`,
         `-bufsize:v:${index}`,
         `${rung.videoKbps * 2}k`,
-        `-c:a:${index}`,
-        'aac',
-        `-b:a:${index}`,
-        `${rung.audioKbps}k`,
+        ...(hasAudio ? [`-c:a:${index}`, 'aac', `-b:a:${index}`, `${rung.audioKbps}k`] : []),
         `-g:v:${index}`,
         String(keyframes),
         `-keyint_min:v:${index}`,
@@ -261,10 +352,14 @@ export async function transcodeToHls(
       // качества идут рывком — плеер вынужден ждать следующего кадра.
       '-sc_threshold',
       '0',
-      '-ac',
-      '2',
+      ...(hasAudio ? ['-ac', '2'] : []),
       '-var_stream_map',
-      rungs.map((rung, index) => `v:${index},a:${index},name:${rung.height}p`).join(' '),
+      rungs
+        .map(
+          (rung, index) =>
+            `${hasAudio ? `v:${index},a:${index}` : `v:${index}`},name:${rung.height}p`,
+        )
+        .join(' '),
       '-master_pl_name',
       'master.m3u8',
       '-f',
@@ -275,6 +370,10 @@ export async function transcodeToHls(
       'vod',
       '-hls_key_info_file',
       keyInfo,
+      // Перечитывать файл ключа муксер соглашается только с этим признаком.
+      // Признак обязан стоять до имени выходного файла: всё, что идёт после
+      // него, к этому выходу уже не относится и молча пропадает.
+      ...(split ? ['-hls_flags', 'periodic_rekey'] : []),
       '-hls_segment_filename',
       join(out, '%v', 'seg_%05d.ts'),
       join(out, '%v', 'index.m3u8'),
@@ -285,18 +384,51 @@ export async function transcodeToHls(
       rungs.map((rung) => mkdir(join(out, `${rung.height}p`), { recursive: true })),
     );
 
-    await run('ffmpeg', args, (seconds) => {
-      // Доля считается от длительности: без неё показывать нечего, и вести о
-      // ходе просто не идут.
-      if (!onProgress || !duration || duration <= 0) return;
-      onProgress(Math.min(1, seconds / duration));
-    });
+    /*
+      Границу криптопериодовы отмеряем по частям, которые муксер уже написал: по времени
+      этого не сделать - кодирование идёт не в темпе записи, у короткой оно
+      быстрее реального времени, у тяжёлой медленнее.
+
+      Считаем по одной дорожке, иначе счёт умножился бы на число качеств.
+      Остальные дорожки сменят ключ примерно там же, и разойтись им не страшно:
+      номер криптопериодовы берётся из манифеста каждой дорожки отдельно.
+    */
+    const counted = rungs[0] ? `${rungs[0].height}p` : null;
+    const seen = new Set<string>();
+    let period = 0;
+
+    const watcher =
+      split && counted
+        ? watch(join(out, counted), (_event, name) => {
+            if (!name || !String(name).endsWith('.ts')) return;
+            const file = String(name);
+            if (seen.has(file)) return;
+            seen.add(file);
+            if (seen.size % (cryptoPeriod as number) !== 0) return;
+            // Запись синхронная, и это здесь важно: муксер перечитывает файл
+            // между частями, а отложенная запись успевала бы к концу нарезки -
+            // ключ не менялся бы вовсе.
+            putPeriod((period += 1));
+          })
+        : null;
+
+    try {
+      await run('ffmpeg', args, (seconds) => {
+        // Доля считается от длительности: без неё показывать нечего, и вести о
+        // ходе просто не идут.
+        if (!onProgress || !duration || duration <= 0) return;
+        onProgress(Math.min(1, seconds / duration));
+      });
+    } finally {
+      watcher?.close();
+    }
 
     return {
       files: await collect(out),
       rungs,
       durationSeconds: duration,
       secret,
+      cryptoPeriod: split ? (cryptoPeriod as number) : null,
       poster: await grabPoster(input, work, duration),
       storyboard: await grabStoryboard(input, work, duration),
     };
