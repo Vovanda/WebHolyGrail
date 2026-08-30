@@ -199,10 +199,14 @@ export interface ThreadsSectionData {
  *
  * @remarks
  * Секрета потока здесь нет и быть не может: он живёт в CMS и уходит зрителю
- * только конвертом, через отдельный эндпоинт с проверкой доступа.
+ * отдельной ручкой ключа, с проверкой права на каждый запрос.
  */
 export interface VideoStream {
   readonly id: string | number;
+  /** Название записи: его задаёт владелец в карточке видео. */
+  readonly title: string;
+  /** Описание записи. Пусто - его не заполнили. */
+  readonly description: string | null;
   /** Дорожки субтитров, если их завели. */
   readonly subtitles?: ReadonlyArray<VideoSubtitleTrack>;
   /** Оглавление записи, если его завели. */
@@ -226,8 +230,20 @@ export interface VideoStream {
  * качества и режим доступа приходят из карточки видео, а не задаются руками.
  */
 export interface VideoBlockData {
+  /**
+   * Подпись, набранная в блоке.
+   *
+   * @deprecated Название - свойство самой записи: набранное в блоке
+   * расходится с ней на соседней странице. Показывается, пока заполнено
+   * (R10), новые страницы берут название записи и включают его флажком.
+   */
   readonly title?: string;
+  /** @deprecated То же, что и `title`: описание живёт у записи. */
   readonly description?: string;
+  /** Показывать ли название записи под кадром. */
+  readonly showTitle?: boolean;
+  /** Показывать ли описание записи под кадром. */
+  readonly showDescription?: boolean;
   readonly video?: { id: string | number } | string | number | null;
   readonly poster?: BlogMediaRef | null;
   /** Ширина: в колонку текста или во всю ширину секции. */
@@ -245,7 +261,7 @@ export interface VideoSetItem {
   readonly durationSeconds: number | null;
   readonly ready: boolean;
   readonly locked: boolean;
-  readonly lockReason: 'sign-in-required' | 'not-entitled' | null;
+  readonly lockReason: 'not-entitled' | null;
 }
 
 /**
