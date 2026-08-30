@@ -25,11 +25,13 @@ import { cn } from '@/lib/utils';
 
 import { chaptersTrackUrl } from './chapters-track';
 import { VideoDenied } from './VideoDenied';
+import { VideoMiniFrame } from './VideoMiniFrame';
 import { VideoWatermark } from './VideoWatermark';
 import { storyboardTrackUrl } from './storyboard-track';
 import { useMiniPlayer } from './useMiniPlayer';
-import { createEnvelopeLoader, type EnvelopeFailure } from './envelope-loader';
+import { createKeyLoader, type KeyFailure } from './key-loader';
 import { useVideoResume } from './useVideoResume';
+import { DEFAULT_RATIO, useVideoRatio } from './useVideoRatio';
 import { useVideoTimecode } from './useVideoTimecode';
 import type { VideoPlayerChromeProps } from './VideoPlayerChrome';
 
@@ -42,7 +44,7 @@ import type { VideoPlayerChromeProps } from './VideoPlayerChrome';
  * и поддерживаются её авторами.
  *
  * Работа с ключом шифрования общая с первым вариантом и лежит в
- * `envelope-loader`: сам плеер о закрытом доступе ничего не знает, ему отдают
+ * `key-loader`: сам плеер о закрытом доступе ничего не знает, ему отдают
  * настроенный загрузчик hls.js.
  *
  * Библиотеку hls.js передаём свою. По умолчанию Vidstack тянет её из чужой
@@ -79,7 +81,6 @@ export type VideoPlayerVidstackProps = VideoPlayerChromeProps & {
 
 export function VideoPlayerVidstack({
   src,
-  token,
   mediaId,
   poster,
   className,
@@ -96,7 +97,7 @@ export function VideoPlayerVidstack({
   deniedSettings,
   watermark,
 }: VideoPlayerVidstackProps) {
-  const [denied, setDenied] = useState<EnvelopeFailure | null>(null);
+  const [denied, setDenied] = useState<KeyFailure | null>(null);
 
   /*
     Ссылка вида `?t=3m20s` открывает видео с нужного места, а без неё оно
@@ -113,6 +114,9 @@ export function VideoPlayerVidstack({
   const asMini = mini && miniPlayer.active;
   useVideoTimecode(media);
   useVideoResume(media, { mediaId });
+  // Форма кадра общая с соседним слоем: вертикальная запись не должна
+  // растягиваться поперёк себя ни в одном из них.
+  const ratio = useVideoRatio(media);
 
   // Оглавление собирается дорожкой прямо здесь: файла на диске не появляется.
   const chaptersUrl = useMemo(
@@ -126,13 +130,36 @@ export function VideoPlayerVidstack({
 
   // Загрузчик один на всё время просмотра: он узнаёт запрос ключа по виду
   // адреса, а не по номеру видео, поэтому переход к следующему его не трогает.
-  const loader = useMemo(() => createEnvelopeLoader({ token, onFailure: setDenied }), [token]);
+  const loader = useMemo(() => createKeyLoader({ onFailure: setDenied }), []);
 
   // Отказ прошлого видео к следующему не относится: без сброса зритель увидел
   // бы заглушку там, где всё открыто.
   useEffect(() => {
     setDenied(null);
   }, [mediaId]);
+
+  /*
+    Новая запись начинается сначала и сразу играет. Плеер один на всю подборку,
+    меняется только поток: движок при смене источника ни позицию не сбрасывает,
+    ни воспроизведение не начинает - следующая запись продолжала с секунды
+    предыдущей и ждала ещё одного нажатия.
+
+    Первую запись не трогаем: там жеста зрителя ещё не было, и браузер запуск
+    всё равно не пустит. Своё место, если оно сохранено, вернётся дальше -
+    возврат идёт по готовности метаданных, уже после этого сброса.
+  */
+  const startedRef = useRef(false);
+  useEffect(() => {
+    if (!media) return;
+    media.currentTime = 0;
+    if (!startedRef.current) {
+      startedRef.current = true;
+      return;
+    }
+    void media.play().catch(() => {
+      // Браузер вправе отказать - тогда зритель нажмёт сам, и это не поломка.
+    });
+  }, [media, mediaId]);
 
   if (denied && denied !== 'error') {
     return (
@@ -159,6 +186,7 @@ export function VideoPlayerVidstack({
   return (
     <div
       ref={frameRef}
+      data-part="player"
       className={cn(
         'relative',
         // Место записи на странице остаётся занятым: без этого страница
@@ -167,20 +195,11 @@ export function VideoPlayerVidstack({
         className,
       )}
     >
-      {asMini && (
-        <button
-          type="button"
-          onClick={miniPlayer.dismiss}
-          aria-label="Убрать окошко"
-          className="fixed bottom-2 right-2 z-[61] grid h-7 w-7 place-items-center rounded-full bg-ink/80 text-paper"
-        >
-          ×
-        </button>
-      )}
-
-      <div className={cn(asMini && 'video-mini')}>
+      <VideoMiniFrame asMini={asMini} onDismiss={miniPlayer.dismiss}>
         <MediaPlayer
+          data-part="frame"
           className="video-vidstack w-full overflow-hidden rounded-xl border border-border"
+          aspectRatio={ratio ?? DEFAULT_RATIO}
           src={{ src, type: 'application/x-mpegurl' }}
           title={title ?? ''}
           playsInline
@@ -240,7 +259,7 @@ export function VideoPlayerVidstack({
 
         {/* Переход по плейлисту: у готового слоя таких кнопок нет, ставим поверх кадра. */}
         {(onPrev || onNext) && (
-          <div className="video-vidstack__set">
+          <div data-part="set-nav" className="video-vidstack__set">
             <button type="button" onClick={onPrev} disabled={!onPrev} aria-label="Предыдущее видео">
               <PrevIcon />
             </button>
@@ -253,7 +272,7 @@ export function VideoPlayerVidstack({
         {watermark && <VideoWatermark label={watermark} />}
 
         {overlay}
-      </div>
+      </VideoMiniFrame>
     </div>
   );
 }

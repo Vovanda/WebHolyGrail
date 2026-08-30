@@ -17,7 +17,7 @@ describe('VideoDenied', () => {
   it('текст и кнопку задаёт владелец', () => {
     const html = renderToStaticMarkup(
       <VideoDenied
-        reason="sign-in-required"
+        reason="not-entitled"
         settings={{
           title: 'Нужна подписка',
           note: 'Курс открывается после оплаты',

@@ -1,6 +1,6 @@
 'use client';
 
-import Hls from 'hls.js';
+import { createKeyLoader } from './key-loader';
 import { useEffect, useRef, useState } from 'react';
 import 'media-chrome';
 import 'media-chrome/menu';
@@ -9,6 +9,10 @@ import 'hls-video-element';
 import { cn } from '@/lib/utils';
 
 import { VideoGestures } from './VideoGestures';
+import { VideoMiniFrame } from './VideoMiniFrame';
+import { useMiniPlayer } from './useMiniPlayer';
+import { DEFAULT_RATIO, useVideoRatio } from './useVideoRatio';
+import { useVideoResume } from './useVideoResume';
 
 /**
  * Слой управления на media-chrome - первый из двух, между ними переключает флаг.
@@ -31,9 +35,7 @@ import { VideoGestures } from './VideoGestures';
 export interface VideoPlayerChromeProps {
   /** Адрес master.m3u8. */
   readonly src: string;
-  /** Токен сессии зрителя — им вскрывается конверт. */
-  readonly token: string;
-  /** Идентификатор медиафайла: по нему запрашивается конверт. */
+  /** Идентификатор медиафайла: по нему запрашивается ключ. */
   readonly mediaId: string | number;
   readonly poster?: string | undefined;
   readonly className?: string | undefined;
@@ -58,13 +60,20 @@ export interface VideoPlayerChromeProps {
   readonly onNext?: (() => void) | undefined;
   /** Заголовок для скринридера — у видео без подписи иначе только «video». */
   readonly title?: string | undefined;
+  /**
+   * Уводить играющую запись уголком, когда страницу прокрутили мимо.
+   *
+   * @remarks
+   * Решает вызывающий: на странице записи уголок уместен, а в блоке посреди
+   * длинного текста он перекрывает чтение.
+   */
+  readonly mini?: boolean;
 }
 
 type Phase = 'loading' | 'playing' | 'denied' | 'not-ready' | 'error';
 
 /** Текст отказа. Владелец переопределяет его в настройках сайта. */
 const DENIED_TEXT: Record<string, string> = {
-  'sign-in-required': 'Откроется по коду доступа',
   'not-entitled': 'Откроется по коду доступа',
   'not-ready': 'Видео ещё готовится к показу',
 };
@@ -80,7 +89,6 @@ const PLAYBACK_RATES = '0.85 0.9 1 1.25 1.5 2';
 
 export function VideoPlayerChrome({
   src,
-  token,
   mediaId,
   poster,
   className,
@@ -89,23 +97,25 @@ export function VideoPlayerChrome({
   onVideoRef,
   onPrev,
   onNext,
+  mini = false,
 }: VideoPlayerChromeProps) {
   const videoRef = useRef<(HTMLVideoElement & { config?: unknown }) | null>(null);
   // Контроллер нужен жестам: у него переключается видимость управления.
   const controllerRef = useRef<HTMLElement | null>(null);
+  const frameRef = useRef<HTMLDivElement | null>(null);
+  const miniPlayer = useMiniPlayer(frameRef, videoRef);
+  const asMini = mini && miniPlayer.active;
   const [phase, setPhase] = useState<Phase>('loading');
-  const [reason, setReason] = useState<string>('sign-in-required');
+  const [reason, setReason] = useState<string>('not-entitled');
 
-  /**
-   * Соотношение сторон видео.
-   *
-   * @remarks
-   * До загрузки метаданных стоит 16:9 — иначе страница прыгает, когда кадр
-   * наконец приходит. Дальше плеер принимает форму самого видео: вертикальное
-   * видео в горизонтальной рамке живёт в чёрных полях, а на телефоне от него
-   * остаётся полоска посреди экрана.
-   */
-  const [ratio, setRatio] = useState('16 / 9');
+  /*
+    Кадр держим и ссылкой, и значением: ссылка нужна тем, кому важен сам
+    доступ к нему, а значение - тем, кто должен дождаться его появления.
+    Форма кадра и память места - как раз вторые.
+  */
+  const [media, setMedia] = useState<HTMLVideoElement | null>(null);
+  const ratio = useVideoRatio(media) ?? DEFAULT_RATIO;
+  useVideoResume(media, { mediaId });
 
   /**
    * Плеер собирается только в браузере.
@@ -123,67 +133,18 @@ export function VideoPlayerChrome({
     const video = videoRef.current;
     if (!video) return;
 
-    /**
-     * Загрузчик с подменой на запросах ключа.
-     *
-     * @remarks
-     * Отдельной точки для ключей у движка нет — есть один загрузчик на все
-     * запросы. Поэтому оборачиваем штатный: запрос ключа узнаём по пути, всё
-     * остальное — плейлисты и сегменты — уходит дальше без изменений, прямо
-     * на CDN.
-     *
-     * Именно по пути, а не по полному адресу: снаружи известен только тот
-     * адрес, что стоит в плейлисте, и он собран из публичного имени сайта.
-     * Сверка с адресом CMS ломалась на проде — контейнеру он известен под
-     * внутренним именем, совпадения не было, и ключ уходил без токена.
-     */
-    const envelopePath = `/api/video/${mediaId}/envelope`;
-    const DefaultLoader = Hls.DefaultConfig.loader;
-
-    class EnvelopeAwareLoader extends DefaultLoader {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- контракт загрузчика задан библиотекой
-      load(context: any, config: any, callbacks: any): void {
-        const url = String(context?.url ?? '');
-        if (!url.includes(envelopePath)) {
-          super.load(context, config, callbacks);
+    // Загрузчик общий с соседним слоем управления: шифрование одно на оба,
+    // и держать его двумя копиями значит однажды починить только одну.
+    const loader = createKeyLoader({
+      onFailure: (failure) => {
+        if (failure === 'error') {
+          setPhase('error');
           return;
         }
-
-        // Идём по тому же адресу, что стоит в плейлисте, дописав токен: он
-        // публичный и заведомо доступен зрителю.
-        //
-        // Куку шлём явно: без неё эндпоинт увидит анонима, и закрытое видео
-        // не откроется даже у вошедшего зрителя.
-        const separator = url.includes('?') ? '&' : '?';
-        fetch(`${url}${separator}token=${encodeURIComponent(token)}`, { credentials: 'include' })
-          .then(async (response) => {
-            if (!response.ok) {
-              const body = (await response.json().catch(() => ({}))) as { error?: string };
-              throw new Error(body.error ?? String(response.status));
-            }
-            const { envelope } = (await response.json()) as { envelope: string };
-            return openEnvelope(envelope, token);
-          })
-          .then((key) => {
-            callbacks.onSuccess(
-              { url: context.url, data: key },
-              { code: 200, text: '' },
-              context,
-              null,
-            );
-          })
-          .catch((error: Error) => {
-            const known = ['sign-in-required', 'not-entitled', 'not-ready'];
-            if (known.includes(error.message)) {
-              setReason(error.message);
-              setPhase(error.message === 'not-ready' ? 'not-ready' : 'denied');
-            } else {
-              setPhase('error');
-            }
-            callbacks.onError({ code: 403, text: error.message }, context, null, {});
-          });
-      }
-    }
+        setReason(failure);
+        setPhase(failure === 'not-ready' ? 'not-ready' : 'denied');
+      },
+    });
 
     // Конфигурация уходит в обёртку до источника: она разворачивает её в свой
     // экземпляр hls.js.
@@ -191,31 +152,18 @@ export function VideoPlayerChrome({
       // Стартуем с нижней ступени: первый кадр появляется быстрее, дальше
       // движок сам поднимется, увидев запас по каналу.
       startLevel: 0,
-      loader: EnvelopeAwareLoader,
+      loader,
     };
-    // Размеры известны только из самого потока: в плейлисте их нет, а до
-    // метаданных браузер о видео ничего не знает.
-    const applyRatio = () => {
-      if (video.videoWidth > 0 && video.videoHeight > 0) {
-        setRatio(`${video.videoWidth} / ${video.videoHeight}`);
-      }
-    };
-    video.addEventListener('loadedmetadata', applyRatio);
-    video.addEventListener('resize', applyRatio);
-
     video.setAttribute('src', src);
+    setMedia(video);
     onVideoRef?.(video);
     setPhase('playing');
-
-    return () => {
-      video.removeEventListener('loadedmetadata', applyRatio);
-      video.removeEventListener('resize', applyRatio);
-    };
-  }, [src, token, mediaId, mounted]);
+  }, [src, mediaId, mounted]);
 
   if (phase === 'denied' || phase === 'not-ready') {
     return (
       <div
+        data-part="denied"
         className={cn(
           'flex aspect-video flex-col items-center justify-center gap-3 rounded-xl border border-border bg-surface text-center',
           className,
@@ -223,7 +171,7 @@ export function VideoPlayerChrome({
         style={poster ? { backgroundImage: `url(${poster})`, backgroundSize: 'cover' } : undefined}
       >
         <p className="text-body font-medium text-ink">
-          {DENIED_TEXT[reason] ?? DENIED_TEXT['sign-in-required']}
+          {DENIED_TEXT[reason] ?? DENIED_TEXT['not-entitled']}
         </p>
       </div>
     );
@@ -231,162 +179,147 @@ export function VideoPlayerChrome({
 
   return (
     <div
-      className={cn('relative overflow-hidden rounded-xl border border-border bg-black', className)}
+      ref={frameRef}
+      data-part="player"
+      className={cn(
+        'relative',
+        // Место записи на странице остаётся занятым: без этого страница
+        // подпрыгивает, стоит кадру уехать в угол.
+        asMini && 'min-h-[1px]',
+        className,
+      )}
     >
-      {!mounted ? (
-        <video
-          poster={poster}
-          playsInline
-          preload="none"
-          title={title}
-          className="block h-full w-full"
-          style={{ aspectRatio: ratio }}
-        />
-      ) : (
-        /* @ts-expect-error — веб-компоненты media-chrome не типизированы для JSX */
-        <media-controller ref={controllerRef} class="block w-full" style={{ aspectRatio: ratio }}>
-          {/*
+      <VideoMiniFrame
+        asMini={asMini}
+        onDismiss={miniPlayer.dismiss}
+        className="overflow-hidden rounded-xl border border-border bg-black"
+      >
+        {!mounted ? (
+          <video
+            poster={poster}
+            playsInline
+            preload="none"
+            title={title}
+            className="block h-full w-full"
+            style={{ aspectRatio: ratio }}
+          />
+        ) : (
+          /* @ts-expect-error — веб-компоненты media-chrome не типизированы для JSX */
+          <media-controller
+            ref={controllerRef}
+            class="relative block w-full"
+            style={{ aspectRatio: ratio }}
+          >
+            {/*
             Собственную высоту видео не задаём: media-chrome раскладывает слот
             сам и кладёт панель управления поверх нижней кромки кадра. С
             растянутым на всю высоту видео панель оказывалась под кадром
             отдельной полосой — на телефоне это съедало пол-экрана.
           */}
-          {/* @ts-expect-error — веб-компонент */}
-          <hls-video
-            ref={videoRef}
-            slot="media"
-            poster={poster}
-            playsinline
-            preload="metadata"
-            title={title}
-          />
-          {/* @ts-expect-error — веб-компонент */}
-          <media-settings-menu hidden anchor="auto">
             {/* @ts-expect-error — веб-компонент */}
-            <media-settings-menu-item>
-              Скорость
+            <hls-video
+              ref={videoRef}
+              slot="media"
+              poster={poster}
+              playsinline
+              preload="metadata"
+              title={title}
+            />
+            {/* @ts-expect-error — веб-компонент */}
+            <media-settings-menu hidden anchor="auto">
               {/* @ts-expect-error — веб-компонент */}
-              <media-playback-rate-menu slot="submenu" rates={PLAYBACK_RATES} hidden>
-                <div slot="title">Скорость</div>
+              <media-settings-menu-item>
+                Скорость
                 {/* @ts-expect-error — веб-компонент */}
-              </media-playback-rate-menu>
-              {/* @ts-expect-error — веб-компонент */}
-            </media-settings-menu-item>
-            {/* @ts-expect-error — веб-компонент */}
-            <media-settings-menu-item>
-              Качество
-              {/* @ts-expect-error — веб-компонент */}
-              <media-rendition-menu slot="submenu" hidden>
-                <div slot="title">Качество</div>
+                <media-playback-rate-menu slot="submenu" rates={PLAYBACK_RATES} hidden>
+                  <div slot="title">Скорость</div>
+                  {/* @ts-expect-error — веб-компонент */}
+                </media-playback-rate-menu>
                 {/* @ts-expect-error — веб-компонент */}
-              </media-rendition-menu>
+              </media-settings-menu-item>
               {/* @ts-expect-error — веб-компонент */}
-            </media-settings-menu-item>
-            {/* @ts-expect-error — веб-компонент */}
-          </media-settings-menu>
-          {/* Тап по кадру играет и ставит на паузу, двойной по краю перематывает. */}
-          <VideoGestures videoRef={videoRef} controllerRef={controllerRef} />
+              <media-settings-menu-item>
+                Качество
+                {/* @ts-expect-error — веб-компонент */}
+                <media-rendition-menu slot="submenu" hidden>
+                  <div slot="title">Качество</div>
+                  {/* @ts-expect-error — веб-компонент */}
+                </media-rendition-menu>
+                {/* @ts-expect-error — веб-компонент */}
+              </media-settings-menu-item>
+              {/* @ts-expect-error — веб-компонент */}
+            </media-settings-menu>
+            {/* Тап по кадру играет и ставит на паузу, двойной по краю перематывает. */}
+            <VideoGestures videoRef={videoRef} controllerRef={controllerRef} />
 
-          {/*
+            {/*
             Управление посередине кадра: середина — самая доступная пальцу
             область, а нижние кнопки мелкие, и на ходу в них не попасть.
           */}
-          <div slot="centered-chrome" className="video-center">
-            <button
-              type="button"
-              onClick={onPrev}
-              disabled={!onPrev}
-              aria-label="Предыдущее видео"
-              className="video-center__side"
-            >
-              <PrevIcon />
-            </button>
+            <div slot="centered-chrome" data-part="center" className="video-center">
+              <button
+                type="button"
+                onClick={onPrev}
+                disabled={!onPrev}
+                aria-label="Предыдущее видео"
+                data-part="prev"
+                className="video-center__side"
+              >
+                <PrevIcon />
+              </button>
 
-            {/* @ts-expect-error — веб-компонент */}
-            <media-play-button />
+              {/* @ts-expect-error — веб-компонент */}
+              <media-play-button />
 
-            <button
-              type="button"
-              onClick={onNext}
-              disabled={!onNext}
-              aria-label="Следующее видео"
-              className="video-center__side"
-            >
-              <NextIcon />
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={onNext}
+                disabled={!onNext}
+                aria-label="Следующее видео"
+                data-part="next"
+                className="video-center__side"
+              >
+                <NextIcon />
+              </button>
+            </div>
 
-          {/*
+            {/*
             Низ плеера — один блок: полоса времени во всю ширину и строка
             управления под ней вплотную, как в мобильных плеерах. Порознь
             между ними просвечивает кадр, и обе части читаются как случайные.
           */}
-          <div className="video-bottom">
-            {/* @ts-expect-error — веб-компонент */}
-            <media-time-range class="video-progress" />
+            <div data-part="controls" className="video-bottom">
+              {/* @ts-expect-error — веб-компонент */}
+              <media-time-range class="video-progress" />
 
-            {/* @ts-expect-error — веб-компонент */}
-            <media-control-bar class="video-bar">
               {/* @ts-expect-error — веб-компонент */}
-              <media-time-display showduration />
-              {/* @ts-expect-error — веб-компонент */}
-              <media-mute-button />
-              {/* Ползунок громкости только на широком экране: на телефоне
+              <media-control-bar class="video-bar">
+                {/* @ts-expect-error — веб-компонент */}
+                <media-time-display showduration />
+                {/* @ts-expect-error — веб-компонент */}
+                <media-mute-button />
+                {/* Ползунок громкости только на широком экране: на телефоне
                   громкость крутят кнопками устройства. */}
-              {/* @ts-expect-error — веб-компонент */}
-              <media-volume-range class="only-wide" />
-              <span className="video-bar-gap" />
-              {/* @ts-expect-error — веб-компонент */}
-              <media-settings-menu-button />
-              {/* @ts-expect-error — веб-компонент */}
-              <media-pip-button class="only-wide" />
-              {/* @ts-expect-error — веб-компонент */}
-              <media-fullscreen-button />
-              {/* @ts-expect-error — веб-компонент */}
-            </media-control-bar>
-          </div>
+                {/* @ts-expect-error — веб-компонент */}
+                <media-volume-range class="only-wide" />
+                <span className="video-bar-gap" />
+                {/* @ts-expect-error — веб-компонент */}
+                <media-settings-menu-button />
+                {/* @ts-expect-error — веб-компонент */}
+                <media-pip-button class="only-wide" />
+                {/* @ts-expect-error — веб-компонент */}
+                <media-fullscreen-button />
+                {/* @ts-expect-error — веб-компонент */}
+              </media-control-bar>
+            </div>
 
-          {overlay}
-          {/* @ts-expect-error — веб-компонент */}
-        </media-controller>
-      )}
+            {overlay}
+            {/* @ts-expect-error — веб-компонент */}
+          </media-controller>
+        )}
+      </VideoMiniFrame>
     </div>
   );
-}
-
-/**
- * Вскрывает конверт ключом из токена зрителя.
- *
- * @remarks
- * Ключ лежит в самом токене и отдельно нигде не хранится: сервер собирает его
- * при проверке подписи, браузер берёт из своей же строки.
- */
-async function openEnvelope(envelope: string, token: string): Promise<ArrayBuffer> {
-  const [rawKey] = token.split('.');
-  const key = await crypto.subtle.importKey(
-    'raw',
-    base64urlToBytes(rawKey ?? ''),
-    { name: 'AES-GCM' },
-    false,
-    ['decrypt'],
-  );
-  const [iv, sealed, tag] = envelope.split('.') as [string, string, string];
-  // WebCrypto ждёт метку подлинности приклеенной к шифротексту, а Node отдаёт
-  // её отдельно — склеиваем здесь.
-  const sealedBytes = new Uint8Array(base64urlToBytes(sealed));
-  const tagBytes = new Uint8Array(base64urlToBytes(tag));
-  const payload = new Uint8Array(sealedBytes.length + tagBytes.length);
-  payload.set(sealedBytes);
-  payload.set(tagBytes, sealedBytes.length);
-  return crypto.subtle.decrypt({ name: 'AES-GCM', iv: base64urlToBytes(iv) }, key, payload);
-}
-
-function base64urlToBytes(value: string): ArrayBuffer {
-  const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
-  const binary = atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '='));
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-  return bytes.buffer;
 }
 
 function PrevIcon() {

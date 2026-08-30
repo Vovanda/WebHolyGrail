@@ -96,11 +96,17 @@ export function selectVideo(
   items: ReadonlyArray<VideoSetItem>,
   code: string | null | undefined,
 ): VideoSetItem | null {
-  const playable = playableOf(items);
-  if (playable.length === 0) return null;
+  /*
+    Названное в адресе закрытое видео выбирается, а не подменяется играющим:
+    на его месте теперь стоит форма ввода кода, и человек, пришедший по ссылке
+    на закрытое, попадает туда, куда его звали. Прежде там был пустой кадр,
+    поэтому подмена и была верной.
+  */
+  const asked = code ? items.find((item) => item.code === code && item.ready) : undefined;
+  if (asked) return asked;
 
-  const asked = code ? playable.find((item) => item.code === code) : undefined;
-  return asked ?? playable[0] ?? null;
+  const playable = playableOf(items);
+  return playable[0] ?? null;
 }
 
 /** Соседи текущего видео среди играющих. */

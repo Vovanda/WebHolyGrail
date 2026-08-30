@@ -11,12 +11,11 @@ import { cn } from '@/lib/utils';
  * идти дальше.
  *
  * Текст и кнопку задаёт владелец в настройках: у одного сайта это код доступа,
- * у другого подписка, у третьего вход в учётную запись. Зашивать в код нечего
- * (R0).
+ * у другого подписка. Зашивать в код нечего (R0).
  */
 export interface VideoDeniedProps {
   /** Почему запись не показывается. */
-  readonly reason: 'sign-in-required' | 'not-entitled' | 'not-ready';
+  readonly reason: 'not-entitled' | 'not-ready';
   readonly settings?: VideoDeniedSettings | undefined;
   readonly poster?: string | undefined;
   readonly className?: string | undefined;
