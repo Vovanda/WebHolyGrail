@@ -4,7 +4,7 @@ import { generateAccessCode, normalizeAccessCode } from '../lib/video/access-cod
 import { codeExpiry, codeRules, type VideoCodeSettings } from '../lib/video/code-rules';
 
 /**
- * Код - билет к доступу: кто его получил, тот получил и право.
+ * Код - одноразовый пароль к доступу: кто его получил, тот получил и право.
  *
  * @remarks
  * Способ выдачи, а не вид доступа: сработав, код заводит обычное право на тот
@@ -85,9 +85,9 @@ export const MediaAccessCodes: CollectionConfig = {
       label: 'Сколько раз сработает',
       type: 'number',
       min: 1,
+      defaultValue: 1,
       admin: {
-        description:
-          'Пусто — сработает пятьдесят раз. Код открывает запись предъявителю, поэтому счётчик у него есть всегда.',
+        description: 'Больше одного ставят, когда код раздают нескольким людям.',
       },
     },
     {
@@ -103,7 +103,7 @@ export const MediaAccessCodes: CollectionConfig = {
       type: 'date',
       admin: {
         description:
-          'Обязательно. Не указан — месяц со дня выдачи: бессрочный код остаётся в переписке дольше, чем о нём помнят.',
+          'Не указан — пять минут со дня выдачи, как у любого одноразового пароля. Срок берётся из настроек сайта.',
         date: { pickerAppearance: 'dayOnly', displayFormat: 'd MMMM yyyy' },
       },
     },
@@ -195,14 +195,10 @@ export const MediaAccessCodes: CollectionConfig = {
           data['expiresAt'] = codeExpiry(rules, new Date());
         }
 
-        /*
-          Код открывает запись предъявителю, поэтому число срабатываний у него
-          есть всегда: разойдясь по чатам, он иначе открыл бы её каждому, кто
-          его увидел. Отозвать выданное можно - право лежит записью, - но
-          снимать их придётся по одному на каждого.
-        */
+        // Код одноразовый: это пароль на один вход. Больше срабатываний ставят
+        // руками, когда один код раздают нескольким людям.
         if (!data['maxUses']) {
-          data['maxUses'] = 50;
+          data['maxUses'] = 1;
         }
         return data;
       },
