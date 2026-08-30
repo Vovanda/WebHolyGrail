@@ -1,5 +1,6 @@
 import { Articles } from './Articles';
 import { Authors } from './Authors';
+import { Cities } from './Cities';
 import { Comments } from './Comments';
 import { MediaAccessCodes } from './MediaAccessCodes';
 import { MediaAccessLinks } from './MediaAccessLinks';
@@ -14,6 +15,7 @@ import { Pages } from './Pages';
 import { Playlists } from './Playlists';
 import { ReusableBlocks } from './ReusableBlocks';
 import { SocialPosts } from './SocialPosts';
+import { Specialists } from './Specialists';
 import { Tags } from './Tags';
 import { Threads } from './Threads';
 import { Users } from './Users';
@@ -62,7 +64,9 @@ export const engineCollections = [
   MediaAccessCodes,
   MediaAccessLinks,
   KeyUsage,
-  // Каталог специалистов по городам.
+  // Каталог людей по городам: тренеры, мастера, врачи, репетиторы.
+  Cities,
+  Specialists,
   SocialPosts,
   Comments,
   // Что на сайте включено: значения по окружениям, меняются без выкладки.

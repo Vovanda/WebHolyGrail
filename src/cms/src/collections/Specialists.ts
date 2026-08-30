@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
-import { PAGE_BLOCKS } from '../../blocks';
+import { PAGE_BLOCKS } from '../blocks';
 
 /**
  * Специалисты — люди, ради которых существует каталог: тренеры, мастера,
