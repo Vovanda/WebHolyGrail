@@ -34,7 +34,7 @@ services:
       # Пусто — генератор молчит, и это правильное состояние для обычного сайта:
       # иначе посторонний печатал бы себе ключи от платного.
       DEMO_CODE_PLAYLIST: ${DEMO_CODE_PLAYLIST:-}
-      DEMO_CODE_TTL_MINUTES: ${DEMO_CODE_TTL_MINUTES:-15}
+      DEMO_CODE_TTL_MINUTES: ${DEMO_CODE_TTL_MINUTES:-}
       PAYLOAD_PUBLIC_SERVER_URL: ${PAYLOAD_PUBLIC_SERVER_URL:?required}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?required}
       NODE_ENV: production
