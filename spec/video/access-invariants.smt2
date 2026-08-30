@@ -1,410 +1,236 @@
-; ============================================================================
-; Видео — инварианты доступа, нарезки и просмотров (Z3 / SMT-LIB v2)
-; ============================================================================
-; Спутник docs/whg/39-video.md.
+; Модель доступа к видео.
 ;
-; Зачем формально. Три места этой механики отказывают тихо: система продолжает
-; работать и выглядеть исправной.
-;   1) выдача секрета мимо политики,
-;   2) удаление оригинала не в том состоянии,
-;   3) учёт одновременных просмотров.
-; Поэтому свойства доказываются, а не проверяются на глаз.
+; Пишется от потоков в docs/whg/42-access-flows.md и ведёт за собой код:
+; правило меняется здесь, гоняется verify_access.py, и только потом правится
+; реализация.
 ;
-; Файл ведущий: сначала правится он и гоняется verify_access.py, потом пишется
-; код и рантайм-тест. Оба — в одном коммите.
-;
-; Имена латиницей — Z3 не принимает кириллицу в идентификаторах.
-;
-; Прогон онлайн:
-;   https://microsoft.github.io/z3guide/playground/Freeform%20Editing/
-; Локально:
-;   pip install z3-solver && python spec/video/verify_access.py
-; ============================================================================
-
-(set-logic ALL)
-(set-option :produce-models true)
+; Четыре сущности. Доступ безличен и держит состав с датой отсечки; право
+; личное и со своими условиями; код - билет к доступу, его диктуют вслух;
+; ссылка ведёт к тому же доступу, но живёт по своим правилам - её адрес
+; длинный, а срок обязателен.
 
 ; ---------------------------------------------------------------------------
-; СЕКЦИЯ A — УНИВЕРСУМ И СИГНАТУРЫ
+; СЕКЦИЯ A — УНИВЕРСУМ
 ; ---------------------------------------------------------------------------
 
-; Состояния нарезки. Соответствуют полю hls.status у медиафайла.
 (declare-datatype Status ((Uploaded) (Queued) (Encoding) (Ready) (Failed)))
-
-; Режим доступа. Это политика выдачи, а не способ хранения: сегменты
-; зашифрованы всегда и одинаково в обоих режимах.
 (declare-datatype Access ((Public) (Private)))
 
 (declare-sort Video 0)
-(declare-fun status      (Video) Status)
-(declare-fun access      (Video) Access)
+(declare-fun status (Video) Status)
+(declare-fun access (Video) Access)
 (declare-fun hasOriginal (Video) Bool)
 (declare-fun hasRendition (Video) Bool)
 
-; Поколение секрета. Растёт при каждой смене секрета; сегменты зашифрованы
-; секретом своего поколения. Служит признаком того, что прежние выдачи
-; перестали действовать.
+; Поколение секрета. Растёт при смене секрета; прежняя выдача действительна,
+; пока поколение не сменилось.
 (declare-fun generation (Video) Int)
 (assert (forall ((v Video)) (>= (generation v) 0)))
 
-(declare-sort Viewer 0)
-(declare-fun signedIn (Viewer) Bool)
-(declare-fun token    (Viewer) Int)
+(declare-sort Playlist 0)
+(declare-fun inPlaylist (Video Playlist) Bool)
 
-; Токен персональный: одинаковый токен означает одного и того же зрителя.
-(assert (forall ((a Viewer) (b Viewer))
-  (=> (= (token a) (token b)) (= a b))))
+(declare-sort Viewer 0)
+(declare-sort Author 0)
+
+; Идентичность зрителя: маркер посетителя, учётная запись, телефон или почта.
+; Право принадлежит ей, а не браузеру.
+(declare-fun identity (Viewer) Int)
+
+(declare-fun owns (Viewer Video) Bool)
+(declare-fun isAdmin (Viewer) Bool)
 
 ; ---------------------------------------------------------------------------
 ; СЕКЦИЯ B — ИНВАРИАНТЫ СОСТОЯНИЙ
 ; ---------------------------------------------------------------------------
 
-; ИНВ-1: нарезка существует тогда и только тогда, когда видео готово.
-(assert (forall ((v Video))
-  (= (hasRendition v) (= (status v) Ready))))
+; Нарезка существует тогда и только тогда, когда видео готово.
+(assert (forall ((v Video)) (= (hasRendition v) (= (status v) Ready))))
 
-; ИНВ-2: оригинал удаляется ровно при переходе в Ready. В любом другом
-; состоянии он обязан лежать на месте — иначе повтор задачи после сбоя
-; останется без исходника.
-(assert (forall ((v Video))
-  (= (hasOriginal v) (not (= (status v) Ready)))))
+; Оригинал удаляется ровно при переходе в Ready: иначе повтор задачи после
+; сбоя останется без исходника.
+(assert (forall ((v Video)) (= (hasOriginal v) (not (= (status v) Ready)))))
 
 ; ---------------------------------------------------------------------------
-; СЕКЦИЯ C — ОПЕРАЦИИ
+; СЕКЦИЯ C — ДОСТУП
 ; ---------------------------------------------------------------------------
 
-;; Выдача ключа описана ниже, в секции прав: keyIssuedByRights. Здесь её нет
-;; намеренно. Прежняя выдача спрашивала «вошёл ли зритель», и это была не
-;; модель, а привычка из площадок с учётными записями: у нас регистрации
-;; зрителей нет вовсе, а код доступа затем и придуман, чтобы право получал
-;; предъявитель. Конверта тоже нет: ключ уходит шестнадцатью байтами, как его
-;; ждёт плеер, а токен лишь называет, кто спрашивает.
-
-; Смена режима доступа. Меняет политику и не трогает ни состояние нарезки,
-; ни файлы, ни поколение секрета — поэтому переключение мгновенно.
-(define-fun accessAfterToggle ((a Access)) Access
-  (ite (= a Public) Private Public))
-
-(define-fun statusAfterToggle ((s Status)) Status s)
-
-(define-fun generationAfterToggle ((g Int)) Int g)
-
-; Действительность ранее выданной выдачи: она привязана к поколению секрета.
-; Пока поколение прежнее — выдача в силе; сменилось — больше не действует.
-(define-fun grantValid ((gIssued Int) (gNow Int)) Bool
-  (= gIssued gNow))
-
-; Смена секрета — единственная операция, повышающая поколение.
-(define-fun generationAfterRekey ((g Int)) Int (+ g 1))
-
-; Просмотры. Активен тот, кто отметился не позже порога протухания.
-(define-fun staleAfter () Int 120)
-
-(define-fun watchAlive ((now Int) (last Int)) Bool
-  (<= (- now last) staleAfter))
-
-; Допуск нового просмотра при лимите — без вытеснения и с вытеснением.
-(define-fun admitWithoutEviction ((n Int) (lim Int)) Bool
-  (< n lim))
-
-(define-fun aliveAfterEviction ((n Int) (lim Int)) Int
-  (ite (< n lim) (+ n 1) lim))
-
-; ---------------------------------------------------------------------------
-; СЕКЦИЯ C2 — НАБОРЫ И ПРАВА
-; ---------------------------------------------------------------------------
-; Курсы продаёт не один владелец сайта, а участники сообщества: у каждого свои
-; плейлисты и свои покупатели. Поэтому право — отдельная связь «зритель × плейлист»,
-; а не флаг на видео и не свойство плейлиста.
-;
-; Почему не каскад «закрытый плейлист закрывает свои видео»: тогда платный
-; плейлист с бесплатными вводными уроками невозможен — они закрылись бы вместе
-; с остальными. Видео сам говорит, нужен ли для него доступ; плейлист говорит,
-; чем этот доступ выдаётся.
-
-(declare-sort Playlist 0)
-(declare-sort Author 0)
-
-(declare-fun inPlaylist (Video Playlist) Bool)
-
-;; --------------------------------------------------------------------------
-;; Доступ - то, что продают и то, что отбирают целиком.
-;;
-;; Он безличен: не «Аня купила», а «Курс открыт». Знает, какие материалы в него
-;; входят - напрямую или через подборку, - и держит общую дату отсечки. Ноль
-;; означает «бессрочно»; дата в прошлом закрывает доступ у всех разом, сколько
-;; бы прав под ним ни выдали.
-;;
-;; Ради этой строки доступ и заведён отдельной сущностью. Права выдаются
-;; поштучно, и закрыть материал ото всех, обходя каждое, нереально: одно
-;; обязательно останется незакрытым.
 (declare-sort Pass 0)
 (declare-fun passOwner (Pass) Author)
-
-(declare-fun passHasVideo    (Pass Video) Bool)
+(declare-fun passHasVideo (Pass Video) Bool)
 (declare-fun passHasPlaylist (Pass Playlist) Bool)
-(declare-fun passCutoff      (Pass) Int)
 
+; Дата отсечки. Ноль - бессрочно; дата в прошлом закрывает доступ у всех
+; держателей разом.
+(declare-fun passCutoff (Pass) Int)
 (assert (forall ((p Pass)) (>= (passCutoff p) 0)))
 
-;; Доступ покрывает материал напрямую либо через подборку, в которую тот входит.
-;; Состав подборки поменялся - покрытие поменялось само, догонять нечего.
+; Покрытие: напрямую либо через подборку.
 (define-fun passCovers ((p Pass) (v Video)) Bool
   (or (passHasVideo p v)
       (exists ((pl Playlist)) (and (passHasPlaylist p pl) (inPlaylist v pl)))))
 
-;; --------------------------------------------------------------------------
-;; Право - личное и со своими условиями.
-;;
-;; Своя дата истечения и своё число просмотров: один купил бессрочно, другой
-;; вошёл по недельному промо, и это один и тот же доступ, а не два.
-;;
-;; Хранится записью, а не внутри токена. Так было не всегда: право из
-;; погашенного кода жило в токене, и отозвать его было нельзя - сервер о нём
-;; не знал вовсе. Всё, что выдано, обязано существовать записью.
-(declare-fun rightHeld     (Viewer Pass) Bool)
-(declare-fun rightUntil    (Viewer Pass) Int)
-(declare-fun rightViews    (Viewer Pass) Int)
-(declare-fun rightMaxViews (Viewer Pass) Int)
-
-(assert (forall ((z Viewer) (p Pass))
-  (and (>= (rightUntil z p) 0)
-       (>= (rightViews z p) 0)
-       (>= (rightMaxViews z p) 0))))
-
-;; Живость вычисляется из условий, а не хранится флагом: иначе истёкшее ждало бы,
-;; пока его кто-нибудь погасит, и до тех пор пускало бы.
-;;
-;; Ноль в сроке и в лимите значит «без ограничения» - это отсутствие условия,
-;; а не условие «ноль».
+; Ноль в сроке и в пределе значит «без ограничения».
 (define-fun deadlineAlive ((deadline Int) (now Int)) Bool
   (or (= deadline 0) (> deadline now)))
 
 (define-fun passAlive ((p Pass) (now Int)) Bool
   (deadlineAlive (passCutoff p) now))
 
+; ---------------------------------------------------------------------------
+; СЕКЦИЯ D — ПРАВО
+; ---------------------------------------------------------------------------
+
+(declare-fun rightHeld (Viewer Pass) Bool)
+(declare-fun rightUntil (Viewer Pass) Int)
+(declare-fun rightViews (Viewer Pass) Int)
+(declare-fun rightMaxViews (Viewer Pass) Int)
+
+(assert (forall ((z Viewer) (p Pass))
+  (and (>= (rightUntil z p) 0) (>= (rightViews z p) 0) (>= (rightMaxViews z p) 0))))
+
+; Живость вычисляется из условий, флагом не хранится.
 (define-fun rightAlive ((z Viewer) (p Pass) (now Int)) Bool
   (and (rightHeld z p)
        (deadlineAlive (rightUntil z p) now)
-       (or (= (rightMaxViews z p) 0)
-           (< (rightViews z p) (rightMaxViews z p)))))
+       (or (= (rightMaxViews z p) 0) (< (rightViews z p) (rightMaxViews z p)))))
 
-;; Проверка двухступенчатая и в этом порядке: жив ли доступ, и только потом
-;; смотрим право. Отсюда же следует счёт срока по более раннему из двух:
-;; личная бессрочность не переживает отсечку доступа.
+; Проверка в два шага и в этом порядке: жив доступ, потом право.
 (define-fun grants ((z Viewer) (p Pass) (now Int)) Bool
   (and (passAlive p now) (rightAlive z p now)))
 
-;; Право принадлежит идентичности, а не токену. Токен лишь предъявляет её:
-;; у другого посетителя она другая, и чужое право по нему не находится.
-;;
-;; Работает и для анонима: сервер выдаёт ему маркер при первой встрече, и право
-;; по коду записывается на этот маркер - так же, как купленное на учётную запись.
-(declare-fun identity (Viewer) Int)
-
+; Право принадлежит идентичности.
 (assert (forall ((a Viewer) (b Viewer) (p Pass))
-  (=> (and (rightHeld a p) (not (= (identity a) (identity b))))
-      (not (rightHeld b p)))))
+  (=> (and (rightHeld a p) (not (= (identity a) (identity b)))) (not (rightHeld b p)))))
 
-;; Отзыв поштучно. Снятое право перестаёт открывать немедленно: ключ спрашивают
-;; на каждый кусок, и следующая же просьба упирается в его отсутствие.
+; Отзыв поштучно.
 (declare-fun revoked (Viewer Pass) Bool)
+(assert (forall ((z Viewer) (p Pass)) (=> (revoked z p) (not (rightHeld z p)))))
 
-(assert (forall ((z Viewer) (p Pass))
-  (=> (revoked z p) (not (rightHeld z p)))))
+; ---------------------------------------------------------------------------
+; СЕКЦИЯ E — КОД
+; ---------------------------------------------------------------------------
 
-;; Свой закрытый материал автор смотрит всегда.
-;;
-;; Это не поблажка, а рабочая необходимость: перед публикацией нужно убедиться,
-;; что залит нужный файл, а закрытое иначе не откроется даже тому, кто его
-;; загрузил, - и автор публикует вслепую.
-(declare-fun owns (Viewer Video) Bool)
+; Код - билет к доступу: кто получил, тот получил и право. Его диктуют вслух,
+; поэтому он короткий и в алфавите без похожих начертаний.
+(declare-sort Code 0)
+(declare-fun codePass (Code) Pass)
+(declare-fun codeRevoked (Code) Bool)
+(declare-fun codeExpires (Code) Int)
+(declare-fun codeMaxUses (Code) Int)
+(declare-fun codeUsed (Code) Int)
 
-;; Роль администратора площадки доступа к чужому закрытому НЕ даёт.
-;;
-;; На площадке с несколькими авторами администратор посторонний для чужого
-;; материала: иначе он молча выкачивает чужие платные подборки. Полностью это
-;; не защищает - ключи от базы у него, - но выдать себе право придётся явно,
-;; и запись об этом останется.
-(declare-fun isAdmin (Viewer) Bool)
+; Что код даёт праву: срок и предел просмотров.
+(declare-fun codeGrantUntil (Code) Int)
+(declare-fun codeGrantViews (Code) Int)
 
-;; Владение живёт в учётной записи, поэтому автор всегда вошедший.
-(assert (forall ((z Viewer) (v Video)) (=> (owns z v) (signedIn z))))
+(assert (forall ((c Code))
+  (and (>= (codeExpires c) 0) (>= (codeMaxUses c) 0) (>= (codeUsed c) 0)
+       (>= (codeGrantUntil c) 0) (>= (codeGrantViews c) 0))))
 
-;; Материалу нужен доступ. Открытые признака не имеют и доступны всем, даже
-;; лёжа внутри платного доступа: это бесплатный вводный урок, которым курс
-;; продают.
+; Годность кода: отзыв, срок, предел срабатываний.
+(define-fun codeUsable ((c Code) (now Int)) Bool
+  (and (not (codeRevoked c))
+       (deadlineAlive (codeExpires c) now)
+       (or (= (codeMaxUses c) 0) (< (codeUsed c) (codeMaxUses c)))))
+
+; Активация заводит право на предъявителя: учётная запись не нужна.
+(define-fun activates ((c Code) (now Int)) Bool (codeUsable c now))
+
+; Срок после активации: повторная продлевает, но не сокращает.
+(define-fun untilAfterActivation ((had Int) (c Code)) Int
+  (ite (= had 0)
+       0
+       (ite (= (codeGrantUntil c) 0)
+            0
+            (ite (> (codeGrantUntil c) had) (codeGrantUntil c) had))))
+
+(define-fun usedAfterActivation ((c Code)) Int (+ (codeUsed c) 1))
+
+; ---------------------------------------------------------------------------
+; СЕКЦИЯ E2 — ССЫЛКА-ПРИГЛАШЕНИЕ
+; ---------------------------------------------------------------------------
+
+; Ссылка ведёт к тому же доступу, что и код, но живёт по своим правилам: её
+; адрес длинный и машинный - короткий подобрали бы перебором, - и срок у неё
+; обязателен, потому что она остаётся в чужой переписке.
+(declare-sort Link 0)
+(declare-fun linkPass (Link) Pass)
+(declare-fun linkRevoked (Link) Bool)
+(declare-fun linkExpires (Link) Int)
+(declare-fun linkMaxUses (Link) Int)
+(declare-fun linkUsed (Link) Int)
+
+(assert (forall ((l Link))
+  (and (>= (linkExpires l) 0) (>= (linkMaxUses l) 0) (>= (linkUsed l) 0))))
+
+; Срок обязателен: нулевого, то есть бессрочного, у ссылки не бывает.
+(assert (forall ((l Link)) (> (linkExpires l) 0)))
+
+(define-fun linkUsable ((l Link) (now Int)) Bool
+  (and (not (linkRevoked l))
+       (> (linkExpires l) now)
+       (or (= (linkMaxUses l) 0) (< (linkUsed l) (linkMaxUses l)))))
+
+(define-fun usedAfterFollow ((l Link)) Int (+ (linkUsed l) 1))
+
+; ---------------------------------------------------------------------------
+; СЕКЦИЯ F — ПРОСМОТР
+; ---------------------------------------------------------------------------
+
+; Ключ спрашивают на каждый отрезок потока, поэтому просмотр - первое взятие
+; ключа к записи в пределах окна, а не каждый запрос.
+(define-fun viewWindow () Int 86400)
+
+(declare-fun lastTaken (Viewer Video) Int)
+(assert (forall ((z Viewer) (v Video)) (>= (lastTaken z v) 0)))
+
+(define-fun withinWindow ((last Int) (now Int)) Bool
+  (and (> last 0) (<= (- now last) viewWindow)))
+
+(define-fun countsAsView ((z Viewer) (v Video) (now Int)) Bool
+  (not (withinWindow (lastTaken z v) now)))
+
+; Одновременные просмотры: активен тот, кто отметился не позже порога.
+(define-fun staleAfter () Int 120)
+(define-fun watchAlive ((now Int) (last Int)) Bool (<= (- now last) staleAfter))
+(define-fun admitWithoutEviction ((n Int) (lim Int)) Bool (< n lim))
+(define-fun aliveAfterEviction ((n Int) (lim Int)) Int (ite (< n lim) (+ n 1) lim))
+
+; Действительность прежней выдачи привязана к поколению секрета.
+(define-fun grantValid ((gIssued Int) (gNow Int)) Bool (= gIssued gNow))
+(define-fun generationAfterRekey ((g Int)) Int (+ g 1))
+
+; Смена режима не трогает ни нарезку, ни секрет.
+(define-fun accessAfterToggle ((a Access)) Access (ite (= a Public) Private Public))
+(define-fun statusAfterToggle ((s Status)) Status s)
+(define-fun generationAfterToggle ((g Int)) Int g)
+
+; ---------------------------------------------------------------------------
+; СЕКЦИЯ G — ВЫДАЧА КЛЮЧА
+; ---------------------------------------------------------------------------
+
 (define-fun needsEntitlement ((v Video)) Bool (= (access v) Private))
 
-;; Итог: закрытый материал открывает живое право на любой доступ, который его
-;; покрывает. Прав может быть несколько, хватает одного.
+; Своё автор смотрит всегда: иначе он публикует вслепую.
 (define-fun mayWatch ((v Video) (z Viewer) (now Int)) Bool
   (or (not (needsEntitlement v))
       (owns z v)
       (exists ((p Pass)) (and (passCovers p v) (grants z p now)))))
 
-(define-fun keyIssuedByRights ((v Video) (z Viewer) (now Int)) Bool
+; Ключ уходит шестнадцатью байтами; токен лишь называет, кто спрашивает.
+(define-fun keyIssued ((v Video) (z Viewer) (now Int)) Bool
   (and (= (status v) Ready) (mayWatch v z now)))
 
 ; ---------------------------------------------------------------------------
-; СЕКЦИЯ D — ТЕСТЫ
+; СЕКЦИЯ H — ТЕСТЫ
 ; ---------------------------------------------------------------------------
-; Схема блока:
 ;   ;@TEST          имя
 ;   ;@EXPECT        sat|unsat
-;   ;@COVERED-BY    <файл теста>::<случай>   (или «n/a — проверка модели»)
-;   (push) ... (check-sat) (pop)
+;   ;@COVERED-BY    <файл теста>::<случай>
 ;
 ; unsat — отрицание свойства невыполнимо, значит свойство держится.
-; sat    — описанный сценарий достижим, значит случай разрешён.
-
-;@TEST          Оба режима достижимы у готового видео
-;@EXPECT        sat
-;@COVERED-BY    n/a — проверка модели
-(push)
-(declare-const openOne Video)
-(declare-const closedOne Video)
-(assert (= (status openOne) Ready))
-(assert (= (status closedOne) Ready))
-(assert (= (access openOne) Public))
-(assert (= (access closedOne) Private))
-(check-sat)
-(pop)
-
-;@TEST          Переключение режима работает в обе стороны
-;@EXPECT        unsat
-;@COVERED-BY    src/cms/src/collections/Media.test.ts::переключение режима
-(push)
-(assert (or (not (= (accessAfterToggle Public) Private))
-            (not (= (accessAfterToggle Private) Public))))
-(check-sat)
-(pop)
-
-;@TEST          Смена режима не сбрасывает нарезку и не трогает секрет
-;@EXPECT        unsat
-;@COVERED-BY    src/cms/src/collections/Media.test.ts::переключение без перенарезки
-(push)
-(declare-const s Status)
-(declare-const g Int)
-(assert (or (not (= (statusAfterToggle s) s))
-            (not (= (generationAfterToggle g) g))))
-(check-sat)
-(pop)
-
-;@TEST          Закрытие режима прекращает выдачу тому же зрителю
-;@EXPECT        unsat
-;@COVERED-BY    src/cms/src/lib/video/grant-access.test.ts::после закрытия отказ
-(push)
-(declare-const before Video)
-(declare-const after Video)
-(declare-const z Viewer)
-(declare-const now Int)
-(assert (= (status after) Ready))
-(assert (= (access before) Public))
-(assert (= (access after) Private))
-(assert (forall ((p Pass)) (not (rightHeld z p))))
-(assert (not (owns z after)))
-(assert (keyIssuedByRights after z now))
-(check-sat)
-(pop)
-
-;@TEST          Открытое отдаётся кому угодно, вход не нужен
-;@EXPECT        sat
-;@COVERED-BY    src/cms/src/lib/video/grant-access.test.ts::аноним смотрит открытое
-(push)
-(declare-const v Video)
-(declare-const z Viewer)
-(declare-const now Int)
-(assert (= (status v) Ready))
-(assert (= (access v) Public))
-(assert (forall ((p Pass)) (not (rightHeld z p))))
-(assert (keyIssuedByRights v z now))
-(check-sat)
-(pop)
-
-;@TEST          Недорезанное видео не отдаёт ключ ни в каком режиме
-;@EXPECT        unsat
-;@COVERED-BY    src/cms/src/lib/video/grant-access.test.ts::видео ещё в очереди
-(push)
-(declare-const v Video)
-(declare-const z Viewer)
-(declare-const now Int)
-(assert (not (= (status v) Ready)))
-(assert (keyIssuedByRights v z now))
-(check-sat)
-(pop)
-
-;@TEST          Прежние выдачи прекращают действовать только со сменой секрета
-;@EXPECT        unsat
-;@COVERED-BY    src/cms/src/lib/video/grant-access.test.ts::поколение секрета
-(push)
-(declare-const g Int)
-(assert (grantValid g (generationAfterRekey g)))
-(check-sat)
-(pop)
-
-;@TEST          Пока секрет прежний, ранее выданное остаётся в силе
-;@EXPECT        sat
-;@COVERED-BY    n/a — проверка модели
-(push)
-(declare-const g Int)
-(assert (grantValid g (generationAfterToggle g)))
-(check-sat)
-(pop)
-
-;@TEST          Оригинал не пропадает, пока нарезки нет
-;@EXPECT        unsat
-;@COVERED-BY    src/cms/src/lib/media/build-hls.test.ts::сбой не уносит исходник
-(push)
-(declare-const v Video)
-(assert (not (hasRendition v)))
-(assert (not (hasOriginal v)))
-(check-sat)
-(pop)
-
-;@TEST          После ошибки исходник на месте и задачу можно повторить
-;@EXPECT        sat
-;@COVERED-BY    src/cms/src/lib/media/build-hls.test.ts::повтор после ошибки
-(push)
-(declare-const v Video)
-(assert (= (status v) Failed))
-(assert (hasOriginal v))
-(check-sat)
-(pop)
-
-;@TEST          Лимит просмотров не превышается без вытеснения
-;@EXPECT        unsat
-;@COVERED-BY    src/cms/src/lib/video/watch-limit.test.ts::третий на двух местах
-(push)
-(declare-const alive Int)
-(declare-const lim Int)
-(assert (> lim 0))
-(assert (>= alive lim))
-(assert (admitWithoutEviction alive lim))
-(check-sat)
-(pop)
-
-;@TEST          Вытеснение не поднимает число активных выше лимита
-;@EXPECT        unsat
-;@COVERED-BY    src/cms/src/lib/video/watch-limit.test.ts::вытеснение старейшего
-(push)
-(declare-const alive Int)
-(declare-const lim Int)
-(assert (and (>= alive 0) (> lim 0)))
-(assert (> (aliveAfterEviction alive lim) lim))
-(check-sat)
-(pop)
-
-;@TEST          Молчащий дольше порога перестаёт занимать место
-;@EXPECT        unsat
-;@COVERED-BY    src/cms/src/lib/video/watch-limit.test.ts::протухший просмотр
-(push)
-(declare-const now Int)
-(declare-const last Int)
-(assert (> (- now last) staleAfter))
-(assert (watchAlive now last))
-(check-sat)
-(pop)
+; sat    — сценарий достижим, значит случай разрешён.
 
 ;@TEST          Открытый материал доступен всем, даже покрытый платным доступом
 ;@EXPECT        sat
@@ -418,7 +244,7 @@
 (assert (= (access v) Public))
 (assert (passHasVideo p v))
 (assert (not (rightHeld z p)))
-(assert (keyIssuedByRights v z now))
+(assert (keyIssued v z now))
 (check-sat)
 (pop)
 
@@ -431,15 +257,14 @@
 (declare-const now Int)
 (assert (needsEntitlement v))
 (assert (forall ((p Pass)) (not (rightHeld z p))))
-; Не автор: своё он смотрит независимо от прав.
 (assert (not (owns z v)))
-(assert (keyIssuedByRights v z now))
+(assert (keyIssued v z now))
 (check-sat)
 (pop)
 
 ;@TEST          Право на доступ открывает всё, что доступ покрывает
 ;@EXPECT        sat
-;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::право на доступ
+;@COVERED-BY    src/cms/src/lib/video/entitlement-source.test.ts::право на подборку
 (push)
 (declare-const v Video)
 (declare-const pl Playlist)
@@ -451,149 +276,112 @@
 (assert (inPlaylist v pl))
 (assert (passHasPlaylist p pl))
 (assert (rightHeld z p))
-; Ни доступ, ни право не истекли.
 (assert (= (passCutoff p) 0))
 (assert (= (rightUntil z p) 0))
 (assert (= (rightMaxViews z p) 0))
-(assert (keyIssuedByRights v z now))
+(assert (keyIssued v z now))
 (check-sat)
 (pop)
 
 ;@TEST          Отсечка доступа закрывает материал, хотя личное право бессрочно
 ;@EXPECT        unsat
-;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::отсечка доступа
+;@COVERED-BY    src/cms/src/lib/video/entitlement-source.test.ts::отсечка доступа
 (push)
 (declare-const v Video)
 (declare-const p Pass)
 (declare-const z Viewer)
 (declare-const now Int)
 (assert (needsEntitlement v))
-(assert (passHasVideo p v))
-(assert (rightHeld z p))
-; Личных ограничений нет вовсе.
-(assert (= (rightUntil z p) 0))
-(assert (= (rightMaxViews z p) 0))
-; А отсечка доступа уже прошла.
-(assert (> (passCutoff p) 0))
-(assert (<= (passCutoff p) now))
 (assert (not (owns z v)))
-; Другого доступа, покрывающего материал, у него нет.
-(assert (forall ((q Pass)) (=> (not (= q p)) (not (rightHeld z q)))))
-(assert (keyIssuedByRights v z now))
+(assert (> now 0))
+(assert (and (> (passCutoff p) 0) (<= (passCutoff p) now)))
+(assert (forall ((other Pass)) (=> (not (= other p)) (not (rightHeld z other)))))
+(assert (keyIssued v z now))
 (check-sat)
 (pop)
 
-;@TEST          Отсечка доступа гасит обоих держателей разом
+;@TEST          Отсечка гасит обоих держателей разом
 ;@EXPECT        unsat
-;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::отзыв доступа разом
+;@COVERED-BY    src/cms/src/lib/video/entitlement-source.test.ts::отзыв разом
 (push)
 (declare-const v Video)
 (declare-const p Pass)
 (declare-const anna Viewer)
 (declare-const boris Viewer)
 (declare-const now Int)
-(assert (distinct anna boris))
 (assert (needsEntitlement v))
-(assert (passHasVideo p v))
-; Права у обоих есть и личных ограничений нет.
-(assert (and (rightHeld anna p) (rightHeld boris p)))
-(assert (and (= (rightUntil anna p) 0) (= (rightUntil boris p) 0)))
-(assert (and (= (rightMaxViews anna p) 0) (= (rightMaxViews boris p) 0)))
 (assert (not (owns anna v)))
 (assert (not (owns boris v)))
-(assert (forall ((q Pass)) (=> (not (= q p)) (and (not (rightHeld anna q)) (not (rightHeld boris q))))))
-; Владелец переставил отсечку на сегодня.
-(assert (> (passCutoff p) 0))
-(assert (<= (passCutoff p) now))
-; Хотя бы одному ключ всё же достался - этого быть не должно.
-(assert (or (keyIssuedByRights v anna now) (keyIssuedByRights v boris now)))
+(assert (> now 0))
+(assert (and (> (passCutoff p) 0) (<= (passCutoff p) now)))
+(assert (forall ((other Pass))
+  (=> (not (= other p))
+      (and (not (rightHeld anna other)) (not (rightHeld boris other))))))
+(assert (or (keyIssued v anna now) (keyIssued v boris now)))
 (check-sat)
 (pop)
 
 ;@TEST          Личный срок короче общего закрывает раньше отсечки
 ;@EXPECT        unsat
-;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::личный срок короче
+;@COVERED-BY    src/cms/src/lib/video/entitlement-source.test.ts::личный срок
 (push)
 (declare-const v Video)
 (declare-const p Pass)
 (declare-const z Viewer)
 (declare-const now Int)
 (assert (needsEntitlement v))
-(assert (passHasVideo p v))
-(assert (rightHeld z p))
-(assert (= (rightMaxViews z p) 0))
-; Доступ ещё жив, а личное право уже истекло.
-(assert (or (= (passCutoff p) 0) (> (passCutoff p) now)))
-(assert (> (rightUntil z p) 0))
-(assert (<= (rightUntil z p) now))
 (assert (not (owns z v)))
-(assert (forall ((q Pass)) (=> (not (= q p)) (not (rightHeld z q)))))
-(assert (keyIssuedByRights v z now))
+(assert (> now 0))
+(assert (= (passCutoff p) 0))
+(assert (and (> (rightUntil z p) 0) (<= (rightUntil z p) now)))
+(assert (forall ((other Pass)) (=> (not (= other p)) (not (rightHeld z other)))))
+(assert (keyIssued v z now))
 (check-sat)
 (pop)
 
 ;@TEST          Исчерпанный счёт просмотров больше не открывает
 ;@EXPECT        unsat
-;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::счёт просмотров исчерпан
+;@COVERED-BY    src/cms/src/lib/video/entitlement-source.test.ts::счёт просмотров
 (push)
 (declare-const v Video)
 (declare-const p Pass)
 (declare-const z Viewer)
 (declare-const now Int)
 (assert (needsEntitlement v))
-(assert (passHasVideo p v))
-(assert (rightHeld z p))
+(assert (not (owns z v)))
 (assert (= (passCutoff p) 0))
 (assert (= (rightUntil z p) 0))
-; Лимит задан и выбран.
-(assert (> (rightMaxViews z p) 0))
-(assert (>= (rightViews z p) (rightMaxViews z p)))
-(assert (not (owns z v)))
-(assert (forall ((q Pass)) (=> (not (= q p)) (not (rightHeld z q)))))
-(assert (keyIssuedByRights v z now))
+(assert (and (> (rightMaxViews z p) 0) (>= (rightViews z p) (rightMaxViews z p))))
+(assert (forall ((other Pass)) (=> (not (= other p)) (not (rightHeld z other)))))
+(assert (keyIssued v z now))
 (check-sat)
 (pop)
 
 ;@TEST          Право одного не открывает материал другому
 ;@EXPECT        unsat
-;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::чужое право не открывает
+;@COVERED-BY    src/cms/src/lib/video/entitlement-source.test.ts::чужое право
 (push)
-(declare-const v Video)
 (declare-const p Pass)
-(declare-const first Viewer)
-(declare-const second Viewer)
-(declare-const now Int)
-(assert (needsEntitlement v))
-(assert (passHasVideo p v))
-(assert (not (= first second)))
-(assert (rightHeld first p))
-; Идентичности разные - именно они, а не токен, держат право.
-(assert (not (= (identity first) (identity second))))
-(assert (forall ((q Pass)) (not (rightHeld second q))))
-(assert (not (owns second v)))
-(assert (keyIssuedByRights v second now))
+(declare-const a Viewer)
+(declare-const b Viewer)
+(assert (not (= (identity a) (identity b))))
+(assert (rightHeld a p))
+(assert (rightHeld b p))
 (check-sat)
 (pop)
 
-;@TEST          Код открывает закрытый материал без учётной записи
+;@TEST          Владелец смотрит свой закрытый материал без всякого права
 ;@EXPECT        sat
-;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::код открывает без входа
+;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::своё автор смотрит
 (push)
 (declare-const v Video)
-(declare-const p Pass)
 (declare-const z Viewer)
 (declare-const now Int)
 (assert (= (status v) Ready))
 (assert (needsEntitlement v))
-(assert (passHasVideo p v))
-(assert (not (signedIn z)))
-; Право записано на маркер, выданный анониму: учётной записи нет, а отозвать
-; выданное всё равно можно - запись существует.
-(assert (rightHeld z p))
-(assert (= (passCutoff p) 0))
-(assert (= (rightUntil z p) 0))
-(assert (= (rightMaxViews z p) 0))
-(assert (keyIssuedByRights v z now))
+(assert (owns z v))
+(assert (forall ((p Pass)) (not (rightHeld z p))))
+(assert (keyIssued v z now))
 (check-sat)
 (pop)
 
@@ -607,99 +395,289 @@
 (assert (needsEntitlement v))
 (assert (isAdmin z))
 (assert (not (owns z v)))
-; Роль сама по себе записи о праве не создаёт.
 (assert (forall ((p Pass)) (not (rightHeld z p))))
-(assert (keyIssuedByRights v z now))
-(check-sat)
-(pop)
-
-;@TEST          Владелец смотрит свой закрытый материал без всякого права
-;@EXPECT        sat
-;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::владелец смотрит своё
-(push)
-(declare-const v Video)
-(declare-const z Viewer)
-(declare-const now Int)
-(assert (= (status v) Ready))
-(assert (needsEntitlement v))
-(assert (owns z v))
-; Ни одного права у него нет - открывает именно владение.
-(assert (forall ((p Pass)) (not (rightHeld z p))))
-(assert (keyIssuedByRights v z now))
-(check-sat)
-(pop)
-
-;@TEST          Чужой закрытый материал владение своим не открывает
-;@EXPECT        unsat
-;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::чужое владение не открывает
-(push)
-(declare-const mine Video)
-(declare-const other Video)
-(declare-const z Viewer)
-(declare-const now Int)
-(assert (needsEntitlement other))
-(assert (not (= mine other)))
-(assert (owns z mine))
-(assert (not (owns z other)))
-(assert (forall ((p Pass)) (not (rightHeld z p))))
-(assert (keyIssuedByRights other z now))
+(assert (keyIssued v z now))
 (check-sat)
 (pop)
 
 ;@TEST          Право на доступ, не покрывающий материал, его не открывает
 ;@EXPECT        unsat
-;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::право на другой доступ
+;@COVERED-BY    src/cms/src/lib/video/entitlement-source.test.ts::доступ не покрывает
 (push)
 (declare-const v Video)
-(declare-const mine Pass)
-(declare-const other Pass)
+(declare-const p Pass)
 (declare-const z Viewer)
 (declare-const now Int)
 (assert (needsEntitlement v))
-(assert (not (= mine other)))
-(assert (passCovers mine v))
-(assert (not (passCovers other v)))
-; Право есть, но на тот доступ, который этот материал не покрывает.
-(assert (rightHeld z other))
-(assert (forall ((q Pass)) (=> (rightHeld z q) (= q other))))
 (assert (not (owns z v)))
-(assert (keyIssuedByRights v z now))
+(assert (not (passCovers p v)))
+(assert (forall ((other Pass)) (=> (not (= other p)) (not (rightHeld z other)))))
+(assert (keyIssued v z now))
 (check-sat)
 (pop)
 
 ;@TEST          Материал в двух доступах открывается правом на любой
 ;@EXPECT        sat
-;@COVERED-BY    src/cms/src/lib/video/entitlements.test.ts::материал в двух доступах
+;@COVERED-BY    src/cms/src/lib/video/entitlement-source.test.ts::два доступа
 (push)
 (declare-const v Video)
 (declare-const first Pass)
 (declare-const second Pass)
 (declare-const z Viewer)
 (declare-const now Int)
-(assert (distinct first second))
 (assert (= (status v) Ready))
 (assert (needsEntitlement v))
+(assert (not (= first second)))
 (assert (passHasVideo first v))
 (assert (passHasVideo second v))
+(assert (not (rightHeld z first)))
 (assert (rightHeld z second))
 (assert (= (passCutoff second) 0))
 (assert (= (rightUntil z second) 0))
 (assert (= (rightMaxViews z second) 0))
-(assert (keyIssuedByRights v z now))
+(assert (keyIssued v z now))
 (check-sat)
 (pop)
 
-;@TEST          Доступы разных продавцов не смешиваются
-;@EXPECT        sat
-;@COVERED-BY    n/a — проверка модели
+;@TEST          Недорезанное видео не отдаёт ключ ни в каком режиме
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/grant-access.test.ts::видео ещё в очереди
 (push)
-(declare-const trainer Author)
-(declare-const member Author)
-(declare-const first Pass)
-(declare-const second Pass)
-(assert (distinct trainer member))
-(assert (= (passOwner first) trainer))
-(assert (= (passOwner second) member))
+(declare-const v Video)
+(declare-const z Viewer)
+(declare-const now Int)
+(assert (not (= (status v) Ready)))
+(assert (keyIssued v z now))
+(check-sat)
+(pop)
+
+;@TEST          Смена режима не сбрасывает нарезку и не трогает секрет
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/collections/Media.test.ts::переключение без перенарезки
+(push)
+(declare-const s Status)
+(declare-const g Int)
+(assert (or (not (= (statusAfterToggle s) s)) (not (= (generationAfterToggle g) g))))
+(check-sat)
+(pop)
+
+;@TEST          Прежние выдачи прекращают действовать только со сменой секрета
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/crypto-period.test.ts::смена секрета
+(push)
+(declare-const g Int)
+(assert (grantValid g (generationAfterRekey g)))
+(check-sat)
+(pop)
+
+;@TEST          Код срабатывает без учётной записи
+;@EXPECT        sat
+;@COVERED-BY    src/cms/src/lib/video/redeem.test.ts::код срабатывает без учётной записи
+(push)
+(declare-const c Code)
+(declare-const now Int)
+(assert (= (codeExpires c) 0))
+(assert (= (codeMaxUses c) 0))
+(assert (not (codeRevoked c)))
+(assert (activates c now))
+(check-sat)
+(pop)
+
+;@TEST          Отозванный код не срабатывает
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/redeem.test.ts::отозванный код
+(push)
+(declare-const c Code)
+(declare-const now Int)
+(assert (codeRevoked c))
+(assert (activates c now))
+(check-sat)
+(pop)
+
+;@TEST          Просроченный код не срабатывает
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/redeem.test.ts::просроченный код
+(push)
+(declare-const c Code)
+(declare-const now Int)
+(assert (> now 0))
+(assert (and (> (codeExpires c) 0) (<= (codeExpires c) now)))
+(assert (activates c now))
+(check-sat)
+(pop)
+
+;@TEST          Исчерпанный предел срабатываний закрывает код
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/redeem.test.ts::исчерпанный лимит
+(push)
+(declare-const c Code)
+(declare-const now Int)
+(assert (and (> (codeMaxUses c) 0) (>= (codeUsed c) (codeMaxUses c))))
+(assert (activates c now))
+(check-sat)
+(pop)
+
+;@TEST          Бессрочной ссылки не бывает
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/collections/MediaAccessLinks.ts::срок обязателен
+(push)
+(declare-const l Link)
+(assert (= (linkExpires l) 0))
+(check-sat)
+(pop)
+
+;@TEST          Отозванная ссылка не открывает
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/redeem-link.test.ts::отозванная ссылка
+(push)
+(declare-const l Link)
+(declare-const now Int)
+(assert (linkRevoked l))
+(assert (linkUsable l now))
+(check-sat)
+(pop)
+
+;@TEST          Просроченная ссылка не открывает
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/redeem-link.test.ts::просроченная ссылка
+(push)
+(declare-const l Link)
+(declare-const now Int)
+(assert (<= (linkExpires l) now))
+(assert (linkUsable l now))
+(check-sat)
+(pop)
+
+;@TEST          Исчерпавшая предел ссылка не открывает
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/redeem-link.test.ts::исчерпанный предел
+(push)
+(declare-const l Link)
+(declare-const now Int)
+(assert (and (> (linkMaxUses l) 0) (>= (linkUsed l) (linkMaxUses l))))
+(assert (linkUsable l now))
+(check-sat)
+(pop)
+
+;@TEST          Переход по ссылке засчитывает срабатывание
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/accept-link.test.ts::счётчик срабатываний
+(push)
+(declare-const l Link)
+(assert (not (= (usedAfterFollow l) (+ (linkUsed l) 1))))
+(check-sat)
+(pop)
+
+;@TEST          Активация засчитывает срабатывание
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/activate-code.test.ts::счётчик срабатываний
+(push)
+(declare-const c Code)
+(assert (not (= (usedAfterActivation c) (+ (codeUsed c) 1))))
+(check-sat)
+(pop)
+
+;@TEST          Повторная активация не укорачивает бессрочное право
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/keep-entitlement.test.ts::бессрочное не укорачивается
+(push)
+(declare-const c Code)
+(assert (not (= (untilAfterActivation 0 c) 0)))
+(check-sat)
+(pop)
+
+;@TEST          Повторная активация продлевает, но не сокращает срок
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/keep-entitlement.test.ts::продление
+(push)
+(declare-const c Code)
+(declare-const had Int)
+(assert (> had 0))
+(assert (> (codeGrantUntil c) 0))
+(assert (< (untilAfterActivation had c) had))
+(check-sat)
+(pop)
+
+;@TEST          Взятие ключа внутри окна новым просмотром не считается
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/view-window.test.ts::внутри окна
+(push)
+(declare-const z Viewer)
+(declare-const v Video)
+(declare-const now Int)
+(assert (> (lastTaken z v) 0))
+(assert (<= (- now (lastTaken z v)) viewWindow))
+(assert (countsAsView z v now))
+(check-sat)
+(pop)
+
+;@TEST          Возврат за пределами окна считается новым просмотром
+;@EXPECT        sat
+;@COVERED-BY    src/cms/src/lib/video/view-window.test.ts::за окном
+(push)
+(declare-const z Viewer)
+(declare-const v Video)
+(declare-const now Int)
+(assert (> (lastTaken z v) 0))
+(assert (> (- now (lastTaken z v)) viewWindow))
+(assert (countsAsView z v now))
+(check-sat)
+(pop)
+
+;@TEST          Первое в жизни взятие ключа считается просмотром
+;@EXPECT        sat
+;@COVERED-BY    src/cms/src/lib/video/view-window.test.ts::первое взятие
+(push)
+(declare-const z Viewer)
+(declare-const v Video)
+(declare-const now Int)
+(assert (= (lastTaken z v) 0))
+(assert (countsAsView z v now))
+(check-sat)
+(pop)
+
+;@TEST          Лимит одновременных просмотров не превышается
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/key-rate.test.ts::лимит просмотров
+(push)
+(declare-const n Int)
+(declare-const lim Int)
+(assert (>= n lim))
+(assert (admitWithoutEviction n lim))
+(check-sat)
+(pop)
+
+;@TEST          Вытеснение не поднимает число активных выше лимита
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/key-rate.test.ts::вытеснение
+(push)
+(declare-const n Int)
+(declare-const lim Int)
+(assert (>= n 0))
+(assert (> lim 0))
+(assert (<= n lim))
+(assert (> (aliveAfterEviction n lim) lim))
+(check-sat)
+(pop)
+
+;@TEST          Молчащий дольше порога перестаёт занимать место
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/key-rate.test.ts::протухание
+(push)
+(declare-const now Int)
+(declare-const last Int)
+(assert (> (- now last) staleAfter))
+(assert (watchAlive now last))
+(check-sat)
+(pop)
+
+;@TEST          Оригинал не пропадает, пока нарезки нет
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/collections/Media.test.ts::оригинал на месте
+(push)
+(declare-const v Video)
+(assert (not (= (status v) Ready)))
+(assert (not (hasOriginal v)))
 (check-sat)
 (pop)
 
