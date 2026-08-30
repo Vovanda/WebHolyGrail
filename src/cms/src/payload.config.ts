@@ -13,6 +13,10 @@ import { adoptEnvToggles } from './lib/toggles/adopt';
 import { SiteSettings } from './globals/SiteSettings';
 import { Users } from './collections/Users';
 import { engineCollections } from './collections/engine';
+// Каталог специалистов - ниша витрины, а не движка: сайту без специалистов
+// эти коллекции пустой груз, и синк папку domain не обходит.
+import { Cities } from './collections/domain/Cities';
+import { Specialists } from './collections/domain/Specialists';
 import { engineTasks } from './jobs/engine';
 import { withAutoSlug } from './lib/slug';
 import {
@@ -21,11 +25,14 @@ import {
   videoChannelEndpoint,
   videoPlaylistEndpoint,
   videoPlaylistByIdEndpoint,
-  videoEnvelopeEndpoint,
+  videoKeyEndpoint,
+  videoManifestEndpoint,
   videoTokenEndpoint,
   videoRedeemEndpoint,
-  videoDemoCodeEndpoint,
+  videoRedeemLinkEndpoint,
 } from './endpoints/video';
+// Витринная ручка живёт в domain: сайту она не нужна, и синк туда не заходит.
+import { videoDemoCodeEndpoint } from './endpoints/domain/demo-code';
 import { togglesEndpoint } from './endpoints/toggles';
 import { blockPartsEndpoint } from './endpoints/block-parts';
 
@@ -106,7 +113,7 @@ export default buildConfig({
 
     Порядок разделов админки задаёт сам набор движка; своё дописывается следом.
   */
-  collections: [...engineCollections].map(withAutoSlug),
+  collections: [...engineCollections, Cities, Specialists].map(withAutoSlug),
   globals: [SiteSettings],
   /**
    * Выдача доступа к видео. Живёт рядом с коллекциями, а не внутри `media`:
@@ -117,13 +124,15 @@ export default buildConfig({
     togglesEndpoint,
     videoTokenEndpoint,
     videoRedeemEndpoint,
+    videoRedeemLinkEndpoint,
     videoDemoCodeEndpoint,
     videoByCodeEndpoint,
     videoChannelEndpoint,
     videoPlaylistEndpoint,
     videoPlaylistByIdEndpoint,
     videoAccessEndpoint,
-    videoEnvelopeEndpoint,
+    videoKeyEndpoint,
+    videoManifestEndpoint,
   ],
 
   /**
@@ -177,7 +186,7 @@ export default buildConfig({
       //
       // Ключ живёт в Infisical рядом с остальными секретами инстанса. Потерять
       // его значит потерять базу: без ключа файл не открывается, в этом и смысл.
-      // Существующую базу переводит `scripts/encrypt-db.mjs` — зашифровать файл
+      // Существующую базу переводит `pnpm --filter cms encrypt:db` — зашифровать файл
       // на месте нельзя, ключ задаётся при открытии.
       ...(process.env.DATABASE_ENCRYPTION_KEY
         ? { encryptionKey: process.env.DATABASE_ENCRYPTION_KEY }
@@ -191,6 +200,18 @@ export default buildConfig({
   i18n: {
     supportedLanguages: { ru, en },
     fallbackLanguage: 'ru',
+    /*
+      Галку в списке Payload подписывает словами из `general.true` и
+      `general.false`, а в русском словаре это «Правда» и «Ложь» - перевод
+      логических значений, а не ответ на вопрос. В колонке «Требовать вход»
+      выходит «Ложь», и владелец читает это как поломку, а не как «нет».
+
+      Переопределяем в одном месте на весь шаблон: подписи полей у каждой
+      коллекции свои, а слова под галкой одни и те же везде.
+    */
+    translations: {
+      ru: { general: { true: 'Да', false: 'Нет' } },
+    },
   },
   // Payload типизирует sharp как SharpDependency, реальный экспорт типа `typeof sharp` —
   // известный type mismatch в payload@3.85.x, runtime-совместим.

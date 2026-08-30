@@ -51,6 +51,16 @@ import * as migration_20260829_182606_media_pack_bytes from './20260829_182606_m
 import * as migration_20260829_185756_video_visibility from './20260829_185756_video_visibility';
 import * as migration_20260829_190150_playlist_access_removed from './20260829_190150_playlist_access_removed';
 import * as migration_20260829_200357_entitlement_resource from './20260829_200357_entitlement_resource';
+import * as migration_20260829_235445_code_resource from './20260829_235445_code_resource';
+import * as migration_20260830_030000_entitlement_ref from './20260830_030000_entitlement_ref';
+import * as migration_20260830_043900_access_links from './20260830_043900_access_links';
+import * as migration_20260830_093500_video_key_step from './20260830_093500_video_key_step';
+import * as migration_20260830_104500_video_key_step_setting from './20260830_104500_video_key_step_setting';
+import * as migration_20260830_111500_crypto_period_rename from './20260830_111500_crypto_period_rename';
+import * as migration_20260830_143900_key_usage from './20260830_143900_key_usage';
+import * as migration_20260830_151000_media_description from './20260830_151000_media_description';
+import * as migration_20260830_151500_video_block_flags from './20260830_151500_video_block_flags';
+import * as migration_20260830_171000_grant_minutes from './20260830_171000_grant_minutes';
 
 export const migrations = [
   {
@@ -317,5 +327,55 @@ export const migrations = [
     up: migration_20260829_200357_entitlement_resource.up,
     down: migration_20260829_200357_entitlement_resource.down,
     name: '20260829_200357_entitlement_resource',
+  },
+  {
+    up: migration_20260829_235445_code_resource.up,
+    down: migration_20260829_235445_code_resource.down,
+    name: '20260829_235445_code_resource',
+  },
+  {
+    up: migration_20260830_030000_entitlement_ref.up,
+    down: migration_20260830_030000_entitlement_ref.down,
+    name: '20260830_030000_entitlement_ref',
+  },
+  {
+    up: migration_20260830_043900_access_links.up,
+    down: migration_20260830_043900_access_links.down,
+    name: '20260830_043900_access_links',
+  },
+  {
+    up: migration_20260830_093500_video_key_step.up,
+    down: migration_20260830_093500_video_key_step.down,
+    name: '20260830_093500_video_key_step',
+  },
+  {
+    up: migration_20260830_104500_video_key_step_setting.up,
+    down: migration_20260830_104500_video_key_step_setting.down,
+    name: '20260830_104500_video_key_step_setting',
+  },
+  {
+    up: migration_20260830_111500_crypto_period_rename.up,
+    down: migration_20260830_111500_crypto_period_rename.down,
+    name: '20260830_111500_crypto_period_rename',
+  },
+  {
+    up: migration_20260830_143900_key_usage.up,
+    down: migration_20260830_143900_key_usage.down,
+    name: '20260830_143900_key_usage',
+  },
+  {
+    up: migration_20260830_151000_media_description.up,
+    down: migration_20260830_151000_media_description.down,
+    name: '20260830_151000_media_description',
+  },
+  {
+    up: migration_20260830_151500_video_block_flags.up,
+    down: migration_20260830_151500_video_block_flags.down,
+    name: '20260830_151500_video_block_flags',
+  },
+  {
+    up: migration_20260830_171000_grant_minutes.up,
+    down: migration_20260830_171000_grant_minutes.down,
+    name: '20260830_171000_grant_minutes',
   },
 ];
