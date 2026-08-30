@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { VideoSetItem, VideoDeniedSettings } from 'contracts';
 
 import { cn } from '@/lib/utils';
 
-import { AccessCodeDialog } from './AccessCodeDialog';
+import { AccessCodeForm } from './AccessCodeForm';
 import { VideoPlayer } from './VideoPlayer';
 import { VideoSetDrawer } from './VideoSetDrawer';
-import { VideoSetList } from './VideoSetList';
+import { VideoSetColumn } from './VideoSetColumn';
+import { VideoSetStrip } from './VideoSetStrip';
 import { VideoUpNext } from './VideoUpNext';
 import { neighboursOf } from './selected-video';
 import { useSelectedVideo } from './useSelectedVideo';
@@ -41,22 +42,31 @@ const VIEWS: ReadonlyArray<{ value: SetView; label: string }> = [
  * и не уходит со страницы. Клиентский по необходимости (R14) — переключение
  * происходит в браузере.
  *
- * Токен зрителя один на сессию и к видео не привязан, поэтому смена видео
- * не требует ни нового токена, ни обращения к серверу: конверт с ключом
- * плеер запросит сам для того видео, который начал играть.
+ * Опознание зрителя одно на сессию и к видео не привязано, поэтому смена
+ * видео не требует ни нового обращения за ним, ни перезагрузки: ключи плеер
+ * запросит сам для того видео, который начал играть.
  *
  * Закрытые видео остаются в списке, но не выбираются: играть им нечем,
  * а ссылка ведёт на их страницу, где написано, как получить доступ.
  */
 export interface VideoSetPlayerProps {
   readonly items: ReadonlyArray<VideoSetItem>;
-  readonly token: string;
   readonly channel: string | null;
   readonly setCode: string | null;
+  /** Номер подборки: по нему список узнаёт, его ли открыли кодом. */
+  readonly setId?: string | number | null;
   /** Какой слой управления рисовать: приходит из настроек сайта. */
   readonly playerUi?: 'vidstack' | 'chrome' | undefined;
   /** Что показать вместо закрытой записи: приходит из настроек сайта. */
   readonly deniedSettings?: VideoDeniedSettings | undefined;
+  /**
+   * Есть ли живой код или ссылка, которыми открывают закрытое здесь.
+   *
+   * @remarks
+   * Форма ввода встаёт на место плеера только при нём: без единого живого кода
+   * она предлагает ввести то, чего не существует.
+   */
+  readonly openableByCode?: boolean | undefined;
   /** Как показывать список: задаётся в настройках блока. */
   readonly view?: SetView | undefined;
   /**
@@ -86,17 +96,18 @@ export function VideoSetPlayer({
   showViewSwitch = false,
   title,
   items: initial,
-  token,
   channel,
   setCode,
+  setId = null,
   playerUi,
   deniedSettings,
+  openableByCode,
   className,
   visible,
 }: VideoSetPlayerProps) {
   // Замки снимаются после введённого кода общим хуком: то же самое нужно
   // списку в боковой панели, а два одинаковых слушателя разъезжаются.
-  const { items, unlocking } = useUnlockableItems(initial);
+  const { items, unlocking } = useUnlockableItems(initial, setId);
 
   /*
     Выбранное видео живёт в адресе, а не здесь: так ссылка на нужное видео
@@ -124,8 +135,47 @@ export function VideoSetPlayer({
     setViewState(next);
     rememberView(setCode ?? null, next);
   };
-  // Кадр нужен карточке «дальше»: она следит за окончанием видео.
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  /*
+    Кадр нужен карточке «дальше»: она следит за его окончанием. Держим его
+    состоянием, а не ссылкой: плеер собирается позже первого рендера, и по
+    ссылке карточка получала бы пустоту - подписаться ей было бы не на что.
+  */
+  const [video, setVideo] = useState<HTMLVideoElement | null>(null);
+
+  /*
+    Нажатие на закрытую карточку выбирает её здесь же, а не уводит на страницу
+    записи: форма ввода стоит на месте плеера, и человек вводит код, не теряя
+    из виду подборку, ради которой пришёл.
+
+    Ссылка у карточки при этом настоящая - без JS и в новой вкладке открывается
+    страница записи, где написано то же самое. Слушаем на документе: списков
+    на странице несколько, и они перерисовываются при переключении вида.
+  */
+  useEffect(() => {
+    function onClick(event: MouseEvent) {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) {
+        return;
+      }
+      const link = (event.target as HTMLElement | null)?.closest('a[data-access-code]');
+      if (!link) return;
+
+      /*
+        Код берётся из последнего куска пути, а не из всей ссылки: у карточки
+        адрес вида `/@канал/v/<код>?set=<подборка>`, и хвост с подборкой в код
+        попадать не должен.
+      */
+      const href = link.getAttribute('href') ?? '';
+      const code = href.split('?')[0]?.split('/').pop() ?? '';
+      const wanted = items.find((item) => item.code === code);
+      if (!wanted) return;
+
+      event.preventDefault();
+      setCurrent(wanted);
+    }
+
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, [items, setCurrent]);
 
   /*
     Соседи текущего видео среди тех, что вообще могут играть. Закрытые и ещё
@@ -140,6 +190,7 @@ export function VideoSetPlayer({
       сбоку - подложке там не на чем держаться, и она не нужна.
     */
     <div
+      data-part="set"
       className={cn('flex flex-col gap-3', view === 'panel' ? 'pb-6' : 'media-shell', className)}
     >
       {/*
@@ -193,12 +244,26 @@ export function VideoSetPlayer({
           по самому видео - владелец просил именно по видео.
         */}
       <div
+        data-part="body"
         className={cn(
           'grid gap-5',
           view === 'column' ? 'lg:grid-cols-[minmax(0,1fr)_20rem]' : 'grid-cols-1',
         )}
       >
-        {current?.playlistUrl ? (
+        {current?.locked ? (
+          /*
+            У закрытой записи на месте плеера стоит форма ввода - там же, где
+            человек упёрся в замок. Раньше вместо неё поверх списка открывалось
+            окно: то же действие, но лишним шагом и с потерей из виду того,
+            ради чего код вводят.
+          */
+          <div className="border-border bg-surface flex aspect-video flex-col items-center justify-center gap-4 rounded-xl border px-6 text-center">
+            <p className="text-body text-ink">
+              {openableByCode ? 'Видео открывается по коду доступа' : 'Видео доступно не всем'}
+            </p>
+            {openableByCode && <AccessCodeForm className="w-full max-w-sm" />}
+          </div>
+        ) : current?.playlistUrl ? (
           <>
             {/*
               Плеер живёт один на весь просмотр: при переходе к следующему видео
@@ -209,19 +274,14 @@ export function VideoSetPlayer({
               ui={playerUi}
               deniedSettings={deniedSettings}
               src={current.playlistUrl}
-              token={token}
               mediaId={current.id}
               poster={current.poster ?? undefined}
               title={current.title}
               onPrev={prev ? () => setCurrent(prev) : undefined}
               onNext={next ? () => setCurrent(next) : undefined}
-              onVideoRef={(video) => {
-                videoRef.current = video;
-              }}
+              onVideoRef={setVideo}
               overlay={
-                next ? (
-                  <VideoUpNext item={next} videoRef={videoRef} onSelect={setCurrent} />
-                ) : undefined
+                next ? <VideoUpNext item={next} video={video} onSelect={setCurrent} /> : undefined
               }
             />
           </>
@@ -242,14 +302,17 @@ export function VideoSetPlayer({
             высота видео, и обрезка по числу оставляла бы внизу пустоту при
             непоказанных карточках.
           */
-          <div className="relative min-h-0">
-            <VideoSetList
+          <div data-part="column" className="relative min-h-0">
+            <VideoSetColumn
               items={items}
               channel={channel}
               setCode={setCode}
               currentCode={current?.code ?? null}
               onSelect={setCurrent}
               unlocking={unlocking}
+              /* Сколько карточек видно сразу - настройка блока. Прежде она уходила
+                 в ленту, где ничего не значит, и владелец задавал число впустую. */
+              limit={visible}
               className="max-h-[32rem] overflow-y-auto pr-1 [scrollbar-width:thin] lg:absolute lg:inset-0 lg:max-h-none"
             />
           </div>
@@ -265,20 +328,17 @@ export function VideoSetPlayer({
 
       {/* Лентой список идёт под видео и равняется по его ширине. */}
       {view === 'row' && (
-        <VideoSetList
+        <VideoSetStrip
           items={items}
           channel={channel}
           setCode={setCode}
           currentCode={current?.code ?? null}
-          orientation="horizontal"
           onSelect={setCurrent}
           unlocking={unlocking}
-          limit={visible}
         />
       )}
 
       {/* Нажатие на закрытый видео открывает это окно — замок не должен быть тупиком. */}
-      <AccessCodeDialog token={token} />
     </div>
   );
 }

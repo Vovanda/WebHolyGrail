@@ -1,7 +1,7 @@
 import { headers } from 'next/headers';
 import type { BlockNode, VideoBlockData, SiteSettings } from 'contracts';
 
-import { checkVideoAccess, getVideoStream, issueVideoToken } from '@/lib/api-client';
+import { checkVideoAccess, getVideoStream } from '@/lib/api-client';
 import { readVideoUi } from '@/lib/video-ui';
 import { cn } from '@/lib/utils';
 
@@ -27,7 +27,6 @@ export interface VideoSectionProps {
 
 /** Текст отказа. Позже задаётся владельцем в настройках сайта. */
 const DENIAL: Record<string, string> = {
-  'sign-in-required': 'Откроется по коду доступа',
   'not-entitled': 'Откроется по коду доступа',
   unavailable: 'Видео сейчас недоступно',
 };
@@ -53,39 +52,28 @@ export async function VideoSection({ node, settings, className }: VideoSectionPr
   const width = data.width === 'wide' ? 'max-w-wide' : 'max-w-content';
   const poster = data.poster?.url ?? stream.poster?.url;
 
+  /*
+    Название и описание - свойства самой записи, а блок только решает,
+    показывать их или нет. Набранное в блоке пока перекрывает запись: у сайтов
+    в этих полях лежит текст, и терять его при обновлении нельзя (R10).
+  */
+  const title = data.title?.trim() || (data.showTitle !== false ? stream.title : '');
+  const description =
+    data.description?.trim() || (data.showDescription ? (stream.description ?? '') : '');
+
   // Токен нужен только тому, кто действительно будет смотреть: выдавать его
   // при отказе незачем.
-  const token = access.allowed && stream.status === 'ready' ? await issueVideoToken() : null;
 
   return (
     <section className={cn('mx-auto px-4 md:px-6 py-8 md:py-12', width, className)}>
-      {(data.title || data.description) && (
-        <header className="mb-4 flex flex-col gap-2">
-          {data.title && (
-            <h2
-              data-part="title"
-              className="text-h3 font-display font-semibold text-ink text-balance"
-            >
-              {data.title}
-            </h2>
-          )}
-          {data.description && (
-            <p data-part="subtitle" className="text-body text-muted">
-              {data.description}
-            </p>
-          )}
-        </header>
-      )}
-
-      {token && stream.status === 'ready' ? (
+      {access.allowed && stream.status === 'ready' ? (
         <VideoPlayer
           ui={playerUi}
           deniedSettings={settings.video?.denied}
           src={stream.playlistUrl}
-          token={token}
           mediaId={stream.id}
           poster={poster}
-          title={data.title}
+          title={title || stream.title}
         />
       ) : (
         <VideoNotice
@@ -98,6 +86,28 @@ export async function VideoSection({ node, settings, className }: VideoSectionPr
                 : (DENIAL[access.reason ?? 'unavailable'] ?? DENIAL['unavailable']!)
           }
         />
+      )}
+
+      {/*
+        Подпись стоит под кадром, а не над ним: сперва человек видит саму
+        запись, а уже потом читает, что это было.
+      */}
+      {(title || description) && (
+        <footer className="mt-3 flex flex-col gap-1">
+          {title && (
+            <h2
+              data-part="title"
+              className="text-h3 font-display font-semibold text-ink text-balance"
+            >
+              {title}
+            </h2>
+          )}
+          {description && (
+            <p data-part="subtitle" className="text-body text-muted whitespace-pre-line">
+              {description}
+            </p>
+          )}
+        </footer>
       )}
     </section>
   );

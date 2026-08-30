@@ -1,12 +1,12 @@
 import { headers } from 'next/headers';
 import type { BlockNode, VideoSetBlockData, SiteSettings } from 'contracts';
 
-import { getPlaylistById, issueVideoToken } from '@/lib/api-client';
+import { getPlaylistById } from '@/lib/api-client';
 import { readVideoUi } from '@/lib/video-ui';
 import { cn } from '@/lib/utils';
 
-import { AccessCodeDialog } from './AccessCodeDialog';
-import { VideoSetList } from './VideoSetList';
+import { VideoSetColumn } from './VideoSetColumn';
+import { VideoSetStrip } from './VideoSetStrip';
 import { VideoSetPlayer } from './VideoSetPlayer';
 
 /**
@@ -52,9 +52,9 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
     playlist.channel && playlist.code ? `/@${playlist.channel}/p/${playlist.code}` : null;
 
   const withPlayer = data.mode !== 'list';
-  // Токен нужен и списку без плеера: в него дописывается плейлист, когда зритель
-  // вводит код в окне.
-  const [token, playerUi] = await Promise.all([issueVideoToken(), readVideoUi()]);
+  // Токен нужен и списку без плеера: по нему находится право зрителя, когда он
+  // вводит код в форме на месте плеера.
+  const playerUi = await readVideoUi();
 
   return (
     <section
@@ -102,7 +102,7 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
         </header>
       )}
 
-      {withPlayer && token ? (
+      {withPlayer ? (
         <VideoSetPlayer
           playerUi={playerUi}
           view={data.listView}
@@ -110,21 +110,25 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
           title={heading}
           deniedSettings={settings.video?.denied}
           items={items}
-          token={token}
           channel={playlist.channel}
           setCode={playlist.code}
+          setId={playlistId}
+          openableByCode={playlist.openableByCode === true}
           visible={data.limit ?? undefined}
         />
       ) : (
         <>
-          <VideoSetList
-            items={items}
-            channel={playlist.channel}
-            setCode={playlist.code}
-            orientation={data.layout === 'grid' ? 'horizontal' : 'vertical'}
-            limit={data.limit ?? undefined}
-          />
-          {token && <AccessCodeDialog token={token} />}
+          {/* Вид выбирает тот, кто ставит: свойство блока говорит, лентой или колонкой. */}
+          {data.layout === 'grid' ? (
+            <VideoSetStrip items={items} channel={playlist.channel} setCode={playlist.code} />
+          ) : (
+            <VideoSetColumn
+              items={items}
+              channel={playlist.channel}
+              setCode={playlist.code}
+              limit={data.limit ?? undefined}
+            />
+          )}
         </>
       )}
     </section>

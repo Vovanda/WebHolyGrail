@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { cn } from '@/lib/utils';
@@ -14,10 +15,14 @@ import { cn } from '@/lib/utils';
  * Погашенный код дописывает плейлист прямо в токен зрителя. Дальше окно
  * закрывается, и уже по закрытому окну страница снимает замки анимацией,
  * без перезагрузки.
+ *
+ * Замки - это соседи по списку. Сама страница закрытой записи собрана
+ * сервером и вместо кадра показывает эту форму: снятие замков её не меняет,
+ * поэтому следом просим страницу перечитать себя. Иначе право уже выдано,
+ * а человек видит ту же форму и решает, что код не подошёл.
  */
 export interface AccessCodeFormProps {
   /** Токен зрителя: в него дописывается плейлист. */
-  readonly token: string;
   readonly className?: string;
 }
 
@@ -40,13 +45,9 @@ export const ACCESS_GRANTED_EVENT = 'whg:access-granted';
  * У всех случаев «код не сработал» текст один. Разные ответы — «такого кода
  * нет», «истёк», «израсходован» — подсказывали бы перебору, какой код
  * существует, а какой нет.
- *
- * Отдельно только требование входа: оно про самого зрителя и о коде ничего
- * не сообщает.
  */
 const REASON: Record<string, string> = {
   invalid: 'К сожалению, код уже использован разрешённое число раз или больше не действует.',
-  'sign-in-required': 'Этот код выдан для другого способа доступа.',
   'bad-token': 'Страница открыта слишком давно — обновите её и попробуйте снова.',
 };
 
@@ -59,10 +60,11 @@ const REASON: Record<string, string> = {
  */
 const CODE_LENGTH = 6;
 
-export function AccessCodeForm({ token, className }: AccessCodeFormProps) {
+export function AccessCodeForm({ className }: AccessCodeFormProps) {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const router = useRouter();
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -82,7 +84,7 @@ export function AccessCodeForm({ token, className }: AccessCodeFormProps) {
       const response = await fetch('/internal/video/redeem', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, token }),
+        body: JSON.stringify({ code }),
       });
 
       if (!response.ok) {
@@ -91,7 +93,10 @@ export function AccessCodeForm({ token, className }: AccessCodeFormProps) {
         return;
       }
 
-      const data = (await response.json()) as { playlistId?: string | number };
+      const data = (await response.json()) as {
+        playlistId?: string | number;
+        resource?: { kind?: 'playlists' | 'media'; id?: string | number };
+      };
 
       // Порядок важен. Сначала закрывается окно и уходит затемнение, и только
       // потом снимаются замки: иначе анимация проигрывается под размытым фоном,
@@ -106,8 +111,26 @@ export function AccessCodeForm({ token, className }: AccessCodeFormProps) {
       // Ждём, пока окно уедет: столько же длится его закрытие.
       setTimeout(() => {
         window.dispatchEvent(
-          new CustomEvent(ACCESS_GRANTED_EVENT, { detail: { playlistId: data.playlistId } }),
+          /*
+            Событие несёт, на что выдано право: списки на странице снимают
+            замки только с того, чего это касается. Прежде оно несло лишь номер
+            подборки, и любой код открывал в списке всё подряд.
+          */
+          new CustomEvent(ACCESS_GRANTED_EVENT, {
+            detail: {
+              playlistId: data.playlistId,
+              granted: data.resource?.kind
+                ? { kind: data.resource.kind, id: data.resource.id }
+                : data.playlistId
+                  ? { kind: 'playlists', id: data.playlistId }
+                  : null,
+            },
+          }),
         );
+        // Страница собрана сервером: пока он не пересобрал её с новым правом,
+        // на месте кадра остаётся эта же форма. Состояние ввода при этом
+        // сохраняется - страница не перезагружается, а перечитывается.
+        router.refresh();
       }, CLOSE_ANIMATION_MS);
     } catch {
       setError('Не получилось проверить код. Попробуйте ещё раз.');

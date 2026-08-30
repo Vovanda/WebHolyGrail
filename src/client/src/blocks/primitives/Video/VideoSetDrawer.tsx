@@ -5,7 +5,7 @@ import type { VideoSetItem } from 'contracts';
 import { SidePanel } from '@/blocks/primitives/SidePanel';
 import { cn } from '@/lib/utils';
 
-import { VideoSetList } from './VideoSetList';
+import { VideoSetColumn } from './VideoSetColumn';
 
 /**
  * Плейлист боковой панелью.
@@ -85,7 +85,7 @@ export function VideoSetDrawer({
         </p>
       </div>
 
-      <VideoSetList
+      <VideoSetColumn
         items={items}
         channel={channel}
         setCode={setCode}

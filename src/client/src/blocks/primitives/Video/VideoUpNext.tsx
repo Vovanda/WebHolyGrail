@@ -12,36 +12,46 @@ import type { VideoSetItem } from 'contracts';
  * следующий кадром и названием: нажатие открывает его в том же плеере, без
  * перезагрузки страницы.
  *
- * Переход происходит и сам, по отсчёту, но с кнопкой «остаться». Без неё
- * автопереход уводит с титров и с того, что человек хотел досмотреть, —
- * раздражение сильнее пользы.
+ * Сам никуда не переходит: предлагает и ждёт. Автопереход уводит с титров и
+ * с того, что человек хотел досмотреть, а отсчёт заставляет следить за цифрой
+ * вместо кадра - раздражение сильнее пользы.
  *
- * Отсчёт останавливается, если зритель перемотал назад: значит он вернулся
- * к видео, а не закончил с ним.
+ * Пропадает, если зритель вернулся к записи перемоткой: значит он не закончил
+ * с ней.
  */
 export interface VideoUpNextProps {
   readonly item: VideoSetItem;
-  /** Кадр, за окончанием которого следим. */
-  readonly videoRef: React.RefObject<HTMLVideoElement | null>;
+  /**
+   * Кадр, за окончанием которого следим.
+   *
+   * @remarks
+   * Сам элемент, а не ссылка на него: плеер собирается позже первого рендера,
+   * и ссылка к этому времени пуста. Перерисовки она не вызывает, поэтому
+   * подписка на окончание не навешивалась вовсе - карточка не появлялась
+   * никогда.
+   */
+  readonly video: HTMLVideoElement | null;
   readonly onSelect: (item: VideoSetItem) => void;
-  /** Сколько секунд до автоперехода. */
-  readonly delaySeconds?: number;
 }
 
-export function VideoUpNext({ item, videoRef, onSelect, delaySeconds = 8 }: VideoUpNextProps) {
+export function VideoUpNext({ item, video, onSelect }: VideoUpNextProps) {
   const [visible, setVisible] = useState(false);
-  const [left, setLeft] = useState(delaySeconds);
+
+  /*
+    Смена записи гасит карточку сразу. Иначе она доживает до следующей и
+    успевает мигнуть поверх её первых кадров - предлагая уже третью по счёту,
+    а не ту, что играет.
+  */
+  useEffect(() => {
+    setVisible(false);
+  }, [item.code]);
 
   // Ждём окончания видео. Слушаем сам кадр, а не считаем время: у потока
   // длительность уточняется по ходу, и вычисленный конец не совпадает с настоящим.
   useEffect(() => {
-    const video = videoRef.current;
     if (!video) return;
 
-    const onEnded = () => {
-      setLeft(delaySeconds);
-      setVisible(true);
-    };
+    const onEnded = () => setVisible(true);
     // Перемотка назад означает, что к видео вернулись: карточку убираем.
     const onPlaying = () => setVisible(false);
 
@@ -51,24 +61,16 @@ export function VideoUpNext({ item, videoRef, onSelect, delaySeconds = 8 }: Vide
       video.removeEventListener('ended', onEnded);
       video.removeEventListener('playing', onPlaying);
     };
-  }, [videoRef, delaySeconds]);
-
-  useEffect(() => {
-    if (!visible) return;
-    if (left <= 0) {
-      onSelect(item);
-      setVisible(false);
-      return;
-    }
-    const timer = setTimeout(() => setLeft((value) => value - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [visible, left, item, onSelect]);
+  }, [video]);
 
   if (!visible) return null;
 
   return (
-    <div className="video-upnext">
-      <p data-part="caption" className="video-upnext__label">
+    <div
+      data-part="root"
+      className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-dark-block/70 px-4 text-center"
+    >
+      <p data-part="caption" className="text-sm text-dark-block-fg/70">
         Дальше в плейлисте
       </p>
 
@@ -76,25 +78,44 @@ export function VideoUpNext({ item, videoRef, onSelect, delaySeconds = 8 }: Vide
         type="button"
         data-part="card"
         onClick={() => onSelect(item)}
-        className="video-upnext__card"
+        className="group flex w-full max-w-xs flex-col gap-2 rounded-xl border border-dark-block-fg/20 bg-dark-block p-2 text-left shadow-lg transition-colors hover:border-dark-block-fg/50"
       >
         {item.poster ? (
-          <img data-part="card-thumb" src={item.poster} alt="" className="video-upnext__poster" />
+          <img
+            data-part="card-thumb"
+            src={item.poster}
+            alt=""
+            className="aspect-video w-full rounded-lg object-cover"
+          />
         ) : (
-          <span className="video-upnext__poster" aria-hidden="true" />
+          <span
+            data-part="card-thumb"
+            className="aspect-video w-full rounded-lg bg-dark-block-fg/10"
+            aria-hidden="true"
+          />
         )}
-        <span data-part="card-title" className="video-upnext__title">
+        <span
+          data-part="card-title"
+          className="text-body font-medium text-dark-block-fg text-balance"
+        >
           {item.title}
         </span>
       </button>
 
-      <div className="video-upnext__actions">
-        <span className="video-upnext__countdown">Через {left}…</span>
+      <div data-part="actions" className="flex items-center gap-3">
+        <button
+          type="button"
+          data-part="action"
+          onClick={() => onSelect(item)}
+          className="rounded-lg bg-accent px-4 py-2 text-body font-medium text-accent-fg transition-colors hover:bg-accent-hover"
+        >
+          Смотреть дальше
+        </button>
         <button
           type="button"
           data-part="action"
           onClick={() => setVisible(false)}
-          className="video-upnext__cancel"
+          className="rounded-lg border border-dark-block-fg/30 px-3 py-2 text-sm text-dark-block-fg transition-colors hover:bg-dark-block-fg/10"
         >
           Остаться
         </button>

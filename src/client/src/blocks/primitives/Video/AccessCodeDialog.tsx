@@ -7,6 +7,11 @@ import { DetailDrawer, openDetail } from '@/blocks/primitives/DetailDrawer';
 import { AccessCodeForm } from './AccessCodeForm';
 
 /**
+ * @deprecated Ввод кода переехал на место плеера: форма стоит там, где человек
+ * упёрся в замок, и подборка остаётся перед глазами. Окно больше нигде
+ * не открывается и держится только ради сайтов, собранных на прежнем шаблоне
+ * (R10) - убрать после того, как они получат синк.
+ *
  * Окно ввода кода — открывается по нажатию на закрытый видео.
  *
  * @remarks
@@ -33,7 +38,7 @@ export function openAccessCodeDialog(): void {
   openDetail(SLUG);
 }
 
-export function AccessCodeDialog({ token }: AccessCodeDialogProps) {
+export function AccessCodeDialog() {
   // Нажатие на любой закрытый видео открывает окно. Слушаем на документе, а не
   // вешаем обработчик каждому элементу списка: списков на странице несколько,
   // и они перерисовываются при переключении.
@@ -64,7 +69,7 @@ export function AccessCodeDialog({ token }: AccessCodeDialogProps) {
         <p data-part="subtitle" className="text-body text-muted">
           Введите код, который вам прислали, и закрытые видео плейлиста заиграют.
         </p>
-        <AccessCodeForm token={token} />
+        <AccessCodeForm />
       </div>
     </DetailDrawer>
   );
