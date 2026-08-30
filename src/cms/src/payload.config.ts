@@ -15,8 +15,6 @@ import { Users } from './collections/Users';
 import { engineCollections } from './collections/engine';
 // Каталог специалистов - ниша витрины, а не движка: сайту без специалистов
 // эти коллекции пустой груз, и синк папку domain не обходит.
-import { Cities } from './collections/domain/Cities';
-import { Specialists } from './collections/domain/Specialists';
 import { engineTasks } from './jobs/engine';
 import { withAutoSlug } from './lib/slug';
 import {
@@ -113,7 +111,7 @@ export default buildConfig({
 
     Порядок разделов админки задаёт сам набор движка; своё дописывается следом.
   */
-  collections: [...engineCollections, Cities, Specialists].map(withAutoSlug),
+  collections: engineCollections.map(withAutoSlug),
   globals: [SiteSettings],
   /**
    * Выдача доступа к видео. Живёт рядом с коллекциями, а не внутри `media`:
