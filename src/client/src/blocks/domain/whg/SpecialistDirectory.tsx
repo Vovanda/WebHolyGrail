@@ -11,8 +11,8 @@ import {
 } from '@/lib/api-client';
 
 import { catalogPath } from '@/lib/catalog-path';
-import { CardRows } from './CardRows';
-import { RatingStars } from './RatingStars';
+import { CardRows } from '@/blocks/arrangements/CardRows';
+import { RatingStars } from '@/blocks/primitives/RatingStars';
 import { SpecialistTop, type TopCity, type TopPerson } from './SpecialistTop';
 
 /**

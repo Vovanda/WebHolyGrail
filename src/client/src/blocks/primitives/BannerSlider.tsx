@@ -1,4 +1,4 @@
-import { PhotoDeck } from './Carousel';
+import { PhotoDeck } from '@/blocks/arrangements/Carousel';
 
 interface BannerItem {
   url: string;
@@ -14,7 +14,7 @@ interface BannerSliderProps {
  *
  * @remarks
  * Параметры:
- *  - `interval=7000` → автоповорот 7 сек
+ *  - `period=7000` → автоповорот 7 сек
  *  - без стрелок-навигации
  *  - object-contain (не кропать) — баннер не должен кропаться
  *  - height auto — высота подстраивается под пропорции картинки
@@ -24,7 +24,7 @@ export function BannerSlider({ banners }: BannerSliderProps) {
   return (
     <PhotoDeck
       slides={banners}
-      interval={7000}
+      period={7000}
       arrows={false}
       swipe
       heightFromFirstSlide

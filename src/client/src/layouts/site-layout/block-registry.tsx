@@ -3,6 +3,9 @@ import type { BlockNode, SiteSettings } from 'contracts';
 
 import { ProjectTypesGrid } from '@/blocks/domain/whg/ProjectTypesGrid';
 import { BlockShowcase } from '@/blocks/domain/whg/BlockShowcase';
+import { DemoAccessSection } from '@/blocks/domain/whg/DemoAccessSection';
+import { SpecialistDirectory } from '@/blocks/domain/whg/SpecialistDirectory';
+import { SpecialistProfile } from '@/blocks/domain/whg/SpecialistProfile';
 import { engineRegistry, renderBlockNode as renderEngineBlock } from './block-registry.engine';
 
 /**
@@ -19,6 +22,11 @@ const REGISTRY: Record<string, BlockRenderer> = {
   ...engineRegistry,
   'project-types-grid': (node, settings) => <ProjectTypesGrid node={node} settings={settings} />,
   'block-showcase': (node, settings) => <BlockShowcase node={node} settings={settings} />,
+  demoAccess: (node) => <DemoAccessSection node={node} />,
+  'specialist-directory': (node, settings) => (
+    <SpecialistDirectory node={node} settings={settings} />
+  ),
+  'specialist-profile': (node, settings) => <SpecialistProfile node={node} settings={settings} />,
 };
 
 export function renderBlockNode(

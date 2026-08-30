@@ -473,7 +473,7 @@ export async function listThreadSummaries({
  *
  * @remarks
  * Секрет потока сюда не приезжает: поле закрыто на чтение в самой коллекции,
- * а зритель получает его отдельно и только конвертом.
+ * а зритель получает не его, а ключи криптопериодов - по одному и по праву.
  */
 export async function getVideoStream(id: string | number): Promise<VideoStream | null> {
   const response = await fetch(`${CMS_URL}/api/media/${id}?depth=1`, { cache: 'no-store' });
@@ -482,6 +482,9 @@ export async function getVideoStream(id: string | number): Promise<VideoStream |
   const doc = (await response.json()) as {
     id: string | number;
     access?: string;
+    caption?: string | null;
+    description?: string | null;
+    alt?: string | null;
     preview?: { id?: string | number; url?: string; alt?: string } | null;
     hls?: {
       status?: string;
@@ -503,6 +506,10 @@ export async function getVideoStream(id: string | number): Promise<VideoStream |
 
   return {
     id: doc.id,
+    // Название и описание - свойства самой записи. Прежнее описание лежало
+    // в alt: он играл эту роль, пока у записи не появилось своё поле.
+    title: doc.caption?.trim() || 'Видео',
+    description: doc.description?.trim() || doc.alt?.trim() || null,
     playlistUrl: hls?.playlistUrl ?? '',
     status: (hls?.status as VideoStream['status']) ?? 'pending',
     access: doc.access === 'private' ? 'private' : 'public',
@@ -579,6 +586,14 @@ export async function getVideoByCode(
       description: string | null;
       channel: string;
       authorName: string | null;
+      /**
+       * Есть ли живой код или ссылка, которыми эту запись открывают.
+       *
+       * @remarks
+       * Форма ввода кода показывается только при нём: без единого живого кода
+       * она предлагает ввести то, чего не существует.
+       */
+      openableByCode: boolean;
       /** Плейлисты, в которые входит это видео. */
       sets: ReadonlyArray<VideoSetRef>;
     })
@@ -606,11 +621,15 @@ export async function getVideoByCode(
     subtitles?: ReadonlyArray<VideoSubtitleTrack>;
     chapters?: ReadonlyArray<VideoChapter>;
     storyboard?: VideoStoryboard | null;
+    openableByCode?: boolean;
   };
 
   return {
     id: doc.id,
     playlistUrl: doc.playlistUrl,
+    // Старая CMS признака не отдаёт - тогда форму не показываем: лучше
+    // не предложить код, чем предложить несуществующий.
+    openableByCode: doc.openableByCode === true,
     status: doc.status,
     access: doc.access,
     qualities: doc.qualities,
@@ -730,6 +749,8 @@ export interface ChannelSet {
 
 /** Плейлист целиком: чем он является и что в нём. */
 export interface PlaylistView {
+  /** Номер подборки: по нему список узнаёт, его ли открыли кодом. */
+  readonly id: string | number;
   readonly code: string | null;
   readonly channel: string | null;
   readonly authorName: string | null;
@@ -745,6 +766,14 @@ export interface PlaylistView {
    * не прочитать.
    */
   readonly coverIsDark?: boolean | null;
+  /**
+   * Есть ли живой код или ссылка, которыми открывают закрытое в этой подборке.
+   *
+   * @remarks
+   * Форма ввода кода встаёт на место плеера только при нём: без единого живого
+   * кода она предлагает ввести то, чего не существует.
+   */
+  readonly openableByCode?: boolean;
   readonly items: ReadonlyArray<VideoSetItem>;
 }
 

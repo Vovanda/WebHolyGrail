@@ -45,15 +45,15 @@ export function QuoteCycle({
   const data: Partial<QuoteCycleData> = node.data ?? {};
   const variants: readonly Variant[] =
     data.variants && data.variants.length > 0 ? data.variants : DEFAULT_VARIANTS;
-  const interval = data.intervalMs ?? 5000;
+  const period = data.intervalMs ?? 5000;
 
   const [idx, setIdx] = useState(0);
 
   useEffect(() => {
     if (variants.length < 2) return;
-    const t = setInterval(() => setIdx((i) => (i + 1) % variants.length), interval);
+    const t = setInterval(() => setIdx((i) => (i + 1) % variants.length), period);
     return () => clearInterval(t);
-  }, [variants, interval]);
+  }, [variants, period]);
 
   // Building a sub-node with the current variant — Quote читает variant из data.
   // Quote сам предоставит defaults для body/author если не заданы.
