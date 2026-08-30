@@ -1,6 +1,6 @@
 import type { BlockNode, CarouselBlockData, CarouselCard, SiteSettings } from 'contracts';
 
-import { CarouselDeck, CarouselItem } from '@/blocks/primitives/Carousel';
+import { CarouselDeck, CarouselItem } from '@/blocks/arrangements/Carousel';
 import { getChannel, listArticles } from '@/lib/api-client';
 import { resolveMediaUrl } from '@/lib/media';
 

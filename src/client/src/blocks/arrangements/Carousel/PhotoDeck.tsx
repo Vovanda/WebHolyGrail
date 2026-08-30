@@ -2,7 +2,7 @@
 
 import { CarouselDeck, CarouselItem } from './CarouselDeck';
 import type { CarouselProps } from './types';
-import { PhotoLightbox } from '../PhotoLightbox';
+import { PhotoLightbox } from '@/blocks/primitives/PhotoLightbox';
 
 /**
  * Карусель снимков поверх общего примитива.
@@ -33,7 +33,7 @@ export function PhotoDeck(props: CarouselProps) {
 
 function PhotoDeckInner({
   slides,
-  interval,
+  period,
   arrows = false,
   objectFit = 'contain',
   backdropBlur = false,
@@ -78,7 +78,7 @@ function PhotoDeckInner({
         mode="single"
         arrows={arrows}
         loop
-        autoplay={interval}
+        autoplay={period}
         gap="sm"
         className={byFirst ? 'absolute inset-0' : ''}
         height={byFirst ? '100%' : undefined}

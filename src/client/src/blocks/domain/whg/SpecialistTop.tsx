@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-import { CardRows } from './CardRows';
-import { RatingStars } from './RatingStars';
+import { CardRows } from '@/blocks/arrangements/CardRows';
+import { RatingStars } from '@/blocks/primitives/RatingStars';
 
 /**
  * SpecialistTop — топ специалистов с переключателем городов.

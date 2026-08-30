@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import type { BlockNode, SiteSettings } from 'contracts';
 
 import { cn } from '@/lib/utils';
-import { PhotoDeck } from './Carousel';
+import { PhotoDeck } from '@/blocks/arrangements/Carousel';
 import { ContentFrame } from '@/layouts/ContentFrame';
 
 /**
@@ -209,7 +209,7 @@ function PhotoFrame({
   return (
     <PhotoDeck
       slides={photoUrls.map((url) => ({ url, alt }))}
-      interval={5000}
+      period={5000}
       arrows
       swipe
       objectFit="cover"

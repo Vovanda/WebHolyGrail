@@ -12,8 +12,6 @@ import { HeroSplit } from '@/blocks/primitives/HeroSplit';
 import { HeroCinematic } from '@/blocks/primitives/HeroCinematic';
 import { CustomMarkup } from '@/blocks/primitives/CustomMarkup';
 import { RequestForm } from '@/blocks/primitives/RequestForm';
-import { SpecialistDirectory } from '@/blocks/primitives/SpecialistDirectory';
-import { SpecialistProfile } from '@/blocks/primitives/SpecialistProfile';
 import { DocumentList } from '@/blocks/primitives/DocumentList';
 import { InstallSnippet } from '@/blocks/primitives/InstallSnippet';
 import { StackTransparency } from '@/blocks/primitives/StackTransparency';
@@ -32,7 +30,6 @@ import { PageRef } from '@/blocks/primitives/PageRef';
 import { FaqAccordion } from '@/blocks/primitives/FaqAccordion';
 import { ArticlesSection } from '@/blocks/primitives/Blog/ArticlesSection';
 import { ThreadsSection } from '@/blocks/primitives/Blog/ThreadsSection';
-import { DemoAccessSection } from '@/blocks/primitives/Video/DemoAccessSection';
 import { VideoSetSection } from '@/blocks/primitives/Video/VideoSetSection';
 import { VideoSection } from '@/blocks/primitives/Video/VideoSection';
 import { RichTextBlock } from '@/blocks/primitives/RichText';
@@ -64,10 +61,6 @@ export const engineRegistry: Record<string, BlockRenderer> = {
   'hero-cinematic': (node, settings) => <HeroCinematic node={node} settings={settings} />,
   'custom-markup': (node, settings) => <CustomMarkup node={node} settings={settings} />,
   'request-form': (node, settings) => <RequestForm node={node} settings={settings} />,
-  'specialist-directory': (node, settings) => (
-    <SpecialistDirectory node={node} settings={settings} />
-  ),
-  'specialist-profile': (node, settings) => <SpecialistProfile node={node} settings={settings} />,
   'document-list': (node, settings) => <DocumentList node={node} settings={settings} />,
   'install-snippet': (node, settings) => <InstallSnippet node={node} settings={settings} />,
   'stack-transparency': (node, settings) => <StackTransparency node={node} settings={settings} />,
@@ -86,7 +79,6 @@ export const engineRegistry: Record<string, BlockRenderer> = {
   'threads-section': (node) => <ThreadsSection node={node} />,
   video: (node, settings) => <VideoSection node={node} settings={settings} />,
   videoSet: (node, settings) => <VideoSetSection node={node} settings={settings} />,
-  demoAccess: (node) => <DemoAccessSection node={node} />,
   'rich-text': (node, settings) => <RichTextBlock node={node} settings={settings} />,
   'reusable-ref': (node, settings) => <ReusableRef node={node} settings={settings} />,
   'page-ref': (node, settings) => <PageRef node={node} settings={settings} />,

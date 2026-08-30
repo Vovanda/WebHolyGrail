@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { ArrowRight, ArrowUpRight, X } from 'lucide-react';
 import type { BlockNode, MediaRef, SiteSettings } from 'contracts';
 
-import { CarouselDeck, CarouselItem } from '@/blocks/primitives/Carousel';
-import { CardRows } from '@/blocks/primitives/CardRows';
+import { CarouselDeck, CarouselItem } from '@/blocks/arrangements/Carousel';
+import { CardRows } from '@/blocks/arrangements/CardRows';
 import { resolveMediaUrl } from '@/lib/media';
 
 import { Icon } from './Icon';

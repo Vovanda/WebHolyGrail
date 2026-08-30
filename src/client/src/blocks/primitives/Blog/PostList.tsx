@@ -2,7 +2,7 @@ import type { BlogArticle, BlogGlobalSettings } from 'contracts';
 
 import { cn } from '@/lib/utils';
 
-import { CardRows } from '../CardRows';
+import { CardRows } from '@/blocks/arrangements/CardRows';
 import { PostCard } from './PostCard';
 
 /**

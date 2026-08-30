@@ -5,7 +5,7 @@ export interface CarouselSlide {
 
 export interface CarouselProps {
   readonly slides: readonly CarouselSlide[];
-  readonly interval?: number;
+  readonly period?: number;
   readonly arrows?: boolean;
   readonly swipe?: boolean;
   readonly objectFit?: 'cover' | 'contain';

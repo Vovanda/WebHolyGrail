@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { cn } from '@/lib/utils';
-import { PhotoLightbox } from '../PhotoLightbox';
+import { PhotoLightbox } from '@/blocks/primitives/PhotoLightbox';
 import type { CarouselProps } from './types';
 
 /**
@@ -26,7 +26,7 @@ import type { CarouselProps } from './types';
  *  - `aspect` / `height`: фиксированные размеры контейнера (приоритет над heightFromFirstSlide).
  *  - `arrows=true`: SVG chevron-left / chevron-right, центрированные.
  *  - `swipe=true`: pointer-events свайп ≥50px.
- *  - `interval`: автоповорот в ms (пауза при hover/touch).
+ *  - `period`: автоповорот в ms (пауза при hover/touch).
  */
 export function CarouselRows(props: CarouselProps) {
   if (props.lightboxGroupId) {
@@ -45,7 +45,7 @@ export function CarouselRows(props: CarouselProps) {
 
 function CarouselInner({
   slides,
-  interval,
+  period,
   arrows = false,
   swipe = true,
   objectFit = 'contain',
@@ -91,7 +91,7 @@ function CarouselInner({
   const prev = useCallback(() => goTo(active - 1), [active, goTo]);
 
   useEffect(() => {
-    if (!interval || total <= 1 || paused) return;
+    if (!period || total <= 1 || paused) return;
     const t = setInterval(() => {
       setActive((cur) => {
         const target = (cur + 1) % total;
@@ -103,9 +103,9 @@ function CarouselInner({
         }
         return target;
       });
-    }, interval);
+    }, period);
     return () => clearInterval(t);
-  }, [interval, total, paused]);
+  }, [period, total, paused]);
 
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!swipe || total <= 1) return;

@@ -1,6 +1,6 @@
 'use client';
 
-import { CarouselDeck, CarouselItem } from '@/blocks/primitives/Carousel';
+import { CarouselDeck, CarouselItem } from '@/blocks/arrangements/Carousel';
 import type { BlockNode, SiteSettings, MediaRef } from 'contracts';
 
 import { resolveMediaUrl } from '@/lib/media';

@@ -1,6 +1,6 @@
 import type { BlockNode, MediaRef, SiteSettings } from 'contracts';
 
-import { CardRows } from '@/blocks/primitives/CardRows';
+import { CardRows } from '@/blocks/arrangements/CardRows';
 import { resolveMediaUrl } from '@/lib/media';
 
 /**
