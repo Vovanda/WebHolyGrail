@@ -1,9 +1,10 @@
 import { AccessCodes } from './AccessCodes';
+import { AccessLinks } from './AccessLinks';
 import { Articles } from './Articles';
 import { Authors } from './Authors';
-import { Cities } from './Cities';
 import { Comments } from './Comments';
 import { Entitlements } from './Entitlements';
+import { KeyUsage } from './KeyUsage';
 import { FaqGroups } from './FaqGroups';
 import { FeatureToggles } from './FeatureToggles';
 import { FormSubmissions } from './FormSubmissions';
@@ -12,7 +13,6 @@ import { Pages } from './Pages';
 import { Playlists } from './Playlists';
 import { ReusableBlocks } from './ReusableBlocks';
 import { SocialPosts } from './SocialPosts';
-import { Specialists } from './Specialists';
 import { Tags } from './Tags';
 import { Threads } from './Threads';
 import { Users } from './Users';
@@ -58,9 +58,9 @@ export const engineCollections = [
   Playlists,
   Entitlements,
   AccessCodes,
+  AccessLinks,
+  KeyUsage,
   // Каталог специалистов по городам.
-  Cities,
-  Specialists,
   SocialPosts,
   Comments,
   // Что на сайте включено: значения по окружениям, меняются без выкладки.
