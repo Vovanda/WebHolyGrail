@@ -2,30 +2,39 @@ import type { Endpoint } from 'payload';
 
 import { payloadEntitlements } from '../lib/video/entitlement-source';
 import { entitlementPolicy } from '../lib/video/entitlements';
-import { checkKeyRate } from '../lib/video/key-rate';
+import { checkKeyRateShared } from '../lib/video/key-rate-store';
+import { rewriteManifest } from '../lib/video/manifest';
 import { checkRequestOrigin } from '../lib/video/request-origin';
+import { accessTarget } from '../lib/video/resource-field';
 import {
   checkRedeemAttempt,
   forgetRedeemMisses,
   noteRedeemMiss,
 } from '../lib/video/redeem-throttle';
-import { issueViewerToken, readViewerToken, withGrantedPlaylist } from '../lib/video/envelope';
-import { planEntitlement } from '../lib/video/keep-entitlement';
+import { issueViewerToken, readViewerToken, withExtendedLife } from '../lib/video/viewer-token';
 import { playlistCovers } from '../lib/video/playlist-covers';
+import { writeEntitlement } from '../lib/video/write-entitlement';
 import { grantStreamAccess, type StreamRecord } from '../lib/video/grant-access';
 import { masterKey, unwrapSecret } from '../lib/video/key-vault';
-import { generateAccessCode, normalizeAccessCode } from '../lib/video/short-code';
+import { keyForPeriod } from '../lib/video/crypto-period';
+import { noteKeyRequest } from '../lib/video/shared-access';
+import { acceptLink } from '../lib/video/accept-link';
+import { normalizeAccessCode } from '../lib/video/access-code';
+import { looksLikeLinkToken } from '../lib/video/link-token';
+import { resourceAddress } from '../lib/video/resource-address';
 import { redeemCode } from '../lib/video/redeem';
+import { tokenFromCookieHeader, VIEWER_COOKIE } from '../lib/video/viewer-cookie';
+import { hasWayIn } from '../lib/video/way-in';
 
 /**
- * Эндпоинты видео: токен зрителя и конверт с секретом потока.
+ * Эндпоинты видео: идентичность зрителя и ключ криптопериода.
  *
  * @remarks
  * Токен выдаёт CMS, а не фронт: подписывается он секретом приложения, и знать
  * этот секрет фронту незачем. Страница при рендере забирает токен себе и
  * кладёт в разметку плеера.
  *
- * Оба ответа помечены как некешируемые. Для конверта это обязательно: он
+ * Оба ответа помечены как некешируемые. Для ключа это обязательно: он
  * персональный, и попав в общий кеш CDN достался бы следующему зрителю.
  */
 
@@ -34,14 +43,6 @@ const noStore = { 'Cache-Control': 'no-store', 'Content-Type': 'application/json
 const json = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), { status, headers: noStore });
 
-/**
- * Имя куки с токеном зрителя.
- *
- * @remarks
- * Токен носит в себе права, выданные по коду, поэтому обязан переживать
- * перезагрузку страницы. Без этого зритель вводит код, страница обновляется,
- * сервер выписывает новый пустой токен — и замок возвращается.
- */
 /**
  * Домены, с которых плееру можно просить ключ.
  *
@@ -78,8 +79,6 @@ function clientKey(req: { headers?: { get(name: string): string | null } }): str
   return tokenFromCookie(req as never) ?? 'unknown';
 }
 
-const VIEWER_COOKIE = 'whg-viewer';
-
 /** Ответ с токеном, который браузер запомнит. */
 function jsonWithToken(body: Record<string, unknown>, token: string, expires: number): Response {
   const maxAge = Math.max(0, expires - nowSeconds());
@@ -87,19 +86,17 @@ function jsonWithToken(body: Record<string, unknown>, token: string, expires: nu
     status: 200,
     headers: {
       ...noStore,
-      // Не секрет: токен и так уходит в разметку страницы. Кука нужна затем,
-      // чтобы он не терялся между заходами, поэтому httpOnly не ставим —
-      // плеер читает его же из разметки.
-      'Set-Cookie': `${VIEWER_COOKIE}=${token}; Path=/; Max-Age=${maxAge}; SameSite=Lax`,
+      // Скриптам кука недоступна: плеер её не читает, браузер прикладывает сам.
+      // Так токен не появляется ни в адресах, ни в логах, ни в досягаемости
+      // чужого кода на странице.
+      'Set-Cookie': `${VIEWER_COOKIE}=${token}; Path=/; Max-Age=${maxAge}; SameSite=Lax; HttpOnly`,
     },
   });
 }
 
 /** Токен, уже выданный этому браузеру. */
 function tokenFromCookie(req: { headers?: Headers }): string | null {
-  const raw = req.headers?.get('cookie') ?? '';
-  const match = raw.match(new RegExp(`(?:^|;\s*)${VIEWER_COOKIE}=([^;]+)`));
-  return match?.[1] ?? null;
+  return tokenFromCookieHeader(req.headers?.get('cookie') ?? '');
 }
 
 /** Секрет приложения — тот же, что у остальной авторизации. */
@@ -112,7 +109,26 @@ function appSecret(): string {
 const nowSeconds = (): number => Math.floor(Date.now() / 1000);
 
 /**
- * Кто смотрит: учётная запись и владение этим видео.
+ * Идентичность из токена, лежащего в куке этого браузера.
+ *
+ * @remarks
+ * Права находятся по опознанию, и знать его нужно везде, где решается доступ,
+ * а не только при выдаче ключа. Иначе список канала считал бы закрытым то,
+ * что у того же зрителя открыто, - замок на карточке горел бы над играющим
+ * видео.
+ *
+ * Просроченный или испорченный токен идентичности не даёт: подпись не сошлась -
+ * значит зритель неизвестен, а не «какой-нибудь».
+ */
+function refFromCookie(req: { headers?: Headers }): string | undefined {
+  const saved = tokenFromCookie(req);
+  if (!saved) return undefined;
+  const checked = readViewerToken(saved, appSecret(), nowSeconds());
+  return checked.ok ? checked.ref : undefined;
+}
+
+/**
+ * Кто смотрит: учётная запись, идентичность и владение этим видео.
  *
  * @remarks
  * Владение решает доступ к закрытому наравне с покупкой, поэтому собирается
@@ -121,12 +137,12 @@ const nowSeconds = (): number => Math.floor(Date.now() / 1000);
  * Роли администратора здесь нет: для чужого платного материала он посторонний.
  */
 function viewerOf(
-  req: { user?: { id?: string | number } | null },
+  req: { user?: { id?: string | number } | null; headers?: Headers },
   uploadedBy: unknown,
 ): {
   userId: string | number | null;
   ownsVideo: boolean;
-  grantedPlaylists?: ReadonlyArray<string | number>;
+  ref?: string | undefined;
 } {
   const userId = req.user?.id ?? null;
   // Автор приходит номером при depth=0 и документом при depth=1 — сверяем оба вида.
@@ -138,6 +154,7 @@ function viewerOf(
   return {
     userId,
     ownsVideo: userId !== null && ownerId !== null && String(ownerId) === String(userId),
+    ref: refFromCookie(req),
   };
 }
 
@@ -172,6 +189,7 @@ export const videoByCodeEndpoint: Endpoint = {
       | {
           id: string | number;
           alt?: string;
+          description?: string;
           caption?: string;
           filename?: string;
           access?: string;
@@ -237,9 +255,22 @@ export const videoByCodeEndpoint: Endpoint = {
       overrideAccess: true,
     });
 
+    /*
+      Есть ли чем открыть эту запись прямо сейчас. Нужно странице: форма ввода
+      кода имеет смысл, только когда живой код или ссылка существуют. Иначе
+      человеку показывают поле, в которое нечего ввести.
+
+      Спрашиваем только про закрытое: у открытой записи формы нет в любом случае,
+      и лишний поход в базу ни к чему. Право самого зрителя здесь не смотрим -
+      его решает политика при рендере страницы, а этот признак про запись.
+    */
+    const openableByCode =
+      doc.access === 'private' ? await hasWayIn(req.payload, { kind: 'media', id: doc.id }) : false;
+
     return json({
       id: doc.id,
       channel,
+      openableByCode,
       authorName: owner?.name ?? null,
       sets: sets.docs.map((set) => {
         const item = set as {
@@ -261,7 +292,9 @@ export const videoByCodeEndpoint: Endpoint = {
       // Имя файла в запасные заголовки не берётся: у нарезанного видео оно
       // показывает имя пакета в хранилище, а не название для человека.
       title: doc.caption?.trim() || doc.alt?.trim() || 'Видео',
-      description: doc.alt?.trim() || null,
+      // Описание берётся у записи, а alt остаётся запасным: он играл эту роль
+      // до появления своего поля, и у прежних записей текст лежит там.
+      description: doc.description?.trim() || doc.alt?.trim() || null,
       access: doc.access === 'private' ? 'private' : 'public',
       status: doc.hls?.status ?? 'pending',
       playlistUrl: doc.hls?.playlistUrl ?? '',
@@ -497,7 +530,7 @@ type PlaylistVideo = {
  * @remarks
  * Закрытые видео, в отличие от канала, из списка не убираются: плейлист и есть
  * витрина, а его состав — продающая часть. Наружу от закрытого видео уходит
- * только название и обложка; играть он не начнёт, конверт выдаётся отдельно
+ * только название и обложка; играть он не начнёт, ключ выдаётся отдельно
  * и по тем же правилам.
  *
  * Замок считается по зрителю: куки страница пробрасывает, поэтому у вошедшего
@@ -556,10 +589,23 @@ async function describePlaylist(
     });
   }
 
+  /*
+    Есть ли чем открыть закрытое в этой подборке. Спрашиваем только когда
+    закрытое здесь есть: страница ставит форму ввода кода на место плеера,
+    и без живого кода она предлагала бы ввести несуществующее.
+  */
+  const openableByCode = items.some((item) => item.locked)
+    ? await hasWayIn(req.payload, { kind: 'playlists', id: doc.id })
+    : false;
+
   return {
+    // Номер нужен спискам на странице: по нему они узнают, их ли подборку
+    // открыл введённый код.
+    id: doc.id,
     code: doc.shortCode ?? null,
     channel: author?.channel ?? null,
     authorName: author?.name ?? null,
+    openableByCode,
     title: doc.title ?? 'Плейлист',
     description: doc.description ?? null,
     // Своя обложка плейлиста важнее, но если её не выбрали — берём кадр первого
@@ -646,6 +692,70 @@ export const videoPlaylistByIdEndpoint: Endpoint = {
  *
  * Секрета в ответе нет: только решение и его причина.
  */
+/**
+ * Манифест со своего домена.
+ *
+ * @remarks
+ * Файл остаётся в хранилище рядом с сегментами, но плеер берёт его отсюда.
+ * Иначе относительные ссылки внутри - включая путь ключа - разрешаются от
+ * адреса раздачи: у одного сайта она за тем же доменом, у другого отдельным
+ * поддоменом, у третьего в чужом облаке.
+ *
+ * Через сайт идёт только текст манифеста. Сегменты уводятся прямо в раздачу
+ * переписыванием ссылок, поэтому мегабайты мимо нас и мимо CDN не гоняются.
+ */
+export const videoManifestEndpoint: Endpoint = {
+  path: '/video/:id/manifest/:part*',
+  method: 'get',
+  handler: async (req) => {
+    const id = req.routeParams?.['id'];
+    if (!id) return json({ error: 'Не указана запись.' }, 400);
+
+    const base = (process.env['S3_PUBLIC_URL'] ?? '').replace(/\/+$/, '');
+    if (!base) return json({ error: 'storage-not-configured' }, 503);
+
+    const doc = (await req.payload
+      .findByID({ collection: 'media', id: String(id), depth: 0, overrideAccess: true })
+      .catch(() => null)) as { hls?: { prefix?: string | null; deletedAt?: string | null } } | null;
+
+    const prefix = doc?.hls?.prefix?.replace(/^\/+|\/+$/g, '');
+    if (!prefix || doc?.hls?.deletedAt) return json({ error: 'not-found' }, 404);
+
+    /*
+      Часть пути приходит из адреса: пусто - это master.m3u8, иначе вложенный
+      манифест вида `480p/index.m3u8`. Ничего, кроме манифестов, отсюда не
+      отдаётся: сегменты идут прямо из раздачи, и превращать это в общий
+      проксировщик незачем.
+    */
+    const raw = req.routeParams?.['part'];
+    const part = Array.isArray(raw) ? raw.join('/') : String(raw ?? '');
+    const file = part === '' ? 'master.m3u8' : part;
+    if (!file.endsWith('.m3u8') || file.includes('..')) return json({ error: 'not-found' }, 404);
+
+    const source = `${base}/${prefix}/${file}`;
+    const response = await fetch(source).catch(() => null);
+    if (!response?.ok) return json({ error: 'not-found' }, 404);
+
+    const folder = source.slice(0, source.lastIndexOf('/'));
+    /*
+      Ссылки внутри собираются на ту дверь, через которую браузер сюда пришёл:
+      клиент проксирует манифесты под своим префиксом (R15), и уводить плеер
+      обратно на /api значило бы гнать его мимо этой двери.
+    */
+    const own = `/internal/video/manifest/${String(id)}${file === 'master.m3u8' ? '' : `/${file.slice(0, file.lastIndexOf('/'))}`}`;
+
+    return new Response(rewriteManifest(await response.text(), { folder, own }), {
+      status: 200,
+      headers: {
+        'content-type': 'application/vnd.apple.mpegurl; charset=utf-8',
+        // Манифест меняется только при перенарезке, а адрес тогда меняется тоже:
+        // в нём стоит своя папка. Держать его в кеше недолго - дёшево и честно.
+        'cache-control': 'public, max-age=60',
+      },
+    });
+  },
+};
+
 export const videoAccessEndpoint: Endpoint = {
   path: '/video/:id/access',
   method: 'get',
@@ -683,97 +793,30 @@ export const videoAccessEndpoint: Endpoint = {
 };
 
 /**
- * Выдаёт демонстрационный код на плейлист.
- *
- * @remarks
- * Витрина обязана давать потрогать: иначе про доступ по коду приходится верить
- * на слово. Посетитель нажимает кнопку, получает код и тут же вводит его —
- * и закрытые видео плейлиста открываются у него на глазах.
- *
- * Включается флагом окружения и по умолчанию молчит. В обычном инстансе такой
- * генератор печатал бы посторонним ключи от платного, поэтому это не настройка
- * в админке, которую можно случайно включить, а решение при развёртывании.
- *
- * Код одноразовый и живёт минуты: он нужен ровно на один показ, а не на то,
- * чтобы разойтись по чатам.
- */
-export const videoDemoCodeEndpoint: Endpoint = {
-  path: '/video/demo-code',
-  method: 'post',
-  handler: async (req) => {
-    const playlistId = process.env['DEMO_CODE_PLAYLIST'];
-    if (!playlistId) return json({ error: 'disabled' }, 404);
-
-    const minutes = Number(process.env['DEMO_CODE_TTL_MINUTES'] ?? 15);
-    const expiresAt = new Date(Date.now() + minutes * 60 * 1000).toISOString();
-
-    /*
-      Выданный код всегда начинает с чистого листа.
-
-      Символов в коде немного, и рано или поздно тот же плейлист символов выпадет
-      снова. Если бы при этом сохранялась прежняя история срабатываний,
-      человек получил бы рабочий на вид код и отказ «уже использован» — при
-      том, что этот ключ выдан ему только что.
-
-      Поэтому видео с таким кодом переписывается: новый плейлист, новый срок,
-      счётчик обнулён. Заодно это не плодит видео на каждое нажатие кнопки.
-    */
-    const code = generateAccessCode(6);
-    const data = {
-      code,
-      playlist: Number(playlistId),
-      // Без входа: посетитель витрины не должен заводить учётную запись,
-      // чтобы посмотреть, как работает доступ.
-      requiresSignIn: false,
-      maxUses: 1,
-      usedCount: 0,
-      expiresAt,
-      grantDays: 1,
-    };
-
-    const clash = await req.payload.find({
-      collection: 'access-codes',
-      where: { code: { equals: code } },
-      depth: 0,
-      limit: 1,
-      overrideAccess: true,
-    });
-
-    const previous = clash.docs[0] as { id: string | number } | undefined;
-    if (previous) {
-      await req.payload.update({
-        collection: 'access-codes',
-        id: previous.id,
-        data,
-        overrideAccess: true,
-      });
-    } else {
-      await req.payload.create({ collection: 'access-codes', data, overrideAccess: true });
-    }
-
-    return json({ code, expiresAt });
-  },
-};
-
-/**
  * Погашает код доступа.
  *
  * @remarks
- * Код не хранит доступ, а выдаёт его: сработав, он дописывает плейлист прямо
- * в токен зрителя. Поэтому в ответе новый токен — старый заменяется им на
- * странице, и закрытые видео плейлиста начинают играть без перезагрузки.
+ * Код не хранит доступ, а выдаёт его: сработав, он превращается в обычную
+ * запись права - на учётную запись, если зритель вошёл, и на его идентичность,
+ * если нет. Отозвать такое право можно у любого, и держится оно не токеном.
  *
- * Ключ шифрования конвертов внутри токена сохраняется прежним: подмена его
- * посреди сеанса оборвала бы уже идущий просмотр.
+ * В ответе всё же новый токен: он продлён до конца выданного права, иначе
+ * человек добывал бы код заново каждый вечер. Идентичность и ключ шифрования
+ * внутри сохраняются прежними - подмена ключа посреди сеанса оборвала бы
+ * идущий просмотр, а подмена идентичности отрезала бы зрителя от только что
+ * записанного права.
  */
 export const videoRedeemEndpoint: Endpoint = {
   path: '/video/redeem',
   method: 'post',
   handler: async (req) => {
-    const body = (await req.json?.()) as { code?: string; token?: string } | undefined;
+    const body = (await req.json?.()) as { code?: string } | undefined;
     const raw = String(body?.code ?? '');
-    const token = String(body?.token ?? '');
-    if (!raw || !token) return json({ error: 'Не указан код.' }, 400);
+    if (!raw) return json({ error: 'Не указан код.' }, 400);
+
+    // Идентичность приходит кукой. У того, кто вводит код впервые, её ещё нет:
+    // заводим тут же, иначе право не на кого записать.
+    const token = tokenFromCookie(req) ?? issueViewerToken(appSecret(), nowSeconds()).value;
 
     // Приводим к виду выдачи: человек диктует и переписывает с ошибками ровно
     // там, где символы похожи.
@@ -810,27 +853,38 @@ export const videoRedeemEndpoint: Endpoint = {
     const doc = found.docs[0] as
       | {
           id: string | number;
+          resource?: { relationTo?: string; value?: unknown } | null;
           playlist?: string | number;
-          requiresSignIn?: boolean;
           maxUses?: number | null;
           usedCount?: number | null;
           expiresAt?: string | null;
           grantDays?: number | null;
+          grantMinutes?: number | null;
         }
       | undefined;
 
+    /*
+      Новое поле «На что» умеет и подборку, и запись; прежнее вело только
+      к подборке. Читаем оба: коды, выданные до разведения, заполнены старым,
+      и отнимать у них работу нельзя (R10).
+    */
+    const target =
+      accessTarget(doc?.resource) ??
+      (doc?.playlist ? ({ kind: 'playlists', id: doc.playlist } as const) : null);
+
     const result = redeemCode({
-      code: doc
-        ? {
-            id: doc.id,
-            playlistId: doc.playlist ?? '',
-            requiresSignIn: doc.requiresSignIn !== false,
-            maxUses: doc.maxUses ?? null,
-            usedCount: doc.usedCount ?? 0,
-            expiresAt: doc.expiresAt ?? null,
-            grantDays: doc.grantDays ?? null,
-          }
-        : null,
+      code:
+        doc && target
+          ? {
+              id: doc.id,
+              resource: target,
+              maxUses: doc.maxUses ?? null,
+              usedCount: doc.usedCount ?? 0,
+              expiresAt: doc.expiresAt ?? null,
+              grantDays: doc.grantDays ?? null,
+              grantMinutes: doc.grantMinutes ?? null,
+            }
+          : null,
       viewerId: req.user?.id ?? null,
       now: new Date(),
     });
@@ -838,13 +892,9 @@ export const videoRedeemEndpoint: Endpoint = {
     if (!result.ok) {
       // Наружу одна причина на все случаи «код не сработал»: разные ответы
       // подсказывали бы перебору, какой код существует, какой просрочен, а
-      // какой израсходован. Отдельно остаётся требование входа — оно про
-      // самого зрителя, а не про код.
-      const reason = result.reason === 'sign-in-required' ? 'sign-in-required' : 'invalid';
-      // Промах засчитываем только когда дело в самом коде: требование входа -
-      // про зрителя, и наказывать за него нечем.
-      if (reason === 'invalid') noteRedeemMiss(client);
-      return json({ error: reason }, 403);
+      // какой израсходован.
+      noteRedeemMiss(client);
+      return json({ error: 'invalid' }, 403);
     }
 
     // Код подошёл - счёт промахов обнуляется: человек, ошибшийся пару раз,
@@ -852,22 +902,20 @@ export const videoRedeemEndpoint: Endpoint = {
     forgetRedeemMisses(client);
 
     /*
-      Срок права переносим в токен: код открывает курс на недели, а токен без
-      продления умирал бы за вечер, и человек шёл бы за новым кодом каждый день.
+      Токен продлеваем до конца выданного права: код открывает курс на недели,
+      а токен без продления умирал бы за вечер, и человек шёл бы за новым кодом
+      каждый день. Само право в токен не кладётся - оно записывается ниже.
     */
     const grantedUntil = result.expiresAt
       ? Math.floor(new Date(result.expiresAt).getTime() / 1000)
       : null;
-    const next = withGrantedPlaylist(
-      token,
-      result.playlistId,
-      appSecret(),
-      nowSeconds(),
-      grantedUntil,
-    );
-    // Токен просрочен или испорчен: выдавать право в него бессмысленно, а
-    // погашение засчитывать нечестно — код должен остаться рабочим.
+    const next = withExtendedLife(token, appSecret(), nowSeconds(), grantedUntil);
+    // Токен просрочен или испорчен: идентичности в нём нет, записать право не на
+    // что. Погашение засчитывать при этом нечестно — код должен остаться рабочим.
     if (!next) return json({ error: 'bad-token' }, 403);
+
+    const checked = readViewerToken(next, appSecret(), nowSeconds());
+    if (!checked.ok) return json({ error: 'bad-token' }, 403);
 
     // Счётчик срабатываний растёт только после того, как право реально выдано.
     await req.payload.update({
@@ -877,60 +925,42 @@ export const videoRedeemEndpoint: Endpoint = {
       overrideAccess: true,
     });
 
-    // Право, выданное вошедшему, закрепляется за учётной записью: иначе оно
-    // пропадёт вместе с токеном, а покупку нужно видеть и продлевать.
-    if (result.bind === 'account' && req.user?.id) {
-      // Тем же кодом можно воспользоваться снова - с другого устройства или
-      // после чистки данных. Права от этого плодиться не должны: одинаковые
-      // записи в списке не дают понять, что у зрителя открыто.
-      const already = await req.payload.find({
-        collection: 'entitlements',
-        where: {
-          and: [
-            { viewer: { equals: req.user.id } },
-            { 'resource.value': { equals: Number(result.playlistId) } },
-            { 'resource.relationTo': { equals: 'playlists' } },
-          ],
-        },
-        depth: 0,
-        limit: 1,
-        overrideAccess: true,
-      });
+    /*
+      Право записывается всегда - и вошедшему, и тому, кто учётной записи
+      не заводил. Разница только в том, чем оно держится: у первого учётной
+      записью, у второго идентичностью из токена.
 
-      const existing = already.docs[0] as
-        | { id: string | number; expiresAt?: string | null }
-        | undefined;
-      const plan = planEntitlement(existing ?? null, result.expiresAt ?? null);
+      Записью, а не пометкой в токене: пока право жило в токене, снять его было
+      нельзя - сервер о нём не знал вовсе.
+    */
+    await writeEntitlement({
+      payload: req.payload,
+      holder:
+        result.bind === 'account' && req.user?.id
+          ? { kind: 'account', userId: req.user.id }
+          : { kind: 'identity', ref: checked.ref },
+      target: { collection: result.resource.kind, id: result.resource.id },
+      grantedUntil: result.expiresAt ?? null,
+      source: 'promo',
+      note: `Код ${code}`,
+    });
 
-      if (plan.kind === 'create') {
-        await req.payload.create({
-          collection: 'entitlements',
-          data: {
-            viewer: req.user.id,
-            resource: { relationTo: 'playlists', value: Number(result.playlistId) },
-            source: 'promo',
-            expiresAt: plan.expiresAt,
-            note: `Код ${code}`,
-          },
-          overrideAccess: true,
-        });
-      } else if (plan.kind === 'extend') {
-        await req.payload.update({
-          collection: 'entitlements',
-          id: plan.id,
-          data: { expiresAt: plan.expiresAt },
-          overrideAccess: true,
-        });
-      }
-    }
+    /*
+      Продлённый токен запоминается браузером: без этого идентичность сменится
+      на следующей же перезагрузке, и записанное право не найдётся.
 
-    // Токен с новым правом запоминается браузером: иначе оно живёт до первой
-    // же перезагрузки страницы.
-    const checked = readViewerToken(next, appSecret(), nowSeconds());
+      В ответе и `resource`, и прежний `playlistId`: страница снимает замки
+      по второму, и убрать его - значит сломать её у всех сайтов разом (R10).
+      У кода на одиночную запись он пустует, там смотрят на `resource`.
+    */
     return jsonWithToken(
-      { token: next, playlistId: result.playlistId },
+      {
+        token: next,
+        resource: result.resource,
+        playlistId: result.resource.kind === 'playlists' ? result.resource.id : null,
+      },
       next,
-      checked.ok ? checked.expires : nowSeconds(),
+      checked.expires,
     );
   },
 };
@@ -940,15 +970,15 @@ export const videoRedeemEndpoint: Endpoint = {
  *
  * @remarks
  * Открыт для всех, включая не вошедших: сам по себе токен ничего не открывает,
- * он лишь адресует конверт конкретной сессии. Право смотреть проверяется
- * отдельно, при выдаче конверта.
+ * он лишь опознаёт того, кто пришёл. Право смотреть проверяется
+ * отдельно, при выдаче ключа.
  */
 export const videoTokenEndpoint: Endpoint = {
   path: '/video/token',
   method: 'post',
   handler: (req) => {
-    // Уже выданный токен важнее нового: в нём лежат права, полученные по коду,
-    // и свежий токен их бы стёр.
+    // Уже выданный токен важнее нового: в нём идентичность, по которому находятся
+    // права зрителя, и свежий токен отрезал бы его от них.
     const saved = tokenFromCookie(req);
     if (saved) {
       const checked = readViewerToken(saved, appSecret(), nowSeconds());
@@ -956,22 +986,22 @@ export const videoTokenEndpoint: Endpoint = {
     }
 
     const token = issueViewerToken(appSecret(), nowSeconds());
-    // Наружу уходит только строка токена; ключ конверта живёт внутри неё и
-    // отдельно нигде не хранится.
+    // Наружу уходит только идентичность со сроком и подписью: ключей в токене
+    // нет, за ними приходят отдельно и по одному.
     return jsonWithToken({ token: token.value }, token.value, token.expires);
   },
 };
 
 /**
- * Отдаёт конверт с секретом потока.
+ * Отдаёт ключ криптопериода.
  *
  * @remarks
  * Отказ возвращается кодом 403 с причиной, а не пустым телом: плееру нужно
  * отличать «войди» от «видео ещё готовится», чтобы показать нужную заглушку
  * вместо чёрного квадрата.
  */
-export const videoEnvelopeEndpoint: Endpoint = {
-  path: '/video/:id/envelope',
+export const videoKeyEndpoint: Endpoint = {
+  path: '/video/:id/key',
   method: 'get',
   handler: async (req) => {
     const id = req.routeParams?.['id'];
@@ -989,11 +1019,31 @@ export const videoEnvelopeEndpoint: Endpoint = {
     if (!origin.allowed) return json({ error: 'foreign-origin' }, 403);
 
     /*
-      Зритель просит ключ раз в несколько минут, скачиватель - десятками
-      подряд. Считаем ключи на зрителя за час: обычный день до порога не
-      доходит, а выкачивание курса упирается за минуты.
+      Ключ у записи не один: она поделена на криптопериоды, и у каждого свой
+      ключ, выведенный из секрета. Плеер просит ключ того периода, к которому
+      подошёл, - номер стоит в адресе.
+
+      Длина периода берётся у записи, а не из настройки: настройку владелец
+      меняет когда угодно, и деление на новое значение дало бы другие границы -
+      уже нарезанное перестало бы играть. Пусто - запись нарезана до появления
+      криптопериодов, у неё единственный ключ на всю длину.
     */
-    const rate = checkKeyRate(clientKey(req));
+    const asked = new URL(req.url ?? '', 'http://localhost').searchParams.get('p');
+    const period = asked === null ? null : Number(asked);
+    if (period !== null && (!Number.isInteger(period) || period < 0)) {
+      return json({ error: 'bad-period' }, 400);
+    }
+
+    /*
+      Зритель просит ключ раз в несколько минут, скачиватель - десятками подряд.
+      Считаем темп по разным ключам: страница держит плеер в блоке, в тексте
+      и в подборке, все просят один и тот же - повтор запаса не тратит.
+    */
+    const rate = await checkKeyRateShared(
+      req.payload,
+      clientKey(req),
+      `${String(id)}:${asked ?? '-'}`,
+    );
     if (!rate.allowed) {
       return new Response(JSON.stringify({ error: 'too-many-keys' }), {
         status: 429,
@@ -1004,7 +1054,9 @@ export const videoEnvelopeEndpoint: Endpoint = {
       });
     }
 
-    const token = new URL(req.url ?? '', 'http://localhost').searchParams.get('token') ?? '';
+    // Токен приходит кукой, а не параметром адреса: в адресе он оседал бы
+    // в логах прокси и в заголовке перехода, а кука закрыта от скриптов.
+    const token = tokenFromCookie(req) ?? '';
 
     const doc = (await req.payload.findByID({
       collection: 'media',
@@ -1017,7 +1069,12 @@ export const videoEnvelopeEndpoint: Endpoint = {
       id: string | number;
       access?: string;
       uploadedBy?: unknown;
-      hls?: { status?: string; secret?: string | null; deletedAt?: string | null };
+      hls?: {
+        status?: string;
+        secret?: string | null;
+        cryptoPeriod?: number | null;
+        deletedAt?: string | null;
+      };
     };
 
     // Помеченный к удалению не играет: файлы ещё лежат, и без этой проверки
@@ -1025,14 +1082,26 @@ export const videoEnvelopeEndpoint: Endpoint = {
     if (doc.hls?.deletedAt) return json({ error: 'not-found' }, 404);
 
     // Секрет лежит в базе завёрнутым в мастер-ключ — разворачиваем перед тем,
-    // как запечатать его в конверт зрителя. Видео, залитые до включения ключа,
+    // как отдать его зрителю. Видео, залитые до включения ключа,
     // читаются как есть.
     const stored = doc.hls?.secret ?? null;
+
+    // Криптопериоды у записи есть - значит запрос обязан назвать номер, и наоборот.
+    // Несовпадение означает либо старый плеер на новой записи, либо попытку
+    // получить корневой секрет, и в обоих случаях отвечать нечем.
+    const split = typeof doc.hls?.cryptoPeriod === 'number' && doc.hls.cryptoPeriod >= 1;
+    let picked: Buffer | null = null;
+    if (stored) {
+      const choice = keyForPeriod(unwrapSecret(stored, masterKey()), period, split);
+      if (!choice.ok) return json({ error: choice.reason }, 400);
+      picked = choice.key;
+    }
+
     const video: StreamRecord = {
       id: doc.id,
       access: doc.access === 'private' ? 'private' : 'public',
       status: (doc.hls?.status as StreamRecord['status']) ?? 'pending',
-      secret: stored ? unwrapSecret(stored, masterKey()).toString('base64') : null,
+      secret: picked ? picked.toString('base64') : null,
     };
 
     const result = await grantStreamAccess({
@@ -1049,6 +1118,130 @@ export const videoEnvelopeEndpoint: Endpoint = {
       return json({ error: result.reason }, status);
     }
 
-    return json({ envelope: result.envelope });
+    /*
+      Ключ выдан - отмечаем обращение. Под одним правом видны отдельные линии:
+      у каждой свой клиент и своё место в записи. Один человек даёт две-три
+      (телефон рядом с компьютером, вторая вкладка), десять - уже складчина.
+
+      Отказом не отвечаем: обрывать доступ на лишней линии значит наказывать
+      за обычное поведение. Владельцу это видно в журнале, решение - за ним.
+    */
+    const sharing = noteKeyRequest(
+      String(viewerOf(req, doc.uploadedBy).ref ?? req.user?.id ?? clientKey(req)),
+      clientKey(req),
+      period ?? 0,
+    );
+    if (sharing.shared || sharing.apart) {
+      const tail = sharing.lines % 10;
+      const teen = sharing.lines % 100 >= 11 && sharing.lines % 100 <= 14;
+      const word =
+        !teen && tail === 1 ? 'линия' : !teen && tail >= 2 && tail <= 4 ? 'линии' : 'линий';
+      req.payload.logger.warn(
+        `[video] запись ${doc.id}: под одним доступом ${sharing.lines} ${word}` +
+          (sharing.apart ? ', и они смотрят разные места записи' : ''),
+      );
+    }
+
+    /*
+      Ключ уходит шестнадцатью байтами, а не строкой в JSON: так его забирает
+      штатный загрузчик плеера по адресу из манифеста, и своего кода для этого
+      не нужно вовсе.
+
+      Кешировать нечего и нельзя: ответ зависит от того, кто спрашивает.
+    */
+    return new Response(Buffer.from(result.key, 'base64'), {
+      status: 200,
+      headers: { 'Cache-Control': 'no-store', 'Content-Type': 'application/octet-stream' },
+    });
+  },
+};
+
+/**
+ * Принимает ссылку-приглашение.
+ *
+ * @remarks
+ * Отдельно от погашения кода, потому что и предмет другой, и защита. Код
+ * шестизначный, и его прикрывает задержка после промахов: перебор иначе
+ * нащупал бы верный за часы. Адрес ссылки перебирать бессмысленно — в нём
+ * около ста тридцати бит, — зато сам адрес расходится по чатам, поэтому у него
+ * есть отзыв и обязательный срок.
+ *
+ * Как и код, ссылка не хранит доступ, а выдаёт его: сработав, она превращается
+ * в обычную запись права. Токен в ответе продлён до конца выданного права —
+ * идентичность и ключ шифрования внутри остаются прежними, иначе оборвался бы
+ * идущий просмотр.
+ */
+export const videoRedeemLinkEndpoint: Endpoint = {
+  path: '/video/redeem-link',
+  method: 'post',
+  handler: async (req) => {
+    const body = (await req.json?.()) as { link?: string } | undefined;
+    const address = String(body?.link ?? '').trim();
+    if (!address) return json({ error: 'Не указана ссылка.' }, 400);
+
+    // Как и у кода: идентичность приходит кукой, а у пришедшего по ссылке впервые
+    // её нет - заводим на месте.
+    const token = tokenFromCookie(req) ?? issueViewerToken(appSecret(), nowSeconds()).value;
+
+    // Очевидно чужой адрес отсекаем без похода в базу: длина и алфавит у нашего
+    // свои, и на них приходится всё, что можно проверить дёшево.
+    if (!looksLikeLinkToken(address)) return json({ error: 'invalid' }, 404);
+
+    /*
+      Токен зрителя читаем до погашения: в нём идентичность, на которое ляжет право.
+      Испорченный или просроченный означает, что записывать право не на что, -
+      и ссылку при этом не тратим, она должна остаться рабочей.
+    */
+    const checked = readViewerToken(token, appSecret(), nowSeconds());
+    if (!checked.ok) return json({ error: 'bad-token' }, 403);
+
+    const result = await acceptLink({
+      payload: req.payload,
+      token: address,
+      holder: req.user?.id
+        ? { kind: 'account', userId: req.user.id }
+        : { kind: 'identity', ref: checked.ref },
+      now: new Date(),
+    });
+
+    if (!result.ok) {
+      /*
+        Наружу две разные причины, а не одна: отозванную и просроченную ссылку
+        человек получил от знакомого и должен понять, что просить новую. Скрывать
+        тут нечего - подобрать адрес всё равно нельзя, а «не сработало» без
+        объяснения отправило бы его жаловаться выдавшему.
+      */
+      const status = result.reason === 'not-found' ? 404 : 403;
+      return json({ error: result.reason }, status);
+    }
+
+    /*
+      Токен продлеваем до конца выданного права: ссылка открывает подборку
+      на недели, а токен без продления умер бы за вечер. Идентичность и ключ
+      внутри сохраняются прежними.
+    */
+    const grantedUntil = result.grantedUntil
+      ? Math.floor(new Date(result.grantedUntil).getTime() / 1000)
+      : null;
+    const next = withExtendedLife(token, appSecret(), nowSeconds(), grantedUntil);
+    if (!next) return json({ error: 'bad-token' }, 403);
+
+    // Срок берём у продлённого токена, а если его прочесть не удалось -
+    // у прежнего: ответ должен уйти с честной датой, а не с пустой.
+    const refreshed = readViewerToken(next, appSecret(), nowSeconds());
+
+    /*
+      Вместе с правом отдаём адрес: тот, кто нажал ссылку, ждёт содержимого,
+      а не сообщения об успехе. Право живёт номерами, страница адресуется
+      каналом и коротким кодом, поэтому адрес ищется отдельно - и может
+      не найтись у только что залитого, тогда ведём на канал целиком.
+    */
+    const target = await resourceAddress(req.payload, result.resource);
+
+    return jsonWithToken(
+      { token: next, resource: result.resource, address: target },
+      next,
+      refreshed.ok ? refreshed.expires : checked.expires,
+    );
   },
 };
