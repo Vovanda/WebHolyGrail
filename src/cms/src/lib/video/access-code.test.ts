@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { generateAccessCode, normalizeAccessCode } from './short-code.js';
+import { generateAccessCode, normalizeAccessCode } from './access-code.js';
 
 describe('код доступа', () => {
   it('шесть символов по умолчанию', () => {

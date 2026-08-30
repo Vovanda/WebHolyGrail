@@ -2,53 +2,140 @@
  * Частота обращений за ключами.
  *
  * @remarks
- * Зритель смотрит видео в реальном времени и просит ключ раз в несколько
- * минут - по одному на видео, изредка при смене качества. Тот, кто выкачивает
- * курс целиком, запрашивает ключи десятками подряд: разница между просмотром и
- * скачиванием видна именно здесь.
+ * Ключ у записи не один: она поделена на криптопериоды, и зритель приходит
+ * заново на каждой границе. Часовая запись при минутном периоде - это шестьдесят
+ * обращений за час просмотра, и предел «шестьдесят в час» такой просмотр обрывал
+ * бы на середине. Считать надо темп, а не общее число.
  *
- * Поэтому считаем ключи на зрителя за час. Порог поставлен заведомо выше
- * обычного дня: человек, посмотревший подряд десяток уроков, его не заметит,
- * а скачиватель упирается за минуты.
+ * Темп задаёт сам просмотр: один ключ на период плюс запас на буфер, перемотки
+ * и вторую дорожку качества. Тот, кто выкачивает курс, просит ключи подряд и
+ * упирается за секунды, а зритель не замечает предела никогда - сколько бы он
+ * ни смотрел.
  *
- * Ограничение не защищает от упорного - он растянет выкачку по времени и
- * заведёт несколько токенов. Задача другая: сделать выкачивание медленным и
- * заметным.
+ * Считаются разные ключи, а не запросы: страница держит плеер в блоке, в тексте
+ * и в подборке, все на одной записи, и просят они один и тот же ключ. Повтор
+ * запаса не тратит - иначе витрина упиралась бы в предел за две перезагрузки,
+ * а выкачивание, которое как раз идёт по разным ключам, шло бы столько же.
+ *
+ * Ограничение не защищает от упорного: он растянет выкачку по времени и заведёт
+ * несколько идентичностей. Задача другая - сделать выкачивание медленным и заметным.
  */
 
-/** Сколько ключей за час выглядит как просмотр. */
-const KEYS_PER_HOUR = 60;
+/**
+ * Сколько разных ключей подряд можно взять быстрее темпа просмотра.
+ *
+ * @remarks
+ * Плеер тянет вперёд на буфер, при старте берёт ключ сразу для двух дорожек
+ * качества, а зритель первым делом перематывает. Запас покрывает это и ещё
+ * оставляет место на несколько прыжков по записи.
+ */
+const BURST = 30;
 
-/** Окно счёта. */
-const WINDOW_MS = 60 * 60 * 1000;
+/**
+ * Как быстро запас восполняется: один ключ за столько миллисекунд.
+ *
+ * @remarks
+ * Двадцать секунд - это минимальный криптопериод, какой владелец может выставить
+ * настройкой. Значит даже на самой мелкой нарезке восполнение идёт не медленнее,
+ * чем зритель проходит запись.
+ */
+const REFILL_MS = 20 * 1000;
 
-interface Usage {
-  keys: number;
-  firstAt: number;
+/**
+ * Сколько помнить уже выданный ключ.
+ *
+ * @remarks
+ * Полчаса покрывают и перезагрузку страницы, и возврат к записи после чтения
+ * соседней. Дольше держать незачем: к тому времени запас всё равно восполнен.
+ */
+const SEEN_MS = 30 * 60 * 1000;
+
+/** Сколько разных ключей помнить на зрителя, чтобы память не росла без края. */
+const SEEN_LIMIT = 300;
+
+export interface RateState {
+  /** Сколько разных ключей ещё можно взять прямо сейчас. */
+  readonly left: number;
+  /** Когда запас считался в последний раз. */
+  readonly at: number;
+  /** Уже выданные ключи и когда: `запись:период` → время выдачи. */
+  readonly seen: Readonly<Record<string, number>>;
 }
-
-const byViewer = new Map<string, Usage>();
 
 export interface RateDecision {
   readonly allowed: boolean;
-  /** Через сколько секунд счёт начнётся заново. */
+  /** Через сколько секунд появится следующий ключ. */
   readonly retryAfterSeconds: number;
 }
 
-/** Можно ли этому зрителю получить ещё один ключ. */
-export function checkKeyRate(viewer: string, now: number = Date.now()): RateDecision {
-  const record = byViewer.get(viewer);
+export const emptyRateState = (now: number): RateState => ({ left: BURST, at: now, seen: {} });
 
-  if (!record || now - record.firstAt > WINDOW_MS) {
-    byViewer.set(viewer, { keys: 1, firstAt: now });
-    return { allowed: true, retryAfterSeconds: 0 };
+/**
+ * Решение по одному запросу ключа.
+ *
+ * @remarks
+ * Чистое: ни времени, ни хранилища внутри. Где лежит счёт - память процесса или
+ * общая таблица, - решает вызывающий.
+ */
+export function decideKeyRate(
+  state: RateState,
+  key: string,
+  now: number,
+): { readonly decision: RateDecision; readonly next: RateState } {
+  // Запас восполняется временем: сколько прошло, столько ключей и вернулось,
+  // но не больше начального - иначе за ночь накопился бы запас на выкачку.
+  const restored = Math.floor((now - state.at) / REFILL_MS);
+  const left = Math.min(BURST, state.left + restored);
+  const at = restored > 0 ? state.at + restored * REFILL_MS : state.at;
+  const seen = fresh(state.seen, now);
+
+  // Тот же ключ этот зритель уже получал: отдать его снова не значит унести
+  // больше записи, чем у него и так есть.
+  if (seen[key] !== undefined) {
+    return {
+      decision: { allowed: true, retryAfterSeconds: 0 },
+      next: { left, at, seen: { ...seen, [key]: now } },
+    };
   }
 
-  record.keys += 1;
-  if (record.keys <= KEYS_PER_HOUR) return { allowed: true, retryAfterSeconds: 0 };
+  if (left <= 0) {
+    return {
+      decision: { allowed: false, retryAfterSeconds: Math.ceil((REFILL_MS - (now - at)) / 1000) },
+      next: { left, at, seen },
+    };
+  }
 
-  const left = WINDOW_MS - (now - record.firstAt);
-  return { allowed: false, retryAfterSeconds: Math.ceil(left / 1000) };
+  return {
+    decision: { allowed: true, retryAfterSeconds: 0 },
+    next: { left: left - 1, at, seen: { ...seen, [key]: now } },
+  };
+}
+
+/** Забывает давние ключи и лишние, если их накопилось слишком много. */
+function fresh(seen: Readonly<Record<string, number>>, now: number): Record<string, number> {
+  const alive = Object.entries(seen).filter(([, when]) => now - when < SEEN_MS);
+  if (alive.length <= SEEN_LIMIT) return Object.fromEntries(alive);
+
+  // Через край выходит только тот, кто ходит за множеством разных ключей, -
+  // ему и терять давние.
+  const newest = alive.sort(([, a], [, b]) => b - a).slice(0, SEEN_LIMIT);
+  return Object.fromEntries(newest);
+}
+
+/**
+ * Можно ли этому зрителю получить ключ - счёт в памяти процесса.
+ *
+ * @deprecated Счёт памяти не переживает выкладку: цвета работают на одной базе,
+ * а память у каждого своя. Общий счёт - `checkKeyRateShared` в соседнем файле.
+ * Оставлено для сайтов, которые зовут прежнее имя (R10).
+ */
+const byViewer = new Map<string, RateState>();
+
+export function checkKeyRate(viewer: string, key: string, now: number = Date.now()): RateDecision {
+  const state = byViewer.get(viewer) ?? emptyRateState(now);
+  const { decision, next } = decideKeyRate(state, key, now);
+  byViewer.set(viewer, next);
+  return decision;
 }
 
 /** Только для тестов: очищает счёт между проверками. */

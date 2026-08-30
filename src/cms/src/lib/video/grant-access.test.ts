@@ -1,8 +1,7 @@
-import { createDecipheriv } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
-import { signedInPolicy } from './access-policy.js';
-import { issueViewerToken, readViewerToken } from './envelope.js';
+import { openOnlyPolicy } from './access-policy.js';
+import { issueViewerToken, readViewerToken } from './viewer-token.js';
 import { grantStreamAccess, type StreamRecord } from './grant-access.js';
 
 /**
@@ -24,30 +23,27 @@ const ready: StreamRecord = {
   secret: Buffer.from('0123456789abcdef').toString('base64'),
 };
 
-const grant = (video: StreamRecord, userId: string | number | null, token: string) =>
+const grant = (
+  video: StreamRecord,
+  userId: string | number | null,
+  token: string,
+  ownsVideo = false,
+) =>
   grantStreamAccess({
     video,
-    viewer: { userId },
+    viewer: { userId, ownsVideo },
     token,
-    policy: signedInPolicy,
+    policy: openOnlyPolicy,
     appSecret: SECRET,
     nowSeconds: NOW,
   });
 
-/** Вскрывает конверт так же, как это делает загрузчик ключа в плеере. */
-function openEnvelope(envelope: string, key: Buffer): Buffer {
-  const [iv, sealed, tag] = envelope.split('.') as [string, string, string];
-  const decipher = createDecipheriv('aes-128-gcm', key, Buffer.from(iv, 'base64url'));
-  decipher.setAuthTag(Buffer.from(tag, 'base64url'));
-  return Buffer.concat([decipher.update(Buffer.from(sealed, 'base64url')), decipher.final()]);
-}
-
 describe('токен зрителя', () => {
-  it('выданный токен читается обратно тем же ключом', () => {
+  it('выданный токен читается обратно с тем же идентичностью', () => {
     const token = issueViewerToken(SECRET, NOW);
     const checked = readViewerToken(token.value, SECRET, NOW);
     expect(checked.ok).toBe(true);
-    if (checked.ok) expect(checked.key.equals(token.key)).toBe(true);
+    if (checked.ok) expect(checked.ref).toBe(token.ref);
   });
 
   it('подделанная подпись отвергается', () => {
@@ -81,15 +77,23 @@ describe('выдача доступа', () => {
     expect(result.ok).toBe(true);
   });
 
-  it('отказ анониму: закрытое требует входа', async () => {
+  it('закрытое без права не открывается', async () => {
     const token = issueViewerToken(SECRET, NOW);
     const result = await grant(ready, null, token.value);
-    expect(result).toMatchObject({ ok: false, reason: 'sign-in-required' });
+    expect(result).toMatchObject({ ok: false, reason: 'not-entitled' });
   });
 
-  it('вошедший получает конверт к закрытому', async () => {
+  it('учётная запись сама по себе закрытое не открывает', async () => {
+    // Вход условием выдачи не бывает: закрытое открывает право, а базовая
+    // политика прав не знает вовсе.
     const token = issueViewerToken(SECRET, NOW);
     const result = await grant(ready, 42, token.value);
+    expect(result).toMatchObject({ ok: false, reason: 'not-entitled' });
+  });
+
+  it('своё автор смотрит без всякого права', async () => {
+    const token = issueViewerToken(SECRET, NOW);
+    const result = await grant(ready, 42, token.value, true);
     expect(result.ok).toBe(true);
   });
 
@@ -101,40 +105,37 @@ describe('выдача доступа', () => {
     const nowClosed = { ...ready, access: 'private' as const };
     expect(await grant(nowClosed, null, token.value)).toMatchObject({
       ok: false,
-      reason: 'sign-in-required',
+      reason: 'not-entitled',
     });
   });
 
-  it('видео ещё в очереди — конверта нет ни в каком режиме', async () => {
+  it('видео ещё в очереди — ключа нет ни в каком режиме', async () => {
     const token = issueViewerToken(SECRET, NOW);
     const pending: StreamRecord = { ...ready, access: 'public', status: 'pending', secret: null };
     expect(await grant(pending, 42, token.value)).toMatchObject({ ok: false, reason: 'not-ready' });
   });
 
-  it('чужой токен не вскрывает конверт', async () => {
-    const mine = issueViewerToken(SECRET, NOW);
-    const other = issueViewerToken(SECRET, NOW);
-    const result = await grant(ready, 42, mine.value);
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-
-    expect(() => openEnvelope(result.envelope, other.key)).toThrow();
-    expect(openEnvelope(result.envelope, mine.key).toString('base64')).toBe(ready.secret);
+  it('отдаётся ключ того криптопериода, который подобрал вызывающий', async () => {
+    // Криптопериод выбирает эндпоинт по номеру из адреса и кладёт сюда уже готовый
+    // ключ: сценарий решает про право, а не про то, какой отрезок открывают.
+    const result = await grant(ready, 42, issueViewerToken(SECRET, NOW).value, true);
+    expect(result).toEqual({ ok: true, key: ready.secret });
   });
 
-  it('испорченный токен не даёт доступа даже вошедшему', async () => {
-    expect(await grant(ready, 42, 'не.токен.вовсе')).toMatchObject({
+  it('испорченный токен не даёт доступа даже автору', async () => {
+    expect(await grant(ready, 42, 'не.токен.вовсе', true)).toMatchObject({
       ok: false,
       reason: 'bad-token',
     });
   });
 
-  it('право из погашенного кода открывает закрытый видео', async () => {
-    // Раньше политика спрашивалась до разбора токена и права из кода не видела:
-    // зритель вводил код, а плеер продолжал требовать вход.
+  it('право находится по опознанию из токена, а не по пометке в нём', async () => {
+    // Права ушли из токена в записи: пока они лежали внутри, снять их было
+    // нельзя - сервер о них не знал. Токен теперь предъявляет идентичность,
+    // а находит право по нему политика.
     const appSecret = 'секрет-приложения';
     const now = 1_000_000;
-    const token = issueViewerToken(appSecret, now, [7]);
+    const token = issueViewerToken(appSecret, now);
 
     const result = await grantStreamAccess({
       video: {
@@ -147,10 +148,9 @@ describe('выдача доступа', () => {
       token: token.value,
       policy: {
         async decide(_video, viewer) {
-          // Из токена плейлисты приходят строками — так они туда и записаны.
-          return viewer.grantedPlaylists?.map(String).includes('7')
+          return viewer.ref === token.ref
             ? { allowed: true }
-            : { allowed: false, reason: 'sign-in-required' };
+            : { allowed: false, reason: 'not-entitled' };
         },
       },
       appSecret,
@@ -158,5 +158,30 @@ describe('выдача доступа', () => {
     });
 
     expect(result.ok).toBe(true);
+  });
+
+  it('чужая идентичность своих прав не открывает', async () => {
+    const appSecret = 'секрет-приложения';
+    const now = 1_000_000;
+    const mine = issueViewerToken(appSecret, now);
+    const other = issueViewerToken(appSecret, now);
+
+    const result = await grantStreamAccess({
+      video: { id: 2, access: 'private', status: 'ready', secret: 'AAAAAAAAAAAAAAAAAAAAAA==' },
+      viewer: { userId: null },
+      token: other.value,
+      policy: {
+        async decide(_video, viewer) {
+          // Право записано на первого зрителя: у второго идентичность другое.
+          return viewer.ref === mine.ref
+            ? { allowed: true }
+            : { allowed: false, reason: 'not-entitled' };
+        },
+      },
+      appSecret,
+      nowSeconds: now,
+    });
+
+    expect(result).toMatchObject({ ok: false, reason: 'not-entitled' });
   });
 });

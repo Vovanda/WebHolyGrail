@@ -16,7 +16,6 @@ const policyWith = (entitled: ReadonlyArray<string | number>, ownsVideoRight = f
   const source: EntitlementSource = {
     entitledToVideo: vi.fn(async () => ownsVideoRight),
     entitledPlaylistsFor: vi.fn(async () => entitled),
-    playlistsContaining: vi.fn(async () => []),
   };
   return { policy: entitlementPolicy(source, () => NOW), source };
 };
@@ -38,16 +37,53 @@ describe('доступ с правами на плейлисты', () => {
     expect(source.entitledPlaylistsFor).not.toHaveBeenCalled();
   });
 
-  it('закрытый видео без входа просит войти', async () => {
+  it('закрытый видео без учётной записи и без маркера не открывается', async () => {
     const { policy } = policyWith([]);
     expect(await policy.decide(closedVideo, { userId: null })).toEqual({
       allowed: false,
-      reason: 'sign-in-required',
+      reason: 'not-entitled',
     });
   });
 
-  it('вошёл, но права нет — это другой отказ', async () => {
-    // «Войди» и «нужен доступ» ведут на разные кнопки: вход и покупку.
+  it('без учётной записи и без идентичности за правами не ходим', async () => {
+    // Искать право не по чему: ни того, ни другого нет.
+    const { policy, source } = policyWith([]);
+    await policy.decide(closedVideo, { userId: null });
+    expect(source.entitledPlaylistsFor).not.toHaveBeenCalled();
+  });
+
+  it('право по коду открывает закрытый видео без учётной записи', async () => {
+    // В этом и смысл доступа по коду: человек не заводит учётную запись ради
+    // одной подборки. Право записано на его идентичность и находится по нему.
+    const { policy } = policyWith([7]);
+    expect(await policy.decide(closedVideo, { userId: null, ref: 'идентичность-1' })).toEqual({
+      allowed: true,
+    });
+  });
+
+  it('идентичность уходит в источник прав вместе с учётной записью', async () => {
+    // Право, взятое кодом до входа, записано на идентичность и обязано продолжать
+    // работать после: искать надо по обоим сразу.
+    const { policy, source } = policyWith([7]);
+    await policy.decide(closedVideo, { userId: 42, ref: 'идентичность-1' });
+    expect(source.entitledPlaylistsFor).toHaveBeenCalledWith(
+      2,
+      { userId: 42, ref: 'идентичность-1' },
+      NOW,
+    );
+  });
+
+  it('с маркером, но без права - нужен доступ', async () => {
+    // Отказ один на все случаи: закрытое открывает право, а не учётная запись.
+    // Страница показывает форму кода там, где кодом есть что открыть.
+    const { policy } = policyWith([]);
+    expect(await policy.decide(closedVideo, { userId: null, ref: 'идентичность-1' })).toEqual({
+      allowed: false,
+      reason: 'not-entitled',
+    });
+  });
+
+  it('учётная запись без права тоже не открывает', async () => {
     const { policy } = policyWith([]);
     expect(await policy.decide(closedVideo, { userId: 42 })).toEqual({
       allowed: false,
@@ -66,9 +102,11 @@ describe('доступ с правами на плейлисты', () => {
   });
 
   it('право спрашивается на конкретного зрителя и видео', async () => {
+    // Идентичности у вошедшего может не быть вовсе - тогда в источник уходит
+    // одна учётная запись.
     const { policy, source } = policyWith([7]);
     await policy.decide(closedVideo, { userId: 42 });
-    expect(source.entitledPlaylistsFor).toHaveBeenCalledWith(2, 42, NOW);
+    expect(source.entitledPlaylistsFor).toHaveBeenCalledWith(2, { userId: 42 }, NOW);
   });
 
   it('владелец смотрит своё', async () => {
