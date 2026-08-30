@@ -25,7 +25,16 @@ export const REGISTRY = 'template-registry.tsv';
  */
 export const ZONES = ['mirror', 'overlay', 'skip'];
 
-/** Что не обходим вовсе - ни в шаблоне, ни в сайте. */
+/**
+ * Что не обходим вовсе - ни в шаблоне, ни в сайте.
+ *
+ * @remarks
+ * `domain` - доменное сайта: его синк не трогает вовсе. В маршрутах Next такую
+ * папку не назвать просто `domain` - имя попало бы в адрес, - поэтому там она
+ * берётся в скобки: `(domain)` группирует, не влияя на адрес. Обходу нужно
+ * знать оба вида, иначе доменные страницы уезжали бы сайтам, которым эта ниша
+ * не нужна.
+ */
 const IGNORED_DIRS = new Set([
   'node_modules',
   '.git',
@@ -34,6 +43,7 @@ const IGNORED_DIRS = new Set([
   'coverage',
   '.turbo',
   'domain',
+  '(domain)',
   '.playwright-mcp',
   '.tmp',
 ]);
