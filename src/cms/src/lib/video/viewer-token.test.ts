@@ -20,27 +20,27 @@ describe('токен зрителя', () => {
     const token = issueViewerToken(SECRET, NOW);
     const checked = readViewerToken(token.value, SECRET, NOW);
     expect(checked.ok).toBe(true);
-    if (checked.ok) expect(checked.ref).toBe(token.ref);
+    if (checked.ok) expect(checked.visitorMarker).toBe(token.visitorMarker);
   });
 
   it('идентичность у двух зрителей разное: по нему и различаются права', () => {
     const mine = issueViewerToken(SECRET, NOW);
     const other = issueViewerToken(SECRET, NOW);
-    expect(mine.ref).not.toBe(other.ref);
+    expect(mine.visitorMarker).not.toBe(other.visitorMarker);
   });
 
   it('продление идентичность сохраняет: иначе право по нему не найдётся', () => {
     const token = issueViewerToken(SECRET, NOW);
     const next = withExtendedLife(token.value, SECRET, NOW, NOW + 30 * DAY);
     const checked = readViewerToken(next!, SECRET, NOW);
-    expect(checked.ok && checked.ref).toBe(token.ref);
+    expect(checked.ok && checked.visitorMarker).toBe(token.visitorMarker);
   });
 
   it('продление сохраняет идентичность: смена отрезала бы зрителя от его прав', () => {
     const token = issueViewerToken(SECRET, NOW);
     const next = withExtendedLife(token.value, SECRET, NOW, NOW + 30 * DAY);
     const checked = readViewerToken(next!, SECRET, NOW);
-    expect(checked.ok && checked.ref).toBe(token.ref);
+    expect(checked.ok && checked.visitorMarker).toBe(token.visitorMarker);
   });
 
   it('срок продлевается до конца права: курс открыт на месяц', () => {

@@ -38,7 +38,7 @@ export interface Viewer {
    *
    * Права при этом лежат записями, а не в токене: иначе их нельзя отозвать.
    */
-  readonly ref?: string | undefined;
+  readonly visitorMarker?: string | undefined;
 }
 
 /** Что известно о видео. */

@@ -1,9 +1,10 @@
-import { AccessCodes } from './AccessCodes';
-import { AccessLinks } from './AccessLinks';
 import { Articles } from './Articles';
 import { Authors } from './Authors';
 import { Comments } from './Comments';
-import { Entitlements } from './Entitlements';
+import { MediaAccessCodes } from './MediaAccessCodes';
+import { MediaAccessLinks } from './MediaAccessLinks';
+import { MediaAccesses } from './MediaAccesses';
+import { MediaAccessRights } from './MediaAccessRights';
 import { KeyUsage } from './KeyUsage';
 import { FaqGroups } from './FaqGroups';
 import { FeatureToggles } from './FeatureToggles';
@@ -56,9 +57,10 @@ export const engineCollections = [
   // где лежит сам файл.
   Media,
   Playlists,
-  Entitlements,
-  AccessCodes,
-  AccessLinks,
+  MediaAccesses,
+  MediaAccessRights,
+  MediaAccessCodes,
+  MediaAccessLinks,
   KeyUsage,
   // Каталог специалистов по городам.
   SocialPosts,

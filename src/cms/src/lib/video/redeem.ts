@@ -12,15 +12,17 @@
  * погашение — проверяются без базы.
  */
 
-/** На что открывает код: подборка целиком или одна запись. */
-export interface CodeResource {
-  readonly kind: 'playlists' | 'media';
-  readonly id: string | number;
-}
-
 export interface AccessCode {
   readonly id: string | number;
-  readonly resource: CodeResource;
+  /** Отозван владельцем: перестаёт открывать, не дожидаясь срока. */
+  readonly revoked: boolean;
+  /**
+   * От какого доступа напечатан код.
+   *
+   * @remarks
+   * Что именно откроется, решает доступ, а не код: код - билет к нему.
+   */
+  readonly accessId: string | number;
   readonly maxUses: number | null;
   readonly usedCount: number;
   readonly expiresAt: string | null;
@@ -33,7 +35,7 @@ export interface AccessCode {
 export type RedeemResult =
   | {
       readonly ok: true;
-      readonly resource: CodeResource;
+      readonly accessId: string | number;
       /** До какой даты действует выданное право; `null` — бессрочно. */
       readonly expiresAt: string | null;
       /**
@@ -48,7 +50,7 @@ export type RedeemResult =
     }
   | {
       readonly ok: false;
-      readonly reason: 'not-found' | 'expired' | 'used-up';
+      readonly reason: 'not-found' | 'expired' | 'used-up' | 'revoked';
     };
 
 export interface RedeemArgs {
@@ -62,6 +64,9 @@ const MINUTE_MS = 60 * 1000;
 
 export function redeemCode({ code, viewerId, now }: RedeemArgs): RedeemResult {
   if (!code) return { ok: false, reason: 'not-found' };
+
+  // Отзыв первым: остаток срока и срабатываний у отозванного к делу не относится.
+  if (code.revoked) return { ok: false, reason: 'revoked' };
 
   // Сначала срок, потом лимит: просроченный код бессмыслен, даже если
   // срабатываний осталось много.
@@ -90,7 +95,7 @@ export function redeemCode({ code, viewerId, now }: RedeemArgs): RedeemResult {
 
   return {
     ok: true,
-    resource: code.resource,
+    accessId: code.accessId,
     expiresAt,
     bind: viewerId === null ? 'identity' : 'account',
   };
