@@ -1,7 +1,7 @@
 import type { Endpoint } from 'payload';
 
-import { generateAccessCode } from '../../lib/video/access-code';
-import { codeExpiry, codeRules, type VideoCodeSettings } from '../../lib/video/code-rules';
+import { issueDemoCode } from '../../../lib/domain/whg/demo-code';
+import { codeExpiry, codeRules, type VideoCodeSettings } from '../../../lib/video/code-rules';
 
 /**
  * Выдача демонстрационного кода - вещь витрины, а не движка.
@@ -59,53 +59,13 @@ export const videoDemoCodeEndpoint: Endpoint = {
     });
     const expiresAt = codeExpiry(rules, new Date());
 
-    /*
-      Выданный код всегда начинает с чистого листа.
-
-      Символов в коде немного, и рано или поздно тот же плейлист символов выпадет
-      снова. Если бы при этом сохранялась прежняя история срабатываний,
-      человек получил бы рабочий на вид код и отказ «уже использован» — при
-      том, что этот ключ выдан ему только что.
-
-      Поэтому видео с таким кодом переписывается: новый плейлист, новый срок,
-      счётчик обнулён. Заодно это не плодит видео на каждое нажатие кнопки.
-    */
-    const code = generateAccessCode(rules.length);
-    const data = {
-      code,
-      playlist: Number(playlistId),
-      // Одно срабатывание: код выдан этому посетителю и на один показ.
-      maxUses: 1,
-      usedCount: 0,
+    const { code } = await issueDemoCode({
+      payload: req.payload,
+      playlistId: Number(playlistId),
+      length: rules.length,
       expiresAt,
-      /*
-        Демо открывает подборку на время просмотра, а не на сутки. Иначе витрина
-        перестаёт быть витриной: посетитель вернулся показать коллеге - замков
-        уже нет, и рассказывать про закрытый доступ не на чем.
-      */
       grantMinutes: 15,
-      grantDays: null,
-    };
-
-    const clash = await req.payload.find({
-      collection: 'access-codes',
-      where: { code: { equals: code } },
-      depth: 0,
-      limit: 1,
-      overrideAccess: true,
     });
-
-    const previous = clash.docs[0] as { id: string | number } | undefined;
-    if (previous) {
-      await req.payload.update({
-        collection: 'access-codes',
-        id: previous.id,
-        data,
-        overrideAccess: true,
-      });
-    } else {
-      await req.payload.create({ collection: 'access-codes', data, overrideAccess: true });
-    }
 
     return json({ code, expiresAt });
   },
