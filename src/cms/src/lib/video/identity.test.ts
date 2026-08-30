@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { normalizeEmail, normalizePhone } from './identity.js';
 
-describe('опознание по телефону', () => {
+describe('идентичность по телефону', () => {
   it('один номер в разных записях совпадает сам с собой', () => {
     const forms = ['+7 (912) 345-67-89', '8 912 345 67 89', '79123456789', '9123456789'];
     const normalized = new Set(forms.map(normalizePhone));
@@ -21,7 +21,7 @@ describe('опознание по телефону', () => {
   });
 });
 
-describe('опознание по почте', () => {
+describe('идентичность по почте', () => {
   it('регистр и пробелы не мешают совпадению', () => {
     expect(normalizeEmail('  Ivan@Example.COM ')).toBe('ivan@example.com');
   });

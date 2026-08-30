@@ -29,14 +29,16 @@ export interface Viewer {
    */
   readonly ownsVideo?: boolean | undefined;
   /**
-   * Плейлисты, открытые погашенными кодами.
+   * Опознание зрителя, не заводившего учётную запись.
    *
    * @remarks
-   * Приходят из токена зрителя, записи в базе у них нет. Вход они не требуют:
-   * промо-доступ по коду для того и существует, чтобы человек не заводил
-   * учётную запись ради одного видео.
+   * Приходит из токена и служит тем же, чем учётная запись у вошедшего: по нему
+   * находятся права. Промо-доступ по коду для того и существует, чтобы человек
+   * не заводил учётную запись ради одной подборки.
+   *
+   * Права при этом лежат записями, а не в токене: иначе их нельзя отозвать.
    */
-  readonly grantedPlaylists?: ReadonlyArray<string | number> | undefined;
+  readonly ref?: string | undefined;
 }
 
 /** Что известно о видео. */
@@ -49,31 +51,30 @@ export type AccessDecision =
   | { readonly allowed: true }
   /**
    * Причина нужна не для текста на странице — его владелец пишет сам, — а
-   * чтобы отличать «войди» от «нет подписки»: это разные кнопки.
+   * чтобы страница знала, что показать вместо плеера: у закрытого это поле
+   * ввода кода.
    */
-  | { readonly allowed: false; readonly reason: 'sign-in-required' | 'not-entitled' };
+  | { readonly allowed: false; readonly reason: 'not-entitled' };
 
 export interface AccessPolicy {
   decide(video: RequestedVideo, viewer: Viewer): Promise<AccessDecision>;
 }
 
 /**
- * Базовая политика: вход или его отсутствие.
+ * Базовая политика: открытое смотрят все, закрытое - никто.
  *
  * @remarks
- * Разбирает только два случая - открытая запись и вошедший зритель. Право
- * автора, погашенные коды и купленный доступ сюда не входят: этим занимается
- * действующая политика в `entitlements`, а эта остаётся простой опорой для
- * сайтов, где ничего из перечисленного нет.
+ * Права, погашенные коды и купленный доступ сюда не входят: этим занимается
+ * действующая политика в `entitlements`, а эта остаётся опорой для сайтов,
+ * где закрытых записей нет вовсе.
  *
- * `not-entitled` здесь не возвращается никогда - вариант существует для
- * реализаций, которые придут после.
+ * Вход зрителя условием не бывает: регистрации зрителей в шаблоне нет, а код
+ * доступа затем и придуман, чтобы право получал предъявитель. Своё автор
+ * смотрит всегда - иначе он публикует вслепую.
  */
-export const signedInPolicy: AccessPolicy = {
+export const openOnlyPolicy: AccessPolicy = {
   async decide(video, viewer) {
     if (video.access === 'public') return { allowed: true };
-    return viewer.userId === null
-      ? { allowed: false, reason: 'sign-in-required' }
-      : { allowed: true };
+    return viewer.ownsVideo ? { allowed: true } : { allowed: false, reason: 'not-entitled' };
   },
 };
