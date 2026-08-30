@@ -646,6 +646,7 @@ mirror	src/cms/src/lib/video/identity.test.ts
 mirror	src/cms/src/lib/video/identity.ts
 mirror	src/cms/src/lib/video/keep-entitlement.test.ts
 mirror	src/cms/src/lib/video/keep-entitlement.ts
+mirror	src/cms/src/lib/video/key-rate-store.test.ts
 mirror	src/cms/src/lib/video/key-rate-store.ts
 mirror	src/cms/src/lib/video/key-rate.test.ts
 mirror	src/cms/src/lib/video/key-rate.ts
@@ -665,6 +666,7 @@ mirror	src/cms/src/lib/video/redeem.test.ts
 mirror	src/cms/src/lib/video/redeem.ts
 mirror	src/cms/src/lib/video/request-origin.test.ts
 mirror	src/cms/src/lib/video/request-origin.ts
+mirror	src/cms/src/lib/video/resource-address.test.ts
 mirror	src/cms/src/lib/video/resource-address.ts
 mirror	src/cms/src/lib/video/resource-field.test.ts
 mirror	src/cms/src/lib/video/resource-field.ts
