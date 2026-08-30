@@ -76,3 +76,6 @@ desktop.ini
 
 # Claude Code worktrees
 .claude/worktrees/
+
+# Медиа-исходники для стенда: сток и пробные ролики. В репо не едут - вес.
+.assets/
