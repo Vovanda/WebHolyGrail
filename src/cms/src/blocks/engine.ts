@@ -5,8 +5,6 @@ import { HeroSplitBlock } from './HeroSplit';
 import { HeroCinematicBlock } from './HeroCinematic';
 import { CustomMarkupBlock } from './CustomMarkup';
 import { RequestFormBlock } from './RequestForm';
-import { SpecialistDirectoryBlock } from './SpecialistDirectory';
-import { SpecialistProfileBlock } from './SpecialistProfile';
 import { DocumentListBlock } from './DocumentList';
 import { InstallSnippetBlock } from './InstallSnippet';
 import { StackTransparencyBlock } from './StackTransparency';
@@ -26,7 +24,6 @@ import { ArticlesSectionBlock } from './ArticlesSection';
 import { ThreadsSectionBlock } from './ThreadsSection';
 import { VideoBlock } from './Video';
 import { VideoSetBlock } from './VideoSet';
-import { DemoAccessBlock } from './DemoAccess';
 import { FaqAccordionBlock } from './FaqAccordion';
 import { ReusableRefBlock } from './ReusableRef';
 import { PageRefBlock } from './PageRef';
@@ -60,8 +57,6 @@ export const ENGINE_REUSABLE_INNER_BLOCKS = [
   HeroCinematicBlock,
   CustomMarkupBlock,
   RequestFormBlock,
-  SpecialistDirectoryBlock,
-  SpecialistProfileBlock,
   DocumentListBlock,
   InstallSnippetBlock,
   StackTransparencyBlock,
@@ -81,7 +76,6 @@ export const ENGINE_REUSABLE_INNER_BLOCKS = [
   ThreadsSectionBlock,
   VideoBlock,
   VideoSetBlock,
-  DemoAccessBlock,
   FaqAccordionBlock,
   // WHG-specific:
   ProjectTypesGridBlock,

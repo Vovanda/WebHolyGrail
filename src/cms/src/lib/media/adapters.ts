@@ -195,6 +195,7 @@ export function payloadCatalog(payload: Payload): CatalogPort {
             // Секрет уходит в базу завёрнутым в мастер-ключ: расшифрованный
             // дамп иначе равен ключам от всего закрытого.
             secret: wrapSecret(Buffer.from(result.secret, 'base64'), masterKey()),
+            cryptoPeriod: result.cryptoPeriod,
           },
         },
         // Служебное обновление: без этой отметки запись результата запустила бы
@@ -240,7 +241,36 @@ export function payloadCatalog(payload: Payload): CatalogPort {
       };
       return ladderFromQualities(settings?.video?.qualities);
     },
+
+    async cryptoPeriod() {
+      const settings = (await payload.findGlobal({ slug: 'site-settings', depth: 0 })) as {
+        video?: { cryptoPeriod?: number | null };
+      };
+      return periodFromSetting(settings?.video?.cryptoPeriod);
+    },
   };
+}
+
+/** Сколько частей класть под один ключ при минутной криптопериоде. */
+const DEFAULT_KEY_STEP = 15;
+
+/** Мельче этого криптопериодова не имеет смысла: запрос за ключом на каждую часть. */
+const MIN_KEY_STEP = 5;
+
+/**
+ * Шаг криптопериодовы из настройки.
+ *
+ * @remarks
+ * Нижний предел обязателен: поле без него позволяет поставить одну часть и
+ * получить запрос за ключом каждые несколько секунд на каждого зрителя.
+ *
+ * Ноль - это осознанный отказ от криптопериодов: вся запись под одним ключом, как было
+ * раньше. Пустое поле означает не отказ, а «как принято», и даёт минуту.
+ */
+export function periodFromSetting(value: number | null | undefined): number | null {
+  if (value === null || value === undefined) return DEFAULT_KEY_STEP;
+  if (!Number.isFinite(value) || value <= 0) return null;
+  return Math.max(MIN_KEY_STEP, Math.round(value));
 }
 
 /** Плейлист портов по умолчанию — то, чем пользуется фоновая задача. */

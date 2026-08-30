@@ -20,6 +20,8 @@ export interface EncoderPort {
     options: {
       ladder: ReadonlyArray<HlsRung>;
       keyUri: string;
+      /** Сколько частей идёт под одним ключом; `null` — вся запись под одним. */
+      cryptoPeriod: number | null;
       /** Сколько записи уже обработано, от нуля до единицы. */
       onProgress?: (share: number) => void;
     },
@@ -28,6 +30,8 @@ export interface EncoderPort {
     rungs: ReadonlyArray<HlsRung>;
     durationSeconds: number | null;
     secret: Buffer;
+    /** Какой длины криптопериоды; `null` — вся запись под одним ключом. */
+    cryptoPeriod: number | null;
     /** Кадр для обложки; `null` — если вытащить не удалось. */
     poster: Buffer | null;
     /** Лента кадров для перемотки; `null` — если снять не удалось. */
@@ -90,6 +94,14 @@ export interface RenditionResult {
   readonly durationSeconds: number | null;
   readonly secret: string;
   /**
+   * Сколько частей идёт под одним ключом; `null` — вся запись под одним.
+   *
+   * @remarks
+   * Служит признаком: у записи есть криптопериодовы, значит запрос ключа без номера криптопериодовы
+   * отклоняется, и секрет записи наружу не уходит никогда.
+   */
+  readonly cryptoPeriod: number | null;
+  /**
    * Сколько весит нарезка целиком, со всеми качествами.
    *
    * @remarks
@@ -119,6 +131,14 @@ export interface CatalogPort {
   read(id: string | number): Promise<VideoRecord>;
   saveRendition(id: string | number, result: RenditionResult): Promise<void>;
   ladder(): Promise<ReadonlyArray<HlsRung>>;
+  /**
+   * Сколько частей класть под один ключ; `null` — вся запись под одним.
+   *
+   * @remarks
+   * Спрашивается один раз, в момент нарезки: у записи значение потом лежит
+   * своё, и смена настройки уже нарезанного не касается.
+   */
+  cryptoPeriod(): Promise<number | null>;
   /**
    * Сохраняет кадр обложкой видео.
    *
