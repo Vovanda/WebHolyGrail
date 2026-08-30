@@ -7,7 +7,7 @@ import { permanentRedirect } from 'next/navigation';
 
 import { CATALOG_RENAMED, catalogPath } from '@/lib/catalog-path';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
-import { CardRows } from '@/blocks/primitives/CardRows';
+import { CardRows } from '@/blocks/arrangements/CardRows';
 import { CatalogFilters } from '@/blocks/primitives/CatalogFilters';
 import { RatingStars } from '@/blocks/primitives/RatingStars';
 
