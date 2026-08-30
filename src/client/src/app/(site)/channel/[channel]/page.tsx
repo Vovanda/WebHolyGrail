@@ -64,20 +64,19 @@ export default async function ChannelPage({ params }: { params: Promise<Params> 
       )}
 
       {data.videos.length === 0 && data.sets.length === 0 && (
-        <p className="text-body text-muted">Пока нет ни одной записи.</p>
+        <p className="text-body text-muted">Пока нет ни одного видео.</p>
       )}
 
       {data.videos.length > 0 && (
         <section className="flex flex-col gap-4">
           {data.sets.length > 0 && (
-            <h2 className="text-h4 font-display font-semibold tracking-tight text-ink">Записи</h2>
+            <h2 className="text-h4 font-display font-semibold tracking-tight text-ink">Видео</h2>
           )}
 
           {/*
             Карточка та же, что в подборке: она уже умеет замок, затемнение
-            и подпись о том, почему запись не играет. Витрине это нужно ровно
-            так же - в ней стоит и платное. Номер не передаётся: в витрине
-            записи ничем не упорядочены.
+            и подпись о том, почему видео не играет. Номер не передаётся:
+            на канале видео ничем не упорядочены.
           */}
           <ul className="grid list-none gap-5 p-0 md:gap-6 [grid-template-columns:repeat(auto-fill,minmax(min(100%,18rem),1fr))]">
             {data.videos.map((video) => (
