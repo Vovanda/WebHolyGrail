@@ -7,7 +7,7 @@ import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { VideoDescription } from '@/blocks/primitives/Video/VideoDescription';
 import { VideoSetLinks } from '@/blocks/primitives/Video/VideoSetLinks';
 import { VideoShareTimecode } from '@/blocks/primitives/Video/VideoShareTimecode';
-import { VideoSetList } from '@/blocks/primitives/Video/VideoSetList';
+import { VideoSetStrip } from '@/blocks/primitives/Video/VideoSetStrip';
 import {
   checkVideoAccess,
   getViewerName,
@@ -123,25 +123,55 @@ export default async function VideoPage({
           chapters={video.chapters}
           durationSeconds={video.durationSeconds}
           src={video.playlistUrl}
-          token={token}
           mediaId={video.id}
           poster={video.poster?.url}
           title={video.title}
         />
       ) : (
-        <div className="flex aspect-video flex-col items-center justify-center gap-4 rounded-xl border border-border bg-surface px-6 text-center">
-          <p className="text-body text-ink">
+        <div className="border-border bg-surface relative flex aspect-video flex-col items-center justify-center gap-4 overflow-hidden rounded-xl border px-6 text-center">
+          {/*
+            Кадр под формой - тот же, что виден затемнённым на карточке. Без него
+            на месте плеера серый прямоугольник, и человек не понимает, что ему
+            предлагают открыть.
+
+            Картинка обычная, а не фоном в стиле: адрес приходит с записью,
+            и инлайновый стиль перебил бы правку владельца через «Вид блока».
+          */}
+          {video.poster?.url && (
+            <>
+              {/*
+                Картинкой фона, а не тегом img: пропавший кадр тогда просто
+                не рисуется, тогда как img на его месте показывает значок
+                битого файла - хуже, чем пустая подложка.
+              */}
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 bg-cover bg-center opacity-25"
+                style={{ backgroundImage: `url(${video.poster.url})` }}
+              />
+              {/* Затемнение поверх кадра: иначе текст теряется на светлых местах. */}
+              <div aria-hidden="true" className="bg-surface/60 absolute inset-0" />
+            </>
+          )}
+
+          <p className="text-body text-ink relative">
             {video.status !== 'ready'
               ? 'Видео готовится к показу'
-              : 'Видео открывается по коду доступа'}
+              : video.openableByCode
+                ? 'Видео открывается по коду доступа'
+                : 'Видео доступно не всем'}
           </p>
 
           {/*
             Код принимается прямо здесь: человек упёрся в замок именно тут,
             и отправлять его на другую страницу за тем же действием незачем.
+
+            Но только когда есть чем открыть. Если живого кода на эту запись
+            нет, поле предлагает ввести несуществующее - человек перебирает
+            варианты и уходит с мыслью, что сайт сломан.
           */}
-          {video.status === 'ready' && token && (
-            <AccessCodeForm token={token} className="w-full max-w-sm" />
+          {video.status === 'ready' && video.openableByCode && token && (
+            <AccessCodeForm className="relative w-full max-w-sm" />
           )}
         </div>
       )}
@@ -175,12 +205,11 @@ export default async function VideoPage({
             »
           </h2>
 
-          <VideoSetList
+          <VideoSetStrip
             items={set.items}
             channel={channel}
             setCode={set.code ?? setCode}
             currentCode={code}
-            orientation="horizontal"
             className="hidden md:flex"
           />
         </section>

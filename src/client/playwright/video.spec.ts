@@ -71,24 +71,50 @@ test.describe('Видео', () => {
     expect(await playingEverywhere.count()).toBeGreaterThan(1);
   });
 
-  test('закрытое видео ключа не отдаёт', async ({ page, request }) => {
+  test('закрытое видео ключа не отдаёт', async ({ page }) => {
     const response = await page.goto(DEMO_PATH);
     if (response?.status() === 404) test.skip(true, 'демо-страницы на этом сайте нет');
 
-    const locked = page.locator('[data-access-code]').first();
-    if ((await locked.count()) === 0) test.skip(true, 'закрытых видео на странице нет');
+    if ((await page.locator('[data-access-code]').count()) === 0) {
+      test.skip(true, 'закрытых видео на странице нет');
+    }
+
+    /*
+      Замки живут в панели плейлиста, а она бывает свёрнута - тогда они есть
+      в разметке, но невидимы, и нажать на них нельзя. Раньше тест брал первый
+      попавшийся и падал именно на этом: смотрел в закрытую панель.
+
+      Открываем её так же, как человек, - кнопкой рядом с плеером.
+    */
+    let locked = page.locator('[data-access-code]:visible').first();
+    if ((await locked.count()) === 0) {
+      const tab = page.getByRole('button', { name: 'Плейлист' });
+      if ((await tab.count()) === 0) test.skip(true, 'замки скрыты, а панели плейлиста нет');
+      await tab.click();
+      locked = page.locator('[data-access-code]:visible').first();
+    }
 
     // Нажатие на замок ведёт к вводу кода, а не в никуда.
     await locked.click();
     await expect(page.getByPlaceholder('Код доступа')).toBeVisible({ timeout: 10_000 });
 
-    // И сам ключ незнакомцу не выдаётся.
-    const cms = process.env.SMOKE_CMS_URL ?? 'http://localhost:3001';
-    const token = await request.post(`${cms}/api/video/token`);
-    const { token: viewer } = (await token.json()) as { token: string };
-    const denied = await request.get(
-      `${cms}/api/video/999999/envelope?token=${encodeURIComponent(viewer)}`,
+    /*
+      И сам ключ этой записи не выдаётся. Спрашиваем той же дверью и из того же
+      браузера, что и плеер: идентичность живёт кукой, а через сторонний запрос
+      её нет - отказ пришёл бы и без всякой проверки прав.
+
+      Ждём именно отказ по праву. Прежняя проверка стучалась в снятую ручку
+      и получала 404: «не ok» она видела, а выдачу ключа не проверяла вовсе.
+    */
+    const href = (await locked.getAttribute('href')) ?? '';
+    const videoId = /[?&]v=([^&#]+)/.exec(href)?.[1];
+    expect(videoId, `в ссылке замка нет номера записи: ${href}`).toBeTruthy();
+
+    const denied = await page.request.get(
+      `/internal/video/key/${encodeURIComponent(String(videoId))}`,
     );
-    expect(denied.ok()).toBeFalsy();
+    expect(denied.status()).toBe(403);
+    const reason = ((await denied.json()) as { error?: string }).error;
+    expect(['bad-token', 'not-entitled']).toContain(reason);
   });
 });

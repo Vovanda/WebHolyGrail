@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { VideoSetPlayer } from '@/blocks/primitives/Video/VideoSetPlayer';
-import { getPlaylistByCode, issueVideoToken } from '@/lib/api-client';
+import { getPlaylistByCode } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 
 /**
@@ -47,7 +47,6 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
   const playlist = await getPlaylistByCode(channel, code, cookie);
   if (!playlist) notFound();
 
-  const token = await issueVideoToken();
   const openCount = playlist.items.filter((item) => !item.locked).length;
 
   /*
@@ -157,7 +156,7 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
         )}
       </header>
 
-      {token && (
+      {
         /*
           Плеер со списком чуть наезжают на низ обложки и кладут на неё тень:
           так видно, что это одна карточка, а не две полосы одна под другой.
@@ -175,13 +174,14 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
           */}
           <VideoSetPlayer
             items={playlist.items}
-            token={token}
             channel={playlist.channel ?? channel}
             setCode={playlist.code ?? code}
+            setId={playlist.id}
+            openableByCode={playlist.openableByCode === true}
             showViewSwitch
           />
         </div>
-      )}
+      }
     </main>
   );
 }
