@@ -8,6 +8,8 @@
 // перестаёт выкладываться (поймано на fitness-mafia 31.08).
 import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-sqlite';
 
+import { addColumnIfMissing } from '../src/lib/migrations/columns';
+
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.run(sql`CREATE TABLE IF NOT EXISTS \`pages_blocks_specialist_profile_show\` (
   	\`order\` integer NOT NULL,
@@ -481,54 +483,85 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.run(
     sql`CREATE INDEX IF NOT EXISTS \`media_sizes_hero_sizes_hero_filename_idx\` ON \`media\` (\`sizes_hero_filename\`);`,
   );
-  await db.run(
-    sql`ALTER TABLE \`pages_blocks_request_form\` ADD \`policy_href\` text DEFAULT '/privacy';`,
+  await addColumnIfMissing(
+    db,
+    'pages_blocks_request_form',
+    'policy_href',
+    "text DEFAULT '/privacy'",
   );
-  await db.run(
-    sql`ALTER TABLE \`pages_blocks_request_form\` ADD \`consent_label\` text DEFAULT 'Согласен на обработку персональных данных';`,
+  await addColumnIfMissing(
+    db,
+    'pages_blocks_request_form',
+    'consent_label',
+    "text DEFAULT 'Согласен на обработку персональных данных'",
   );
-  await db.run(
-    sql`ALTER TABLE \`_pages_v_blocks_request_form\` ADD \`policy_href\` text DEFAULT '/privacy';`,
+  await addColumnIfMissing(
+    db,
+    '_pages_v_blocks_request_form',
+    'policy_href',
+    "text DEFAULT '/privacy'",
   );
-  await db.run(
-    sql`ALTER TABLE \`_pages_v_blocks_request_form\` ADD \`consent_label\` text DEFAULT 'Согласен на обработку персональных данных';`,
+  await addColumnIfMissing(
+    db,
+    '_pages_v_blocks_request_form',
+    'consent_label',
+    "text DEFAULT 'Согласен на обработку персональных данных'",
   );
-  await db.run(
-    sql`ALTER TABLE \`reusable_blocks_blocks_request_form\` ADD \`policy_href\` text DEFAULT '/privacy';`,
+  await addColumnIfMissing(
+    db,
+    'reusable_blocks_blocks_request_form',
+    'policy_href',
+    "text DEFAULT '/privacy'",
   );
-  await db.run(
-    sql`ALTER TABLE \`reusable_blocks_blocks_request_form\` ADD \`consent_label\` text DEFAULT 'Согласен на обработку персональных данных';`,
+  await addColumnIfMissing(
+    db,
+    'reusable_blocks_blocks_request_form',
+    'consent_label',
+    "text DEFAULT 'Согласен на обработку персональных данных'",
   );
-  await db.run(
-    sql`ALTER TABLE \`_reusable_blocks_v_blocks_request_form\` ADD \`policy_href\` text DEFAULT '/privacy';`,
+  await addColumnIfMissing(
+    db,
+    '_reusable_blocks_v_blocks_request_form',
+    'policy_href',
+    "text DEFAULT '/privacy'",
   );
-  await db.run(
-    sql`ALTER TABLE \`_reusable_blocks_v_blocks_request_form\` ADD \`consent_label\` text DEFAULT 'Согласен на обработку персональных данных';`,
+  await addColumnIfMissing(
+    db,
+    '_reusable_blocks_v_blocks_request_form',
+    'consent_label',
+    "text DEFAULT 'Согласен на обработку персональных данных'",
   );
-  await db.run(
-    sql`ALTER TABLE \`specialists_blocks_request_form\` ADD \`policy_href\` text DEFAULT '/privacy';`,
+  await addColumnIfMissing(
+    db,
+    'specialists_blocks_request_form',
+    'policy_href',
+    "text DEFAULT '/privacy'",
   );
-  await db.run(
-    sql`ALTER TABLE \`specialists_blocks_request_form\` ADD \`consent_label\` text DEFAULT 'Согласен на обработку персональных данных';`,
+  await addColumnIfMissing(
+    db,
+    'specialists_blocks_request_form',
+    'consent_label',
+    "text DEFAULT 'Согласен на обработку персональных данных'",
   );
-  await db.run(sql`ALTER TABLE \`specialists\` ADD \`seo_title\` text;`);
-  await db.run(sql`ALTER TABLE \`specialists\` ADD \`seo_description\` text;`);
-  await db.run(
-    sql`ALTER TABLE \`specialists\` ADD \`seo_og_image_id\` integer REFERENCES media(id);`,
-  );
-  await db.run(sql`ALTER TABLE \`specialists\` ADD \`seo_noindex\` integer;`);
+  await addColumnIfMissing(db, 'specialists', 'seo_title', 'text');
+  await addColumnIfMissing(db, 'specialists', 'seo_description', 'text');
+  await addColumnIfMissing(db, 'specialists', 'seo_og_image_id', 'integer REFERENCES media(id)');
+  await addColumnIfMissing(db, 'specialists', 'seo_noindex', 'integer');
   await db.run(
     sql`CREATE INDEX IF NOT EXISTS \`specialists_seo_seo_og_image_idx\` ON \`specialists\` (\`seo_og_image_id\`);`,
   );
-  await db.run(sql`ALTER TABLE \`site_settings\` ADD \`personal_data_operator_name\` text;`);
-  await db.run(sql`ALTER TABLE \`site_settings\` ADD \`personal_data_operator_inn\` text;`);
-  await db.run(sql`ALTER TABLE \`site_settings\` ADD \`personal_data_operator_address\` text;`);
-  await db.run(sql`ALTER TABLE \`site_settings\` ADD \`personal_data_contact_email\` text;`);
-  await db.run(sql`ALTER TABLE \`site_settings\` ADD \`personal_data_rkn_registry_number\` text;`);
-  await db.run(
-    sql`ALTER TABLE \`site_settings\` ADD \`personal_data_rkn_notified\` integer DEFAULT false;`,
+  await addColumnIfMissing(db, 'site_settings', 'personal_data_operator_name', 'text');
+  await addColumnIfMissing(db, 'site_settings', 'personal_data_operator_inn', 'text');
+  await addColumnIfMissing(db, 'site_settings', 'personal_data_operator_address', 'text');
+  await addColumnIfMissing(db, 'site_settings', 'personal_data_contact_email', 'text');
+  await addColumnIfMissing(db, 'site_settings', 'personal_data_rkn_registry_number', 'text');
+  await addColumnIfMissing(
+    db,
+    'site_settings',
+    'personal_data_rkn_notified',
+    'integer DEFAULT false',
   );
-  await db.run(sql`ALTER TABLE \`site_settings\` ADD \`personal_data_policy_updated_at\` text;`);
+  await addColumnIfMissing(db, 'site_settings', 'personal_data_policy_updated_at', 'text');
 }
 
 export async function down({ db, payload, req }: MigrateDownArgs): Promise<void> {

@@ -593,6 +593,7 @@ mirror	src/cms/src/lib/media/build-hls.ts
 mirror	src/cms/src/lib/media/ports.ts
 mirror	src/cms/src/lib/media/purge.test.ts
 mirror	src/cms/src/lib/media/purge.ts
+mirror	src/cms/src/lib/migrations/columns.ts
 mirror	src/cms/src/lib/pdf-preview.ts
 mirror	src/cms/src/lib/slug.test.ts
 mirror	src/cms/src/lib/slug.ts
