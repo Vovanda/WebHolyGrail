@@ -489,6 +489,8 @@ overlay	src/cms/migrations/20260829_200357_entitlement_resource.json
 overlay	src/cms/migrations/20260829_200357_entitlement_resource.ts
 overlay	src/cms/migrations/20260831_030000_media_access_model.json
 overlay	src/cms/migrations/20260831_030000_media_access_model.ts
+overlay	src/cms/migrations/20260831_070000_user_api_key.json
+overlay	src/cms/migrations/20260831_070000_user_api_key.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/backfill-pack-bytes.ts

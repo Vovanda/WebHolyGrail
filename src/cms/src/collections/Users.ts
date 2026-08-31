@@ -27,7 +27,14 @@ export const Users: CollectionConfig = {
     defaultColumns: ['email', 'name', 'role'],
     group: 'Администрирование',
   },
-  auth: true,
+  /*
+    Ключ рядом с паролем: пароль открывает админку человеку, ключ - наполнение
+    сайта запросами. У ключа свой отзыв, и снять его можно, не трогая пароль.
+
+    Payload заводит поля сам: включение, значение и его отпечаток. Запрос
+    приходит с заголовком `Authorization: users API-Key <ключ>`.
+  */
+  auth: { useAPIKey: true },
   hooks: {
     beforeChange: [
       async ({ req, operation, data }) => {

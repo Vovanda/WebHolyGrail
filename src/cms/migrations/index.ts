@@ -54,6 +54,8 @@ import * as migration_20260829_200357_entitlement_resource from './20260829_2003
 
 import * as migration_20260831_030000_media_access_model from './20260831_030000_media_access_model';
 
+import * as migration_20260831_070000_user_api_key from './20260831_070000_user_api_key';
+
 export const migrations = [
   {
     up: migration_20260627_094405_initial.up,
@@ -324,5 +326,10 @@ export const migrations = [
     up: migration_20260831_030000_media_access_model.up,
     down: migration_20260831_030000_media_access_model.down,
     name: '20260831_030000_media_access_model',
+  },
+  {
+    up: migration_20260831_070000_user_api_key.up,
+    down: migration_20260831_070000_user_api_key.down,
+    name: '20260831_070000_user_api_key',
   },
 ];
