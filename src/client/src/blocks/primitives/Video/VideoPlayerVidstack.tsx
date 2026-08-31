@@ -24,6 +24,7 @@ import type {
 import { cn } from '@/lib/utils';
 
 import { chaptersTrackUrl } from './chapters-track';
+import { watchSoloPlayback } from './solo-playback';
 import { VideoDenied } from './VideoDenied';
 import { VideoMiniFrame } from './VideoMiniFrame';
 import { VideoWatermark } from './VideoWatermark';
@@ -148,6 +149,13 @@ export function VideoPlayerVidstack({
     всё равно не пустит. Своё место, если оно сохранено, вернётся дальше -
     возврат идёт по готовности метаданных, уже после этого сброса.
   */
+  /*
+    На странице играет один: запуск любого плеера останавливает остальные.
+    Слежение общее на весь документ, поэтому каждый плеер ставит его себе -
+    лишние снимаются вместе со своими плеерами, а последний уносит слушателя.
+  */
+  useEffect(() => watchSoloPlayback(), []);
+
   const startedRef = useRef(false);
   useEffect(() => {
     if (!media) return;

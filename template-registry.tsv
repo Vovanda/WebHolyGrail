@@ -166,6 +166,7 @@ mirror	src/client/Dockerfile
 mirror	src/client/next.config.ts
 mirror	src/client/playwright.config.ts
 mirror	src/client/playwright/smoke.spec.ts
+mirror	src/client/playwright/solo-playback.spec.ts
 mirror	src/client/playwright/video.spec.ts
 mirror	src/client/postcss.config.mjs
 overlay	src/client/public/decor/vine-left.svg
@@ -291,6 +292,8 @@ mirror	src/client/src/blocks/primitives/Video/PlaylistCover.test.tsx
 mirror	src/client/src/blocks/primitives/Video/PlaylistCover.tsx
 mirror	src/client/src/blocks/primitives/Video/selected-video.test.ts
 mirror	src/client/src/blocks/primitives/Video/selected-video.ts
+mirror	src/client/src/blocks/primitives/Video/solo-playback.test.ts
+mirror	src/client/src/blocks/primitives/Video/solo-playback.ts
 mirror	src/client/src/blocks/primitives/Video/storyboard-track.test.ts
 mirror	src/client/src/blocks/primitives/Video/storyboard-track.ts
 mirror	src/client/src/blocks/primitives/Video/useMiniPlayer.ts
