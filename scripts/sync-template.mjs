@@ -292,6 +292,7 @@ function pass() {
 
   console.log(`\n→ Overlay (${OVERLAY.length} файлов, ваши добавки сохраняются)\n`);
   for (const rel of OVERLAY) syncPath(rel, false);
+  sweepUnlisted();
 
   // package.json целиком не копируется: там имя пакета, версия и зависимости
   // инстанса. Но команды сборки и проверок в нём общие, и без этого правка команды
@@ -783,6 +784,41 @@ function syncScripts() {
  * Чужого не трогает вовсе - его никто сюда не клал; правленного нашего тоже:
  * это уже работа сайта, даже если вещь из шаблона ушла.
  */
+/**
+ * Убирает то, что шаблон больше не отдаёт.
+ *
+ * @remarks
+ * Уборка по зеркальным папкам не видит ушедшее из наложения - например
+ * помеченную миграцию, которую сайт получил прежним прогоном. Здесь проверка
+ * идёт по перечню: файл значится нашим, отпечаток совпадает с тем, что синк
+ * положил, а в нынешней выдаче его нет.
+ *
+ * Совпадение отпечатка и есть согласие на удаление: сайт файл не трогал, значит
+ * своего в нём ничего нет. Правленное остаётся - это уже работа сайта, даже если
+ * вещь из шаблона ушла.
+ *
+ * Ради этого пути пометка и работает в обе стороны: найдя дыру в своём файле,
+ * его помечают - и ближайший прогон уносит его со всех сайтов разом, вместо
+ * обхода репозиториев руками.
+ */
+function sweepUnlisted() {
+  const shipped = new Set([...MIRROR, ...OVERLAY]);
+  for (const [rel, mark] of previous) {
+    if (shipped.has(rel)) continue;
+    const at = path.join(INSTANCE, rel);
+    if (!fs.existsSync(at)) continue;
+    if (!mark || fingerprint(at) !== mark) {
+      placed.set(rel, mark);
+      continue;
+    }
+    if (writing || dryRun) {
+      console.log(`  - ${rel} (шаблон больше не отдаёт)`);
+      stats.deleted++;
+    }
+    if (shouldWrite()) fs.rmSync(at, { force: true });
+  }
+}
+
 function sweepStale() {
   const ours = new Set(MIRROR);
   for (const dir of MIRROR_DIRS) {
