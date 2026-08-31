@@ -1,9 +1,15 @@
 // @needs-maintenance — таблица media пересоздаётся (alt перестал быть обязательным).
 // Старый код совместим: он всегда передавал alt, поэтому blue-green переживает.
+//
+// Догоняющая миграция: то, что сайты придумывали у себя, позже уехало в шаблон.
+// Создание идёт с проверкой существования - на сайте, который завёл эту
+// структуру своей миграцией, таблица уже есть, а его миграцию убрали как
+// дубликат. Без проверки прогон встаёт на «table already exists», и сайт
+// перестаёт выкладываться (поймано на fitness-mafia 31.08).
 import { MigrateUpArgs, MigrateDownArgs, sql } from '@payloadcms/db-sqlite';
 
 export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
-  await db.run(sql`CREATE TABLE \`pages_blocks_specialist_profile_show\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`pages_blocks_specialist_profile_show\` (
   	\`order\` integer NOT NULL,
   	\`parent_id\` text NOT NULL,
   	\`value\` text,
@@ -12,12 +18,12 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`pages_blocks_specialist_profile_show_order_idx\` ON \`pages_blocks_specialist_profile_show\` (\`order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`pages_blocks_specialist_profile_show_order_idx\` ON \`pages_blocks_specialist_profile_show\` (\`order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`pages_blocks_specialist_profile_show_parent_idx\` ON \`pages_blocks_specialist_profile_show\` (\`parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`pages_blocks_specialist_profile_show_parent_idx\` ON \`pages_blocks_specialist_profile_show\` (\`parent_id\`);`,
   );
-  await db.run(sql`CREATE TABLE \`pages_blocks_specialist_profile\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`pages_blocks_specialist_profile\` (
   	\`_order\` integer NOT NULL,
   	\`_parent_id\` integer NOT NULL,
   	\`_path\` text NOT NULL,
@@ -31,15 +37,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`pages_blocks_specialist_profile_order_idx\` ON \`pages_blocks_specialist_profile\` (\`_order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`pages_blocks_specialist_profile_order_idx\` ON \`pages_blocks_specialist_profile\` (\`_order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`pages_blocks_specialist_profile_parent_id_idx\` ON \`pages_blocks_specialist_profile\` (\`_parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`pages_blocks_specialist_profile_parent_id_idx\` ON \`pages_blocks_specialist_profile\` (\`_parent_id\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`pages_blocks_specialist_profile_path_idx\` ON \`pages_blocks_specialist_profile\` (\`_path\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`pages_blocks_specialist_profile_path_idx\` ON \`pages_blocks_specialist_profile\` (\`_path\`);`,
   );
-  await db.run(sql`CREATE TABLE \`pages_blocks_document_list_items\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`pages_blocks_document_list_items\` (
   	\`_order\` integer NOT NULL,
   	\`_parent_id\` text NOT NULL,
   	\`id\` text PRIMARY KEY NOT NULL,
@@ -51,15 +57,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`pages_blocks_document_list_items_order_idx\` ON \`pages_blocks_document_list_items\` (\`_order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`pages_blocks_document_list_items_order_idx\` ON \`pages_blocks_document_list_items\` (\`_order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`pages_blocks_document_list_items_parent_id_idx\` ON \`pages_blocks_document_list_items\` (\`_parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`pages_blocks_document_list_items_parent_id_idx\` ON \`pages_blocks_document_list_items\` (\`_parent_id\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`pages_blocks_document_list_items_file_idx\` ON \`pages_blocks_document_list_items\` (\`file_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`pages_blocks_document_list_items_file_idx\` ON \`pages_blocks_document_list_items\` (\`file_id\`);`,
   );
-  await db.run(sql`CREATE TABLE \`pages_blocks_document_list\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`pages_blocks_document_list\` (
   	\`_order\` integer NOT NULL,
   	\`_parent_id\` integer NOT NULL,
   	\`_path\` text NOT NULL,
@@ -75,15 +81,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`pages_blocks_document_list_order_idx\` ON \`pages_blocks_document_list\` (\`_order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`pages_blocks_document_list_order_idx\` ON \`pages_blocks_document_list\` (\`_order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`pages_blocks_document_list_parent_id_idx\` ON \`pages_blocks_document_list\` (\`_parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`pages_blocks_document_list_parent_id_idx\` ON \`pages_blocks_document_list\` (\`_parent_id\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`pages_blocks_document_list_path_idx\` ON \`pages_blocks_document_list\` (\`_path\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`pages_blocks_document_list_path_idx\` ON \`pages_blocks_document_list\` (\`_path\`);`,
   );
-  await db.run(sql`CREATE TABLE \`_pages_v_blocks_specialist_profile_show\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`_pages_v_blocks_specialist_profile_show\` (
   	\`order\` integer NOT NULL,
   	\`parent_id\` integer NOT NULL,
   	\`value\` text,
@@ -92,12 +98,12 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`_pages_v_blocks_specialist_profile_show_order_idx\` ON \`_pages_v_blocks_specialist_profile_show\` (\`order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_pages_v_blocks_specialist_profile_show_order_idx\` ON \`_pages_v_blocks_specialist_profile_show\` (\`order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`_pages_v_blocks_specialist_profile_show_parent_idx\` ON \`_pages_v_blocks_specialist_profile_show\` (\`parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_pages_v_blocks_specialist_profile_show_parent_idx\` ON \`_pages_v_blocks_specialist_profile_show\` (\`parent_id\`);`,
   );
-  await db.run(sql`CREATE TABLE \`_pages_v_blocks_specialist_profile\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`_pages_v_blocks_specialist_profile\` (
   	\`_order\` integer NOT NULL,
   	\`_parent_id\` integer NOT NULL,
   	\`_path\` text NOT NULL,
@@ -112,15 +118,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`_pages_v_blocks_specialist_profile_order_idx\` ON \`_pages_v_blocks_specialist_profile\` (\`_order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_pages_v_blocks_specialist_profile_order_idx\` ON \`_pages_v_blocks_specialist_profile\` (\`_order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`_pages_v_blocks_specialist_profile_parent_id_idx\` ON \`_pages_v_blocks_specialist_profile\` (\`_parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_pages_v_blocks_specialist_profile_parent_id_idx\` ON \`_pages_v_blocks_specialist_profile\` (\`_parent_id\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`_pages_v_blocks_specialist_profile_path_idx\` ON \`_pages_v_blocks_specialist_profile\` (\`_path\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_pages_v_blocks_specialist_profile_path_idx\` ON \`_pages_v_blocks_specialist_profile\` (\`_path\`);`,
   );
-  await db.run(sql`CREATE TABLE \`_pages_v_blocks_document_list_items\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`_pages_v_blocks_document_list_items\` (
   	\`_order\` integer NOT NULL,
   	\`_parent_id\` integer NOT NULL,
   	\`id\` integer PRIMARY KEY NOT NULL,
@@ -133,15 +139,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`_pages_v_blocks_document_list_items_order_idx\` ON \`_pages_v_blocks_document_list_items\` (\`_order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_pages_v_blocks_document_list_items_order_idx\` ON \`_pages_v_blocks_document_list_items\` (\`_order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`_pages_v_blocks_document_list_items_parent_id_idx\` ON \`_pages_v_blocks_document_list_items\` (\`_parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_pages_v_blocks_document_list_items_parent_id_idx\` ON \`_pages_v_blocks_document_list_items\` (\`_parent_id\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`_pages_v_blocks_document_list_items_file_idx\` ON \`_pages_v_blocks_document_list_items\` (\`file_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_pages_v_blocks_document_list_items_file_idx\` ON \`_pages_v_blocks_document_list_items\` (\`file_id\`);`,
   );
-  await db.run(sql`CREATE TABLE \`_pages_v_blocks_document_list\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`_pages_v_blocks_document_list\` (
   	\`_order\` integer NOT NULL,
   	\`_parent_id\` integer NOT NULL,
   	\`_path\` text NOT NULL,
@@ -158,15 +164,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`_pages_v_blocks_document_list_order_idx\` ON \`_pages_v_blocks_document_list\` (\`_order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_pages_v_blocks_document_list_order_idx\` ON \`_pages_v_blocks_document_list\` (\`_order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`_pages_v_blocks_document_list_parent_id_idx\` ON \`_pages_v_blocks_document_list\` (\`_parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_pages_v_blocks_document_list_parent_id_idx\` ON \`_pages_v_blocks_document_list\` (\`_parent_id\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`_pages_v_blocks_document_list_path_idx\` ON \`_pages_v_blocks_document_list\` (\`_path\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_pages_v_blocks_document_list_path_idx\` ON \`_pages_v_blocks_document_list\` (\`_path\`);`,
   );
-  await db.run(sql`CREATE TABLE \`reusable_blocks_blocks_specialist_profile_show\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`reusable_blocks_blocks_specialist_profile_show\` (
   	\`order\` integer NOT NULL,
   	\`parent_id\` text NOT NULL,
   	\`value\` text,
@@ -175,12 +181,12 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`reusable_blocks_blocks_specialist_profile_show_order_idx\` ON \`reusable_blocks_blocks_specialist_profile_show\` (\`order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`reusable_blocks_blocks_specialist_profile_show_order_idx\` ON \`reusable_blocks_blocks_specialist_profile_show\` (\`order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`reusable_blocks_blocks_specialist_profile_show_parent_idx\` ON \`reusable_blocks_blocks_specialist_profile_show\` (\`parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`reusable_blocks_blocks_specialist_profile_show_parent_idx\` ON \`reusable_blocks_blocks_specialist_profile_show\` (\`parent_id\`);`,
   );
-  await db.run(sql`CREATE TABLE \`reusable_blocks_blocks_specialist_profile\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`reusable_blocks_blocks_specialist_profile\` (
   	\`_order\` integer NOT NULL,
   	\`_parent_id\` integer NOT NULL,
   	\`_path\` text NOT NULL,
@@ -194,15 +200,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`reusable_blocks_blocks_specialist_profile_order_idx\` ON \`reusable_blocks_blocks_specialist_profile\` (\`_order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`reusable_blocks_blocks_specialist_profile_order_idx\` ON \`reusable_blocks_blocks_specialist_profile\` (\`_order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`reusable_blocks_blocks_specialist_profile_parent_id_idx\` ON \`reusable_blocks_blocks_specialist_profile\` (\`_parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`reusable_blocks_blocks_specialist_profile_parent_id_idx\` ON \`reusable_blocks_blocks_specialist_profile\` (\`_parent_id\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`reusable_blocks_blocks_specialist_profile_path_idx\` ON \`reusable_blocks_blocks_specialist_profile\` (\`_path\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`reusable_blocks_blocks_specialist_profile_path_idx\` ON \`reusable_blocks_blocks_specialist_profile\` (\`_path\`);`,
   );
-  await db.run(sql`CREATE TABLE \`reusable_blocks_blocks_document_list_items\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`reusable_blocks_blocks_document_list_items\` (
   	\`_order\` integer NOT NULL,
   	\`_parent_id\` text NOT NULL,
   	\`id\` text PRIMARY KEY NOT NULL,
@@ -214,15 +220,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`reusable_blocks_blocks_document_list_items_order_idx\` ON \`reusable_blocks_blocks_document_list_items\` (\`_order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`reusable_blocks_blocks_document_list_items_order_idx\` ON \`reusable_blocks_blocks_document_list_items\` (\`_order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`reusable_blocks_blocks_document_list_items_parent_id_idx\` ON \`reusable_blocks_blocks_document_list_items\` (\`_parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`reusable_blocks_blocks_document_list_items_parent_id_idx\` ON \`reusable_blocks_blocks_document_list_items\` (\`_parent_id\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`reusable_blocks_blocks_document_list_items_file_idx\` ON \`reusable_blocks_blocks_document_list_items\` (\`file_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`reusable_blocks_blocks_document_list_items_file_idx\` ON \`reusable_blocks_blocks_document_list_items\` (\`file_id\`);`,
   );
-  await db.run(sql`CREATE TABLE \`reusable_blocks_blocks_document_list\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`reusable_blocks_blocks_document_list\` (
   	\`_order\` integer NOT NULL,
   	\`_parent_id\` integer NOT NULL,
   	\`_path\` text NOT NULL,
@@ -238,15 +244,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`reusable_blocks_blocks_document_list_order_idx\` ON \`reusable_blocks_blocks_document_list\` (\`_order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`reusable_blocks_blocks_document_list_order_idx\` ON \`reusable_blocks_blocks_document_list\` (\`_order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`reusable_blocks_blocks_document_list_parent_id_idx\` ON \`reusable_blocks_blocks_document_list\` (\`_parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`reusable_blocks_blocks_document_list_parent_id_idx\` ON \`reusable_blocks_blocks_document_list\` (\`_parent_id\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`reusable_blocks_blocks_document_list_path_idx\` ON \`reusable_blocks_blocks_document_list\` (\`_path\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`reusable_blocks_blocks_document_list_path_idx\` ON \`reusable_blocks_blocks_document_list\` (\`_path\`);`,
   );
-  await db.run(sql`CREATE TABLE \`_reusable_blocks_v_blocks_specialist_profile_show\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`_reusable_blocks_v_blocks_specialist_profile_show\` (
   	\`order\` integer NOT NULL,
   	\`parent_id\` integer NOT NULL,
   	\`value\` text,
@@ -255,12 +261,12 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`_reusable_blocks_v_blocks_specialist_profile_show_order_idx\` ON \`_reusable_blocks_v_blocks_specialist_profile_show\` (\`order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_reusable_blocks_v_blocks_specialist_profile_show_order_idx\` ON \`_reusable_blocks_v_blocks_specialist_profile_show\` (\`order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`_reusable_blocks_v_blocks_specialist_profile_show_parent_idx\` ON \`_reusable_blocks_v_blocks_specialist_profile_show\` (\`parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_reusable_blocks_v_blocks_specialist_profile_show_parent_idx\` ON \`_reusable_blocks_v_blocks_specialist_profile_show\` (\`parent_id\`);`,
   );
-  await db.run(sql`CREATE TABLE \`_reusable_blocks_v_blocks_specialist_profile\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`_reusable_blocks_v_blocks_specialist_profile\` (
   	\`_order\` integer NOT NULL,
   	\`_parent_id\` integer NOT NULL,
   	\`_path\` text NOT NULL,
@@ -275,15 +281,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`_reusable_blocks_v_blocks_specialist_profile_order_idx\` ON \`_reusable_blocks_v_blocks_specialist_profile\` (\`_order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_reusable_blocks_v_blocks_specialist_profile_order_idx\` ON \`_reusable_blocks_v_blocks_specialist_profile\` (\`_order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`_reusable_blocks_v_blocks_specialist_profile_parent_id_idx\` ON \`_reusable_blocks_v_blocks_specialist_profile\` (\`_parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_reusable_blocks_v_blocks_specialist_profile_parent_id_idx\` ON \`_reusable_blocks_v_blocks_specialist_profile\` (\`_parent_id\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`_reusable_blocks_v_blocks_specialist_profile_path_idx\` ON \`_reusable_blocks_v_blocks_specialist_profile\` (\`_path\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_reusable_blocks_v_blocks_specialist_profile_path_idx\` ON \`_reusable_blocks_v_blocks_specialist_profile\` (\`_path\`);`,
   );
-  await db.run(sql`CREATE TABLE \`_reusable_blocks_v_blocks_document_list_items\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`_reusable_blocks_v_blocks_document_list_items\` (
   	\`_order\` integer NOT NULL,
   	\`_parent_id\` integer NOT NULL,
   	\`id\` integer PRIMARY KEY NOT NULL,
@@ -296,15 +302,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`_reusable_blocks_v_blocks_document_list_items_order_idx\` ON \`_reusable_blocks_v_blocks_document_list_items\` (\`_order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_reusable_blocks_v_blocks_document_list_items_order_idx\` ON \`_reusable_blocks_v_blocks_document_list_items\` (\`_order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`_reusable_blocks_v_blocks_document_list_items_parent_id_idx\` ON \`_reusable_blocks_v_blocks_document_list_items\` (\`_parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_reusable_blocks_v_blocks_document_list_items_parent_id_idx\` ON \`_reusable_blocks_v_blocks_document_list_items\` (\`_parent_id\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`_reusable_blocks_v_blocks_document_list_items_file_idx\` ON \`_reusable_blocks_v_blocks_document_list_items\` (\`file_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_reusable_blocks_v_blocks_document_list_items_file_idx\` ON \`_reusable_blocks_v_blocks_document_list_items\` (\`file_id\`);`,
   );
-  await db.run(sql`CREATE TABLE \`_reusable_blocks_v_blocks_document_list\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`_reusable_blocks_v_blocks_document_list\` (
   	\`_order\` integer NOT NULL,
   	\`_parent_id\` integer NOT NULL,
   	\`_path\` text NOT NULL,
@@ -321,15 +327,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`_reusable_blocks_v_blocks_document_list_order_idx\` ON \`_reusable_blocks_v_blocks_document_list\` (\`_order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_reusable_blocks_v_blocks_document_list_order_idx\` ON \`_reusable_blocks_v_blocks_document_list\` (\`_order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`_reusable_blocks_v_blocks_document_list_parent_id_idx\` ON \`_reusable_blocks_v_blocks_document_list\` (\`_parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_reusable_blocks_v_blocks_document_list_parent_id_idx\` ON \`_reusable_blocks_v_blocks_document_list\` (\`_parent_id\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`_reusable_blocks_v_blocks_document_list_path_idx\` ON \`_reusable_blocks_v_blocks_document_list\` (\`_path\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`_reusable_blocks_v_blocks_document_list_path_idx\` ON \`_reusable_blocks_v_blocks_document_list\` (\`_path\`);`,
   );
-  await db.run(sql`CREATE TABLE \`specialists_blocks_specialist_profile_show\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`specialists_blocks_specialist_profile_show\` (
   	\`order\` integer NOT NULL,
   	\`parent_id\` text NOT NULL,
   	\`value\` text,
@@ -338,12 +344,12 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`specialists_blocks_specialist_profile_show_order_idx\` ON \`specialists_blocks_specialist_profile_show\` (\`order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`specialists_blocks_specialist_profile_show_order_idx\` ON \`specialists_blocks_specialist_profile_show\` (\`order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`specialists_blocks_specialist_profile_show_parent_idx\` ON \`specialists_blocks_specialist_profile_show\` (\`parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`specialists_blocks_specialist_profile_show_parent_idx\` ON \`specialists_blocks_specialist_profile_show\` (\`parent_id\`);`,
   );
-  await db.run(sql`CREATE TABLE \`specialists_blocks_specialist_profile\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`specialists_blocks_specialist_profile\` (
   	\`_order\` integer NOT NULL,
   	\`_parent_id\` integer NOT NULL,
   	\`_path\` text NOT NULL,
@@ -357,15 +363,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`specialists_blocks_specialist_profile_order_idx\` ON \`specialists_blocks_specialist_profile\` (\`_order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`specialists_blocks_specialist_profile_order_idx\` ON \`specialists_blocks_specialist_profile\` (\`_order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`specialists_blocks_specialist_profile_parent_id_idx\` ON \`specialists_blocks_specialist_profile\` (\`_parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`specialists_blocks_specialist_profile_parent_id_idx\` ON \`specialists_blocks_specialist_profile\` (\`_parent_id\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`specialists_blocks_specialist_profile_path_idx\` ON \`specialists_blocks_specialist_profile\` (\`_path\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`specialists_blocks_specialist_profile_path_idx\` ON \`specialists_blocks_specialist_profile\` (\`_path\`);`,
   );
-  await db.run(sql`CREATE TABLE \`specialists_blocks_document_list_items\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`specialists_blocks_document_list_items\` (
   	\`_order\` integer NOT NULL,
   	\`_parent_id\` text NOT NULL,
   	\`id\` text PRIMARY KEY NOT NULL,
@@ -377,15 +383,15 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`specialists_blocks_document_list_items_order_idx\` ON \`specialists_blocks_document_list_items\` (\`_order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`specialists_blocks_document_list_items_order_idx\` ON \`specialists_blocks_document_list_items\` (\`_order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`specialists_blocks_document_list_items_parent_id_idx\` ON \`specialists_blocks_document_list_items\` (\`_parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`specialists_blocks_document_list_items_parent_id_idx\` ON \`specialists_blocks_document_list_items\` (\`_parent_id\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`specialists_blocks_document_list_items_file_idx\` ON \`specialists_blocks_document_list_items\` (\`file_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`specialists_blocks_document_list_items_file_idx\` ON \`specialists_blocks_document_list_items\` (\`file_id\`);`,
   );
-  await db.run(sql`CREATE TABLE \`specialists_blocks_document_list\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`specialists_blocks_document_list\` (
   	\`_order\` integer NOT NULL,
   	\`_parent_id\` integer NOT NULL,
   	\`_path\` text NOT NULL,
@@ -401,16 +407,16 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   `);
   await db.run(
-    sql`CREATE INDEX \`specialists_blocks_document_list_order_idx\` ON \`specialists_blocks_document_list\` (\`_order\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`specialists_blocks_document_list_order_idx\` ON \`specialists_blocks_document_list\` (\`_order\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`specialists_blocks_document_list_parent_id_idx\` ON \`specialists_blocks_document_list\` (\`_parent_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`specialists_blocks_document_list_parent_id_idx\` ON \`specialists_blocks_document_list\` (\`_parent_id\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`specialists_blocks_document_list_path_idx\` ON \`specialists_blocks_document_list\` (\`_path\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`specialists_blocks_document_list_path_idx\` ON \`specialists_blocks_document_list\` (\`_path\`);`,
   );
   await db.run(sql`PRAGMA foreign_keys=OFF;`);
-  await db.run(sql`CREATE TABLE \`__new_media\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`__new_media\` (
   	\`id\` integer PRIMARY KEY NOT NULL,
   	\`alt\` text,
   	\`preview_id\` integer,
@@ -454,18 +460,26 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   await db.run(sql`DROP TABLE \`media\`;`);
   await db.run(sql`ALTER TABLE \`__new_media\` RENAME TO \`media\`;`);
   await db.run(sql`PRAGMA foreign_keys=ON;`);
-  await db.run(sql`CREATE INDEX \`media_preview_idx\` ON \`media\` (\`preview_id\`);`);
-  await db.run(sql`CREATE INDEX \`media_updated_at_idx\` ON \`media\` (\`updated_at\`);`);
-  await db.run(sql`CREATE INDEX \`media_created_at_idx\` ON \`media\` (\`created_at\`);`);
-  await db.run(sql`CREATE UNIQUE INDEX \`media_filename_idx\` ON \`media\` (\`filename\`);`);
   await db.run(
-    sql`CREATE INDEX \`media_sizes_thumbnail_sizes_thumbnail_filename_idx\` ON \`media\` (\`sizes_thumbnail_filename\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`media_preview_idx\` ON \`media\` (\`preview_id\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`media_sizes_card_sizes_card_filename_idx\` ON \`media\` (\`sizes_card_filename\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`media_updated_at_idx\` ON \`media\` (\`updated_at\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`media_sizes_hero_sizes_hero_filename_idx\` ON \`media\` (\`sizes_hero_filename\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`media_created_at_idx\` ON \`media\` (\`created_at\`);`,
+  );
+  await db.run(
+    sql`CREATE UNIQUE INDEX IF NOT EXISTS \`media_filename_idx\` ON \`media\` (\`filename\`);`,
+  );
+  await db.run(
+    sql`CREATE INDEX IF NOT EXISTS \`media_sizes_thumbnail_sizes_thumbnail_filename_idx\` ON \`media\` (\`sizes_thumbnail_filename\`);`,
+  );
+  await db.run(
+    sql`CREATE INDEX IF NOT EXISTS \`media_sizes_card_sizes_card_filename_idx\` ON \`media\` (\`sizes_card_filename\`);`,
+  );
+  await db.run(
+    sql`CREATE INDEX IF NOT EXISTS \`media_sizes_hero_sizes_hero_filename_idx\` ON \`media\` (\`sizes_hero_filename\`);`,
   );
   await db.run(
     sql`ALTER TABLE \`pages_blocks_request_form\` ADD \`policy_href\` text DEFAULT '/privacy';`,
@@ -504,7 +518,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   );
   await db.run(sql`ALTER TABLE \`specialists\` ADD \`seo_noindex\` integer;`);
   await db.run(
-    sql`CREATE INDEX \`specialists_seo_seo_og_image_idx\` ON \`specialists\` (\`seo_og_image_id\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`specialists_seo_seo_og_image_idx\` ON \`specialists\` (\`seo_og_image_id\`);`,
   );
   await db.run(sql`ALTER TABLE \`site_settings\` ADD \`personal_data_operator_name\` text;`);
   await db.run(sql`ALTER TABLE \`site_settings\` ADD \`personal_data_operator_inn\` text;`);
@@ -539,7 +553,7 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   await db.run(sql`DROP TABLE \`specialists_blocks_document_list_items\`;`);
   await db.run(sql`DROP TABLE \`specialists_blocks_document_list\`;`);
   await db.run(sql`PRAGMA foreign_keys=OFF;`);
-  await db.run(sql`CREATE TABLE \`__new_media\` (
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`__new_media\` (
   	\`id\` integer PRIMARY KEY NOT NULL,
   	\`alt\` text NOT NULL,
   	\`prefix\` text DEFAULT 'media',
@@ -581,19 +595,25 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   await db.run(sql`DROP TABLE \`media\`;`);
   await db.run(sql`ALTER TABLE \`__new_media\` RENAME TO \`media\`;`);
   await db.run(sql`PRAGMA foreign_keys=ON;`);
-  await db.run(sql`CREATE INDEX \`media_updated_at_idx\` ON \`media\` (\`updated_at\`);`);
-  await db.run(sql`CREATE INDEX \`media_created_at_idx\` ON \`media\` (\`created_at\`);`);
-  await db.run(sql`CREATE UNIQUE INDEX \`media_filename_idx\` ON \`media\` (\`filename\`);`);
   await db.run(
-    sql`CREATE INDEX \`media_sizes_thumbnail_sizes_thumbnail_filename_idx\` ON \`media\` (\`sizes_thumbnail_filename\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`media_updated_at_idx\` ON \`media\` (\`updated_at\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`media_sizes_card_sizes_card_filename_idx\` ON \`media\` (\`sizes_card_filename\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`media_created_at_idx\` ON \`media\` (\`created_at\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`media_sizes_hero_sizes_hero_filename_idx\` ON \`media\` (\`sizes_hero_filename\`);`,
+    sql`CREATE UNIQUE INDEX IF NOT EXISTS \`media_filename_idx\` ON \`media\` (\`filename\`);`,
   );
-  await db.run(sql`CREATE TABLE \`__new_specialists\` (
+  await db.run(
+    sql`CREATE INDEX IF NOT EXISTS \`media_sizes_thumbnail_sizes_thumbnail_filename_idx\` ON \`media\` (\`sizes_thumbnail_filename\`);`,
+  );
+  await db.run(
+    sql`CREATE INDEX IF NOT EXISTS \`media_sizes_card_sizes_card_filename_idx\` ON \`media\` (\`sizes_card_filename\`);`,
+  );
+  await db.run(
+    sql`CREATE INDEX IF NOT EXISTS \`media_sizes_hero_sizes_hero_filename_idx\` ON \`media\` (\`sizes_hero_filename\`);`,
+  );
+  await db.run(sql`CREATE TABLE IF NOT EXISTS \`__new_specialists\` (
   	\`id\` integer PRIMARY KEY NOT NULL,
   	\`full_name\` text NOT NULL,
   	\`nickname\` text,
@@ -626,15 +646,23 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   );
   await db.run(sql`DROP TABLE \`specialists\`;`);
   await db.run(sql`ALTER TABLE \`__new_specialists\` RENAME TO \`specialists\`;`);
-  await db.run(sql`CREATE INDEX \`specialists_photo_idx\` ON \`specialists\` (\`photo_id\`);`);
-  await db.run(sql`CREATE INDEX \`specialists_city_idx\` ON \`specialists\` (\`city_id\`);`);
-  await db.run(sql`CREATE UNIQUE INDEX \`specialists_slug_idx\` ON \`specialists\` (\`slug\`);`);
-  await db.run(sql`CREATE INDEX \`specialists_owner_idx\` ON \`specialists\` (\`owner_id\`);`);
   await db.run(
-    sql`CREATE INDEX \`specialists_updated_at_idx\` ON \`specialists\` (\`updated_at\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`specialists_photo_idx\` ON \`specialists\` (\`photo_id\`);`,
   );
   await db.run(
-    sql`CREATE INDEX \`specialists_created_at_idx\` ON \`specialists\` (\`created_at\`);`,
+    sql`CREATE INDEX IF NOT EXISTS \`specialists_city_idx\` ON \`specialists\` (\`city_id\`);`,
+  );
+  await db.run(
+    sql`CREATE UNIQUE INDEX IF NOT EXISTS \`specialists_slug_idx\` ON \`specialists\` (\`slug\`);`,
+  );
+  await db.run(
+    sql`CREATE INDEX IF NOT EXISTS \`specialists_owner_idx\` ON \`specialists\` (\`owner_id\`);`,
+  );
+  await db.run(
+    sql`CREATE INDEX IF NOT EXISTS \`specialists_updated_at_idx\` ON \`specialists\` (\`updated_at\`);`,
+  );
+  await db.run(
+    sql`CREATE INDEX IF NOT EXISTS \`specialists_created_at_idx\` ON \`specialists\` (\`created_at\`);`,
   );
   await db.run(sql`ALTER TABLE \`pages_blocks_request_form\` DROP COLUMN \`policy_href\`;`);
   await db.run(sql`ALTER TABLE \`pages_blocks_request_form\` DROP COLUMN \`consent_label\`;`);

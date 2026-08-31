@@ -88,6 +88,7 @@ const RULES = [
   [/^contracts\/src\/index\.ts$/, 'skip'],
   [/^src\/cms\/src\/blocks\/index\.ts$/, 'skip'],
   [/^src\/client\/src\/layouts\/site-layout\/block-registry\.tsx$/, 'skip'],
+  [/^src\/client\/src\/lib\/api-client\.ts$/, 'skip'],
   // Оба макета - инстансовые: там шрифты и брендинг конкретного сайта.
   [/^src\/client\/src\/app\/layout\.tsx$/, 'skip'],
   [/^src\/client\/src\/app\/\(site\)\/layout\.tsx$/, 'skip'],
