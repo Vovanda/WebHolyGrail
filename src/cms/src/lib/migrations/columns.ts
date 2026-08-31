@@ -21,15 +21,24 @@ interface Db {
   all?: (query: unknown) => Promise<unknown>;
 }
 
-/** Есть ли такая колонка у таблицы. */
+/** Строка ответа `PRAGMA table_info`: нужно только имя колонки. */
+type ColumnRow = Record<string, unknown>;
+
+/**
+ * Есть ли такая колонка у таблицы.
+ *
+ * @remarks
+ * Ответ приходит то массивом, то объектом с полем `rows` - зависит от того,
+ * каким методом адаптера его прочитали. Разбираем оба вида.
+ */
 export async function hasColumn(db: Db, table: string, column: string): Promise<boolean> {
   const read = db.all ?? db.run;
-  const answer = (await read.call(db, sql.raw(`PRAGMA table_info(\`${table}\`);`))) as
-    | { rows?: ReadonlyArray<Record<string, unknown>> }
-    | ReadonlyArray<Record<string, unknown>>
-    | undefined;
+  const answer = await read.call(db, sql.raw(`PRAGMA table_info(\`${table}\`);`));
 
-  const rows = Array.isArray(answer) ? answer : (answer?.rows ?? []);
+  const rows: ReadonlyArray<ColumnRow> = Array.isArray(answer)
+    ? (answer as ReadonlyArray<ColumnRow>)
+    : ((answer as { rows?: ReadonlyArray<ColumnRow> } | undefined)?.rows ?? []);
+
   return rows.some((row) => row['name'] === column);
 }
 
