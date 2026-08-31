@@ -695,3 +695,4 @@ mirror	src/cms/src/lib/video/write-entitlement.ts
 mirror	src/cms/src/payload.config.ts
 mirror	src/cms/tsconfig.json
 mirror	tsconfig.base.json
+mirror	version.json

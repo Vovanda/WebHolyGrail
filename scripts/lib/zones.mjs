@@ -156,6 +156,12 @@ const RULES = [
     /^(dev\.sh|dev-setup\.sh|commitlint\.config\.js|pnpm-workspace\.yaml|tsconfig\.base\.json)$/,
     'mirror',
   ],
+  /*
+    Заметки о версии шаблона - шаблонное целиком: сайт своего в них не пишет, а
+    читает их сборка, чтобы подвал показывал, на чём сайт стоит. Без этой строки
+    файл оставался в шаблоне, и у сайтов версия в подвале была пустой.
+  */
+  [/^version\.json$/, 'mirror'],
   [
     /^\.(dockerignore|gitleaks\.toml|editorconfig|prettierrc\.json|prettierignore|gitattributes|npmrc)$/,
     'mirror',
