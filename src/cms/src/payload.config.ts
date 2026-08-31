@@ -10,6 +10,7 @@ import { buildConfig } from 'payload';
 import sharp from 'sharp';
 
 import { adoptEnvToggles } from './lib/toggles/adopt';
+import { adoptSystemToggles } from './lib/toggles/system';
 import { CaretReadyFeature } from './editor/caret-ready';
 import { SiteSettings } from './globals/SiteSettings';
 import { Users } from './collections/Users';
@@ -131,6 +132,14 @@ export default buildConfig({
   onInit: async (payload) => {
     const added = await adoptEnvToggles(payload).catch(() => 0);
     if (added > 0) payload.logger.info(`Заведено переключателей из окружения: ${added}`);
+
+    /*
+      Признаки, которые знает сам движок, заводятся здесь же. Ветвление ездит
+      обновлением, а запись живёт в базе сайта: без этого владелец видел
+      поведение и не находил, чем его переключить.
+    */
+    const свои = await adoptSystemToggles(payload).catch(() => 0);
+    if (свои > 0) payload.logger.info(`Заведено переключателей движка: ${свои}`);
   },
   /**
    * Jobs Queue — admin UI на /admin/collections/payload-jobs. Template поставляет
