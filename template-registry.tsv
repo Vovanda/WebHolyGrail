@@ -487,6 +487,7 @@ overlay	src/cms/migrations/20260829_190150_playlist_access_removed.json
 overlay	src/cms/migrations/20260829_190150_playlist_access_removed.ts
 overlay	src/cms/migrations/20260829_200357_entitlement_resource.json
 overlay	src/cms/migrations/20260829_200357_entitlement_resource.ts
+overlay	src/cms/migrations/20260831_030000_media_access_model.json
 overlay	src/cms/migrations/20260831_030000_media_access_model.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
