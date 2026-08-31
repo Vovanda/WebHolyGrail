@@ -277,6 +277,7 @@ mirror	src/client/src/blocks/primitives/SidePanel.test.ts
 mirror	src/client/src/blocks/primitives/SidePanel.tsx
 mirror	src/client/src/blocks/primitives/SocialIcon.tsx
 mirror	src/client/src/blocks/primitives/StackTransparency.tsx
+mirror	src/client/src/blocks/primitives/Tilt.tsx
 mirror	src/client/src/blocks/primitives/Timeline.tsx
 mirror	src/client/src/blocks/primitives/Video/AccessCodeDialog.tsx
 mirror	src/client/src/blocks/primitives/Video/AccessCodeForm.tsx
