@@ -64,7 +64,12 @@ export const videoDemoCodeEndpoint: Endpoint = {
       playlistId: Number(playlistId),
       length: rules.length,
       expiresAt,
-      grantMinutes: 15,
+      /*
+        Минута: витрине нужно показать механику, а не раздать доступ. Посмотрел,
+        обновил страницу чуть позже - замок снова на месте, и рассказывать про
+        закрытое опять есть на чём.
+      */
+      grantMinutes: 1,
     });
 
     return json({ code, expiresAt });
