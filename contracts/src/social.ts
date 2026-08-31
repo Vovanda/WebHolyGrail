@@ -19,15 +19,15 @@ export type SocialSource = 'vk' | 'tg' | 'ig';
 
 export interface SocialPostAuthor {
   /** `user` — живой человек / админ от своего имени. `channel` — само сообщество. */
-  readonly type?: 'user' | 'channel';
+  readonly type?: 'user' | 'channel' | undefined;
   /** id на источнике (профиль или сообщество). */
-  readonly id?: string;
+  readonly id?: string | undefined;
   /** Имя — для человека `«Имя Фамилия»`, для сообщества — название. */
   readonly name: string;
   /** URL аватарки (50×50 или ближайший доступный). */
-  readonly photo?: string;
+  readonly photo?: string | undefined;
   /** Ссылка на профиль/канал на источнике. */
-  readonly url?: string;
+  readonly url?: string | undefined;
 }
 
 export interface SocialPostMedia {
@@ -35,16 +35,16 @@ export interface SocialPostMedia {
   /** Прямой URL фото или превью видео. */
   readonly url: string;
   /** Размеры превью (если известны). Для адаптивной сетки и avoid CLS. */
-  readonly width?: number;
-  readonly height?: number;
+  readonly width?: number | undefined;
+  readonly height?: number | undefined;
   /** Только video: длительность секунд. */
-  readonly duration?: number;
+  readonly duration?: number | undefined;
   /** Только video: подпись/название. */
-  readonly title?: string;
+  readonly title?: string | undefined;
   /** Только video: URL для встраивания через iframe. */
-  readonly embedUrl?: string;
+  readonly embedUrl?: string | undefined;
   /** Только video: каноническая страница на источнике. */
-  readonly pageUrl?: string;
+  readonly pageUrl?: string | undefined;
 }
 
 /**
@@ -64,7 +64,7 @@ export interface SocialPostMention {
   /** Что отображать (часто = срез текста `[start..end]`). */
   readonly display: string;
   /** Доп. атрибуты per-тип: для `dog` — `{ dogId, rule }`. */
-  readonly data?: Record<string, unknown>;
+  readonly data?: Record<string, unknown> | undefined;
 }
 
 export interface SocialPostMetrics {
@@ -80,7 +80,7 @@ export interface SocialPostDoc {
   /** id поста на источнике (строкой — у TG это chat_id+message_id, у VK число). */
   readonly sourceId: string;
   /** id владельца ленты на источнике (для VK — отрицательный для сообщества). */
-  readonly sourceOwnerId?: string;
+  readonly sourceOwnerId?: string | undefined;
   /** Канонический URL поста на источнике. */
   readonly sourceUrl: string;
   /** Unix-timestamp в секундах. */
@@ -90,13 +90,13 @@ export interface SocialPostDoc {
   /** Сырой текст с переносами строк, без HTML. */
   readonly text: string;
   /** Медиа: фото + видео в одном массиве, порядок из источника. */
-  readonly media?: readonly SocialPostMedia[];
-  readonly author?: SocialPostAuthor;
+  readonly media?: readonly SocialPostMedia[] | undefined;
+  readonly author?: SocialPostAuthor | undefined;
   /** Server-side mentions для рендера в текст-ноды → ссылки. */
-  readonly mentions?: readonly SocialPostMention[];
+  readonly mentions?: readonly SocialPostMention[] | undefined;
   readonly metrics: SocialPostMetrics;
   /** Дата последней синхронизации (для дельта-апдейтов и отладки). */
-  readonly syncedAt?: string;
+  readonly syncedAt?: string | undefined;
 }
 
 /**
@@ -111,11 +111,11 @@ export interface SocialComment {
    * родительского коммента (VK `wall.getComments thread.items[].parents_stack`
    * хранит именно source-id, не наш Payload-id).
    */
-  readonly sourceId?: string;
+  readonly sourceId?: string | undefined;
   readonly postId: string;
   readonly source: SocialSource;
   /** id владельца стены поста (для VK — отрицательное для сообщества). */
-  readonly sourceOwnerId?: string;
+  readonly sourceOwnerId?: string | undefined;
   /**
    * `'0'` для top-level коммента, иначе **`sourceId`** родительского коммента
    * (НЕ наш Payload-id). При группировке `replies` нужно сопоставлять
@@ -127,7 +127,7 @@ export interface SocialComment {
   readonly text: string;
   readonly likes: number;
   readonly author: SocialPostAuthor;
-  readonly replies?: readonly SocialComment[];
+  readonly replies?: readonly SocialComment[] | undefined;
 }
 
 /** Фильтр периодов (legacy `news.html → .veo-news__chip[data-filter]`). */
@@ -138,25 +138,25 @@ export interface SocialFeedBlockNode {
   readonly blockType: 'social-feed';
   readonly id: string;
   /** Какие источники включать. По умолчанию все доступные. */
-  readonly sources?: readonly SocialSource[];
+  readonly sources?: readonly SocialSource[] | undefined;
   /** Сколько постов показать на странице (default 30). */
-  readonly count?: number;
+  readonly count?: number | undefined;
   /** Скрыть N свежих (retention в исходной соц-сети). Default 2. */
-  readonly hideLatest?: number;
+  readonly hideLatest?: number | undefined;
   /** Показывать ли фильтр-чипы Все / Неделя / Месяц. Default true. */
-  readonly showFilters?: boolean;
+  readonly showFilters?: boolean | undefined;
   /**
    * Для фильтра `week` — топ-N по engagement за 7 дней.
    * Engagement = likes + comments + reposts + (views / 200).
    * Default 3.
    */
-  readonly weekTopN?: number;
+  readonly weekTopN?: number | undefined;
   /** Аналогично для `month` — топ-N за 30 дней. Default 10. */
-  readonly monthTopN?: number;
+  readonly monthTopN?: number | undefined;
   /**
    * Регэксп для скрытия постов по тексту (legacy скрывает `#Эксклюзив`).
    * JavaScript regex без `/…/` — например `#эксклюз|#exclusive`.
    * Опционально; default — скрываем `#эксклюз` любой кейс.
    */
-  readonly hideTagRegex?: string;
+  readonly hideTagRegex?: string | undefined;
 }
