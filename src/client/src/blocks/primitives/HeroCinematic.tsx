@@ -27,6 +27,9 @@ export interface HeroCinematicCorner {
 }
 
 export interface HeroCinematicData {
+  /** Запись из медиатеки: играется нарезкой, как в плеере. */
+  readonly video?: MediaRef | null;
+  /** Прямая ссылка на файл: остаётся у обложек, собранных до медиатеки. */
   readonly videoUrl?: string;
   readonly poster?: MediaRef | null;
   readonly logo?: MediaRef | null;
@@ -63,6 +66,29 @@ const FRAME_CLASS: Record<NonNullable<HeroCinematicCorner['position']>, string> 
 function mediaUrl(ref: MediaRef | null | undefined): string | undefined {
   if (!ref || typeof ref !== 'object') return undefined;
   return (ref as { url?: string }).url;
+}
+
+/** Кадр, снятый при подготовке записи: запасной постер обложки. */
+function previewUrl(ref: MediaRef | null | undefined): string | undefined {
+  if (!ref || typeof ref !== 'object') return undefined;
+  return ref.previewUrl ?? undefined;
+}
+
+/**
+ * Чем играть фон: нарезкой записи или прямой ссылкой.
+ *
+ * @remarks
+ * Нарезка идёт первой, когда она готова: кадр появляется, не дожидаясь всего
+ * файла, и круг каждый раз начинается с нового места. Пока запись режется,
+ * играть нечего - остаётся постер, а на следующем заходе нарезка уже будет.
+ *
+ * Ссылка остаётся рабочей: обложки, собранные до появления медиатеки, ведут
+ * себя ровно как прежде (R10).
+ */
+function backdropSrc(data: HeroCinematicData): string | undefined {
+  const video = typeof data.video === 'object' && data.video !== null ? data.video : null;
+  if (video?.hls?.status === 'ready' && video.hls.playlistUrl) return video.hls.playlistUrl;
+  return data.videoUrl || undefined;
 }
 
 /**
@@ -131,7 +157,10 @@ export function HeroCinematic({
 }) {
   const data = node.data ?? {};
   const corners = data.corners ?? [];
-  const poster = mediaUrl(data.poster);
+  const src = backdropSrc(data);
+  // Постер владельца первым, за ним кадр, снятый при подготовке записи: без
+  // него обложка на медленной связи стоит тёмным прямоугольником.
+  const poster = mediaUrl(data.poster) ?? previewUrl(data.video);
   const at = (position: HeroCinematicCorner['position']) =>
     corners.find((c) => (c.position ?? 'top-left') === position);
 
@@ -160,8 +189,8 @@ export function HeroCinematic({
 
   return (
     <section className="relative w-full overflow-hidden bg-bg">
-      {data.videoUrl && <VideoBackdrop src={data.videoUrl} {...(poster ? { poster } : {})} />}
-      {!data.videoUrl && poster && (
+      {src && <VideoBackdrop src={src} {...(poster ? { poster } : {})} />}
+      {!src && poster && (
         // eslint-disable-next-line @next/next/no-img-element -- фон обложки, размеры задаёт секция
         <img
           src={poster}
