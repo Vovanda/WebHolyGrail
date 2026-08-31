@@ -53,6 +53,34 @@ describe('запись права', () => {
     });
   });
 
+  it('источник записывается номером: по праву видно, чем оно получено', async () => {
+    const { payload, created } = store(null);
+    await writeEntitlement({
+      payload,
+      holder: marker,
+      target: { accessId: 7 },
+      grantedUntil: NOW,
+      source: 'promo',
+      sourceRef: 'ABC123',
+    });
+
+    expect(created[0]).toMatchObject({ source: 'promo', sourceRef: 'ABC123' });
+  });
+
+  it('выданное рукой остаётся без номера', async () => {
+    // Иначе в списке появлялась бы пустая строка, которую нечем объяснить.
+    const { payload, created } = store(null);
+    await writeEntitlement({
+      payload,
+      holder: marker,
+      target: { accessId: 7 },
+      grantedUntil: NOW,
+      source: 'manual',
+    });
+
+    expect(created[0]).not.toHaveProperty('sourceRef');
+  });
+
   it('право на учётную запись держится ею, а не маркером', async () => {
     const { payload, created } = store(null);
     await writeEntitlement({

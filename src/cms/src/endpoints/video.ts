@@ -912,6 +912,7 @@ export const videoRedeemEndpoint: Endpoint = {
       target: { accessId: result.accessId },
       grantedUntil: result.expiresAt ?? null,
       source: 'promo',
+      sourceRef: code,
       note: `Код ${code}`,
     });
 

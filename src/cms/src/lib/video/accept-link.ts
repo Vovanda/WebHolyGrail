@@ -110,6 +110,11 @@ export async function acceptLink({
     target: { accessId: verdict.accessId },
     grantedUntil: verdict.expiresAt,
     source: 'invite',
+    /*
+      Ссылка целиком, а не её начало: по ней находят, кого приглашали и когда,
+      а шести знаков для этого мало - у длинных рассылок они совпадают.
+    */
+    sourceRef: token,
     note: `Ссылка ${token.slice(0, 6)}…`,
   });
 

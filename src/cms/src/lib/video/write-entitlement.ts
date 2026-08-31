@@ -49,6 +49,8 @@ export interface WriteGrantArgs {
   /** До какой даты действует; `null` — бессрочно. */
   readonly grantedUntil: string | null;
   readonly source: 'manual' | 'payment' | 'invite' | 'promo';
+  /** Чем именно выдано: код или номер платежа. Пусто у выданного вручную. */
+  readonly sourceRef?: string | undefined;
   readonly note?: string;
 }
 
@@ -89,6 +91,7 @@ export async function writeEntitlement({
   target,
   grantedUntil,
   source,
+  sourceRef,
   note,
 }: WriteGrantArgs): Promise<WriteGrantResult> {
   // Тем же кодом пользуются снова - с другого устройства или после чистки
@@ -115,6 +118,7 @@ export async function writeEntitlement({
         ...holderData(holder),
         access: Number(target.accessId),
         source,
+        ...(sourceRef ? { sourceRef } : {}),
         expiresAt: plan.expiresAt,
         ...(note ? { note } : {}),
       },
