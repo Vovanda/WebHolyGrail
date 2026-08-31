@@ -2,7 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { sqliteAdapter } from '@payloadcms/db-sqlite';
-import { lexicalEditor } from '@payloadcms/richtext-lexical';
+import { FixedToolbarFeature, lexicalEditor } from '@payloadcms/richtext-lexical';
 import { s3Storage } from '@payloadcms/storage-s3';
 import { ru } from '@payloadcms/translations/languages/ru';
 import { en } from '@payloadcms/translations/languages/en';
@@ -147,7 +147,14 @@ export default buildConfig({
       },
     }),
   },
-  editor: lexicalEditor(),
+  /*
+    Панель редактора закреплена сверху, а не только всплывает по выделению:
+    кнопка «добавить» на строке появляется по наведению мышью, которого на
+    телефоне нет, и владелец остаётся без вставки записи, картинки и блока.
+  */
+  editor: lexicalEditor({
+    features: ({ defaultFeatures }) => [...defaultFeatures, FixedToolbarFeature()],
+  }),
   secret: process.env.PAYLOAD_SECRET ?? '',
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),

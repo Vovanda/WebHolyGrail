@@ -1,5 +1,5 @@
 import type { Block } from 'payload';
-import { BlocksFeature, lexicalEditor } from '@payloadcms/richtext-lexical';
+import { BlocksFeature, FixedToolbarFeature, lexicalEditor } from '@payloadcms/richtext-lexical';
 
 import { VideoBlock } from './Video';
 import { VideoSetBlock } from './VideoSet';
@@ -39,6 +39,8 @@ export const RichTextBlock: Block = {
         features: ({ defaultFeatures }) => [
           ...defaultFeatures,
           BlocksFeature({ blocks: [VideoBlock, VideoSetBlock] }),
+          // Панель на виду: с телефона вставить нечем, наведения мышью там нет.
+          FixedToolbarFeature(),
         ],
       }),
     },

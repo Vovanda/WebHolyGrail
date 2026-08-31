@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload';
-import { BlocksFeature, lexicalEditor } from '@payloadcms/richtext-lexical';
+import { BlocksFeature, FixedToolbarFeature, lexicalEditor } from '@payloadcms/richtext-lexical';
 import { VideoBlock } from '../blocks/Video';
 import { VideoSetBlock } from '../blocks/VideoSet';
 
@@ -94,6 +94,14 @@ export const Articles: CollectionConfig = {
         features: ({ defaultFeatures }) => [
           ...defaultFeatures,
           BlocksFeature({ blocks: [VideoBlock, VideoSetBlock] }),
+          /*
+            Закреплённая панель нужна не для красоты: без неё вставка живёт только
+            в плавающей панели выделения и в слэш-меню, а кнопка «добавить» на строке
+            появляется по наведению мышью. На телефоне наведения нет - и владелец видит
+            форматирование текста, но не может вставить ни запись, ни картинку. Статью
+            с телефона так не написать.
+          */
+          FixedToolbarFeature(),
         ],
       }),
     },
