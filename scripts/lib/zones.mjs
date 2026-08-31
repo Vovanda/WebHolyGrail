@@ -90,7 +90,6 @@ const RULES = [
   [/^\.(env|infisical|template-version|template-manifest)/, 'skip'],
   [/^src\/(client|cms)\/package\.json$/, 'skip'],
   [/^contracts\/package\.json$/, 'skip'],
-  [/^src\/cms\/src\/payload\.config\.ts$/, 'skip'],
   [/^src\/client\/src\/site\.config\.ts$/, 'skip'],
   [/^scripts\/seeds\//, 'skip'],
   [/^src\/cms\/src\/seed\//, 'skip'],
@@ -99,6 +98,7 @@ const RULES = [
     движка. Возить их нельзя, иначе обновление стирает эту регистрацию (R10).
     Сами наборы движка - файлы с именем engine - ездят и всегда полны.
   */
+  [/^src\/cms\/src\/site\.ts$/, 'skip'],
   [/^contracts\/src\/index\.ts$/, 'skip'],
   [/^src\/cms\/src\/blocks\/index\.ts$/, 'skip'],
   [/^src\/client\/src\/layouts\/site-layout\/block-registry\.tsx$/, 'skip'],

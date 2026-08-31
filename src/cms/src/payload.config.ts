@@ -18,8 +18,9 @@ import { engineCollections } from './collections/engine';
 import { engineTasks } from './jobs/engine';
 import { withAutoSlug } from './lib/slug';
 import { engineEndpoints } from './endpoints/engine';
-// Витринная ручка живёт в domain: сайту она не нужна, и синк туда не заходит.
-import { videoDemoCodeEndpoint } from './endpoints/domain/whg/demo-code';
+// Своё этого сайта - коллекции, ручки, задания, глобалы. Файл принадлежит
+// сайту и обновлением не трогается; сам конфиг общий и приезжает целиком.
+import { site } from './site';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -98,8 +99,8 @@ export default buildConfig({
 
     Порядок разделов админки задаёт сам набор движка; своё дописывается следом.
   */
-  collections: engineCollections.map(withAutoSlug),
-  globals: [SiteSettings],
+  collections: [...engineCollections, ...site.collections].map(withAutoSlug),
+  globals: [SiteSettings, ...site.globals],
   /*
     Ручки движка приходят набором целиком, своё дописывается следом. Тот же
     порядок, что у коллекций: приехавшая обновлением ручка попадает в сборку
@@ -108,7 +109,7 @@ export default buildConfig({
     Выдача доступа к видео живёт здесь, а не внутри `media`: токен зрителя
     к конкретному медиафайлу не относится, он общий на сессию.
   */
-  endpoints: [...engineEndpoints, videoDemoCodeEndpoint],
+  endpoints: [...engineEndpoints, ...site.endpoints],
 
   /**
    * Признаки из хранилища секретов заводятся в списке при запуске: значение им
@@ -130,7 +131,7 @@ export default buildConfig({
    */
   jobs: {
     // Сперва задания движка, ниже свои: набор ездит обновлением целиком.
-    tasks: [...engineTasks],
+    tasks: [...engineTasks, ...site.tasks],
     // Один воркер за раз: ffmpeg живёт на той же машине, что и сайт, и
     // параллельное кодирование нескольких видео придушит выдачу страниц.
     autoRun: [{ cron: '* * * * *', allQueues: true, limit: 1 }],
