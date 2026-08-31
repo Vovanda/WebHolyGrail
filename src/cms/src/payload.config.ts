@@ -17,22 +17,9 @@ import { engineCollections } from './collections/engine';
 // эти коллекции пустой груз, и синк папку domain не обходит.
 import { engineTasks } from './jobs/engine';
 import { withAutoSlug } from './lib/slug';
-import {
-  videoAccessEndpoint,
-  videoByCodeEndpoint,
-  videoChannelEndpoint,
-  videoPlaylistEndpoint,
-  videoPlaylistByIdEndpoint,
-  videoKeyEndpoint,
-  videoManifestEndpoint,
-  videoTokenEndpoint,
-  videoRedeemEndpoint,
-  videoRedeemLinkEndpoint,
-} from './endpoints/video';
+import { engineEndpoints } from './endpoints/engine';
 // Витринная ручка живёт в domain: сайту она не нужна, и синк туда не заходит.
 import { videoDemoCodeEndpoint } from './endpoints/domain/whg/demo-code';
-import { togglesEndpoint } from './endpoints/toggles';
-import { blockPartsEndpoint } from './endpoints/block-parts';
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -113,25 +100,15 @@ export default buildConfig({
   */
   collections: engineCollections.map(withAutoSlug),
   globals: [SiteSettings],
-  /**
-   * Выдача доступа к видео. Живёт рядом с коллекциями, а не внутри `media`:
-   * токен зрителя к конкретному медиафайлу не относится, он общий на сессию.
-   */
-  endpoints: [
-    blockPartsEndpoint,
-    togglesEndpoint,
-    videoTokenEndpoint,
-    videoRedeemEndpoint,
-    videoRedeemLinkEndpoint,
-    videoDemoCodeEndpoint,
-    videoByCodeEndpoint,
-    videoChannelEndpoint,
-    videoPlaylistEndpoint,
-    videoPlaylistByIdEndpoint,
-    videoAccessEndpoint,
-    videoKeyEndpoint,
-    videoManifestEndpoint,
-  ],
+  /*
+    Ручки движка приходят набором целиком, своё дописывается следом. Тот же
+    порядок, что у коллекций: приехавшая обновлением ручка попадает в сборку
+    сама, и сайт не остаётся с нарезанным видео и ответом «маршрут не найден».
+
+    Выдача доступа к видео живёт здесь, а не внутри `media`: токен зрителя
+    к конкретному медиафайлу не относится, он общий на сессию.
+  */
+  endpoints: [...engineEndpoints, videoDemoCodeEndpoint],
 
   /**
    * Признаки из хранилища секретов заводятся в списке при запуске: значение им
