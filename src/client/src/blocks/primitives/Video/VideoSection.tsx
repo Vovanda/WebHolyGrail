@@ -31,12 +31,26 @@ const DENIAL: Record<string, string> = {
   unavailable: 'Видео сейчас недоступно',
 };
 
+/**
+ * Запись, которой на сайте больше нет.
+ *
+ * @remarks
+ * Ссылка на неё остаётся в тексте статьи и на странице: там она вписана
+ * вручную, и убрать её может только владелец. Молчать нельзя - блок исчезал
+ * целиком, а между абзацами оставалась дыра, по которой не понять, потерялась
+ * вёрстка или запись убрали. Поймано 31.08.2026 на витрине: у записи стояла
+ * пометка об удалении, и посреди статьи зияло пустое место.
+ */
+const GONE = 'Эта запись больше не доступна';
+
 export async function VideoSection({ node, settings, className }: VideoSectionProps) {
   const data = (node.data ?? {}) as unknown as VideoBlockData;
 
   const mediaId =
     typeof data.video === 'object' && data.video !== null ? data.video.id : (data.video ?? null);
   if (!mediaId) return null;
+
+  const width = data.width === 'wide' ? 'max-w-wide' : 'max-w-content';
 
   // Куки зрителя пробрасываем в CMS: без них вошедший выглядит анонимом
   // и закрытый видео ему не откроется.
@@ -47,9 +61,18 @@ export async function VideoSection({ node, settings, className }: VideoSectionPr
     checkVideoAccess(mediaId, cookie),
     readVideoUi(),
   ]);
-  if (!stream) return null;
+  /*
+    Записи нет или её нарезку убрали: показываем это словами. Пустое место
+    вместо блока читается как поломка страницы, а не как убранная запись.
+  */
+  if (!stream) {
+    return (
+      <section className={cn('mx-auto px-4 md:px-6 py-8 md:py-12', width, className)}>
+        <VideoNotice text={GONE} />
+      </section>
+    );
+  }
 
-  const width = data.width === 'wide' ? 'max-w-wide' : 'max-w-content';
   const poster = data.poster?.url ?? stream.poster?.url;
 
   /*
