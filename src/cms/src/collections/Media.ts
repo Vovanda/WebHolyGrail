@@ -704,6 +704,16 @@ export const Media: CollectionConfig = {
           data['shortCode'] = generateShortCode();
         }
 
+        /*
+          Адрес кадра держим в актуальном виде: кадр могли переснять, и тогда
+          у него новый отпечаток в адресе. Поле рядом с записью нужно списку -
+          там связь приходит номером, - но устаревать оно не должно.
+        */
+        const кадр = data['preview'] as { url?: string } | number | string | undefined;
+        if (typeof кадр === 'object' && кадр !== null && typeof кадр.url === 'string') {
+          data['previewUrl'] = кадр.url;
+        }
+
         // Имя документа держим в актуальном виде: название могли только что
         // поменять, а имя файла — единственное, что есть у картинок.
         const caption = String(data['caption'] ?? '').trim();
@@ -814,9 +824,18 @@ export const Media: CollectionConfig = {
           поле ещё не заполнено.
         */
         const preview = doc?.preview as { url?: string } | number | string | undefined;
+        /*
+          Развёрнутая связь идёт первой, поле рядом с записью - запасным.
+
+          Порядок был обратным, и адрес прилипал: кадр пересняли, у самой записи
+          кадра адрес новый, а у видео осталось старое значение - на сайте
+          виднелся вчерашний кадр, а после смены имени файла и вовсе пустое
+          место. В списке связь приходит номером, и там по-прежнему работает
+          поле.
+        */
         const posterUrl =
-          (typeof doc?.previewUrl === 'string' && doc.previewUrl) ||
-          (typeof preview === 'object' && preview !== null ? preview.url : undefined);
+          (typeof preview === 'object' && preview !== null ? preview.url : undefined) ||
+          (typeof doc?.previewUrl === 'string' ? doc.previewUrl : undefined);
 
         const hls = doc?.hls as
           | {

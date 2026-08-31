@@ -509,6 +509,7 @@ mirror	src/cms/scripts/backfill-channel.ts
 mirror	src/cms/scripts/backfill-pack-bytes.ts
 mirror	src/cms/scripts/backfill-preview-url.ts
 mirror	src/cms/scripts/backup-db.ts
+mirror	src/cms/scripts/bucket-cors.ts
 mirror	src/cms/scripts/check-schema-drift.ts
 mirror	src/cms/scripts/compare-db.ts
 mirror	src/cms/scripts/encrypt-db.ts
