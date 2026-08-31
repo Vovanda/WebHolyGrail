@@ -23,7 +23,6 @@ import { looksLikeLinkToken } from '../lib/video/link-token';
 import { resourceAddress } from '../lib/video/resource-address';
 import { redeemCode } from '../lib/video/redeem';
 import { tokenFromCookieHeader, VIEWER_COOKIE } from '../lib/video/viewer-cookie';
-import { hasWayIn } from '../lib/video/way-in';
 
 /**
  * Эндпоинты видео: идентичность зрителя и ключ криптопериода.
@@ -254,22 +253,9 @@ export const videoByCodeEndpoint: Endpoint = {
       overrideAccess: true,
     });
 
-    /*
-      Есть ли чем открыть эту запись прямо сейчас. Нужно странице: форма ввода
-      кода имеет смысл, только когда живой код или ссылка существуют. Иначе
-      человеку показывают поле, в которое нечего ввести.
-
-      Спрашиваем только про закрытое: у открытой записи формы нет в любом случае,
-      и лишний поход в базу ни к чему. Право самого зрителя здесь не смотрим -
-      его решает политика при рендере страницы, а этот признак про запись.
-    */
-    const openableByCode =
-      doc.access === 'private' ? await hasWayIn(req.payload, { kind: 'media', id: doc.id }) : false;
-
     return json({
       id: doc.id,
       channel,
-      openableByCode,
       authorName: owner?.name ?? null,
       sets: sets.docs.map((set) => {
         const item = set as {
@@ -588,15 +574,6 @@ async function describePlaylist(
     });
   }
 
-  /*
-    Есть ли чем открыть закрытое в этой подборке. Спрашиваем только когда
-    закрытое здесь есть: страница ставит форму ввода кода на место плеера,
-    и без живого кода она предлагала бы ввести несуществующее.
-  */
-  const openableByCode = items.some((item) => item.locked)
-    ? await hasWayIn(req.payload, { kind: 'playlists', id: doc.id })
-    : false;
-
   return {
     // Номер нужен спискам на странице: по нему они узнают, их ли подборку
     // открыл введённый код.
@@ -604,7 +581,6 @@ async function describePlaylist(
     code: doc.shortCode ?? null,
     channel: author?.channel ?? null,
     authorName: author?.name ?? null,
-    openableByCode,
     title: doc.title ?? 'Плейлист',
     description: doc.description ?? null,
     // Своя обложка плейлиста важнее, но если её не выбрали — берём кадр первого
