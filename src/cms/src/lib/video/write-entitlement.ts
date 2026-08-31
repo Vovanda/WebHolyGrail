@@ -16,10 +16,19 @@ import { planEntitlement } from './keep-entitlement';
  * своих правил.
  */
 
-/** Чем держится право: учётной записью или маркером посетителя из токена. */
-export type GrantHolder =
-  | { readonly kind: 'account'; readonly userId: string | number }
-  | { readonly kind: 'identity'; readonly visitorMarker: string };
+/**
+ * Чем узнаётся человек: всем, что о нём известно на этот момент.
+ *
+ * @remarks
+ * Признаков бывает несколько сразу: вошедший приходит и с маркером браузера.
+ * Право у него одно, поэтому и передаются они вместе.
+ */
+export interface GrantHolder {
+  readonly userId?: string | number | undefined;
+  readonly visitorMarker?: string | undefined;
+  readonly phone?: string | undefined;
+  readonly email?: string | undefined;
+}
 
 /**
  * На какой доступ выдаётся право.
@@ -46,13 +55,33 @@ export interface WriteGrantArgs {
 /** Что вышло: пригодится тому, кто захочет отличить новую выдачу от продления. */
 export type WriteGrantResult = 'created' | 'extended' | 'kept';
 
-const holderWhere = (holder: GrantHolder): Where =>
-  holder.kind === 'account'
-    ? { viewer: { equals: holder.userId } }
-    : { visitorMarker: { equals: holder.visitorMarker } };
+/**
+ * Условия «это тот же человек»: совпало хоть по одному признаку.
+ *
+ * @remarks
+ * Ищем сразу по всем, иначе вошедший заводит второе право рядом с тем, что
+ * лежало на маркере, и один покупатель выглядит в списке двумя.
+ */
+const holderWhere = (holder: GrantHolder): Where[] => {
+  const ways: Where[] = [];
+  if (holder.userId !== undefined && holder.userId !== null) {
+    ways.push({ viewer: { equals: holder.userId } });
+  }
+  if (holder.visitorMarker) ways.push({ visitorMarker: { equals: holder.visitorMarker } });
+  if (holder.phone) ways.push({ phone: { equals: holder.phone } });
+  if (holder.email) ways.push({ email: { equals: holder.email } });
+  return ways;
+};
 
-const holderData = (holder: GrantHolder): Record<string, unknown> =>
-  holder.kind === 'account' ? { viewer: holder.userId } : { visitorMarker: holder.visitorMarker };
+/** Всё известное записывается: в следующий раз человек найдётся любым признаком. */
+const holderData = (holder: GrantHolder): Record<string, unknown> => {
+  const data: Record<string, unknown> = {};
+  if (holder.userId !== undefined && holder.userId !== null) data['viewer'] = holder.userId;
+  if (holder.visitorMarker) data['visitorMarker'] = holder.visitorMarker;
+  if (holder.phone) data['phone'] = holder.phone;
+  if (holder.email) data['email'] = holder.email;
+  return data;
+};
 
 export async function writeEntitlement({
   payload,
@@ -65,11 +94,10 @@ export async function writeEntitlement({
   // Тем же кодом пользуются снова - с другого устройства или после чистки
   // данных. Права от этого плодиться не должны: одинаковые записи в списке
   // не дают понять, что у зрителя открыто.
+  const ways = holderWhere(holder);
   const already = await payload.find({
     collection: 'media-access-rights',
-    where: {
-      and: [holderWhere(holder), { access: { equals: target.accessId } }],
-    },
+    where: { and: [{ or: ways }, { access: { equals: target.accessId } }] },
     depth: 0,
     limit: 1,
     overrideAccess: true,

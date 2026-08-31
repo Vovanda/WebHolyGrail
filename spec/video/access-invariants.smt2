@@ -103,6 +103,20 @@
 (assert (forall ((a Viewer) (b Viewer) (p Pass))
   (=> (and (rightHeld a p) (not (= (identity a) (identity b)))) (not (rightHeld b p)))))
 
+; Право на доступ у человека одно. Он узнаётся любым своим признаком - маркером
+; браузера, учётной записью, телефоном, почтой, - и повторная выдача находит
+; прежнее право по любому из них, а не заводит второе.
+;
+; Иначе вошедший получал бы второе право рядом с тем, что лежало на маркере,
+; и в списке владельца один покупатель выглядел бы двумя.
+(declare-fun sameHolder (Viewer Viewer) Bool)
+
+(assert (forall ((a Viewer) (b Viewer))
+  (=> (= (identity a) (identity b)) (sameHolder a b))))
+
+(assert (forall ((a Viewer) (b Viewer) (p Pass))
+  (=> (and (sameHolder a b) (rightHeld a p)) (rightHeld b p))))
+
 ; Отзыв поштучно.
 (declare-fun revoked (Viewer Pass) Bool)
 (assert (forall ((z Viewer) (p Pass)) (=> (revoked z p) (not (rightHeld z p)))))
@@ -355,6 +369,19 @@
 (assert (and (> (rightMaxViews z p) 0) (>= (rightViews z p) (rightMaxViews z p))))
 (assert (forall ((other Pass)) (=> (not (= other p)) (not (rightHeld z other)))))
 (assert (keyIssued v z now))
+(check-sat)
+(pop)
+
+;@TEST          Право не двоится: тот же человек другим признаком находит прежнее
+;@EXPECT        unsat
+;@COVERED-BY    src/cms/src/lib/video/write-entitlement.test.ts::поиск по всем признакам
+(push)
+(declare-const p Pass)
+(declare-const marked Viewer)
+(declare-const signed Viewer)
+(assert (sameHolder marked signed))
+(assert (rightHeld marked p))
+(assert (not (rightHeld signed p)))
 (check-sat)
 (pop)
 

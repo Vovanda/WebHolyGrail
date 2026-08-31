@@ -30,8 +30,8 @@ const store = (existing: Record<string, unknown> | null) => {
   return { payload, created, updated };
 };
 
-const marker = { kind: 'identity', visitorMarker: 'маркер-1' } as const;
-const account = { kind: 'account', userId: 42 } as const;
+const marker = { visitorMarker: 'маркер-1' } as const;
+const account = { userId: 42 } as const;
 
 describe('запись права', () => {
   it('первое право заводится на маркер посетителя', async () => {
@@ -108,6 +108,39 @@ describe('запись права', () => {
 
     expect(result).toBe('extended');
     expect(updated[0]).toMatchObject({ id: 5, data: { expiresAt: null } });
+  });
+
+  it('вошедший с маркером находит своё прежнее право, а не заводит второе', async () => {
+    // Признаки ищутся все сразу: иначе один покупатель выглядит в списке двумя.
+    const { payload, created, updated } = store({ id: 5, expiresAt: EARLIER });
+    const result = await writeEntitlement({
+      payload,
+      holder: { userId: 42, visitorMarker: 'маркер-1' },
+      target: { accessId: 7 },
+      grantedUntil: NOW,
+      source: 'payment',
+    });
+
+    expect(result).toBe('extended');
+    expect(created).toHaveLength(0);
+    expect(updated[0]).toMatchObject({ id: 5 });
+  });
+
+  it('известные признаки записываются рядом', async () => {
+    const { payload, created } = store(null);
+    await writeEntitlement({
+      payload,
+      holder: { userId: 42, visitorMarker: 'маркер-1', email: 'kto@to.ru' },
+      target: { accessId: 7 },
+      grantedUntil: null,
+      source: 'payment',
+    });
+
+    expect(created[0]).toMatchObject({
+      viewer: 42,
+      visitorMarker: 'маркер-1',
+      email: 'kto@to.ru',
+    });
   });
 
   it('пометка записывается, когда она есть', async () => {

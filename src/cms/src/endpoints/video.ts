@@ -930,10 +930,9 @@ export const videoRedeemEndpoint: Endpoint = {
     */
     await writeEntitlement({
       payload: req.payload,
-      holder:
-        result.bind === 'account' && req.user?.id
-          ? { kind: 'account', userId: req.user.id }
-          : { kind: 'identity', visitorMarker: checked.visitorMarker },
+      // Всё, что известно о человеке сразу: право у него одно, и найтись оно
+      // должно по любому признаку - иначе вошедший заведёт себе второе.
+      holder: { userId: req.user?.id, visitorMarker: checked.visitorMarker },
       target: { accessId: result.accessId },
       grantedUntil: result.expiresAt ?? null,
       source: 'promo',
@@ -1190,9 +1189,7 @@ export const videoRedeemLinkEndpoint: Endpoint = {
     const result = await acceptLink({
       payload: req.payload,
       token: address,
-      holder: req.user?.id
-        ? { kind: 'account', userId: req.user.id }
-        : { kind: 'identity', visitorMarker: checked.visitorMarker },
+      holder: { userId: req.user?.id, visitorMarker: checked.visitorMarker },
       now: new Date(),
     });
 

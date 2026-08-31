@@ -88,7 +88,7 @@ export async function acceptLink({
             grantDays: doc.grantDays ?? null,
           }
         : null,
-    viewerId: holder.kind === 'account' ? holder.userId : null,
+    viewerId: holder.userId ?? null,
     now,
   });
 

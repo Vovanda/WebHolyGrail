@@ -45,7 +45,7 @@ const store = (doc: Record<string, unknown> | null) => {
   return { payload, updated, created };
 };
 
-const holder = { kind: 'identity', visitorMarker: 'маркер-1' } as const;
+const holder = { visitorMarker: 'маркер-1' } as const;
 const accept = (payload: unknown, token = 'длинный-адрес') =>
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   acceptLink({ payload: payload as any, token, holder, now: NOW });
