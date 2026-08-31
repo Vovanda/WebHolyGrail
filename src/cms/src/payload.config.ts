@@ -42,9 +42,14 @@ function requireEnv(name: string): string {
 }
 
 /**
- * Origin'ы для cors/csrf: CSV из env (`PAYLOAD_ALLOWED_ORIGINS`) + дефолтные
- * локальные. Дедуп по строке. При работе через демо-туннель / прод-домен —
- * добавляйте в `PAYLOAD_ALLOWED_ORIGINS`.
+ * Адреса, с которых сайт открывают.
+ *
+ * @remarks
+ * Собираются из трёх мест: свой домен, местные адреса стенда и переменная
+ * окружения. К ним добавляются адреса самого сайта из его точки сборки -
+ * туннель для показа или второе имя. Держать их только переменной значит
+ * заводить её на каждой машине руками, а забытая переменная выглядит как
+ * поломка входа в админку.
  */
 function parseOrigins(csv: string | undefined, fallback: string): string[] {
   const fromEnv = (csv ?? '')
@@ -52,7 +57,7 @@ function parseOrigins(csv: string | undefined, fallback: string): string[] {
     .map((s) => s.trim())
     .filter(Boolean);
   const defaults = [fallback, 'http://localhost:3000', 'http://localhost:3001'];
-  return Array.from(new Set([...defaults, ...fromEnv]));
+  return Array.from(new Set([...defaults, ...site.origins, ...fromEnv]));
 }
 
 /**
