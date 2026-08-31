@@ -60,11 +60,10 @@ export interface VideoSetPlayerProps {
   /** Что показать вместо закрытой записи: приходит из настроек сайта. */
   readonly deniedSettings?: VideoDeniedSettings | undefined;
   /**
-   * Есть ли живой код или ссылка, которыми открывают закрытое здесь.
-   *
-   * @remarks
-   * Форма ввода встаёт на место плеера только при нём: без единого живого кода
-   * она предлагает ввести то, чего не существует.
+   * @deprecated Ни на что не влияет: форма ввода стоит у закрытой записи всегда.
+   * Код бывает на руках у человека раньше, чем сайт о нём знает, и спрятанное
+   * поле закрывает дверь тому, у кого ключ. Свойство принимается ради сайтов,
+   * собранных на прежнем шаблоне (R10).
    */
   readonly openableByCode?: boolean | undefined;
   /** Как показывать список: задаётся в настройках блока. */
@@ -101,7 +100,6 @@ export function VideoSetPlayer({
   setId = null,
   playerUi,
   deniedSettings,
-  openableByCode,
   className,
   visible,
 }: VideoSetPlayerProps) {
@@ -258,10 +256,8 @@ export function VideoSetPlayer({
             ради чего код вводят.
           */
           <div className="border-border bg-surface flex aspect-video flex-col items-center justify-center gap-4 rounded-xl border px-6 text-center">
-            <p className="text-body text-ink">
-              {openableByCode ? 'Видео открывается по коду доступа' : 'Видео доступно не всем'}
-            </p>
-            {openableByCode && <AccessCodeForm className="w-full max-w-sm" />}
+            <p className="text-body text-ink">Видео открывается по коду доступа</p>
+            <AccessCodeForm className="w-full max-w-sm" />
           </div>
         ) : current?.playlistUrl ? (
           <>

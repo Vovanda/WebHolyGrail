@@ -113,7 +113,6 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
           channel={playlist.channel}
           setCode={playlist.code}
           setId={playlistId}
-          openableByCode={playlist.openableByCode === true}
           visible={data.limit ?? undefined}
         />
       ) : (

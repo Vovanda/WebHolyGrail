@@ -94,8 +94,8 @@ export function AccessCodeForm({ className }: AccessCodeFormProps) {
       }
 
       const data = (await response.json()) as {
-        playlistId?: string | number;
-        resource?: { kind?: 'playlists' | 'media'; id?: string | number };
+        accessId?: string | number;
+        granted?: ReadonlyArray<{ kind: 'playlists' | 'media'; id: string | number }>;
       };
 
       // Порядок важен. Сначала закрывается окно и уходит затемнение, и только
@@ -112,19 +112,12 @@ export function AccessCodeForm({ className }: AccessCodeFormProps) {
       setTimeout(() => {
         window.dispatchEvent(
           /*
-            Событие несёт, на что выдано право: списки на странице снимают
-            замки только с того, чего это касается. Прежде оно несло лишь номер
-            подборки, и любой код открывал в списке всё подряд.
+            Событие несёт состав доступа: списки снимают замки только с того,
+            что в него входит. Доступ покрывает и подборки, и отдельные записи
+            разом, поэтому это список, а не одна вещь.
           */
           new CustomEvent(ACCESS_GRANTED_EVENT, {
-            detail: {
-              playlistId: data.playlistId,
-              granted: data.resource?.kind
-                ? { kind: data.resource.kind, id: data.resource.id }
-                : data.playlistId
-                  ? { kind: 'playlists', id: data.playlistId }
-                  : null,
-            },
+            detail: { accessId: data.accessId, granted: data.granted ?? null },
           }),
         );
         // Страница собрана сервером: пока он не пересобрал её с новым правом,

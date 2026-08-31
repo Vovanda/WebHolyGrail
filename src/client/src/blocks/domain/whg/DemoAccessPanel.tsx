@@ -79,7 +79,10 @@ export function DemoAccessPanel({ heading, text, className }: DemoAccessPanelPro
       {code ? (
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-body text-ink">
-            Ваш код: <strong className="tracking-widest">{code}</strong>
+            Ваш код:{' '}
+            <strong data-part="code" className="tracking-widest">
+              {code}
+            </strong>
           </p>
 
           {/* Копирование, а не выделение пальцем: код вводят в поле, которое

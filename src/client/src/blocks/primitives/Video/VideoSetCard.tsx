@@ -148,7 +148,14 @@ export function VideoSetCard({
   if (!playable && item.ready && href) {
     return (
       <li data-part="card" className={shell}>
-        <a href={href} data-access-code className="absolute inset-0 z-10" aria-label={item.title} />
+        {/* В признаке - номер записи: по нему видно не только «открывается
+            кодом», но и что именно открывать. */}
+        <a
+          href={href}
+          data-access-code={item.id}
+          className="absolute inset-0 z-10"
+          aria-label={item.title}
+        />
         {body}
       </li>
     );

@@ -40,7 +40,11 @@ export function useUnlockableItems(
 
   useEffect(() => {
     function onGranted(event: Event) {
-      const granted = (event as CustomEvent<{ granted?: GrantedAccess | null }>).detail?.granted;
+      const granted = (
+        event as CustomEvent<{
+          granted?: GrantedAccess | ReadonlyArray<GrantedAccess> | null;
+        }>
+      ).detail?.granted;
 
       // Снимать замки, которых выданное право не касается, значит показать
       // открытое там, где сервер откажет.

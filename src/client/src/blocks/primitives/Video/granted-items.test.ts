@@ -55,4 +55,33 @@ describe('снятие замков после кода', () => {
     const after = unlockGranted(list, { kind: 'playlists', id: 10 }, null);
     expect(after.map((i) => i.locked)).toEqual([false, true, true]);
   });
+
+  it('состав доступа открывает всё, что в него входит', () => {
+    // Доступ покрывает и чужую подборку, и одну запись здешней - открыться
+    // должна запись, а не список целиком.
+    const after = unlockGranted(
+      list,
+      [
+        { kind: 'playlists', id: 99 },
+        { kind: 'media', id: 3 },
+      ],
+      10,
+    );
+    expect(after.map((i) => i.locked)).toEqual([false, true, false]);
+  });
+
+  it('своя подборка в составе снимает замки со всего списка', () => {
+    const after = unlockGranted(list, [{ kind: 'playlists', id: 10 }], 10);
+    expect(after.map((i) => i.locked)).toEqual([false, false, false]);
+  });
+
+  it('пустой состав оставляет список прежним', () => {
+    expect(unlockGranted(list, [], 10)).toBe(list);
+  });
+
+  it('состав, не касающийся списка, оставляет его прежним', () => {
+    // Равенство важно: по нему список понимает, что снятие замков показывать
+    // нечему.
+    expect(unlockGranted(list, [{ kind: 'media', id: 777 }], 10)).toBe(list);
+  });
 });

@@ -177,7 +177,6 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
             channel={playlist.channel ?? channel}
             setCode={playlist.code ?? code}
             setId={playlist.id}
-            openableByCode={playlist.openableByCode === true}
             showViewSwitch
           />
         </div>

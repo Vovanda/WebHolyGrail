@@ -28,19 +28,32 @@ export interface GrantedAccess {
  */
 export function unlockGranted(
   items: ReadonlyArray<VideoSetItem>,
-  granted: GrantedAccess | null,
+  /*
+    Состав доступа: код открывает не одну вещь, а всё, что в доступ положено, -
+    подборки и отдельные записи вместе. Одиночное значение принимается ради
+    сайтов, собранных на прежнем шаблоне (R10).
+  */
+  granted: GrantedAccess | ReadonlyArray<GrantedAccess> | null,
   setId: string | number | null,
 ): ReadonlyArray<VideoSetItem> {
   if (!granted) return items;
 
-  if (granted.kind === 'playlists') {
-    // Чужая подборка этого списка не касается: код на соседний курс не должен
-    // снимать замки здесь.
-    if (setId === null || String(setId) !== String(granted.id)) return items;
-    return items.map((item) => (item.locked ? { ...item, locked: false } : item));
-  }
+  const opened = Array.isArray(granted) ? granted : [granted as GrantedAccess];
+  if (opened.length === 0) return items;
 
-  return items.map((item) =>
-    item.locked && String(item.id) === String(granted.id) ? { ...item, locked: false } : item,
+  // Подборка этого списка среди открытых - значит открылось всё, что в нём.
+  const wholeSet = opened.some(
+    (one) => one.kind === 'playlists' && setId !== null && String(setId) === String(one.id),
   );
+  const openedIds = new Set(
+    opened.filter((one) => one.kind === 'media').map((one) => String(one.id)),
+  );
+
+  const next = items.map((item) =>
+    item.locked && (wholeSet || openedIds.has(String(item.id))) ? { ...item, locked: false } : item,
+  );
+
+  // Ничего не поменялось - отдаём прежний список: по этому равенству вызывающий
+  // понимает, что показывать снятие замков незачем.
+  return next.some((item, index) => item !== items[index]) ? next : items;
 }

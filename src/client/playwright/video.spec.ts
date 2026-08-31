@@ -17,6 +17,23 @@ import { expect, test } from '@playwright/test';
 
 const DEMO_PATH = process.env.SMOKE_VIDEO_PATH ?? '/video';
 
+/**
+ * Есть ли на странице то, что ждём.
+ *
+ * @remarks
+ * Списки собираются в браузере, и первый же взгляд застаёт страницу пустой:
+ * проверка тогда пропускала себя сама и показывала зелёное там, где ничего
+ * не смотрела. Поэтому сперва ждём, и только потом решаем, что этого нет.
+ */
+async function appears(target: import('@playwright/test').Locator): Promise<boolean> {
+  try {
+    await target.first().waitFor({ state: 'attached', timeout: 15_000 });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 test.describe('Видео', () => {
   test('страница с видео открывается и собирает плеер', async ({ page }) => {
     const response = await page.goto(DEMO_PATH);
@@ -32,7 +49,7 @@ test.describe('Видео', () => {
     if (response?.status() === 404) test.skip(true, 'демо-страницы на этом сайте нет');
 
     const byRow = page.getByRole('button', { name: 'Лентой' });
-    if ((await byRow.count()) === 0) test.skip(true, 'плейлиста на странице нет');
+    if (!(await appears(byRow))) test.skip(true, 'плейлиста на странице нет');
 
     await byRow.click();
     await expect(page.locator('[aria-label="Видео плейлиста"]')).toBeVisible({ timeout: 10_000 });
@@ -50,15 +67,19 @@ test.describe('Видео', () => {
     if (response?.status() === 404) test.skip(true, 'демо-страницы на этом сайте нет');
 
     const tab = page.getByRole('button', { name: 'Плейлист' });
-    if ((await tab.count()) === 0) test.skip(true, 'панели плейлиста на этом сайте нет');
+    if (!(await appears(tab))) test.skip(true, 'панели плейлиста на этом сайте нет');
 
     await tab.click();
     const panel = page.locator('aside .side-panel__body');
     await expect(panel).toBeVisible({ timeout: 10_000 });
 
-    // Второе видео в панели: первое уже играет, и по нему смены не увидеть.
-    const cards = panel.locator('button');
-    if ((await cards.count()) < 2) test.skip(true, 'в плейлисте меньше двух видео');
+    /*
+      Второе играющее видео в панели: первое уже открыто, и по нему смены
+      не увидеть. Закрытые не в счёт - они ведут к вводу кода, а не к показу,
+      и выбираются ссылкой, а не кнопкой.
+    */
+    const cards = panel.locator('[data-part="card"]:not(:has([data-access-code])) button');
+    if ((await cards.count()) < 2) test.skip(true, 'в плейлисте меньше двух открытых видео');
     await cards.nth(1).click();
 
     // Выбор уходит в адрес - по такой ссылке видео открывается сразу.
@@ -75,7 +96,7 @@ test.describe('Видео', () => {
     const response = await page.goto(DEMO_PATH);
     if (response?.status() === 404) test.skip(true, 'демо-страницы на этом сайте нет');
 
-    if ((await page.locator('[data-access-code]').count()) === 0) {
+    if (!(await appears(page.locator('[data-access-code]')))) {
       test.skip(true, 'закрытых видео на странице нет');
     }
 
@@ -94,7 +115,8 @@ test.describe('Видео', () => {
       locked = page.locator('[data-access-code]:visible').first();
     }
 
-    // Нажатие на замок ведёт к вводу кода, а не в никуда.
+    // Нажатие на замок ведёт к вводу кода, а не в никуда. Поле стоит всегда:
+    // код бывает на руках раньше, чем сайт о нём знает.
     await locked.click();
     await expect(page.getByPlaceholder('Код доступа')).toBeVisible({ timeout: 10_000 });
 
@@ -106,15 +128,60 @@ test.describe('Видео', () => {
       Ждём именно отказ по праву. Прежняя проверка стучалась в снятую ручку
       и получала 404: «не ok» она видела, а выдачу ключа не проверяла вовсе.
     */
-    const href = (await locked.getAttribute('href')) ?? '';
-    const videoId = /[?&]v=([^&#]+)/.exec(href)?.[1];
-    expect(videoId, `в ссылке замка нет номера записи: ${href}`).toBeTruthy();
+    const videoId = await locked.getAttribute('data-access-code');
+    expect(videoId, 'у замка нет номера записи').toBeTruthy();
 
+    // Номер отрезка обязателен там, где запись нарезана с криптопериодами:
+    // без него выдача отвечает «не указан период», и права она не смотрит.
     const denied = await page.request.get(
-      `/internal/video/key/${encodeURIComponent(String(videoId))}`,
+      `/internal/video/key/${encodeURIComponent(String(videoId))}?p=0`,
     );
     expect(denied.status()).toBe(403);
     const reason = ((await denied.json()) as { error?: string }).error;
     expect(['bad-token', 'not-entitled']).toContain(reason);
+  });
+
+  test('код открывает закрытое видео', async ({ page }) => {
+    const response = await page.goto(DEMO_PATH);
+    if (response?.status() === 404) test.skip(true, 'демо-страницы на этом сайте нет');
+
+    /*
+      Код печатает витрина - кнопкой рядом с подборкой. Там, где такой кнопки
+      нет, взять код изнутри проверки неоткуда: на обычном сайте его выдаёт
+      владелец, и путь до конца проходится руками.
+    */
+    const demoButton = page.getByRole('button', { name: 'Получить код' });
+    if (!(await appears(demoButton))) test.skip(true, 'кнопки демо-кода на сайте нет');
+
+    // Сперва код, потом замок: открытая форма сдвигает страницу, и кнопка
+    // уезжает из видимой части.
+    await demoButton.first().click();
+    const shown = page.locator('[data-part="code"]').first();
+    await expect(shown).toBeVisible({ timeout: 20_000 });
+    const code = ((await shown.textContent()) ?? '').trim();
+    expect(code, 'панель не показала код').not.toEqual('');
+
+    let locked = page.locator('[data-access-code]:visible').first();
+    if ((await locked.count()) === 0) {
+      const tab = page.getByRole('button', { name: 'Плейлист' });
+      if ((await tab.count()) === 0) test.skip(true, 'закрытых видео на странице нет');
+      await tab.click();
+      locked = page.locator('[data-access-code]:visible').first();
+      if ((await locked.count()) === 0) test.skip(true, 'закрытых видео на странице нет');
+    }
+
+    await locked.click();
+    const field = page.getByPlaceholder('Код доступа');
+    await expect(field).toBeVisible({ timeout: 10_000 });
+
+    await field.fill(code);
+    await page.getByRole('button', { name: 'Открыть' }).first().click();
+
+    /*
+      Право выдано - на месте формы встаёт плеер. Проверяем именно это: сам
+      факт «код принят» ничего не стоит, если человек видит ту же заглушку.
+    */
+    await expect(field).toBeHidden({ timeout: 20_000 });
+    await expect(page.locator('media-player, video').first()).toBeAttached({ timeout: 20_000 });
   });
 });
