@@ -9,7 +9,7 @@
  * а собираются они в `index.ts`, который остаётся сайту.
  */
 
-export type { MediaDoc, MediaSize, MediaRef } from './media';
+export type { MediaDoc, MediaSize, MediaStream, MediaRef } from './media';
 
 export type {
   BlockNode,

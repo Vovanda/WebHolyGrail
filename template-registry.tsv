@@ -278,6 +278,9 @@ mirror	src/client/src/blocks/primitives/StackTransparency.tsx
 mirror	src/client/src/blocks/primitives/Timeline.tsx
 mirror	src/client/src/blocks/primitives/Video/AccessCodeDialog.tsx
 mirror	src/client/src/blocks/primitives/Video/AccessCodeForm.tsx
+mirror	src/client/src/blocks/primitives/Video/backdrop-start.test.ts
+mirror	src/client/src/blocks/primitives/Video/backdrop-start.ts
+mirror	src/client/src/blocks/primitives/Video/backdrop-stream.ts
 mirror	src/client/src/blocks/primitives/Video/chapters-track.test.ts
 mirror	src/client/src/blocks/primitives/Video/chapters-track.ts
 mirror	src/client/src/blocks/primitives/Video/granted-items.test.ts
@@ -296,6 +299,8 @@ mirror	src/client/src/blocks/primitives/Video/solo-playback.test.ts
 mirror	src/client/src/blocks/primitives/Video/solo-playback.ts
 mirror	src/client/src/blocks/primitives/Video/storyboard-track.test.ts
 mirror	src/client/src/blocks/primitives/Video/storyboard-track.ts
+mirror	src/client/src/blocks/primitives/Video/stream-source.test.ts
+mirror	src/client/src/blocks/primitives/Video/stream-source.ts
 mirror	src/client/src/blocks/primitives/Video/useMiniPlayer.ts
 mirror	src/client/src/blocks/primitives/Video/useSelectedVideo.ts
 mirror	src/client/src/blocks/primitives/Video/useUnlockableItems.ts
@@ -489,6 +494,8 @@ overlay	src/cms/migrations/20260831_113000_right_source_ref.json
 overlay	src/cms/migrations/20260831_113000_right_source_ref.ts
 overlay	src/cms/migrations/20260831_114000_key_usage_names.json
 overlay	src/cms/migrations/20260831_114000_key_usage_names.ts
+overlay	src/cms/migrations/20260831_160500_hero_video_media.json
+overlay	src/cms/migrations/20260831_160500_hero_video_media.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts
