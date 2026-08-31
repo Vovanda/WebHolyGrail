@@ -536,6 +536,7 @@ mirror	src/cms/src/admin/components/VideoPreviewField.tsx
 mirror	src/cms/src/admin/components/VideoProgressField.tsx
 mirror	src/cms/src/admin/layout-default.ts
 mirror	src/cms/src/admin/palette-presets-data.ts
+mirror	src/cms/src/admin/views/ChannelView.tsx
 mirror	src/cms/src/app/(payload)/admin/[[...segments]]/not-found.tsx
 mirror	src/cms/src/app/(payload)/admin/[[...segments]]/page.tsx
 mirror	src/cms/src/app/(payload)/api/[...slug]/route.ts
@@ -701,6 +702,7 @@ mirror	src/cms/src/lib/video/way-in.ts
 mirror	src/cms/src/lib/video/write-entitlement.test.ts
 mirror	src/cms/src/lib/video/write-entitlement.ts
 mirror	src/cms/src/payload.config.ts
+mirror	src/cms/tmp-t.mts
 mirror	src/cms/tsconfig.json
 mirror	tsconfig.base.json
 mirror	version.json
