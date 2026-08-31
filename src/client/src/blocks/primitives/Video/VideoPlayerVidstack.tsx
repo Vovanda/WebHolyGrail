@@ -118,18 +118,7 @@ export function VideoPlayerVidstack({
   // Форма кадра общая с соседним слоем: вертикальная запись не должна
   // растягиваться поперёк себя ни в одном из них.
   const ratio = useVideoRatio(media);
-  /*
-    Форма записи: `ширина/высота`. Пока метаданных нет, считаем запись
-    горизонтальной - так же, как рамку держим в 16:9.
-  */
-  const вертикальная = useMemo(() => {
-    const части = String(ratio ?? DEFAULT_RATIO)
-      .split('/')
-      .map(Number);
-    const ширина = части[0] ?? 0;
-    const высота = части[1] ?? 0;
-    return Number.isFinite(ширина) && Number.isFinite(высота) && высота > ширина;
-  }, [ratio]);
+  const ориентация = useMemo(() => fullscreenOrientationOf(ratio), [ratio]);
 
   // Оглавление собирается дорожкой прямо здесь: файла на диске не появляется.
   const chaptersUrl = useMemo(
