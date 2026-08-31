@@ -65,6 +65,14 @@ jobs:
       - name: Template zones registry
         run: node scripts/zones.mjs --check
 
+      # Отставание от шаблона ничем не заметно: сборка зелёная, прогон зелёный,
+      # а привезённое не подключено. Шаг говорит разрыв словами и прогон не
+      # роняет - отставший сайт не сломан, он отстал. В самом шаблоне молчит.
+      - name: Template drift
+        env:
+          TEMPLATE_TOKEN: ${{ secrets.TEMPLATE_READ_TOKEN }}
+        run: node scripts/template-drift.mjs
+
       - run: pnpm -r lint
 
       - run: pnpm -r test

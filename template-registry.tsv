@@ -161,6 +161,7 @@ mirror	scripts/setup-infisical.ts
 mirror	scripts/sync-infisical.ts
 mirror	scripts/sync-template.mjs
 mirror	scripts/sync-template.sh
+mirror	scripts/template-drift.mjs
 mirror	scripts/zones.mjs
 mirror	src/client/Dockerfile
 mirror	src/client/next.config.ts
