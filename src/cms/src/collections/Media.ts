@@ -1,7 +1,7 @@
 import { APIError, type CollectionConfig } from 'payload';
 
 import { generateShortCode } from '../lib/video/short-code';
-import { ensureChannel } from '../lib/channel.js';
+import { ensureChannel } from '../lib/channel';
 
 import { isDarkImage } from '../lib/image-luma';
 import { renderPdfPreview } from '../lib/pdf-preview';

@@ -118,6 +118,18 @@ export function VideoPlayerVidstack({
   // Форма кадра общая с соседним слоем: вертикальная запись не должна
   // растягиваться поперёк себя ни в одном из них.
   const ratio = useVideoRatio(media);
+  /*
+    Форма записи: `ширина/высота`. Пока метаданных нет, считаем запись
+    горизонтальной - так же, как рамку держим в 16:9.
+  */
+  const вертикальная = useMemo(() => {
+    const части = String(ratio ?? DEFAULT_RATIO)
+      .split('/')
+      .map(Number);
+    const ширина = части[0] ?? 0;
+    const высота = части[1] ?? 0;
+    return Number.isFinite(ширина) && Number.isFinite(высота) && высота > ширина;
+  }, [ratio]);
 
   // Оглавление собирается дорожкой прямо здесь: файла на диске не появляется.
   const chaptersUrl = useMemo(
@@ -208,6 +220,13 @@ export function VideoPlayerVidstack({
           data-part="frame"
           className="video-vidstack w-full overflow-hidden rounded-xl border border-border"
           aspectRatio={ratio ?? DEFAULT_RATIO}
+          /*
+            Разворот на весь экран не поворачивает телефон под запись: плеер по
+            умолчанию просит горизонтальную ориентацию, и вертикальная запись
+            ложилась набок - зритель держал телефон стоя, а картинка лежала.
+            Вертикальную разворачиваем стоя, горизонтальную - как прежде.
+          */
+          fullscreenOrientation={вертикальная ? 'portrait' : 'landscape'}
           src={{ src, type: 'application/x-mpegurl' }}
           title={title ?? ''}
           playsInline

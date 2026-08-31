@@ -18,8 +18,8 @@
  */
 import { getPayload } from 'payload';
 
-import config from '../src/payload.config.js';
-import { channelFrom, freeChannel } from '../src/lib/channel.js';
+import config from '../src/payload.config';
+import { channelFrom, freeChannel } from '../src/lib/channel';
 
 const писать = process.argv.includes('--apply');
 

@@ -1,6 +1,6 @@
 import type { PayloadRequest } from 'payload';
 
-import { translitSlug } from './slug.js';
+import { translitSlug } from './slug';
 
 /**
  * Адрес канала для участника: транслит имени, а при пустом имени - часть почты

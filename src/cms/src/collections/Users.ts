@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
-import { channelFrom, freeChannel } from '../lib/channel.js';
+import { channelFrom, freeChannel } from '../lib/channel';
 
 /**
  * Users — редакторы CMS (admin-домен).
