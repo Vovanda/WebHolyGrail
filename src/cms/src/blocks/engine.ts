@@ -24,6 +24,7 @@ import { ArticlesSectionBlock } from './ArticlesSection';
 import { ThreadsSectionBlock } from './ThreadsSection';
 import { VideoBlock } from './Video';
 import { VideoSetBlock } from './VideoSet';
+import { CollapsibleBlock } from './Collapsible';
 import { FaqAccordionBlock } from './FaqAccordion';
 import { ReusableRefBlock } from './ReusableRef';
 import { PageRefBlock } from './PageRef';
@@ -74,6 +75,7 @@ export const ENGINE_REUSABLE_INNER_BLOCKS = [
   ThreadsSectionBlock,
   VideoBlock,
   VideoSetBlock,
+  CollapsibleBlock,
   FaqAccordionBlock,
   /*
     Вид блока - у каждого: где показывать и как выглядит, одной свёрнутой

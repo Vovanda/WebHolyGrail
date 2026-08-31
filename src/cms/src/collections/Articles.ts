@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload';
 import { BlocksFeature, FixedToolbarFeature, lexicalEditor } from '@payloadcms/richtext-lexical';
+import { CollapsibleBlock } from '../blocks/Collapsible';
 import { VideoBlock } from '../blocks/Video';
 import { VideoSetBlock } from '../blocks/VideoSet';
 
@@ -93,7 +94,7 @@ export const Articles: CollectionConfig = {
       editor: lexicalEditor({
         features: ({ defaultFeatures }) => [
           ...defaultFeatures,
-          BlocksFeature({ blocks: [VideoBlock, VideoSetBlock] }),
+          BlocksFeature({ blocks: [VideoBlock, VideoSetBlock, CollapsibleBlock] }),
           /*
             Закреплённая панель нужна не для красоты: без неё вставка живёт только
             в плавающей панели выделения и в слэш-меню, а кнопка «добавить» на строке

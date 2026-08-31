@@ -27,6 +27,7 @@ import { AchievementBanner } from '@/blocks/primitives/AchievementBanner';
 import { CertifiedNotice } from '@/blocks/primitives/CertifiedNotice';
 import { ReusableRef } from '@/blocks/primitives/ReusableRef';
 import { PageRef } from '@/blocks/primitives/PageRef';
+import { CollapsibleSection } from '@/blocks/primitives/CollapsibleSection';
 import { FaqAccordion } from '@/blocks/primitives/FaqAccordion';
 import { ArticlesSection } from '@/blocks/primitives/Blog/ArticlesSection';
 import { ThreadsSection } from '@/blocks/primitives/Blog/ThreadsSection';
@@ -74,6 +75,7 @@ export const engineRegistry: Record<string, BlockRenderer> = {
   'wave-divider': (node, settings) => <WaveDivider node={node} settings={settings} />,
   'achievement-banner': (node, settings) => <AchievementBanner node={node} settings={settings} />,
   'certified-notice': (node, settings) => <CertifiedNotice node={node} settings={settings} />,
+  collapsible: (node, settings) => <CollapsibleSection node={node} settings={settings} />,
   'faq-accordion': (node, settings) => <FaqAccordion node={node} settings={settings} />,
   'articles-section': (node, settings) => <ArticlesSection node={node} settings={settings} />,
   'threads-section': (node) => <ThreadsSection node={node} />,

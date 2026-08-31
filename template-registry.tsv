@@ -238,11 +238,13 @@ mirror	src/client/src/blocks/primitives/CarouselSection.test.tsx
 mirror	src/client/src/blocks/primitives/CarouselSection.tsx
 mirror	src/client/src/blocks/primitives/CatalogFilters.tsx
 mirror	src/client/src/blocks/primitives/CertifiedNotice.tsx
+mirror	src/client/src/blocks/primitives/CollapsibleSection.tsx
 mirror	src/client/src/blocks/primitives/ComparisonTable.tsx
 mirror	src/client/src/blocks/primitives/CopyLinkButton.tsx
 mirror	src/client/src/blocks/primitives/CtaBanner.tsx
 mirror	src/client/src/blocks/primitives/CustomMarkup.tsx
 mirror	src/client/src/blocks/primitives/DetailDrawer.tsx
+mirror	src/client/src/blocks/primitives/Disclosure.tsx
 mirror	src/client/src/blocks/primitives/DocumentList.tsx
 mirror	src/client/src/blocks/primitives/FaqAccordion/FaqAccordion.tsx
 mirror	src/client/src/blocks/primitives/FaqAccordion/FaqToggleAllButtons.tsx
@@ -492,6 +494,8 @@ overlay	src/cms/migrations/20260831_113000_right_source_ref.json
 overlay	src/cms/migrations/20260831_113000_right_source_ref.ts
 overlay	src/cms/migrations/20260831_114000_key_usage_names.json
 overlay	src/cms/migrations/20260831_114000_key_usage_names.ts
+overlay	src/cms/migrations/20260831_115553_collapsible_block.json
+overlay	src/cms/migrations/20260831_115553_collapsible_block.ts
 overlay	src/cms/migrations/20260831_160500_hero_video_media.json
 overlay	src/cms/migrations/20260831_160500_hero_video_media.ts
 mirror	src/cms/next.config.ts
@@ -542,6 +546,7 @@ mirror	src/cms/src/blocks/BannerSlider.ts
 mirror	src/cms/src/blocks/BuiltWith.ts
 mirror	src/cms/src/blocks/Carousel.ts
 mirror	src/cms/src/blocks/CertifiedNotice.ts
+mirror	src/cms/src/blocks/Collapsible.ts
 mirror	src/cms/src/blocks/ComparisonTable.ts
 mirror	src/cms/src/blocks/CtaBanner.ts
 mirror	src/cms/src/blocks/CustomMarkup.ts

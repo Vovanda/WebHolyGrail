@@ -1,6 +1,7 @@
 import type { Block } from 'payload';
 import { BlocksFeature, FixedToolbarFeature, lexicalEditor } from '@payloadcms/richtext-lexical';
 
+import { CollapsibleBlock } from './Collapsible';
 import { VideoBlock } from './Video';
 import { VideoSetBlock } from './VideoSet';
 
@@ -38,7 +39,7 @@ export const RichTextBlock: Block = {
       editor: lexicalEditor({
         features: ({ defaultFeatures }) => [
           ...defaultFeatures,
-          BlocksFeature({ blocks: [VideoBlock, VideoSetBlock] }),
+          BlocksFeature({ blocks: [VideoBlock, VideoSetBlock, CollapsibleBlock] }),
           // Панель на виду: с телефона вставить нечем, наведения мышью там нет.
           FixedToolbarFeature(),
         ],

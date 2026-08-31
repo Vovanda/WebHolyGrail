@@ -53,9 +53,10 @@ import * as migration_20260829_190150_playlist_access_removed from './20260829_1
 import * as migration_20260829_200357_entitlement_resource from './20260829_200357_entitlement_resource';
 import * as migration_20260831_030000_media_access_model from './20260831_030000_media_access_model';
 import * as migration_20260831_070000_user_api_key from './20260831_070000_user_api_key';
-import * as migration_20260831_160500_hero_video_media from './20260831_160500_hero_video_media';
 import * as migration_20260831_113000_right_source_ref from './20260831_113000_right_source_ref';
 import * as migration_20260831_114000_key_usage_names from './20260831_114000_key_usage_names';
+import * as migration_20260831_115553_collapsible_block from './20260831_115553_collapsible_block';
+import * as migration_20260831_160500_hero_video_media from './20260831_160500_hero_video_media';
 
 export const migrations = [
   {
@@ -342,6 +343,11 @@ export const migrations = [
     up: migration_20260831_114000_key_usage_names.up,
     down: migration_20260831_114000_key_usage_names.down,
     name: '20260831_114000_key_usage_names',
+  },
+  {
+    up: migration_20260831_115553_collapsible_block.up,
+    down: migration_20260831_115553_collapsible_block.down,
+    name: '20260831_115553_collapsible_block',
   },
   {
     up: migration_20260831_160500_hero_video_media.up,

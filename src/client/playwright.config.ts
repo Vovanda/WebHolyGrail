@@ -18,7 +18,7 @@ export default defineConfig({
     а причина выглядела как поломка страницы. Своему стенду это не мешает:
     там ограничения нет, и потоки остаются.
   */
-  workers: process.env.SMOKE_BASE_URL ? 1 : undefined,
+  ...(process.env.SMOKE_BASE_URL ? { workers: 1 } : {}),
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
