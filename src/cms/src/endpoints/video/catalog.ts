@@ -41,6 +41,7 @@ export const videoByCodeEndpoint: Endpoint = {
           caption?: string;
           filename?: string;
           access?: string;
+          visibility?: string;
           uploadedBy?: { channel?: string; name?: string } | string | number | null;
           preview?: { url?: string; alt?: string } | null;
           chapters?: ReadonlyArray<{ startSeconds?: number; title?: string }> | null;
@@ -76,6 +77,14 @@ export const videoByCodeEndpoint: Endpoint = {
     // видел бы десяток дублей одной страницы.
     const owner = typeof doc.uploadedBy === 'object' && doc.uploadedBy ? doc.uploadedBy : null;
     if ((owner?.channel ?? '') !== channel) return json({ error: 'not-found' }, 404);
+
+    /*
+      Служебная запись своей страницы не имеет: она вставляется в чужие - фоном
+      обложки, куском блока - и там играет как обычно. Ссылка на неё отвечает
+      «не найдено», иначе фон страницы специалиста открывался бы отдельным
+      видео, а поисковик считал бы его самостоятельной страницей.
+    */
+    if (doc.visibility === 'internal') return json({ error: 'not-found' }, 404);
 
     /*
       В какие плейлисты входит это видео.
