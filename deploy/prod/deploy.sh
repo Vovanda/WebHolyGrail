@@ -592,9 +592,14 @@ echo "→ Post-deploy cleanup (unused images / buildx cache)..."
 # и красный прогон здесь означает лишь то, что удалять было нечего - `grep`
 # без совпадений возвращает единицу, а `set -e` считает это провалом деплоя.
 # Поймано 31.08.2026 на fitness-mafia: сайт выложен и здоров, прогон красный.
-docker image prune -af 2>&1 | grep -E "Total reclaimed|deleted:" | tail -3 | sed 's/^/   /' || true
-docker container prune -f 2>&1 | grep -E "Total reclaimed" | tail -1 | sed 's/^/   /' || true
-docker buildx prune -af --keep-storage 2GB 2>&1 | grep -E "Total" | tail -1 | sed 's/^/   /' || true
+#
+# Свежее не трогаем вовсе. Хост общий: пока один сайт убирает за собой, соседний
+# создаёт свои контейнеры и тянет образы, и уборка сносит их прямо из-под него -
+# выкладка падает на «нет такого контейнера», а сайт остаётся на прежней версии.
+# Поймано в тот же день на sawking-tech при трёх выкладках подряд.
+docker image prune -af --filter "until=2h" 2>&1 | grep -E "Total reclaimed|deleted:" | tail -3 | sed 's/^/   /' || true
+docker container prune -f --filter "until=2h" 2>&1 | grep -E "Total reclaimed" | tail -1 | sed 's/^/   /' || true
+docker buildx prune -af --keep-storage 2GB --filter "until=2h" 2>&1 | grep -E "Total" | tail -1 | sed 's/^/   /' || true
 echo "   Disk: $(df -h / | tail -1 | awk '{print $3" used / "$2" ("$5")"}')"
 
 echo
