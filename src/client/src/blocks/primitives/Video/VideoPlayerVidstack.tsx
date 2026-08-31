@@ -32,7 +32,7 @@ import { storyboardTrackUrl } from './storyboard-track';
 import { useMiniPlayer } from './useMiniPlayer';
 import { createKeyLoader, type KeyFailure } from './key-loader';
 import { useVideoResume } from './useVideoResume';
-import { DEFAULT_RATIO, useVideoRatio } from './useVideoRatio';
+import { DEFAULT_RATIO, fullscreenOrientationOf, useVideoRatio } from './useVideoRatio';
 import { useVideoTimecode } from './useVideoTimecode';
 import type { VideoPlayerChromeProps } from './VideoPlayerChrome';
 
@@ -226,7 +226,7 @@ export function VideoPlayerVidstack({
             ложилась набок - зритель держал телефон стоя, а картинка лежала.
             Вертикальную разворачиваем стоя, горизонтальную - как прежде.
           */
-          fullscreenOrientation={вертикальная ? 'portrait' : 'landscape'}
+          fullscreenOrientation={ориентация}
           src={{ src, type: 'application/x-mpegurl' }}
           title={title ?? ''}
           playsInline

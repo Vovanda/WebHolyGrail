@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ratioOf } from './useVideoRatio';
+import { ratioOf, fullscreenOrientationOf } from './useVideoRatio';
 
 /**
  * Ошибка здесь видна сразу: запись растягивается поперёк себя или страница
@@ -23,5 +23,25 @@ describe('форма кадра', () => {
     expect(ratioOf(Number.NaN, 480)).toBeNull();
     expect(ratioOf(-854, 480)).toBeNull();
     expect(ratioOf(Number.POSITIVE_INFINITY, 480)).toBeNull();
+  });
+});
+
+describe('fullscreenOrientationOf', () => {
+  it('вертикальную запись разворачивает стоя', () => {
+    expect(fullscreenOrientationOf('1080/1920')).toBe('portrait');
+  });
+
+  it('горизонтальную оставляет лежащей', () => {
+    expect(fullscreenOrientationOf('1920/1080')).toBe('landscape');
+  });
+
+  it('квадратную считает горизонтальной: поворачивать её незачем', () => {
+    expect(fullscreenOrientationOf('1000/1000')).toBe('landscape');
+  });
+
+  it('без формы записи держится горизонтали - как и рамка до метаданных', () => {
+    expect(fullscreenOrientationOf(null)).toBe('landscape');
+    expect(fullscreenOrientationOf('0/0')).toBe('landscape');
+    expect(fullscreenOrientationOf('чепуха')).toBe('landscape');
   });
 });

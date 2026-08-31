@@ -33,6 +33,28 @@ export function ratioOf(width: number, height: number): string | null {
   return `${width}/${height}`;
 }
 
+/**
+ * Ориентация, в которой запись разворачивают на весь экран.
+ *
+ * @remarks
+ * Плеер по умолчанию просит горизонтальную, и вертикальная запись ложилась
+ * набок: зритель держит телефон стоя, а картинка лежит. Форму берём у самой
+ * записи; пока её нет, запись считается горизонтальной - так же, как рамка
+ * держится в 16:9.
+ */
+export function fullscreenOrientationOf(
+  ratio: string | null | undefined,
+): 'portrait' | 'landscape' {
+  const части = String(ratio ?? DEFAULT_RATIO)
+    .split('/')
+    .map(Number);
+  const ширина = части[0] ?? 0;
+  const высота = части[1] ?? 0;
+  if (!Number.isFinite(ширина) || !Number.isFinite(высота)) return 'landscape';
+  if (ширина <= 0 || высота <= 0) return 'landscape';
+  return высота > ширина ? 'portrait' : 'landscape';
+}
+
 export function useVideoRatio(video: HTMLVideoElement | null): string | null {
   const [ratio, setRatio] = useState<string | null>(null);
 
