@@ -17,11 +17,17 @@ import { useEffect, useState } from 'react';
  * столько же загруженных потоков, сколько видео в плейлисте.
  *
  * Данные подтягиваются отдельным запросом: форма отдаёт только идентификатор
- * выбранного файла, а название и обложка живут в самом документе.
+ * выбранного файла, а название, обложка и доступ живут в самом документе.
+ *
+ * Доступ показывается прямо в строке: он живёт у записи, а не у подборки, и
+ * без подписи владелец искал его у подборки, не находил и не понимал, где
+ * вообще закрывается видео. Берётся из самой записи, поэтому разовое
+ * «Применить ко всем видео» видно здесь же после сохранения.
  */
 type Video = {
   caption?: string;
   filename?: string;
+  access?: 'public' | 'private';
   preview?: { url?: string } | string | number | null;
   hls?: { durationSeconds?: number | null; status?: string } | null;
 };
@@ -56,6 +62,7 @@ export function PlaylistItemRowLabel() {
   const title = video.caption?.trim() || 'Видео';
   const duration = video.hls?.durationSeconds;
   const notReady = video.hls?.status && video.hls.status !== 'ready';
+  const closed = video.access === 'private';
 
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
@@ -83,6 +90,11 @@ export function PlaylistItemRowLabel() {
       </span>
       {typeof duration === 'number' && duration > 0 ? (
         <span style={{ opacity: 0.6 }}>{formatDuration(duration)}</span>
+      ) : null}
+      {closed ? (
+        <span style={{ opacity: 0.6 }} title="Открывается по коду доступа">
+          · закрыто
+        </span>
       ) : null}
       {notReady ? <span style={{ opacity: 0.6 }}>· готовится</span> : null}
     </span>
