@@ -14,8 +14,10 @@ import { cn } from '@/lib/utils';
  * в разметке с самого начала, поэтому его видит поисковик и находит поиск по
  * странице, а раскрытие работает даже там, где код не выполнился.
  *
- * Значок слева меняется без кода: закрытый показывает один, открытый - другой,
- * оба лежат в разметке, лишний прячется правилом стиля.
+ * Вид газетный: прямые углы, тонкая линия по краю, тёмная полупрозрачная
+ * полоса заголовка и стрелка, поворачивающаяся при раскрытии. Скругления и
+ * тени читались бы как карточка, а это не карточка - это кусок текста,
+ * свёрнутый до строки.
  */
 export interface DisclosureProps {
   /** Заголовок: виден всегда, по нему и нажимают. */
@@ -24,69 +26,58 @@ export interface DisclosureProps {
   readonly children: ReactNode;
   /** Раскрыт сразу - для куска, который важнее прочих. */
   readonly open?: boolean;
-  /** Значок закрытого состояния. */
-  readonly closedMark?: ReactNode;
-  /** Значок раскрытого состояния. */
-  readonly openMark?: ReactNode;
   readonly className?: string;
 }
 
-export function Disclosure({
-  title,
-  children,
-  open = false,
-  closedMark = '+',
-  openMark = '−',
-  className,
-}: DisclosureProps) {
+export function Disclosure({ title, children, open = false, className }: DisclosureProps) {
   return (
     <details
       data-part="disclosure"
       {...(open ? { open: true } : {})}
       className={cn(
-        'group bg-paper border border-border rounded-[12px]',
-        'transition-shadow duration-150 hover:shadow-sm',
-        'open:bg-surface open:border-accent',
+        'group border border-border bg-paper',
+        /*
+          Полоса заголовка - тёмная плёнка с примесью акцента: цвет узнаётся, но
+          остаётся приглушённым, и одинаково ложится на светлую и тёмную тему,
+          потому что берётся от тёмной плашки, а не от фона страницы.
+        */
+        '[--disclosure-tint:color-mix(in_oklab,color-mix(in_oklab,var(--color-accent)_22%,var(--color-dark-block))_92%,transparent)]',
         className,
       )}
     >
       <summary
         data-part="disclosure-title"
         className={cn(
-          'flex items-center gap-3 px-4 py-3.5 min-h-12 cursor-pointer list-none',
-          'text-ink text-[15px] leading-[1.35] select-none',
-          'font-semibold group-open:font-bold',
+          'flex items-center gap-3 px-5 py-3.5 cursor-pointer list-none select-none',
+          'bg-[var(--disclosure-tint)] text-[color:var(--color-dark-block-fg)]',
+          'text-[15px] leading-[1.35] font-semibold tracking-[0.01em]',
         )}
       >
         <span
           aria-hidden
           data-part="disclosure-mark"
           className={cn(
-            'inline-flex items-center justify-center shrink-0',
-            'w-7 h-7 rounded-full text-[18px] font-bold leading-none',
-            'bg-accent text-accent-fg',
-            'group-open:hidden',
+            'inline-flex shrink-0 items-center justify-center',
+            'transition-transform duration-150 group-open:rotate-90',
+            'motion-reduce:transition-none',
           )}
         >
-          {closedMark}
-        </span>
-        <span
-          aria-hidden
-          data-part="disclosure-mark-open"
-          className={cn(
-            'hidden group-open:inline-flex items-center justify-center shrink-0',
-            'w-7 h-7 rounded-full text-[18px] font-bold leading-none',
-            'bg-surface text-ink border border-border',
-          )}
-        >
-          {openMark}
+          <svg width="10" height="12" viewBox="0 0 10 12" fill="none" aria-hidden>
+            <path
+              d="M2 1.5 L8 6 L2 10.5"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="square"
+              opacity="0.75"
+            />
+          </svg>
         </span>
         <span className="flex-1">{title}</span>
       </summary>
 
       <div
         data-part="disclosure-body"
-        className="px-4 pb-4 pt-1 text-ink text-[15px] leading-[1.55]"
+        className="border-t border-border px-5 py-4 text-ink text-[15px] leading-[1.6]"
       >
         {children}
       </div>

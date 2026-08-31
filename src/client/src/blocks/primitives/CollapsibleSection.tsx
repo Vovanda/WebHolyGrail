@@ -32,7 +32,12 @@ export function CollapsibleSection({ node, settings, className }: CollapsibleSec
   if (!title) return null;
 
   return (
-    <section className={cn('mx-auto w-full max-w-content px-4 md:px-6 py-4', className)}>
+    /*
+      Поля меньше, чем у секции во всю страницу: свёрнутый кусок читается частью
+      текста. Совсем вплотную к соседям его тоже не ставят - без воздуха рамка
+      слипается с абзацем над ней.
+    */
+    <section className={cn('mx-auto w-full max-w-content px-4 md:px-6 py-3', className)}>
       <Disclosure title={title} open={data.openByDefault === true}>
         <LexicalRenderer value={data.body} settings={settings} />
       </Disclosure>
