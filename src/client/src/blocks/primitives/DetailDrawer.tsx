@@ -234,10 +234,13 @@ export function DetailDrawer({ slug, children, className, placement = 'left' }: 
           className={cn(
             // Тот же вид, что у кнопки меню и закрытия панели: своих кнопок
             // окно не заводит, иначе они разъезжаются вида к виду.
-            'action-button z-[62]',
-            placement === 'center'
-              ? 'absolute top-3 right-3'
-              : 'fixed top-3 right-[max(24px,calc((100vw-1300px)/2+24px))]',
+            'action-button',
+            /*
+              Положение сбоку задаётся своим правилом: набор утилит с
+              произвольным значением схлопывался при сборке, и кнопка теряла
+              и место, и слой - на телефоне закрыть карточку было нечем.
+            */
+            placement === 'center' ? 'absolute top-3 right-3 z-[62]' : 'detail-drawer__close',
           )}
         >
           <svg
