@@ -10,6 +10,7 @@ import { buildConfig } from 'payload';
 import sharp from 'sharp';
 
 import { adoptEnvToggles } from './lib/toggles/adopt';
+import { CaretReadyFeature } from './editor/caret-ready';
 import { SiteSettings } from './globals/SiteSettings';
 import { Users } from './collections/Users';
 import { engineCollections } from './collections/engine';
@@ -166,7 +167,11 @@ export default buildConfig({
     телефоне нет, и владелец остаётся без вставки записи, картинки и блока.
   */
   editor: lexicalEditor({
-    features: ({ defaultFeatures }) => [...defaultFeatures, FixedToolbarFeature()],
+    features: ({ defaultFeatures }) => [
+      ...defaultFeatures,
+      FixedToolbarFeature(),
+      CaretReadyFeature(),
+    ],
   }),
   secret: process.env.PAYLOAD_SECRET ?? '',
   typescript: {

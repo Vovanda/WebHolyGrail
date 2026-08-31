@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload';
 import { BlocksFeature, FixedToolbarFeature, lexicalEditor } from '@payloadcms/richtext-lexical';
+
+import { CaretReadyFeature } from '../editor/caret-ready';
 import { CollapsibleBlock } from '../blocks/Collapsible';
 import { VideoBlock } from '../blocks/Video';
 import { VideoSetBlock } from '../blocks/VideoSet';
@@ -112,6 +114,11 @@ export const Articles: CollectionConfig = {
             с телефона так не написать.
           */
           FixedToolbarFeature(),
+          /*
+            Место вставки готово сразу: без него первая же кнопка панели молчит,
+            потому что вставлять некуда - в тексте ещё не нажимали.
+          */
+          CaretReadyFeature(),
         ],
       }),
     },

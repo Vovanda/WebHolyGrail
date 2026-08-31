@@ -596,6 +596,8 @@ mirror	src/cms/src/collections/Specialists.ts
 mirror	src/cms/src/collections/Tags.ts
 mirror	src/cms/src/collections/Threads.ts
 mirror	src/cms/src/collections/Users.ts
+mirror	src/cms/src/editor/caret-ready.client.tsx
+mirror	src/cms/src/editor/caret-ready.ts
 mirror	src/cms/src/endpoints/block-parts.ts
 mirror	src/cms/src/endpoints/engine.ts
 mirror	src/cms/src/endpoints/toggles.ts
