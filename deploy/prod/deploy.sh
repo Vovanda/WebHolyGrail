@@ -260,20 +260,31 @@ docker exec minio mc anonymous set download "local/${BUCKET}" >/dev/null 2>&1 ||
 
 # 2. nginx upstream snippets per-color с per-site portами (см. PORT_BASE / GREEN_OFFSET выше).
 TEMPLATE_DIR="$(cd "$SCRIPT_DIR/../proxy-stack/nginx" && pwd)"
+# Снипет пишется не только когда его нет, но и когда порты в нём разошлись
+# с расчётными. Прежде существующий файл считался верным навсегда, и сайт,
+# заведённый при другом шаге портов, продолжал звать порты, которых уже никто
+# не слушает. Замечается это лишь при переключении цвета: неактивная половина
+# лежит без дела, пока не станет активной, и тогда сайт отвечает пустотой
+# (поймано на veo55: снипет звал 3010 при живом 3100).
 for color in blue green; do
   snip="$NGINX_SNIPPETS/${SITE_SLUG}-upstream-${color}.conf"
+  if [ "$color" = blue ]; then
+    C_CLIENT=$PORT_BASE; C_CMS=$((PORT_BASE + 1))
+  else
+    C_CLIENT=$((PORT_BASE + GREEN_OFFSET)); C_CMS=$((PORT_BASE + GREEN_OFFSET + 1))
+  fi
+
+  WANTED="$(sed -e "s/<SITE_SLUG>/${SITE_SLUG}/g" \
+                -e "s/<CMS_PORT>/${C_CMS}/g" \
+                -e "s/<CLIENT_PORT>/${C_CLIENT}/g" \
+              "$TEMPLATE_DIR/snippets/site-upstream-${color}.conf.template")"
+
   if [ ! -f "$snip" ]; then
-    if [ "$color" = blue ]; then
-      C_CLIENT=$PORT_BASE; C_CMS=$((PORT_BASE + 1))
-    else
-      C_CLIENT=$((PORT_BASE + GREEN_OFFSET)); C_CMS=$((PORT_BASE + GREEN_OFFSET + 1))
-    fi
-    sed -e "s/<SITE_SLUG>/${SITE_SLUG}/g" \
-        -e "s/<CMS_PORT>/${C_CMS}/g" \
-        -e "s/<CLIENT_PORT>/${C_CLIENT}/g" \
-      "$TEMPLATE_DIR/snippets/site-upstream-${color}.conf.template" \
-      | sudo tee "$snip" >/dev/null
+    printf '%s\n' "$WANTED" | sudo tee "$snip" >/dev/null
     echo "   • generated $snip (cms=$C_CMS, client=$C_CLIENT)"
+  elif [ "$(cat "$snip")" != "$WANTED" ]; then
+    printf '%s\n' "$WANTED" | sudo tee "$snip" >/dev/null
+    echo "   • обновлён $snip: порты разошлись, стало cms=$C_CMS, client=$C_CLIENT"
   fi
 done
 # active symlink (blue по умолчанию для первого деплоя — deploy.sh ниже переключит).
