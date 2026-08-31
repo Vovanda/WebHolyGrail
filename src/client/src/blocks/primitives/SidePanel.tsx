@@ -23,8 +23,28 @@ import { cn } from '@/lib/utils';
  * есть, и выталкивать правый край за экран незачем.
  */
 export interface SidePanelProps {
-  /** Кнопка, которая открывает панель. Рисуется вызывающим кодом. */
-  readonly trigger: (props: { open: () => void; isOpen: boolean }) => React.ReactNode;
+  /**
+   * Кнопка, которая открывает панель. Рисуется вызывающим кодом.
+   *
+   * @remarks
+   * Необязательна: панель открывают и снаружи - нажатием по карточке в списке
+   * или адресом страницы. Тогда своей кнопки у неё нет вовсе.
+   */
+  readonly trigger?: (props: { open: () => void; isOpen: boolean }) => React.ReactNode;
+  /**
+   * Открыта ли панель, когда этим распоряжается вызывающий код.
+   *
+   * @remarks
+   * Без этого поля панель ведёт себя как прежде: держит состояние сама и
+   * открывается только своей кнопкой. С ним - слушается снаружи, и закрытие
+   * (крестик, Escape, нажатие мимо) сообщается через `onOpenChange`.
+   *
+   * Второй вход понадобился карточке, которую открывают по адресу с решёткой:
+   * нажали в списке - панель выехала, поделились ссылкой - открылась сразу.
+   */
+  readonly open?: boolean;
+  /** Панель просит открыть или закрыть себя: нажали мимо, крестик, Escape. */
+  readonly onOpenChange?: (open: boolean) => void;
   readonly children: React.ReactNode;
   readonly side?: 'left' | 'right';
   /**
@@ -64,14 +84,30 @@ export function SidePanel({
   title,
   minTop = 80,
   alignTop = 'screen',
+  open: openСнаружи,
+  onOpenChange,
   className,
 }: SidePanelProps) {
-  const [open, setOpen] = useState(false);
+  /*
+    Состояние живёт внутри, пока снаружи не сказали иначе. Так панель с кнопкой
+    работает как прежде, а та, что открывается адресом, слушается вызывающего.
+  */
+  const снаружи = openСнаружи !== undefined;
+  const [своё, setСвоё] = useState(false);
+  const open = снаружи ? openСнаружи : своё;
+  const setOpen = useCallback(
+    (next: boolean | ((value: boolean) => boolean)) => {
+      const значение = typeof next === 'function' ? next(open) : next;
+      if (!снаружи) setСвоё(значение);
+      onOpenChange?.(значение);
+    },
+    [open, снаружи, onOpenChange],
+  );
   // Портал доступен только в браузере: на сервере узла body ещё нет.
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
-  const close = useCallback(() => setOpen(false), []);
+  const close = useCallback(() => setOpen(false), [setOpen]);
 
   const triggerRef = useRef<HTMLSpanElement | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
@@ -216,9 +252,12 @@ export function SidePanel({
 
   return (
     <>
-      <span ref={triggerRef} className="contents">
-        {trigger({ open: toggle, isOpen: open })}
-      </span>
+      {/* Своей кнопки может не быть вовсе: панель открывают снаружи. */}
+      {trigger && (
+        <span ref={triggerRef} className="contents">
+          {trigger({ open: toggle, isOpen: open })}
+        </span>
+      )}
 
       {/*
         Панель живёт в самом низу страницы, отдельно от каркаса.
