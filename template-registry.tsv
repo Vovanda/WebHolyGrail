@@ -434,8 +434,6 @@ overlay	src/cms/migrations/20260826_191836_media_derived.json
 overlay	src/cms/migrations/20260826_191836_media_derived.ts
 overlay	src/cms/migrations/20260826_193016_video_set_block.json
 overlay	src/cms/migrations/20260826_193016_video_set_block.ts
-overlay	src/cms/migrations/20260826_194734_demo_access_block.json
-overlay	src/cms/migrations/20260826_194734_demo_access_block.ts
 overlay	src/cms/migrations/20260826_201412_video_set_modes.json
 overlay	src/cms/migrations/20260826_201412_video_set_modes.ts
 overlay	src/cms/migrations/20260826_234502_carousel_block.json

@@ -16,7 +16,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { REGISTRY, classify, readRegistry, writeRegistry } from './lib/zones.mjs';
+import { REGISTRY, classify, markedSkip, readRegistry, writeRegistry } from './lib/zones.mjs';
 
 const ROOT = path.resolve(
   path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1')),
@@ -91,7 +91,9 @@ const before = new Map(registry);
 if (all) registry.clear();
 
 for (const rel of targets) {
-  const zone = classify(rel);
+  // Пометка в шапке файла главнее правил по пути: ею помечают то, чьё имя
+  // менять нельзя - применённую миграцию в первую очередь.
+  const zone = markedSkip(path.join(ROOT, rel)) ? 'skip' : classify(rel);
   if (zone === 'skip') registry.delete(rel);
   else registry.set(rel, zone);
 }
