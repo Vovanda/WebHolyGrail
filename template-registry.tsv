@@ -585,6 +585,12 @@ mirror	src/cms/src/collections/Users.ts
 mirror	src/cms/src/endpoints/block-parts.ts
 mirror	src/cms/src/endpoints/toggles.ts
 mirror	src/cms/src/endpoints/video.ts
+mirror	src/cms/src/endpoints/video/access.ts
+mirror	src/cms/src/endpoints/video/catalog.ts
+mirror	src/cms/src/endpoints/video/key.ts
+mirror	src/cms/src/endpoints/video/manifest.ts
+mirror	src/cms/src/endpoints/video/playlists.ts
+mirror	src/cms/src/endpoints/video/shared.ts
 mirror	src/cms/src/globals/SiteSettings.ts
 mirror	src/cms/src/jobs/build-hls.task.ts
 mirror	src/cms/src/jobs/engine.ts
