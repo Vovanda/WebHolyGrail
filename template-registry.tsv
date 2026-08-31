@@ -484,12 +484,15 @@ overlay	src/cms/migrations/20260831_070000_user_api_key.json
 overlay	src/cms/migrations/20260831_070000_user_api_key.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
+mirror	src/cms/scripts/adopt-history.ts
 mirror	src/cms/scripts/backfill-pack-bytes.ts
 mirror	src/cms/scripts/backfill-preview-url.ts
 mirror	src/cms/scripts/backup-db.ts
 mirror	src/cms/scripts/check-schema-drift.ts
+mirror	src/cms/scripts/compare-db.ts
 mirror	src/cms/scripts/encrypt-db.ts
 mirror	src/cms/scripts/ensure-importmap.mjs
+mirror	src/cms/scripts/gen-align.ts
 mirror	src/cms/scripts/mark-derived-previews.ts
 mirror	src/cms/scripts/open-backup.ts
 mirror	src/cms/scripts/README.md
