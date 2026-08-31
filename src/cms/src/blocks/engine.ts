@@ -31,8 +31,6 @@ import { PageRefBlock } from './PageRef';
 // WHG-specific landing blocks (используются для самой страницы WHG-template'а).
 // Downstream-сайты могут отфильтровать их в своём cms/src/blocks/index.ts
 // если они не нужны для конкретной ниши.
-import { ProjectTypesGridBlock } from './whg/ProjectTypesGrid';
-import { BlockShowcaseBlock } from './whg/BlockShowcase';
 
 import { withAppearance } from './_appearance';
 
@@ -77,9 +75,6 @@ export const ENGINE_REUSABLE_INNER_BLOCKS = [
   VideoBlock,
   VideoSetBlock,
   FaqAccordionBlock,
-  // WHG-specific:
-  ProjectTypesGridBlock,
-  BlockShowcaseBlock,
   /*
     Вид блока - у каждого: где показывать и как выглядит, одной свёрнутой
     секцией. Навешивается разом, а не переписыванием тридцати семи файлов,

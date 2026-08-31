@@ -549,8 +549,6 @@ mirror	src/cms/src/blocks/Timeline.ts
 mirror	src/cms/src/blocks/Video.ts
 mirror	src/cms/src/blocks/VideoSet.ts
 mirror	src/cms/src/blocks/WaveDivider.ts
-mirror	src/cms/src/blocks/whg/BlockShowcase.ts
-mirror	src/cms/src/blocks/whg/ProjectTypesGrid.ts
 mirror	src/cms/src/collections/Articles.ts
 mirror	src/cms/src/collections/Authors.ts
 mirror	src/cms/src/collections/Cities.ts
