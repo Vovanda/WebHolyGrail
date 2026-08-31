@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
-import { translitSlug } from '../lib/slug';
+import { channelFrom, freeChannel } from '../lib/channel.js';
 
 /**
  * Users — редакторы CMS (admin-домен).
@@ -55,28 +55,19 @@ export const Users: CollectionConfig = {
      * разводим номером: адрес уникален, и без этого второй Иван Петров не
      * смог бы сохраниться вовсе.
      *
-     * Только при создании: у существующего участника адрес не переписываем,
-     * даже если он сменил имя — ссылки на канал уже разошлись.
+     * Заполняем и при создании, и при сохранении пустого: учётки, заведённые
+     * до появления поля, остались без адреса, и канал у них не открывался
+     * вовсе — владелец заливал видео и упирался в «страница не найдена».
+     *
+     * Заданный адрес не трогаем никогда, даже если сменилось имя: ссылки на
+     * канал уже разошлись.
      */
     beforeValidate: [
       async ({ req, operation, data }) => {
-        if (!data || operation !== 'create' || data['channel']) return data;
+        if (!data || data['channel']) return data;
+        if (operation !== 'create' && operation !== 'update') return data;
 
-        const source =
-          String(data['name'] ?? '').trim() || String(data['email'] ?? '').split('@')[0] || '';
-        const base = translitSlug(source, 24) || 'user';
-
-        let candidate = base;
-        for (let n = 2; n < 100; n += 1) {
-          const taken = await req.payload.count({
-            collection: 'users',
-            where: { channel: { equals: candidate } },
-          });
-          if (taken.totalDocs === 0) break;
-          candidate = `${base}-${n}`;
-        }
-
-        data['channel'] = candidate;
+        data['channel'] = await freeChannel(req, channelFrom(data['name'], data['email']));
         return data;
       },
     ],

@@ -1,6 +1,7 @@
 import { APIError, type CollectionConfig } from 'payload';
 
 import { generateShortCode } from '../lib/video/short-code';
+import { ensureChannel } from '../lib/channel.js';
 
 import { isDarkImage } from '../lib/image-luma';
 import { renderPdfPreview } from '../lib/pdf-preview';
@@ -663,9 +664,28 @@ export const Media: CollectionConfig = {
         }
         return data;
       },
-      ({ data, req, operation }) => {
+      async ({ data, req, operation }) => {
         if (operation === 'create' && req.user && !data['uploadedBy']) {
           data['uploadedBy'] = req.user.id;
+        }
+
+        /*
+          Залитое видео само заводит автору канал, если у того адреса ещё нет.
+
+          Адрес проставлялся только при заведении учётной записи, а те, что
+          старше самого поля, остались без него. Владелец заливал запись,
+          отмечал её общедоступной, открывал канал - и получал «страница не
+          найдена», потому что канала с таким адресом не существовало.
+
+          Адрес берётся у самого автора записи, а не у того, кто нажал
+          «сохранить»: запись могли залить за него.
+        */
+        if (operation === 'create' && String(data['mimeType'] ?? '').startsWith('video/')) {
+          const автор = data['uploadedBy'];
+          const номер = typeof автор === 'object' && автор ? (автор as { id?: unknown }).id : автор;
+          if (номер !== undefined && номер !== null && номер !== '') {
+            await ensureChannel(req, номер as string | number).catch(() => undefined);
+          }
         }
         // Код выдаём только видео и только один раз: у остальных файлов
         // своей страницы нет, а у существующего видео адрес не меняется.

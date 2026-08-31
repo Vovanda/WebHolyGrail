@@ -505,6 +505,7 @@ overlay	src/cms/migrations/20260831_223005_anchor.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts
+mirror	src/cms/scripts/backfill-channel.ts
 mirror	src/cms/scripts/backfill-pack-bytes.ts
 mirror	src/cms/scripts/backfill-preview-url.ts
 mirror	src/cms/scripts/backup-db.ts
@@ -617,6 +618,7 @@ mirror	src/cms/src/jobs/purge-access.task.ts
 mirror	src/cms/src/jobs/purge-key-usage.task.ts
 mirror	src/cms/src/jobs/purge-videos.task.ts
 mirror	src/cms/src/lib/block-parts.ts
+mirror	src/cms/src/lib/channel.ts
 mirror	src/cms/src/lib/enum-names.ts
 mirror	src/cms/src/lib/hls.test.ts
 mirror	src/cms/src/lib/hls.ts

@@ -29,6 +29,7 @@
     "migrate:refresh": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:refresh",
     "migrate:fresh": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:fresh",
     "backfill:preview-url": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/backfill-preview-url.ts",
+    "backfill:channel": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/backfill-channel.ts",
     "mark:derived-previews": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/mark-derived-previews.ts",
     "backfill:pack-bytes": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/backfill-pack-bytes.ts"
   },
