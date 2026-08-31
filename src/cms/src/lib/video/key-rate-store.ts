@@ -30,25 +30,35 @@ interface Loaded {
 }
 
 async function load(payload: Payload, viewer: string, now: number): Promise<Loaded> {
-  const found = await payload.find({
-    collection: 'key-usage',
-    where: { viewer: { equals: viewer } },
-    depth: 0,
-    limit: 1,
-    overrideAccess: true,
-  });
+  /*
+    Счёт мог стать нечитаемым: во время выкладки схема меняется, а прежний цвет
+    ещё спрашивает по-старому. Отказ здесь остановил бы выдачу ключей, и зритель
+    получил бы пустой плеер вместо видео.
+
+    Поэтому не читается - значит счёта нет: запас начнётся заново, а следующий
+    запрос увидит уже общую строку. Запись защищена тем же соображением.
+  */
+  const found = await payload
+    .find({
+      collection: 'key-usage',
+      where: { viewer: { equals: viewer } },
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+    })
+    .catch(() => ({ docs: [] as unknown[] }));
 
   const doc = found.docs[0] as
-    | { id: string | number; left?: number; at?: number; seen?: unknown }
+    | { id: string | number; keysLeft?: number; countedAt?: number; issuedKeys?: unknown }
     | undefined;
   if (!doc) return { id: null, value: emptyRateState(now) };
 
   return {
     id: doc.id,
     value: {
-      left: typeof doc.left === 'number' ? doc.left : emptyRateState(now).left,
-      at: typeof doc.at === 'number' ? doc.at : now,
-      seen: asSeen(doc.seen),
+      keysLeft: typeof doc.keysLeft === 'number' ? doc.keysLeft : emptyRateState(now).keysLeft,
+      countedAt: typeof doc.countedAt === 'number' ? doc.countedAt : now,
+      issuedKeys: asSeen(doc.issuedKeys),
     },
   };
 }
@@ -59,7 +69,12 @@ async function save(
   id: string | number | null,
   state: RateState,
 ): Promise<void> {
-  const data = { viewer, left: state.left, at: state.at, seen: state.seen };
+  const data = {
+    viewer,
+    keysLeft: state.keysLeft,
+    countedAt: state.countedAt,
+    issuedKeys: state.issuedKeys,
+  };
 
   /*
     Строку мог завести соседний цвет между чтением и записью. Тогда создание

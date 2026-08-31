@@ -55,11 +55,11 @@ const SEEN_LIMIT = 300;
 
 export interface RateState {
   /** Сколько разных ключей ещё можно взять прямо сейчас. */
-  readonly left: number;
+  readonly keysLeft: number;
   /** Когда запас считался в последний раз. */
-  readonly at: number;
+  readonly countedAt: number;
   /** Уже выданные ключи и когда: `запись:период` → время выдачи. */
-  readonly seen: Readonly<Record<string, number>>;
+  readonly issuedKeys: Readonly<Record<string, number>>;
 }
 
 export interface RateDecision {
@@ -68,7 +68,11 @@ export interface RateDecision {
   readonly retryAfterSeconds: number;
 }
 
-export const emptyRateState = (now: number): RateState => ({ left: BURST, at: now, seen: {} });
+export const emptyRateState = (now: number): RateState => ({
+  keysLeft: BURST,
+  countedAt: now,
+  issuedKeys: {},
+});
 
 /**
  * Решение по одному запросу ключа.
@@ -84,36 +88,39 @@ export function decideKeyRate(
 ): { readonly decision: RateDecision; readonly next: RateState } {
   // Запас восполняется временем: сколько прошло, столько ключей и вернулось,
   // но не больше начального - иначе за ночь накопился бы запас на выкачку.
-  const restored = Math.floor((now - state.at) / REFILL_MS);
-  const left = Math.min(BURST, state.left + restored);
-  const at = restored > 0 ? state.at + restored * REFILL_MS : state.at;
-  const seen = fresh(state.seen, now);
+  const restored = Math.floor((now - state.countedAt) / REFILL_MS);
+  const keysLeft = Math.min(BURST, state.keysLeft + restored);
+  const countedAt = restored > 0 ? state.countedAt + restored * REFILL_MS : state.countedAt;
+  const issuedKeys = fresh(state.issuedKeys, now);
 
   // Тот же ключ этот зритель уже получал: отдать его снова не значит унести
   // больше записи, чем у него и так есть.
-  if (seen[key] !== undefined) {
+  if (issuedKeys[key] !== undefined) {
     return {
       decision: { allowed: true, retryAfterSeconds: 0 },
-      next: { left, at, seen: { ...seen, [key]: now } },
+      next: { keysLeft, countedAt, issuedKeys: { ...issuedKeys, [key]: now } },
     };
   }
 
-  if (left <= 0) {
+  if (keysLeft <= 0) {
     return {
-      decision: { allowed: false, retryAfterSeconds: Math.ceil((REFILL_MS - (now - at)) / 1000) },
-      next: { left, at, seen },
+      decision: {
+        allowed: false,
+        retryAfterSeconds: Math.ceil((REFILL_MS - (now - countedAt)) / 1000),
+      },
+      next: { keysLeft, countedAt, issuedKeys },
     };
   }
 
   return {
     decision: { allowed: true, retryAfterSeconds: 0 },
-    next: { left: left - 1, at, seen: { ...seen, [key]: now } },
+    next: { keysLeft: keysLeft - 1, countedAt, issuedKeys: { ...issuedKeys, [key]: now } },
   };
 }
 
 /** Забывает давние ключи и лишние, если их накопилось слишком много. */
-function fresh(seen: Readonly<Record<string, number>>, now: number): Record<string, number> {
-  const alive = Object.entries(seen).filter(([, when]) => now - when < SEEN_MS);
+function fresh(issuedKeys: Readonly<Record<string, number>>, now: number): Record<string, number> {
+  const alive = Object.entries(issuedKeys).filter(([, when]) => now - when < SEEN_MS);
   if (alive.length <= SEEN_LIMIT) return Object.fromEntries(alive);
 
   // Через край выходит только тот, кто ходит за множеством разных ключей, -

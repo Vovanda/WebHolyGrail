@@ -56,6 +56,7 @@ import * as migration_20260831_030000_media_access_model from './20260831_030000
 
 import * as migration_20260831_070000_user_api_key from './20260831_070000_user_api_key';
 import * as migration_20260831_113000_right_source_ref from './20260831_113000_right_source_ref';
+import * as migration_20260831_114000_key_usage_names from './20260831_114000_key_usage_names';
 
 export const migrations = [
   {
@@ -337,5 +338,10 @@ export const migrations = [
     up: migration_20260831_113000_right_source_ref.up,
     down: migration_20260831_113000_right_source_ref.down,
     name: '20260831_113000_right_source_ref',
+  },
+  {
+    up: migration_20260831_114000_key_usage_names.up,
+    down: migration_20260831_114000_key_usage_names.down,
+    name: '20260831_114000_key_usage_names',
   },
 ];

@@ -37,13 +37,13 @@ export const KeyUsage: CollectionConfig = {
       unique: true,
     },
     {
-      name: 'left',
+      name: 'keysLeft',
       label: 'Остаток запаса',
       type: 'number',
       required: true,
     },
     {
-      name: 'at',
+      name: 'countedAt',
       label: 'Когда считали',
       type: 'number',
       required: true,
@@ -56,7 +56,7 @@ export const KeyUsage: CollectionConfig = {
        * По ним повтор отличается от нового ключа: страница с тремя плеерами
        * одной записи просит один и тот же, а выкачивание идёт по разным.
        */
-      name: 'seen',
+      name: 'issuedKeys',
       label: 'Выданные ключи',
       type: 'json',
     },

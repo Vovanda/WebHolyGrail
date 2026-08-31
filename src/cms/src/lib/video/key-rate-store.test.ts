@@ -40,11 +40,16 @@ describe('счёт ключей в базе', () => {
     expect(decision.allowed).toBe(true);
     expect(created[0]).toMatchObject({ viewer: 'маркер-1' });
     // Отметки хранятся как «ключ: когда взят».
-    expect(created[0]?.['seen']).toHaveProperty('ключ-1');
+    expect(created[0]?.['issuedKeys']).toHaveProperty('ключ-1');
   });
 
   it('прежний счёт читается из строки, а не начинается заново', async () => {
-    const { payload, updated } = store({ id: 5, left: 3, at: NOW, seen: { 'ключ-1': NOW } });
+    const { payload, updated } = store({
+      id: 5,
+      keysLeft: 3,
+      countedAt: NOW,
+      issuedKeys: { 'ключ-1': NOW },
+    });
     await checkKeyRateShared(payload, 'маркер-1', 'ключ-2', NOW);
 
     expect(updated[0]).toMatchObject({ id: 5 });
@@ -52,16 +57,21 @@ describe('счёт ключей в базе', () => {
   });
 
   it('повторный ключ к тому же отрезку счёт не тратит', async () => {
-    const { payload, updated } = store({ id: 5, left: 3, at: NOW, seen: { 'ключ-1': NOW } });
+    const { payload, updated } = store({
+      id: 5,
+      keysLeft: 3,
+      countedAt: NOW,
+      issuedKeys: { 'ключ-1': NOW },
+    });
     await checkKeyRateShared(payload, 'маркер-1', 'ключ-1', NOW);
 
-    const data = updated[0]?.['data'] as { left?: number };
-    expect(data?.left).toBe(3);
+    const data = updated[0]?.['data'] as { keysLeft?: number };
+    expect(data?.keysLeft).toBe(3);
   });
 
   it('испорченная строка читается как пустая', async () => {
     // Значения не того вида читаются как пустые, а не отнимают весь запас.
-    const { payload } = store({ id: 5, left: 'много', at: 'вчера', seen: 'ключ' });
+    const { payload } = store({ id: 5, keysLeft: 'много', countedAt: 'вчера', issuedKeys: 'ключ' });
     const decision = await checkKeyRateShared(payload, 'маркер-1', 'ключ-1', NOW);
     expect(decision.allowed).toBe(true);
   });
