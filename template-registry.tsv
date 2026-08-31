@@ -174,8 +174,6 @@ overlay	src/client/public/decor/vine-right.svg
 overlay	src/client/public/decor/vine-right.webp
 overlay	src/client/public/favicon.svg
 mirror	src/client/README.md
-mirror	src/client/src/app/(site)/(domain)/specialists/[slug]/page.tsx
-mirror	src/client/src/app/(site)/(domain)/specialists/page.tsx
 mirror	src/client/src/app/(site)/[[...slug]]/page.tsx
 mirror	src/client/src/app/(site)/blog/[slug]/page.tsx
 mirror	src/client/src/app/(site)/blog/[slug]/show-lead.test.ts
