@@ -35,17 +35,38 @@ if command -v infisical >/dev/null 2>&1 && [ -f .infisical.json ]; then
 fi
 
 # Подгружаем .env.local если есть (даже когда Infisical OK — оттуда могут идти
-# locally-overriden порты CMS_PORT/CLIENT_PORT). Shell env имеет приоритет над .env.local.
+# locally-overriden порты CMS_PORT/CLIENT_PORT). Заданное перед вызовом главнее
+# файла: поднять стенд на другой базе или другом адресе иначе нельзя, а молчаливая
+# подмена уводит в сторону — сервер берёт путь из файла, а смотришь ты в свой.
 if [ -f .env.local ]; then
-  ENV_CMS_PORT="$CMS_PORT"
-  ENV_CLIENT_PORT="$CLIENT_PORT"
+  # Запоминаем то, что пришло из окружения, до чтения файла. Список имён, а не
+  # одни порты: раньше здесь возвращались только они, и обещание в комментарии
+  # расходилось с делом для всего остального.
+  BEFORE_ENV=$(mktemp)
+  while IFS= read -r line; do
+    case "$line" in
+      ''|'#'*) continue ;;
+    esac
+    name=${line%%=*}
+    case "$name" in
+      *[!A-Za-z0-9_]*|'') continue ;;
+    esac
+    # eval вместо ${!name}: в dash косвенного разыменования нет.
+    eval "value=\${$name-}"
+    [ -n "${value:-}" ] && printf '%s=%s
+' "$name" "$value" >>"$BEFORE_ENV"
+  done <.env.local
+
   set -a
   # shellcheck disable=SC1091
   . ./.env.local
   set +a
-  # Восстанавливаем shell-уровень override если был
-  [ -n "$ENV_CMS_PORT" ] && CMS_PORT="$ENV_CMS_PORT"
-  [ -n "$ENV_CLIENT_PORT" ] && CLIENT_PORT="$ENV_CLIENT_PORT"
+
+  # Возвращаем всё, что было задано снаружи.
+  while IFS= read -r pair; do
+    [ -n "$pair" ] && eval "export $(printf '%s' "${pair%%=*}")=\"\${pair#*=}\""
+  done <"$BEFORE_ENV"
+  rm -f "$BEFORE_ENV"
 fi
 
 CMS_PORT="${CMS_PORT:-3001}"
