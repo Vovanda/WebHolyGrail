@@ -93,7 +93,7 @@ gh pr create --title "Sync template main → <sha>" --body "..."
 - `src/cms/migrations/` — domain-зависимы, инстанс владеет
 - `contracts/src/<domain>.ts` (dogs, litters, pedigree, rkf — domain types)
 - `contracts/src/index.ts` — **merge-zone** (не overwrite — там может быть domain reexports)
-- `src/cms/src/payload.config.ts` — **merge-zone** (инстанс добавляет domain collections поверх generic)
+- `src/cms/src/site.ts` — точка сборки CMS: коллекции, ручки, задания и глобалы сайта. Сам `payload.config.ts` ездит зеркалом и подхватывает этот файл
 - `.claude/skills/<site>-*` (например <slug>-context, <slug>-migration)
 - `site.config.ts`, `.env*`, `.infisical.json`
 
@@ -164,8 +164,9 @@ gh pr create --title "Sync template main → <sha>" --body "..."
    - **Симптом:** в git diff после sync пропали локальные функции.
    - **Что делать:** локальные правки в generic — **код-smell**. Либо в WHG как upstream PR, либо переехать в `domain/<niche>/lib/`. Если ушёл upstream — следующий sync уже подхватит.
 
-2. **payload.config.ts расходится.** Sync его НЕ трогает — но инстанс ожидает что в нём есть generic + domain collections. Если в WHG добавили generic collection (например `Tags`), инстансу надо **вручную добавить** её в свой payload.config.
-   - Файл `.template-version` помогает: смотришь diff WHG между prev_sha → current_sha по `src/cms/src/payload.config.ts` и переносишь руками.
+2. **Своё в CMS расходится.** Конфиг ездит зеркалом, поэтому руками его больше
+   не правят: коллекции, ручки, задания и глобалы сайта живут в `src/cms/src/site.ts`,
+   и приехавшее из шаблона подключается само.
 
 3. **contracts/src/index.ts расходится.** Аналогично — merge-zone. Sync не трогает, инстанс добавляет domain reexports поверх. Новые generic exports — вручную.
 
