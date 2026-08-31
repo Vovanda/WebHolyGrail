@@ -891,6 +891,12 @@ function syncScripts() {
       );
     }
     stats.copied++;
+    /*
+      Файл пакета слит здесь, а не общей раскладкой, поэтому признак ставится
+      тоже здесь: без него приехавшая зависимость осталась бы неустановленной,
+      а команда - невыполнимой.
+    */
+    if (deps.length > 0 || added.length > 0) touchedPackages = true;
 
     if (added.length > 0)
       console.log(`  ${dryRun ? '=' : '+'} ${rel}: команды ${added.join(', ')}`);
