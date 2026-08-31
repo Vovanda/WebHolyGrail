@@ -615,12 +615,13 @@ console.log(
 if (stats.missing.length > 0) {
   console.log(`Нет в источнике (пропущено): ${stats.missing.join(', ')}`);
 }
-console.log(`\nДальше в ${INSTANCE}:`);
+console.log(`
+Дальше в ${INSTANCE}:`);
 console.log('  1. git status / git diff --stat   — что изменилось');
-console.log('  2. pnpm install                   — если поехали зависимости');
-console.log('  3. pnpm -r lint                   — typecheck');
-console.log('  4. pnpm --filter cms check:schema — схема vs миграции');
-console.log('  5. git checkout -b chore/sync-template && git add -A && git commit');
+console.log('  2. git add -A && git commit       — если всё сошлось');
+console.log('');
+console.log('  Зависимости, типы, якорь схемы и проверки сделаны выше:');
+console.log('  строки со знаком равенства прошли, со знаком точки - нет.');
 console.log('──────────────────────────────────────────────');
 
 // ─── Реализация ────────────────────────────────────────────────────────
