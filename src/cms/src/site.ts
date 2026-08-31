@@ -25,7 +25,7 @@ export const site: {
   globals: GlobalConfig[];
   endpoints: Endpoint[];
   /** Адреса помимо основного домена, с которых сайт открывают. */
-  origins: string[];
+  origins?: string[];
   // Задание описывается конфигом Payload, тип которого зависит от набора задач
   // сайта; проверять его здесь нечего - список просто передаётся дальше.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- тип задания задан набором сайта

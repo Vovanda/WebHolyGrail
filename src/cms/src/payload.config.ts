@@ -57,7 +57,14 @@ function parseOrigins(csv: string | undefined, fallback: string): string[] {
     .map((s) => s.trim())
     .filter(Boolean);
   const defaults = [fallback, 'http://localhost:3000', 'http://localhost:3001'];
-  return Array.from(new Set([...defaults, ...site.origins, ...fromEnv]));
+  /*
+    Поле адресов у сайта может отсутствовать: точка сборки принадлежит ему и
+    бывает старше этой строки. Обновление не ломает уже собранное (R10),
+    поэтому читаем мягко - без поля выходит пустой список, а не падение
+    сборки и не ошибка проверки типов.
+  */
+  const свои = (site as { origins?: string[] }).origins ?? [];
+  return Array.from(new Set([...defaults, ...свои, ...fromEnv]));
 }
 
 /**

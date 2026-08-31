@@ -257,6 +257,12 @@ const firstMeeting = previous.size === 0;
 /** Миграции, приехавшие этим прогоном: по ним обновляется якорь схемы. */
 const brought = new Set();
 
+/** Менялись ли файлы пакетов - тогда нужны зависимости. */
+let touchedPackages = false;
+
+/** Приезжала ли схема - коллекции, блоки, глобалы: тогда пересобираются типы. */
+let touchedSchema = false;
+
 /** Что положил этот прогон: путь -> отпечаток. */
 const placed = new Map();
 /** Имя занято чужим файлом. */
@@ -506,39 +512,93 @@ if (migrate) {
   }
 }
 
-/*
-  Якорь схемы после привезённых миграций.
-
-  Сверка схемы сравнивает код с последним снимком в папке миграций. У сайта
-  последним лежит его собственный якорь, а приехавшая миграция оказывается
-  старше него по имени - и сверка объявляет расхождением ровно то, что синк
-  только что привёз. Якорь схему не трогает: он кладёт рядом снимок нынешнего
-  состояния.
-
-  Без доступа к базе якорь не завести - тогда называем шаг, а прогон не роняем:
-  файлы уже разложены, и разбираться с настройками можно спокойно.
-*/
-if (writing && brought.size > 0) {
-  console.log(
-    `${String.fromCharCode(10)}→ Якорь схемы (приехало миграций: ${brought.size})${String.fromCharCode(10)}`,
-  );
+/**
+ * Выполняет шаг сайта его же настройками.
+ *
+ * @remarks
+ * Через оболочку: на Windows команда установлена файлом с расширением, и прямой
+ * запуск по имени её не находит. Настройки берутся из `.env.local` сайта - без
+ * них не открыть базу, а схему читают несколько шагов.
+ *
+ * Упавший шаг называет себя и не роняет прогон: файлы уже разложены, и
+ * несошедшаяся проверка - повод посмотреть, а не потерять раскладку.
+ */
+function runStep(название, команда, подсказка) {
   try {
-    execFileSync('pnpm -s --filter cms migrate:anchor', {
+    execFileSync(команда, {
       cwd: INSTANCE,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
-      // Через оболочку: на Windows команда установлена файлом `pnpm.cmd`,
-      // и прямой запуск по имени её не находит.
       shell: true,
-      // Настройки сайта лежат в его `.env.local`: без них не открыть базу,
-      // а якорь читает её схему.
       env: { ...process.env, ...localEnv() },
     });
-    console.log('  = снимок схемы обновлён, сверка сойдётся');
+    console.log(`  = ${название}`);
+    return true;
   } catch (error) {
-    const текст = error instanceof Error ? error.message : String(error);
-    console.log('  · завести не вышло:', текст.split(String.fromCharCode(10))[0]);
-    console.log('    Схема сайта не тронута. Сделайте сами: pnpm --filter cms migrate:anchor');
+    /*
+      Показываем то, что сказала сама команда, а не «команда завершилась
+      с ошибкой»: без этого шаг сообщает о неудаче и ничего о её причине,
+      и разбираться приходится повторным запуском руками.
+    */
+    const вывод = [error?.stderr, error?.stdout]
+      .map((часть) => (часть ? String(часть) : ''))
+      .join(String.fromCharCode(10))
+      .split(String.fromCharCode(10))
+      .map((строка) => строка.trim())
+      .filter(Boolean);
+    const причина =
+      вывод.slice(-3).join(' | ') ||
+      String(error?.message ?? error).split(String.fromCharCode(10))[0];
+
+    console.log(`  · ${название}: не прошло`);
+    console.log(`    ${причина.slice(0, 300)}`);
+    if (подсказка) console.log(`    ${подсказка}`);
+    return false;
+  }
+}
+
+/*
+  Круг доводится здесь же.
+
+  После раскладки сайту нужно одно и то же: поставить зависимости, если менялись
+  файлы пакетов; пересобрать типы, если приехала схема; свести якорь под
+  привезённые миграции; проверить, что всё сходится. Руками это четыре захода на
+  каждый сайт, и пропущенный всплывает позже - то типы не те, то сверка объявляет
+  расхождением ровно то, что синк только что привёз.
+
+  Синк ничего не чинит: он делает эти шаги и говорит, чем каждый кончился.
+*/
+if (writing && (brought.size > 0 || touchedPackages || touchedSchema)) {
+  console.log(`${String.fromCharCode(10)}→ Довожу круг${String.fromCharCode(10)}`);
+
+  if (touchedPackages) {
+    runStep('зависимости на месте', 'pnpm install --prefer-offline', 'Сделайте сами: pnpm install');
+  }
+
+  if (touchedSchema) {
+    runStep(
+      'типы CMS пересобраны',
+      'pnpm -s --filter cms generate:types',
+      'Сделайте сами: pnpm --filter cms generate:types',
+    );
+  }
+
+  if (brought.size > 0) {
+    runStep(
+      `снимок схемы обновлён (приехало миграций: ${brought.size})`,
+      'pnpm -s --filter cms migrate:anchor',
+      'Схема сайта не тронута. Сделайте сами: pnpm --filter cms migrate:anchor',
+    );
+  }
+
+  runStep('типы сходятся', 'pnpm -r --no-bail exec tsc --noEmit', 'Смотрите: pnpm -r lint');
+
+  if (brought.size > 0 || touchedSchema) {
+    runStep(
+      'схема сходится с миграциями',
+      'pnpm -s --filter cms check:schema',
+      'Смотрите: pnpm --filter cms check:schema',
+    );
   }
 }
 
@@ -722,6 +782,8 @@ function copyFile(src, dst, label, mirror = true) {
     // Приехавшая миграция меняет схему, а значит и снимок, по которому сайт
     // сверяется. Запоминаем, чтобы обновить якорь одним движением.
     if (/^src\/cms\/migrations\/.+\.ts$/.test(rel)) brought.add(rel);
+    if (/(^|\/)package\.json$|pnpm-lock\.yaml$/.test(rel)) touchedPackages = true;
+    if (/^src\/cms\/src\/(collections|blocks|globals)\//.test(rel)) touchedSchema = true;
   }
   if (!shouldWrite()) return;
   fs.mkdirSync(path.dirname(dst), { recursive: true });
