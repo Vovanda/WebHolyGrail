@@ -254,6 +254,9 @@ if (fs.existsSync(MANIFEST)) {
 */
 const firstMeeting = previous.size === 0;
 
+/** Миграции, приехавшие этим прогоном: по ним обновляется якорь схемы. */
+const brought = new Set();
+
 /** Что положил этот прогон: путь -> отпечаток. */
 const placed = new Map();
 /** Имя занято чужим файлом. */
@@ -503,6 +506,42 @@ if (migrate) {
   }
 }
 
+/*
+  Якорь схемы после привезённых миграций.
+
+  Сверка схемы сравнивает код с последним снимком в папке миграций. У сайта
+  последним лежит его собственный якорь, а приехавшая миграция оказывается
+  старше него по имени - и сверка объявляет расхождением ровно то, что синк
+  только что привёз. Якорь схему не трогает: он кладёт рядом снимок нынешнего
+  состояния.
+
+  Без доступа к базе якорь не завести - тогда называем шаг, а прогон не роняем:
+  файлы уже разложены, и разбираться с настройками можно спокойно.
+*/
+if (writing && brought.size > 0) {
+  console.log(
+    `${String.fromCharCode(10)}→ Якорь схемы (приехало миграций: ${brought.size})${String.fromCharCode(10)}`,
+  );
+  try {
+    execFileSync('pnpm -s --filter cms migrate:anchor', {
+      cwd: INSTANCE,
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+      // Через оболочку: на Windows команда установлена файлом `pnpm.cmd`,
+      // и прямой запуск по имени её не находит.
+      shell: true,
+      // Настройки сайта лежат в его `.env.local`: без них не открыть базу,
+      // а якорь читает её схему.
+      env: { ...process.env, ...localEnv() },
+    });
+    console.log('  = снимок схемы обновлён, сверка сойдётся');
+  } catch (error) {
+    const текст = error instanceof Error ? error.message : String(error);
+    console.log('  · завести не вышло:', текст.split(String.fromCharCode(10))[0]);
+    console.log('    Схема сайта не тронута. Сделайте сами: pnpm --filter cms migrate:anchor');
+  }
+}
+
 if (cleanupSource) fs.rmSync(sourceDir, { recursive: true, force: true });
 if (worktreePath) {
   safeGit(['worktree', 'remove', '--force', worktreePath], worktreeOf);
@@ -525,6 +564,33 @@ console.log('  5. git checkout -b chore/sync-template && git add -A && git commi
 console.log('──────────────────────────────────────────────');
 
 // ─── Реализация ────────────────────────────────────────────────────────
+
+/**
+ * Настройки сайта из его `.env.local`.
+ *
+ * @remarks
+ * Читается только для того, чтобы позвать команду сайта его же настройками.
+ * Значения никуда не печатаются и остаются внутри вызова.
+ *
+ * Формат простой - строки вида `ИМЯ=значение`; комментарии и пустые строки
+ * пропускаются, кавычки по краям снимаются.
+ */
+function localEnv() {
+  const file = path.join(INSTANCE, '.env.local');
+  if (!fs.existsSync(file)) return {};
+
+  const out = {};
+  for (const line of fs.readFileSync(file, 'utf8').split(String.fromCharCode(10))) {
+    const row = line.trim();
+    if (!row || row.startsWith('#')) continue;
+    const gap = row.indexOf('=');
+    if (gap === -1) continue;
+    const name = row.slice(0, gap).trim();
+    const value = row.slice(gap + 1).trim();
+    out[name] = value.replace(/^["']|["']$/g, '');
+  }
+  return out;
+}
 
 function syncPath(rel, mirror) {
   const src = path.join(sourceDir, rel);
@@ -653,6 +719,9 @@ function copyFile(src, dst, label, mirror = true) {
   if (writing || dryRun) {
     console.log(`  ${exists ? 'M' : '+'} ${label}`);
     stats.copied++;
+    // Приехавшая миграция меняет схему, а значит и снимок, по которому сайт
+    // сверяется. Запоминаем, чтобы обновить якорь одним движением.
+    if (/^src\/cms\/migrations\/.+\.ts$/.test(rel)) brought.add(rel);
   }
   if (!shouldWrite()) return;
   fs.mkdirSync(path.dirname(dst), { recursive: true });
