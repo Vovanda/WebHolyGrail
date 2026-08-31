@@ -51,10 +51,49 @@ function parseHash(): string | null {
   }
 }
 
+/**
+ * Открывает подробности: панель показывает то, что названо в адресе.
+ *
+ * @remarks
+ * Пока панель закрыта, открытие добавляется в историю - тогда «назад» её
+ * закрывает. Переход внутри уже открытой панели историю не копит, а заменяет
+ * последнюю запись: иначе цепочка «мать - её мать - её отец» превращалась
+ * в стопку, и чтобы уйти со страницы, приходилось закрывать десяток карточек
+ * подряд. Панель на экране всё это время одна.
+ */
 export function openDetail(slug: string): void {
   try {
-    window.history.pushState({ d: slug }, '', `#d=${encodeURIComponent(slug)}`);
+    const адрес = `#d=${encodeURIComponent(slug)}`;
+    const ужеОткрыта = window.location.hash.startsWith('#d=');
+    if (ужеОткрыта) {
+      window.history.replaceState({ d: slug }, '', адрес);
+    } else {
+      window.history.pushState({ d: slug }, '', адрес);
+    }
     // Force popstate listeners to re-check
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+  } catch {
+    /* SSR */
+  }
+}
+
+/**
+ * Закрывает подробности одним движением.
+ *
+ * @remarks
+ * Когда открытие лежит в истории, шаг назад её и снимает - адрес возвращается
+ * к странице, с которой пришли. По прямой ссылке такой записи нет, и шаг назад
+ * увёл бы с сайта: тогда решётка просто убирается из адреса.
+ */
+export function closeDetail(): void {
+  try {
+    if (!window.location.hash.startsWith('#d=')) return;
+    const наша = (window.history.state as { d?: string } | null)?.d;
+    if (наша) {
+      window.history.back();
+      return;
+    }
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
     window.dispatchEvent(new HashChangeEvent('hashchange'));
   } catch {
     /* SSR */
