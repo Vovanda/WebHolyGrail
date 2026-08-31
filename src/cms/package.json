@@ -22,6 +22,7 @@
     "encrypt:db": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/encrypt-db.ts",
     "prepare:db": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/prepare-db.ts",
     "migrate": "pnpm prepare:db && cross-env NODE_OPTIONS=--no-deprecation payload migrate",
+    "migrate:anchor": "cross-env NODE_OPTIONS=--no-deprecation tsx scripts/make-anchor.ts",
     "migrate:create": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:create",
     "migrate:status": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:status",
     "migrate:down": "cross-env NODE_OPTIONS=--no-deprecation payload migrate:down",

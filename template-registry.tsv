@@ -500,6 +500,7 @@ mirror	src/cms/scripts/compare-db.ts
 mirror	src/cms/scripts/encrypt-db.ts
 mirror	src/cms/scripts/ensure-importmap.mjs
 mirror	src/cms/scripts/gen-align.ts
+mirror	src/cms/scripts/make-anchor.ts
 mirror	src/cms/scripts/mark-derived-previews.ts
 mirror	src/cms/scripts/open-backup.ts
 mirror	src/cms/scripts/prepare-db.ts
