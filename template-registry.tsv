@@ -502,6 +502,7 @@ mirror	src/cms/scripts/ensure-importmap.mjs
 mirror	src/cms/scripts/gen-align.ts
 mirror	src/cms/scripts/mark-derived-previews.ts
 mirror	src/cms/scripts/open-backup.ts
+mirror	src/cms/scripts/prepare-db.ts
 mirror	src/cms/scripts/README.md
 mirror	src/cms/scripts/rewrap-video-secrets.ts
 mirror	src/cms/scripts/write-snapshot.ts
