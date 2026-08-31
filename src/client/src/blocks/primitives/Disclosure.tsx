@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
  * в разметке с самого начала, поэтому его видит поисковик и находит поиск по
  * странице, а раскрытие работает даже там, где код не выполнился.
  *
- * Вид газетный: прямые углы, тонкая линия по краю, тёмная полупрозрачная
+ * Вид газетный: прямые углы, тонкая линия по краю, серая полупрозрачная
  * полоса заголовка и стрелка, поворачивающаяся при раскрытии. Скругления и
  * тени читались бы как карточка, а это не карточка - это кусок текста,
  * свёрнутый до строки.
@@ -37,19 +37,19 @@ export function Disclosure({ title, children, open = false, className }: Disclos
       className={cn(
         'group border border-border bg-paper',
         /*
-          Полоса заголовка - тёмная плёнка с примесью акцента: цвет узнаётся, но
-          остаётся приглушённым, и одинаково ложится на светлую и тёмную тему,
-          потому что берётся от тёмной плашки, а не от фона страницы.
+          Полоса заголовка - серая плёнка с примесью акцента: она полупрозрачна,
+          поэтому ложится на любой фон и в обеих темах остаётся тише текста,
+          а не спорит с ним тёмным пятном.
         */
-        '[--disclosure-tint:color-mix(in_oklab,color-mix(in_oklab,var(--color-accent)_22%,var(--color-dark-block))_92%,transparent)]',
+        '[--disclosure-tint:color-mix(in_oklab,var(--color-accent)_12%,color-mix(in_oklab,var(--color-ink)_8%,transparent))]',
         className,
       )}
     >
       <summary
         data-part="disclosure-title"
         className={cn(
-          'flex items-center gap-3 px-5 py-3.5 cursor-pointer list-none select-none',
-          'bg-[var(--disclosure-tint)] text-[color:var(--color-dark-block-fg)]',
+          'flex items-center gap-3 px-4 py-2.5 cursor-pointer list-none select-none',
+          'bg-[var(--disclosure-tint)] text-ink',
           'text-[15px] leading-[1.35] font-semibold tracking-[0.01em]',
         )}
       >
@@ -77,7 +77,7 @@ export function Disclosure({ title, children, open = false, className }: Disclos
 
       <div
         data-part="disclosure-body"
-        className="border-t border-border px-5 py-4 text-ink text-[15px] leading-[1.6]"
+        className="border-t border-border px-4 py-3 text-ink text-[15px] leading-[1.6]"
       >
         {children}
       </div>

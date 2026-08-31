@@ -168,12 +168,30 @@ function renderChildren(node: LexNode, settings?: SiteSettings): ReactNode[] {
  * на странице они отделяют её от соседних секций, а внутри статьи складываются
  * с отступами абзацев, и вокруг видео образуется пустая полоса.
  */
+const В_ПОТОКЕ_ТЕКСТА = new Set(['collapsible']);
+
 function renderBlock(node: LexNode, key: number, settings?: SiteSettings): ReactNode {
   const fields = (node as { fields?: Record<string, unknown> }).fields;
   const blockType = typeof fields?.['blockType'] === 'string' ? fields['blockType'] : null;
   // Без настроек сайта блоки не рисуем: часть из них читает оттуда оформление,
   // и подсунуть им пустышку значит получить страницу без темы.
   if (!blockType || !settings) return null;
+
+  /*
+    Блок, который читается частью текста, из колонки не выходит и своего шага не
+    просит: расстояние вокруг него задаёт та же щель, что между абзацами. Поля и
+    ширину секции здесь снимаем - на странице они отделяют её от соседних секций.
+  */
+  if (В_ПОТОКЕ_ТЕКСТА.has(blockType)) {
+    return (
+      <div
+        key={key}
+        className="[&>section]:mx-0 [&>section]:max-w-none [&>section]:px-0 [&>section]:py-0"
+      >
+        {renderBlockNode({ blockType, id: String(key), data: fields } as BlockNode, settings)}
+      </div>
+    );
+  }
 
   return (
     <div key={key} className="my-6 -mx-4 md:-mx-8 lg:-mx-16 [&>section]:py-0">
