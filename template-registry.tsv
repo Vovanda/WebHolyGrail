@@ -494,6 +494,7 @@ mirror	src/cms/scripts/mark-derived-previews.ts
 mirror	src/cms/scripts/open-backup.ts
 mirror	src/cms/scripts/README.md
 mirror	src/cms/scripts/rewrap-video-secrets.ts
+mirror	src/cms/scripts/write-snapshot.ts
 mirror	src/cms/src/admin/components/AppearanceField.tsx
 mirror	src/cms/src/admin/components/ColorField.tsx
 mirror	src/cms/src/admin/components/ComplianceNotice.tsx
