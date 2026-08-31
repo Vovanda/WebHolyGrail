@@ -12,6 +12,13 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './playwright',
   fullyParallel: true,
+  /*
+    Против живого сайта прогон идёт в один поток. Пять вкладок разом сервер
+    считает наплывом и рвёт соединение - проверка краснела на здоровом сайте,
+    а причина выглядела как поломка страницы. Своему стенду это не мешает:
+    там ограничения нет, и потоки остаются.
+  */
+  workers: process.env.SMOKE_BASE_URL ? 1 : undefined,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',

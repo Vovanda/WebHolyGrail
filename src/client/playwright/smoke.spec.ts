@@ -1,48 +1,126 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const CMS_BASE_URL = process.env.SMOKE_CMS_URL ?? 'http://localhost:3001';
 
 /**
- * Smoke tests — самый минимум который должен зеленеть всегда.
+ * Смоук: живой ли сайт.
  *
- * Что проверяем (Шаг 3 коммит 7):
- *  1. Главная фронта отвечает 200 и видит siteName из CMS (R3 жив).
- *  2. Админка CMS отвечает 200 и интерфейс на русском.
+ * @remarks
+ * Проверка идёт по тому, чем сайт является для посетителя: главная открывается
+ * и что-то говорит, пункты меню ведут на живые страницы, за списками стоят
+ * отвечающие ручки, а картинки и записи действительно отдаются раздачей.
  *
- * Что НЕ проверяем здесь (это E2E / Шаг 5+):
- *  - Содержимое страниц-блоков (их ещё нет до Шага 4).
- *  - Авторизация в админке (там creation-first-user flow, отдельно).
- *  - Отправка форм.
+ * Прежняя проверка сверяла заголовок страницы с именем сайта. Это было верно,
+ * пока сайт стоял пустой: тогда в заголовке и правда было имя. На наполненном
+ * сайте там стоит заголовок обложки, и проверка краснела на здоровом сайте -
+ * то есть не сторожила ничего.
+ *
+ * Отдельно проверяются адреса медиа: раздача одного из сайтов неделями
+ * отвечала отказом, и заметили это люди. Смоук читал разметку и по адресам
+ * не ходил.
  */
 
-test.describe('Web Holy Grail — smoke', () => {
-  test('главная фронта рендерит title из CMS (R3)', async ({ page }) => {
+/** Сколько адресов медиа проверять со страницы: хватает нескольких, прогон не резиновый. */
+const MEDIA_LIMIT = 8;
+
+/** Собирает со страницы адреса картинок, постеров и нарезок. */
+async function mediaUrls(page: Page): Promise<string[]> {
+  return page.evaluate((limit) => {
+    const found = new Set<string>();
+
+    for (const img of Array.from(document.querySelectorAll('img'))) {
+      const src = img.currentSrc || img.src;
+      if (src && !src.startsWith('data:')) found.add(src);
+    }
+    for (const video of Array.from(document.querySelectorAll('video'))) {
+      const poster = video.getAttribute('poster');
+      if (poster) found.add(poster);
+      const source = video.querySelector('source')?.getAttribute('src');
+      if (source) found.add(source);
+    }
+
+    return Array.from(found).slice(0, limit);
+  }, MEDIA_LIMIT);
+}
+
+test.describe('Смоук: сайт живой', () => {
+  test('главная открывается и говорит о себе', async ({ page }) => {
     const response = await page.goto('/');
-    expect(response?.status(), 'GET / должен вернуть 200').toBe(200);
+    expect(response?.status(), 'главная должна отвечать').toBe(200);
 
-    // <title> приходит из SiteSettings.siteName (см. client/src/app/layout.tsx).
-    // Если CMS отвалилась — генерируется fallback (см. siteSettingsFallback в lib).
-    const siteName = process.env.SMOKE_SITE_NAME ?? 'Site';
-    await expect(page).toHaveTitle(new RegExp(siteName));
+    const title = await page.title();
+    expect(title.trim().length, 'у страницы должен быть заголовок').toBeGreaterThan(0);
 
-    // H1 — тот же siteName из contracts, sanity-check что server-fetch отработал.
-    await expect(page.getByRole('heading', { level: 1 })).toContainText(siteName);
+    const heading = page.getByRole('heading', { level: 1 }).first();
+    await expect(heading, 'на главной должен быть заголовок первого уровня').toBeVisible();
+    expect(
+      (await heading.innerText()).trim().length,
+      'заголовок не должен быть пустым',
+    ).toBeGreaterThan(0);
   });
 
-  test('админка Payload открывается, интерфейс на русском', async ({ page }) => {
-    const response = await page.goto(`${CMS_BASE_URL}/admin`);
-    expect(response?.status(), 'GET /admin должен вернуть 200').toBe(200);
+  test('пункты меню ведут на живые страницы', async ({ page }) => {
+    await page.goto('/');
 
-    // Title задаётся через payload.config.ts `admin.meta.titleSuffix`.
-    const siteName = process.env.SMOKE_SITE_NAME ?? 'Site';
-    await expect(page).toHaveTitle(new RegExp(siteName));
+    const links = await page.evaluate(() => {
+      const nav = document.querySelector('header') ?? document.body;
+      return Array.from(nav.querySelectorAll('a[href^="/"]'))
+        .map((a) => a.getAttribute('href') ?? '')
+        .filter((href) => href && !href.startsWith('//') && !href.startsWith('/#'))
+        .slice(0, 6);
+    });
 
-    // Если уже есть admin (есть в локальной БД) — должна быть форма входа («Войти» / «Электронная почта»).
-    // Если первый запуск (БД пустая) — будет «Создание первого пользователя».
-    // Оба заголовка — на русском. Проверяем что НЕ английский.
-    const html = await page.content();
-    expect(html, 'админка должна быть на русском').toMatch(
-      /Войти|Email|Создание первого пользователя|Добро пожаловать/,
-    );
+    expect(links.length, 'в шапке должны быть ссылки на страницы').toBeGreaterThan(0);
+
+    for (const href of links) {
+      const response = await page.request.get(href);
+      expect(response.status(), `страница ${href} должна отвечать`).toBeLessThan(400);
+    }
+  });
+
+  test('картинки и записи отдаются раздачей', async ({ page }) => {
+    await page.goto('/');
+    // Ленивые картинки грузятся по мере прокрутки: без этого со страницы
+    // собирается один-два адреса из начала.
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    await page.waitForTimeout(1500);
+
+    const urls = await mediaUrls(page);
+    expect(urls.length, 'на главной должны быть картинки или записи').toBeGreaterThan(0);
+
+    for (const url of urls) {
+      const response = await page.request.get(url);
+      expect(response.status(), `раздача не отдаёт ${url}`).toBeLessThan(400);
+    }
+  });
+
+  test('настройки сайта приходят из CMS', async ({ page }) => {
+    const response = await page.request.get(`${CMS_BASE_URL}/api/globals/site-settings?depth=0`);
+    expect(response.status(), 'настройки сайта должны отдаваться').toBe(200);
+
+    const settings = (await response.json()) as { siteName?: string };
+    expect(
+      (settings.siteName ?? '').trim().length,
+      'у сайта должно быть имя в настройках',
+    ).toBeGreaterThan(0);
+  });
+
+  /*
+    Язык админки Payload выбирает по языку браузера, а не по настройке сайта:
+    та задаёт лишь запасной. Поэтому язык зритель просит явно - иначе проверка
+    краснеет на здоровой админке, открытой браузером с английским языком.
+  */
+  test.describe('админка', () => {
+    test.use({ locale: 'ru-RU', extraHTTPHeaders: { 'Accept-Language': 'ru-RU,ru' } });
+
+    test('открывается и говорит по-русски', async ({ page }) => {
+      const response = await page.goto(`${CMS_BASE_URL}/admin`);
+      expect(response?.status(), 'админка должна отвечать').toBe(200);
+
+      const html = await page.content();
+      expect(html, 'админка должна быть на русском').toMatch(
+        /Войти|Электронная почта|Создание первого пользователя|Добро пожаловать/,
+      );
+    });
   });
 });
