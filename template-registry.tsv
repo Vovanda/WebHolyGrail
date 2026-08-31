@@ -500,6 +500,8 @@ overlay	src/cms/migrations/20260831_115553_collapsible_block.json
 overlay	src/cms/migrations/20260831_115553_collapsible_block.ts
 overlay	src/cms/migrations/20260831_160500_hero_video_media.json
 overlay	src/cms/migrations/20260831_160500_hero_video_media.ts
+overlay	src/cms/migrations/20260831_223005_anchor.json
+overlay	src/cms/migrations/20260831_223005_anchor.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts
