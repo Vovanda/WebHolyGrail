@@ -16,16 +16,22 @@ import { createKeyLoader } from './key-loader';
  * он на обложку не нажимал.
  */
 export async function attachStream(video: HTMLVideoElement, src: string): Promise<() => void> {
-  if (video.canPlayType('application/vnd.apple.mpegurl')) {
+  const { default: Hls } = await import('hls.js');
+
+  /*
+    Спрашиваем библиотеку, а не браузер. На вопрос «умеешь ли ты нарезку»
+    Chromium отвечает «возможно» и не умеет: отданный ему манифест остаётся
+    без кадров, а кадр - чёрным. Поэтому нативный путь остаётся запасным, для
+    Safari и телефонов, где своей поддержки хватает, а библиотека не работает.
+  */
+  if (!Hls.isSupported()) {
+    if (!video.canPlayType('application/vnd.apple.mpegurl')) return () => {};
     video.src = src;
     return () => {
       video.removeAttribute('src');
       video.load();
     };
   }
-
-  const { default: Hls } = await import('hls.js');
-  if (!Hls.isSupported()) return () => {};
 
   const hls = new Hls({
     // Нижняя ступень: фон приглушён фильтром и замедлен, разницу в чёткости

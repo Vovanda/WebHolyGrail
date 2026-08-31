@@ -55,8 +55,22 @@ export function VideoBackdrop({
     void import('./Video/backdrop-stream')
       .then(({ attachStream }) => attachStream(el, src))
       .then((stop) => {
-        if (dropped) stop();
-        else detach = stop;
+        if (dropped) {
+          stop();
+          return;
+        }
+        detach = stop;
+
+        /*
+          Запуск повторяется здесь: `autoPlay` срабатывает на пустом кадре -
+          источника у него тогда ещё нет, потому что нарезку подключает
+          библиотека, - и второй раз браузер сам не пробует. Скорость задаётся
+          тут же: подключение потока сбрасывает её к обычной.
+        */
+        el.playbackRate = rate;
+        void el.play().catch(() => {
+          // Браузер вправе отказать - тогда остаётся постер, и это не поломка.
+        });
       })
       .catch(() => {
         // Не собрали поток — остаётся постер. Обложка не то место, где стоит
@@ -67,7 +81,7 @@ export function VideoBackdrop({
       dropped = true;
       detach?.();
     };
-  }, [src, stream]);
+  }, [src, stream, rate]);
 
   /*
     Своё начало и свой круг: повтор браузера всегда возвращает в ту же точку,
