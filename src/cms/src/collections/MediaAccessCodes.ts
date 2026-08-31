@@ -24,6 +24,19 @@ import { codeExpiry, codeRules, type VideoCodeSettings } from '../lib/video/code
 export const MediaAccessCodes: CollectionConfig = {
   slug: 'media-access-codes',
   labels: { singular: 'Код доступа', plural: 'Коды доступа' },
+  /*
+    Сверху действующие. Коды живут пять минут и копятся десятками за день:
+    в списке по порядку создания живой не найти, а ищут именно его - чтобы
+    продиктовать или отозвать.
+
+    Порядок по сроку и решает: у живого он в будущем, у отработавшего в прошлом.
+    Отработавшие остаются ниже - это след выдачи, по нему видно, кому и когда
+    открывали, и находится он обычным фильтром по сроку.
+
+    Не жёстким фильтром: тот прячет записи и в списке, и в выборе связей, снять
+    его из админки нельзя, и след выдачи пропал бы совсем.
+  */
+  defaultSort: '-expiresAt',
   admin: {
     useAsTitle: 'code',
     defaultColumns: ['code', 'access', 'usedCount', 'expiresAt'],
