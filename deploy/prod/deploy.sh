@@ -588,9 +588,13 @@ fi
 # дисциплина — без неё 80 GB забьются за 10-15 deploy'ев.
 echo
 echo "→ Post-deploy cleanup (unused images / buildx cache)..."
-docker image prune -af 2>&1 | grep -E "Total reclaimed|deleted:" | tail -3 | sed 's/^/   /'
-docker container prune -f 2>&1 | grep -E "Total reclaimed" | tail -1 | sed 's/^/   /'
-docker buildx prune -af --keep-storage 2GB 2>&1 | grep -E "Total" | tail -1 | sed 's/^/   /'
+# Уборка после переключения не должна ронять прогон: сайт уже на новой версии,
+# и красный прогон здесь означает лишь то, что удалять было нечего - `grep`
+# без совпадений возвращает единицу, а `set -e` считает это провалом деплоя.
+# Поймано 31.08.2026 на fitness-mafia: сайт выложен и здоров, прогон красный.
+docker image prune -af 2>&1 | grep -E "Total reclaimed|deleted:" | tail -3 | sed 's/^/   /' || true
+docker container prune -f 2>&1 | grep -E "Total reclaimed" | tail -1 | sed 's/^/   /' || true
+docker buildx prune -af --keep-storage 2GB 2>&1 | grep -E "Total" | tail -1 | sed 's/^/   /' || true
 echo "   Disk: $(df -h / | tail -1 | awk '{print $3" used / "$2" ("$5")"}')"
 
 echo
