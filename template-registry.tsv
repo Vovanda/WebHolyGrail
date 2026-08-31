@@ -191,7 +191,6 @@ mirror	src/client/src/app/(site)/channel/[channel]/v/[code]/page.tsx
 mirror	src/client/src/app/(site)/i/[token]/page.tsx
 mirror	src/client/src/app/api/geo/route.ts
 mirror	src/client/src/app/api/health/route.ts
-mirror	src/client/src/app/internal/domain/demo-code/route.ts
 mirror	src/client/src/app/internal/video/key/[id]/route.ts
 mirror	src/client/src/app/internal/video/manifest/[...path]/route.ts
 mirror	src/client/src/app/internal/video/redeem-link/route.ts
@@ -211,12 +210,6 @@ mirror	src/client/src/blocks/arrangements/Carousel/types.ts
 mirror	src/client/src/blocks/arrangements/ScrollList/index.ts
 mirror	src/client/src/blocks/arrangements/ScrollList/ScrollList.test.tsx
 mirror	src/client/src/blocks/arrangements/ScrollList/ScrollList.tsx
-mirror	src/client/src/blocks/domain/whg/BlockShowcase.tsx
-mirror	src/client/src/blocks/domain/whg/DemoAccessPanel.tsx
-mirror	src/client/src/blocks/domain/whg/DemoAccessSection.tsx
-mirror	src/client/src/blocks/domain/whg/SpecialistDirectory.tsx
-mirror	src/client/src/blocks/domain/whg/SpecialistProfile.tsx
-mirror	src/client/src/blocks/domain/whg/SpecialistTop.tsx
 mirror	src/client/src/blocks/layout/Footer.tsx
 mirror	src/client/src/blocks/layout/Header.tsx
 mirror	src/client/src/blocks/layout/NavDrawer.tsx
@@ -537,9 +530,6 @@ mirror	src/cms/src/blocks/ComparisonTable.ts
 mirror	src/cms/src/blocks/CtaBanner.ts
 mirror	src/cms/src/blocks/CustomMarkup.ts
 mirror	src/cms/src/blocks/DocumentList.ts
-mirror	src/cms/src/blocks/domain/whg/DemoAccess.ts
-mirror	src/cms/src/blocks/domain/whg/SpecialistDirectory.ts
-mirror	src/cms/src/blocks/domain/whg/SpecialistProfile.ts
 mirror	src/cms/src/blocks/engine.ts
 mirror	src/cms/src/blocks/FaqAccordion.ts
 mirror	src/cms/src/blocks/FeatureGrid.ts
@@ -586,7 +576,6 @@ mirror	src/cms/src/collections/Tags.ts
 mirror	src/cms/src/collections/Threads.ts
 mirror	src/cms/src/collections/Users.ts
 mirror	src/cms/src/endpoints/block-parts.ts
-mirror	src/cms/src/endpoints/domain/whg/demo-code.ts
 mirror	src/cms/src/endpoints/toggles.ts
 mirror	src/cms/src/endpoints/video.ts
 mirror	src/cms/src/globals/SiteSettings.ts
@@ -596,8 +585,6 @@ mirror	src/cms/src/jobs/purge-access.task.ts
 mirror	src/cms/src/jobs/purge-key-usage.task.ts
 mirror	src/cms/src/jobs/purge-videos.task.ts
 mirror	src/cms/src/lib/block-parts.ts
-mirror	src/cms/src/lib/domain/whg/demo-code.test.ts
-mirror	src/cms/src/lib/domain/whg/demo-code.ts
 mirror	src/cms/src/lib/enum-names.ts
 mirror	src/cms/src/lib/hls.test.ts
 mirror	src/cms/src/lib/hls.ts
