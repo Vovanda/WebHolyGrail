@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import type { PanelConfig, SiteLayoutConfig, SiteSettings, SlotName } from 'contracts';
 
+import { MediaReveal, PageLightbox } from '@/blocks/primitives/Media';
+
 import { panelMatchesRoute } from './panel-routes';
 import { panelScreenClass } from './panel-visibility';
 import { renderPanelContent } from './renderPanelContent';
@@ -105,6 +107,15 @@ export function SiteLayout({
       {grouped.right.map((panel) => (
         <PanelHost key={panel.id} panel={panel} settings={settings} />
       ))}
+
+      {/*
+        Лента картинок на весь экран. Стоит здесь одна на весь сайт: блоки в неё
+        ничего не подключают, картинку записывает сам кубик `MediaImage`.
+      */}
+      <PageLightbox />
+
+      {/* Снимает размытую заготовку, когда кадр пришёл. */}
+      <MediaReveal />
     </div>
   );
 }

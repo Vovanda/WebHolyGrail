@@ -3,6 +3,11 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import type { SiteSettings } from 'contracts';
 
 import { getArticleBySlug, getPageBySlug, getSiteSettings } from '@/lib/api-client';
+import { editorPass } from '@/lib/editor';
+import { RefreshOnSave } from '@/blocks/primitives/RefreshOnSave';
+import { PreviewScrollFollower } from '@/blocks/primitives/PreviewScrollFollower';
+import { PreviewLiveData } from '@/blocks/primitives/PreviewLiveData';
+import { withPreviewDraft } from '@/lib/preview-draft';
 import { FALLBACK_SITE_SETTINGS } from '@/layouts/presets/fallback-site-settings';
 import { renderBlockNode } from '@/layouts/site-layout';
 import { resolveMediaUrl } from '@/lib/media';
@@ -96,10 +101,18 @@ function siteJsonLd(settings: SiteSettings): string {
 export default async function CatchallPage({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
 
-  const [page, settings] = await Promise.all([
-    getPageBySlug(resolveSlug(slug)).catch(() => null),
+  /*
+    Редактору страница отдаёт правку, посетителю - опубликованное: в панели
+    рядом с формой открыта эта же страница, и без черновика в ней видно
+    прошлое состояние.
+  */
+  const pass = await editorPass();
+  const [saved, settings] = await Promise.all([
+    getPageBySlug(resolveSlug(slug), pass).catch(() => null),
     getSiteSettings().catch(() => null),
   ]);
+  // Правка из панели, ещё не сохранённая, главнее сохранённой.
+  const page = withPreviewDraft(saved, pass, 'pages');
 
   if (!page) {
     const legacySlug = resolveSlug(slug);
@@ -117,6 +130,9 @@ export default async function CatchallPage({ params }: { params: Promise<Params>
 
   return (
     <>
+      <RefreshOnSave />
+      <PreviewLiveData />
+      <PreviewScrollFollower />
       {resolveSlug(slug) === 'home' && (
         <script
           type="application/ld+json"

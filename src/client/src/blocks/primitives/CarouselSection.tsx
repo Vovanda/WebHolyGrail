@@ -1,8 +1,9 @@
-import type { BlockNode, CarouselBlockData, CarouselCard, SiteSettings } from 'contracts';
+import type { BlockNode, CarouselBlockData, CarouselCard, MediaRef, SiteSettings } from 'contracts';
 
 import { CarouselDeck, CarouselItem } from '@/blocks/arrangements/Carousel';
+import { MediaImage } from '@/blocks/primitives/Media';
+import { cardPlace } from '@/lib/carousel';
 import { getChannel, listArticles } from '@/lib/api-client';
-import { resolveMediaUrl } from '@/lib/media';
 
 /**
  * Карусель как секция страницы.
@@ -29,6 +30,7 @@ export async function CarouselSection({ node }: CarouselSectionProps) {
   if (cards.length === 0) return null;
 
   const autoplay = data.autoplaySeconds ? data.autoplaySeconds * 1000 : undefined;
+  const place = cardPlace(data);
 
   return (
     <section className="py-10 md:py-14">
@@ -62,7 +64,7 @@ export async function CarouselSection({ node }: CarouselSectionProps) {
                 key={index}
                 width={data.mode === 'single' ? 'full' : (data.cardWidth ?? 'min(18rem, 80vw)')}
               >
-                <CarouselCardView card={card} />
+                <CarouselCardView card={card} place={place} />
               </CarouselItem>
             ))}
           </CarouselDeck>
@@ -76,11 +78,11 @@ export async function CarouselSection({ node }: CarouselSectionProps) {
  * Карточка, готовая к показу.
  *
  * @remarks
- * У карточки из админки картинка приходит ссылкой на медиа, у записи блога -
- * уже собранным адресом. Готовый адрес рядом избавляет ленту от знания, из
- * какой коллекции пришло изображение.
+ * У карточки из админки картинка лежит в своём поле, у записи блога и видео -
+ * в обложке и кадре. Все три приходят документом медиатеки, поэтому лента
+ * кладёт их в одно поле и не знает, из какой коллекции взялась картинка.
  */
-type CarouselCardView = CarouselCard & { readonly imageUrl?: string };
+type CarouselCardView = CarouselCard & { readonly media?: MediaRef | null };
 
 /**
  * Собирает карточки: заведённые руками либо взятые из живой коллекции.
@@ -114,7 +116,7 @@ async function collectCards(
     return found.videos.slice(0, limit).map((video) => ({
       title: video.title,
       link: { href: `/@${channel}/v/${video.code}`, label: video.title },
-      ...(video.poster ? { imageUrl: video.poster } : {}),
+      ...(video.poster ? { media: video.poster } : {}),
     }));
   }
 
@@ -130,21 +132,27 @@ async function collectCards(
     title: article.title,
     ...(article.lead ? { text: article.lead } : {}),
     link: { href: `/blog/${article.slug}`, label: article.title },
-    ...(article.cover?.url ? { imageUrl: article.cover.url } : {}),
+    ...(article.cover ? { media: article.cover } : {}),
   }));
 }
 
-function CarouselCardView({ card }: { readonly card: CarouselCardView }) {
-  const src = card.imageUrl ?? resolveMediaUrl(card.image?.media);
+function CarouselCardView({
+  card,
+  place,
+}: {
+  readonly card: CarouselCardView;
+  readonly place: string;
+}) {
+  const media = card.media ?? card.image?.media;
   const body = (
     <>
-      {src && (
-        <img
-          data-part="card-media"
-          src={src}
+      {media && (
+        <MediaImage
+          media={media}
+          place={place}
           alt={card.image?.alt ?? card.title ?? ''}
-          loading="lazy"
           className="aspect-video w-full rounded-lg object-cover"
+          zoom={false}
         />
       )}
       {card.title && (

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 
-import type { BlockNode, SiteSettings } from 'contracts';
+import type { BlockNode, MediaRef, SiteSettings } from 'contracts';
 
 import {
   countSpecialistsByCity,
@@ -11,7 +11,9 @@ import {
 } from '@/lib/api-client';
 
 import { catalogPath } from '@/lib/catalog-path';
+import { CARD_PLACE } from '@/lib/media';
 import { CardRows } from '@/blocks/arrangements/CardRows';
+import { MediaImage } from '@/blocks/primitives/Media';
 import { RatingStars } from '@/blocks/primitives/RatingStars';
 import { SpecialistTop, type TopCity, type TopPerson } from './SpecialistTop';
 
@@ -71,10 +73,17 @@ function cityNameOf(doc: SpecialistDoc, cities: ReadonlyArray<CityDoc>): string 
   return id ? cities.find((c) => String(c.id) === id)?.name : undefined;
 }
 
-function photoUrl(doc: SpecialistDoc): string | undefined {
+/**
+ * Фото специалиста документом медиатеки.
+ *
+ * @remarks
+ * Документ, а не адрес: по нему показ берёт ступень под размер карточки.
+ * Голый номер вместо документа приходит там, где запрос идёт без вложенности -
+ * рисовать по нему нечего.
+ */
+function photoOf(doc: SpecialistDoc): MediaRef | null {
   const photo = doc.photo;
-  if (!photo || typeof photo !== 'object') return undefined;
-  return (photo as { url?: string }).url;
+  return photo && typeof photo === 'object' ? (photo as MediaRef) : null;
 }
 
 /** Тасование Фишера-Йетса: равномерное, в отличие от sort(() => Math.random()). */
@@ -88,7 +97,7 @@ function shuffled<T>(items: readonly T[]): T[] {
 }
 
 function Card({ doc }: { readonly doc: SpecialistDoc }) {
-  const url = photoUrl(doc);
+  const photo = photoOf(doc);
   const href = doc.slug ? catalogPath(doc.slug) : undefined;
   const disciplines = (doc.disciplines ?? []).map((d) => d.title).filter(Boolean);
 
@@ -97,12 +106,12 @@ function Card({ doc }: { readonly doc: SpecialistDoc }) {
       data-part="card"
       className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-accent"
     >
-      {url ? (
-        // eslint-disable-next-line @next/next/no-img-element -- источник — S3 нашей CMS, размеры задаёт контейнер
-        <img
-          data-part="card-media"
-          src={url}
+      {photo ? (
+        <MediaImage
+          media={photo}
+          place={CARD_PLACE}
           alt={doc.fullName}
+          zoom={false}
           className="aspect-[4/3] w-full object-cover"
         />
       ) : (
@@ -243,7 +252,7 @@ async function TopView({ data }: { readonly data: SpecialistDirectoryData }) {
     fullName: doc.fullName,
     ...(doc.headline ? { headline: doc.headline } : {}),
     ...(doc.slug ? { slug: doc.slug } : {}),
-    ...(photoUrl(doc) ? { photoUrl: photoUrl(doc)! } : {}),
+    ...(photoOf(doc) ? { photo: photoOf(doc)! } : {}),
     disciplines: (doc.disciplines ?? []).map((d) => d.title ?? '').filter(Boolean),
     cityId: cityIdOf(doc),
     ...(cityNameOf(doc, cities) ? { cityName: cityNameOf(doc, cities)! } : {}),

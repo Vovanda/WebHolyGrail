@@ -1,6 +1,7 @@
 import type { BlogAuthor } from 'contracts';
 
 import { cn } from '@/lib/utils';
+import { MediaImage } from '@/blocks/primitives/Media';
 
 /**
  * AuthorBadge — компактная meta-карточка автора (avatar + name + role).
@@ -19,11 +20,12 @@ export function AuthorBadge({ author, className, variant = 'compact' }: AuthorBa
     return (
       <a href={href} className={cn('flex items-center gap-3 group', className)}>
         {author.avatar?.url && (
-          <img
-            src={author.avatar.url}
+          <MediaImage
+            media={author.avatar}
+            place="40px"
             alt={author.avatar.alt ?? author.name}
             className="w-10 h-10 rounded-full object-cover"
-            loading="lazy"
+            zoom={false}
           />
         )}
         <div className="flex flex-col">
@@ -37,8 +39,9 @@ export function AuthorBadge({ author, className, variant = 'compact' }: AuthorBa
   return (
     <a href={href} className={cn('inline-flex items-center gap-1.5 hover:underline', className)}>
       {author.avatar?.url && (
-        <img
-          src={author.avatar.url}
+        <MediaImage
+          media={author.avatar}
+          place="20px"
           alt=""
           className="w-5 h-5 rounded-full object-cover"
           loading="lazy"

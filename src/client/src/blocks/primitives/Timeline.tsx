@@ -4,12 +4,7 @@ import { useState } from 'react';
 import type { BlockNode, SiteSettings } from 'contracts';
 
 import { ContentFrame } from '@/layouts/ContentFrame';
-
-interface TimelineEntry {
-  readonly year: string;
-  readonly icon?: string;
-  readonly body: string;
-}
+import { sortTimeline, type TimelineEntry, type TimelineSort } from '@/lib/timeline';
 
 /**
  * Timeline — вертикальный список истории / «нашего пути».
@@ -22,7 +17,6 @@ interface TimelineEntry {
  * Поведение: первые `visibleCount` записей видны всегда; остальные скрыты под
  * кнопкой «Показать всю историю ⌄». Клик раскрывает остальное, кнопка исчезает.
  */
-type SortMode = 'year-desc' | 'year-asc' | 'manual';
 
 export function Timeline({
   node,
@@ -32,18 +26,18 @@ export function Timeline({
       heading?: string;
       entries?: readonly TimelineEntry[];
       visibleCount?: number;
-      sort?: SortMode;
+      sort?: TimelineSort;
     };
   };
   readonly settings: SiteSettings;
 }) {
   const rawEntries: readonly TimelineEntry[] = node.data?.entries ?? [];
   const visibleCount = node.data?.visibleCount ?? 3;
-  const sort: SortMode = node.data?.sort ?? 'year-desc';
+  const sort: TimelineSort = node.data?.sort ?? 'year-desc';
   // Заголовок задаётся в админке; «Наш путь» — только запасной вариант.
   const heading = node.data?.heading?.trim() || 'Наш путь';
 
-  const entries = sortEntries(rawEntries, sort);
+  const entries = sortTimeline(rawEntries, sort);
 
   const [expanded, setExpanded] = useState(false);
 
@@ -72,7 +66,9 @@ export function Timeline({
             if (!isVisible) return null;
             return (
               <li
-                key={entry.year}
+                /* Ключ - место записи в перечне: год повторяется, когда
+                   в одном году несколько событий, и показ терял часть строк. */
+                key={idx}
                 className="relative pb-9"
                 style={
                   isHiddenInitially
@@ -130,20 +126,6 @@ export function Timeline({
       </ContentFrame>
     </section>
   );
-}
-
-/**
- * Сортировка по числу из строки года. `manual` сохраняет порядок drag-sort.
- * Год парсится через первое число в строке — поддерживает «2026», «2026-2027», «весна 2024».
- */
-function sortEntries(entries: readonly TimelineEntry[], sort: SortMode): readonly TimelineEntry[] {
-  if (sort === 'manual') return entries;
-  const withYear = entries.map((e) => {
-    const m = e.year.match(/-?\d{2,4}/);
-    return { entry: e, num: m ? Number(m[0]) : 0 };
-  });
-  withYear.sort((a, b) => (sort === 'year-desc' ? b.num - a.num : a.num - b.num));
-  return withYear.map((x) => x.entry);
 }
 
 function ExpandToggle({

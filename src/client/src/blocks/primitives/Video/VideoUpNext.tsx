@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import type { VideoSetItem } from 'contracts';
+import { MediaImage } from '@/blocks/primitives/Media';
 
 /**
  * Что смотреть дальше — карточка поверх кадра, когда видео кончился.
@@ -81,11 +82,12 @@ export function VideoUpNext({ item, video, onSelect }: VideoUpNextProps) {
         className="group flex w-full max-w-xs flex-col gap-2 rounded-xl border border-dark-block-fg/20 bg-dark-block p-2 text-left shadow-lg transition-colors hover:border-dark-block-fg/50"
       >
         {item.poster ? (
-          <img
-            data-part="card-thumb"
-            src={item.poster}
+          <MediaImage
+            media={typeof item.poster === 'string' ? null : item.poster}
+            place="(max-width: 768px) 40vw, 240px"
             alt=""
             className="aspect-video w-full rounded-lg object-cover"
+            zoom={false}
           />
         ) : (
           <span

@@ -1,6 +1,7 @@
 import type { BlogThread } from 'contracts';
 
 import { cn } from '@/lib/utils';
+import { MediaImage } from '@/blocks/primitives/Media';
 
 /**
  * ThreadCard — карточка серии (журнала записей). Click → /blog/thread/<slug>.
@@ -52,12 +53,13 @@ export function ThreadCard({
         )}
       >
         {cover?.url && (
-          <img
-            data-part="card-media"
-            src={cover.url}
+          <MediaImage
+            media={cover}
+            place="(max-width: 768px) 100vw, 640px"
             alt={cover.alt ?? thread.title}
             className="w-full aspect-[16/10] object-cover md:h-full md:aspect-auto"
             loading="eager"
+            zoom={false}
           />
         )}
         <div className="flex flex-col justify-center gap-3 p-6 md:p-8 lg:p-10">
@@ -121,12 +123,13 @@ export function ThreadCard({
     >
       <div className="overflow-hidden bg-surface">
         {thread.cover?.url ? (
-          <img
-            data-part="card-media"
-            src={thread.cover.url}
+          <MediaImage
+            media={thread.cover}
+            place="(max-width: 768px) 100vw, 320px"
             alt={thread.cover.alt ?? thread.title}
             className="w-full aspect-[4/3] object-cover transition-transform duration-300 group-hover:scale-[1.03]"
             loading="lazy"
+            zoom={false}
           />
         ) : (
           // Без обложки плитка не должна схлопываться: сетка поедет, и карточки

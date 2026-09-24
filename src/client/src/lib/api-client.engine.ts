@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 
 import type {
   BlogArticle,
+  BlogMediaRef,
   VideoSetItem,
   BlogAuthor,
   BlogTag,
@@ -19,6 +20,9 @@ import type {
   VideoStoryboard,
 } from 'contracts';
 
+import { CMS_URL } from './cms-url';
+import { editorHeaders } from './editor';
+
 /**
  * Минимальный generic-клиент к Payload CMS REST API для template-уровневых
  * collections (Pages / Media / Users / FormSubmissions / ReusableBlocks /
@@ -30,34 +34,85 @@ import type {
  * R3 — `client/` знает только про `contracts`, никаких прямых импортов из
  * `cms/`.
  *
- * Базовый URL — `NEXT_PUBLIC_CMS_URL` (внутри Docker сети `http://cms:3001`,
- * локально вне Docker `http://localhost:3001`).
+ * Базовый адрес - `CMS_URL` из `./cms-url`.
  */
-const CMS_URL = process.env.NEXT_PUBLIC_CMS_URL ?? 'http://localhost:3001';
 
 /**
- * Получить опубликованную страницу по slug. `''` означает главную (→ `home`).
+ * Страница по её имени в адресе; `''` означает главную.
  *
- * @returns страница или `null` если не найдена / не опубликована.
+ * @returns страница или `null`, если её нет или она не опубликована.
+ *
+ * @remarks
+ * Посетителю приходит опубликованное. Редактору, вошедшему в админку, - то,
+ * что он правит прямо сейчас: его кука передаётся дальше, и CMS отдаёт черновик.
+ * Без этого панель предпросмотра показывала бы последнюю опубликованную версию
+ * и правку в ней увидеть было бы нельзя.
  */
-export async function getPageBySlug(slug: string): Promise<PageDoc | null> {
+export async function getPageBySlug(slug: string, viewer = ''): Promise<PageDoc | null> {
+  const draft = Boolean(viewer);
   const query = new URLSearchParams({
     'where[slug][equals]': slug,
-    'where[_status][equals]': 'published',
     // depth=2 — populate media-uploads внутри array-полей блоков (например
     // BuiltWith.items[].screenshot, BlockShowcase.items[].preview).
     depth: '2',
     limit: '1',
+    ...(draft ? { draft: 'true' } : { 'where[_status][equals]': 'published' }),
   });
 
   const response = await fetch(`${CMS_URL}/api/pages?${query.toString()}`, {
     cache: 'no-store',
+    headers: editorHeaders(viewer),
   });
 
   if (!response.ok) return null;
 
   const data = (await response.json()) as { docs: PageDoc[] };
   return data.docs[0] ?? null;
+}
+
+/**
+ * Правка из формы админки, развёрнутая CMS без сохранения.
+ *
+ * @remarks
+ * Форма присылает связи номерами, а странице нужны документы - обложка,
+ * кадры, вложенные блоки. CMS разворачивает присланное тем же запросом, что
+ * и чтение документа: POST с пометкой «это чтение» принимает содержимое
+ * в теле и ничего не записывает. Этим же путём ходит штатный предпросмотр
+ * Payload.
+ *
+ * Запрос идёт от имени редактора (`editorHeaders`).
+ *
+ * @returns развёрнутый документ или `null`, если CMS не развернула.
+ */
+export async function expandDraft({
+  collection,
+  id,
+  data,
+  locale,
+  viewer,
+}: {
+  readonly collection: string;
+  readonly id: string | number;
+  readonly data: unknown;
+  readonly locale?: string | undefined;
+  readonly viewer: string;
+}): Promise<{ id: string | number } | null> {
+  const response = await fetch(
+    `${CMS_URL}/api/${encodeURIComponent(collection)}/${encodeURIComponent(String(id))}`,
+    {
+      method: 'POST',
+      cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Payload-HTTP-Method-Override': 'GET',
+        ...editorHeaders(viewer),
+      },
+      // Тело то же, что шлёт штатный предпросмотр: языки в форме уже сведены.
+      body: JSON.stringify({ data, depth: 2, flattenLocales: false, locale }),
+    },
+  ).catch(() => null);
+  if (!response?.ok) return null;
+  return (await response.json().catch(() => null)) as { id: string | number } | null;
 }
 
 /**
@@ -194,15 +249,25 @@ export async function listArticlesByIds(
   );
 }
 
-export async function getArticleBySlug(slug: string): Promise<BlogArticle | null> {
+/**
+ * Статья по её имени в адресе.
+ *
+ * @remarks
+ * Посетителю приходит опубликованная. Редактору, вошедшему в админку, - та,
+ * что он правит: его кука передаётся дальше, и CMS отдаёт черновик. Без этого
+ * панель предпросмотра показывала бы опубликованную версию.
+ */
+export async function getArticleBySlug(slug: string, viewer = ''): Promise<BlogArticle | null> {
+  const draft = Boolean(viewer);
   const query = new URLSearchParams({
     'where[slug][equals]': slug,
-    'where[status][equals]': 'published',
     depth: '2',
     limit: '1',
+    ...(draft ? { draft: 'true' } : { 'where[status][equals]': 'published' }),
   });
   const response = await fetch(`${CMS_URL}/api/articles?${query.toString()}`, {
     cache: 'no-store',
+    headers: editorHeaders(viewer),
   });
   if (!response.ok) return null;
   const data = (await response.json()) as { docs: BlogArticle[] };
@@ -616,7 +681,8 @@ export async function getVideoByCode(
     playlistUrl: string;
     qualities: ReadonlyArray<number>;
     durationSeconds: number | null;
-    poster: string | null;
+    /** Кадр записи: документ медиатеки, у старой CMS - голый адрес. */
+    poster: BlogMediaRef | string | null;
     sets?: ReadonlyArray<VideoSetRef>;
     subtitles?: ReadonlyArray<VideoSubtitleTrack>;
     chapters?: ReadonlyArray<VideoChapter>;
@@ -634,7 +700,10 @@ export async function getVideoByCode(
     access: doc.access,
     qualities: doc.qualities,
     durationSeconds: doc.durationSeconds,
-    poster: doc.poster ? { id: doc.id, url: doc.poster, alt: '' } : null,
+    poster:
+      typeof doc.poster === 'string'
+        ? { id: doc.id, url: doc.poster, alt: '' }
+        : (doc.poster ?? null),
     subtitles: doc.subtitles ?? [],
     chapters: doc.chapters ?? [],
     storyboard: doc.storyboard ?? null,
@@ -734,7 +803,15 @@ export interface ChannelSet {
   readonly code: string;
   readonly title: string;
   readonly description: string | null;
-  readonly cover: string | null;
+  /**
+   * Обложка подборки документом медиатеки.
+   *
+   * @remarks
+   * Показ берёт по нему ступень под размер места: обложка стоит и полосой
+   * в блоке, и фоном заголовка страницы, и это разные размеры. Из адреса
+   * такого не узнать, а в заголовок уезжал кадр целиком.
+   */
+  readonly cover: MediaRef | null;
   /**
    * Кадры видео плейлиста.
    *
@@ -756,7 +833,15 @@ export interface PlaylistView {
   readonly authorName: string | null;
   readonly title: string;
   readonly description: string | null;
-  readonly cover: string | null;
+  /**
+   * Обложка подборки документом медиатеки.
+   *
+   * @remarks
+   * Показ берёт по нему ступень под размер места: обложка стоит и полосой
+   * в блоке, и фоном заголовка страницы, и это разные размеры. Из адреса
+   * такого не узнать, а в заголовок уезжал кадр целиком.
+   */
+  readonly cover: MediaRef | null;
   /**
    * Тёмная ли обложка.
    *

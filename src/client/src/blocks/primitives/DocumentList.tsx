@@ -1,7 +1,9 @@
 import type { BlockNode, MediaRef, SiteSettings } from 'contracts';
+import { fileKindOf } from 'contracts';
 
 import { CardRows } from '@/blocks/arrangements/CardRows';
 import { resolveMediaUrl } from '@/lib/media';
+import { MediaImage } from '@/blocks/primitives/Media';
 
 /**
  * DocumentList — документы для скачивания.
@@ -47,14 +49,6 @@ function humanSize(bytes: number | undefined): string | undefined {
   return `${Math.max(1, Math.round(bytes / 1024))} КБ`;
 }
 
-function kindOf(mime: string | undefined): string {
-  if (!mime) return 'файл';
-  if (mime === 'application/pdf') return 'PDF';
-  if (mime.startsWith('image/')) return 'изображение';
-  if (mime.startsWith('video/')) return 'видео';
-  return mime.split('/').pop() ?? 'файл';
-}
-
 export function DocumentList({
   node,
 }: {
@@ -98,10 +92,11 @@ export function DocumentList({
                 media,
                 href: resolveMediaUrl(item.file) ?? '',
                 title: item.title?.trim() || media?.filename || 'Документ',
-                meta: [kindOf(media?.mimeType), humanSize(media?.filesize)]
+                meta: [fileKindOf(media?.mimeType), humanSize(media?.filesize)]
                   .filter(Boolean)
                   .join(' · '),
-                preview: resolveMediaUrl(media?.preview as MediaRef | null | undefined),
+                // Сам документ превью: по нему показ выберет ступень под плитку.
+                preview: (media?.preview ?? null) as MediaRef | null,
               };
             })
             .filter((doc) => Boolean(doc.href));
@@ -117,20 +112,20 @@ export function DocumentList({
               className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface no-underline transition-colors hover:border-accent"
             >
               {preview ? (
-                // eslint-disable-next-line @next/next/no-img-element -- источник S3 нашей CMS
-                <img
-                  data-part="card-media"
-                  src={preview}
+                <MediaImage
+                  media={preview}
+                  place="(max-width: 768px) 50vw, 300px"
                   alt=""
-                  aria-hidden="true"
                   className="aspect-[3/4] w-full border-b border-border object-cover object-top"
+                  /* Плитка ведёт к самому файлу: открывать превью крупно незачем. */
+                  zoom={false}
                 />
               ) : (
                 <div
                   aria-hidden="true"
                   className="flex aspect-[3/4] w-full items-center justify-center border-b border-border bg-accent-soft text-2xl font-semibold uppercase text-accent"
                 >
-                  {kindOf(media?.mimeType)}
+                  {fileKindOf(media?.mimeType)}
                 </div>
               )}
               <div className="flex flex-1 flex-col gap-1 p-4">
@@ -159,6 +154,11 @@ export function DocumentList({
                 tileLayout={data.tileLayout}
                 tileLayoutMd={data.tileLayoutMd}
                 tileLayoutSm={data.tileLayoutSm}
+                /*
+                  Карточка документа несёт превью страницы 3:4: растянутая
+                  на всю колонку, она выходит выше экрана.
+                */
+                keepColumns
                 className="mt-6"
               >
                 {(doc) => card(doc)}

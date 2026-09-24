@@ -1,11 +1,14 @@
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 
+import type { MediaRef } from 'contracts';
+
 import { getSiteSettings, getSpecialistBySlug, type SpecialistDoc } from '@/lib/api-client';
 import { renderBlockNode } from '@/layouts/site-layout';
 import { resolveMediaUrl } from '@/lib/media';
 import { CATALOG_RENAMED, catalogPath } from '@/lib/catalog-path';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
+import { MediaImage } from '@/blocks/primitives/Media';
 import { RatingStars } from '@/blocks/primitives/RatingStars';
 
 /**
@@ -32,7 +35,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   const description = doc.seo?.description ?? doc.headline ?? doc.bio?.slice(0, 160);
   // Ссылкой на человека делятся в мессенджерах, и в превью должен быть он,
   // а не логотип сайта: по логотипу все страницы выглядят одинаково.
-  const image = resolveMediaUrl(doc.seo?.ogImage) ?? photoUrl(doc);
+  const image = resolveMediaUrl(doc.seo?.ogImage) ?? resolveMediaUrl(photoOf(doc));
 
   return {
     title,
@@ -54,7 +57,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
  * профили. Без неё карточка человека для робота — обычный текст.
  */
 function personJsonLd(doc: SpecialistDoc, slug: string): string {
-  const photo = photoUrl(doc);
+  const photo = photoOf(doc);
   const city =
     typeof doc.city === 'object' && doc.city ? (doc.city as { name?: string }).name : undefined;
   const links = Object.values(doc.contacts ?? {}).filter(
@@ -78,10 +81,17 @@ function personJsonLd(doc: SpecialistDoc, slug: string): string {
   });
 }
 
-function photoUrl(doc: SpecialistDoc): string | undefined {
+/**
+ * Фото специалиста документом медиатеки.
+ *
+ * @remarks
+ * Документ, а не адрес: по нему показ берёт ступень под размер карточки.
+ * Голый номер вместо документа приходит там, где запрос идёт без вложенности -
+ * рисовать по нему нечего.
+ */
+function photoOf(doc: SpecialistDoc): MediaRef | null {
   const photo = doc.photo;
-  if (!photo || typeof photo !== 'object') return undefined;
-  return (photo as { url?: string }).url;
+  return photo && typeof photo === 'object' ? (photo as MediaRef) : null;
 }
 
 /** Контакты показываем ссылками: с телефона в них тыкают, а не переписывают. */
@@ -291,7 +301,7 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
     );
   }
 
-  const photo = photoUrl(doc);
+  const photo = photoOf(doc);
   const disciplines = (doc.disciplines ?? []).map((d) => d.title).filter(Boolean);
   return (
     <article className="mx-auto max-w-content px-4 pb-10 md:px-6 md:pb-14">
@@ -310,8 +320,15 @@ export default async function SpecialistPage({ params }: { params: Promise<Param
 
       <header className="flex flex-col gap-6 md:flex-row md:items-start">
         {photo && (
-          // eslint-disable-next-line @next/next/no-img-element -- источник S3 нашей CMS
-          <img src={photo} alt={doc.fullName} className="w-full rounded-xl object-cover md:w-64" />
+          /* Фото стоит колонкой шириной в шестнадцать строчных долей, а на узком
+             экране занимает всю ширину. */
+          <MediaImage
+            media={photo}
+            place="(max-width: 768px) 100vw, 256px"
+            alt={doc.fullName}
+            zoom={false}
+            className="w-full rounded-xl object-cover md:w-64"
+          />
         )}
         <div className="flex-1">
           <h1 className="font-display text-3xl font-semibold text-ink md:text-4xl">

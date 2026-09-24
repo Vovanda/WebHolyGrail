@@ -46,6 +46,7 @@ export function CardRows<T>({
   tileLayout,
   tileLayoutMd,
   tileLayoutSm,
+  keepColumns = false,
   as = 'div',
   className,
   children,
@@ -60,6 +61,12 @@ export function CardRows<T>({
   readonly tileLayoutMd?: string | null | undefined;
   /** То же на малом экране, до 767 точек. */
   readonly tileLayoutSm?: string | null | undefined;
+  /**
+   * Карточка держит ширину ряда, даже если карточек меньше, чем колонок:
+   * одна стоит по центру шириной в колонку, а не растягивается во весь ряд.
+   * Без свойства короткий набор делит ширину между собой.
+   */
+  readonly keepColumns?: boolean;
   /**
    * Каким тегом собрать сетку. Список документов и подобное остаётся списком:
    * рисовать перечень набором div значило бы отобрать его смысл у тех,
@@ -82,6 +89,7 @@ export function CardRows<T>({
     { lg: tileLayout, md: tileLayoutMd, sm: tileLayoutSm },
     items.length,
     columns,
+    { keepColumns },
   );
   if (!grid.lg) return null;
 

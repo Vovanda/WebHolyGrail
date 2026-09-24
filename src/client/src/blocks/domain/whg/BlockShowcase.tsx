@@ -3,7 +3,10 @@
 import { CarouselDeck, CarouselItem } from '@/blocks/arrangements/Carousel';
 import type { BlockNode, SiteSettings, MediaRef } from 'contracts';
 
-import { resolveMediaUrl } from '@/lib/media';
+import { MediaImage } from '@/blocks/primitives/Media';
+
+/** Карточка витрины шириной в пятнадцать строчных долей, на узком - почти половина окна. */
+const CARD_PLACE = 'min(15rem, 46vw)';
 
 /**
  * BlockShowcase (WHG-specific) — живая embla-карусель превью блоков template'а.
@@ -21,10 +24,6 @@ export interface BlockShowcaseData {
     readonly label: string;
     readonly preview?: MediaRef | null;
   }[];
-}
-
-function mediaUrl(m: MediaRef | null | undefined): string | null {
-  return resolveMediaUrl(m);
 }
 
 export function BlockShowcase({
@@ -58,7 +57,7 @@ export function BlockShowcase({
         <div className="mt-10">
           <CarouselDeck gap="lg" edge="gap" dots autoplay={4000} loop label={heading}>
             {items.map((item, i) => {
-              const preview = mediaUrl(item.preview);
+              const preview = item.preview;
               return (
                 <CarouselItem key={i} width="min(15rem, 46vw)">
                   <div
@@ -67,11 +66,11 @@ export function BlockShowcase({
                   >
                     <div className="aspect-[4/3] bg-surface relative overflow-hidden">
                       {preview ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          data-part="card-media"
-                          src={preview}
+                        <MediaImage
+                          media={preview}
+                          place={CARD_PLACE}
                           alt={item.label}
+                          zoom={false}
                           className="absolute inset-0 h-full w-full object-cover"
                         />
                       ) : (

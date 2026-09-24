@@ -3,7 +3,11 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
+import type { MediaRef } from 'contracts';
+
 import { CardRows } from '@/blocks/arrangements/CardRows';
+import { MediaImage } from '@/blocks/primitives/Media';
+import { CARD_PLACE } from '@/lib/media';
 import { RatingStars } from '@/blocks/primitives/RatingStars';
 
 /**
@@ -28,7 +32,8 @@ export interface TopPerson {
   readonly fullName: string;
   readonly headline?: string;
   readonly slug?: string;
-  readonly photoUrl?: string;
+  /** Фото документом медиатеки: по нему показ берёт ступень под размер карточки. */
+  readonly photo?: MediaRef;
   readonly disciplines: readonly string[];
   readonly cityId: string | null;
   /** Название города — в карточке оно нужнее списка направлений. */
@@ -166,12 +171,12 @@ export function SpecialistTop({
                 data-part="card"
                 className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-accent"
               >
-                {p.photoUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- источник S3 нашей CMS
-                  <img
-                    data-part="card-media"
-                    src={p.photoUrl}
+                {p.photo ? (
+                  <MediaImage
+                    media={p.photo}
+                    place={CARD_PLACE}
                     alt={p.fullName}
+                    zoom={false}
                     className="aspect-[4/3] w-full object-cover"
                   />
                 ) : (

@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
-import { resolveMediaUrl } from '@/lib/media';
 import type { MediaRef } from 'contracts';
+import { MediaImage } from '@/blocks/primitives/Media';
 
 /**
  * BrandMark — квадратный логотип сайта.
@@ -24,17 +24,25 @@ export function BrandMark({
   readonly size?: number;
   readonly className?: string;
 }) {
-  const logoUrl = resolveMediaUrl(logo ?? null);
+  if (logo) {
+    /*
+      Размер держит обёртка, а не сам кадр: кубик своего стиля в разметке
+      не принимает - он перебил бы вид, заданный блоку.
 
-  if (logoUrl) {
+      Знак ведёт на главную, поэтому открытие крупно ему не нужно. Ступени
+      же нужны: владелец заливает логотип как есть, и в значок тридцати точек
+      уезжал бы файл на весь экран.
+    */
     return (
-      /* eslint-disable-next-line @next/next/no-img-element */
-      <img
-        src={logoUrl}
-        alt={siteName}
-        className={cn('block object-contain', className)}
-        style={{ width: size, height: size }}
-      />
+      <span className={cn('block', className)} style={{ width: size, height: size }}>
+        <MediaImage
+          media={logo}
+          place={`${size}px`}
+          alt={siteName}
+          className="block h-full w-full object-contain"
+          zoom={false}
+        />
+      </span>
     );
   }
 

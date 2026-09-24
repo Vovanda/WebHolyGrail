@@ -9,6 +9,7 @@ import 'yet-another-react-lightbox/plugins/counter.css';
 
 import { cn } from '@/lib/utils';
 import { PhotoCountBadge } from './PhotoCountBadge';
+import { LANE_LABELS } from './Media/lane-look';
 
 /**
  * LightboxImageGroup — flat client-component для фото-группы с lightbox.
@@ -161,6 +162,7 @@ export function LightboxImageGroup({
         index={index ?? 0}
         on={{ view: ({ index: i }) => onIndexChange(i) }}
         plugins={[Zoom, Counter]}
+        labels={LANE_LABELS}
         counter={{ container: { style: { top: 'unset', bottom: 16, left: 16 } } }}
         zoom={{ maxZoomPixelRatio: 3, doubleTapDelay: 250 }}
         controller={{ closeOnPullDown: true, closeOnBackdropClick: true }}

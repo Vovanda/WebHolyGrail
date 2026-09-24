@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import { getSiteSettings, getTagBySlug, listArticles } from '@/lib/api-client';
-import { resolveBlogSettings } from '@/lib/blog-settings';
+import { blogColumn, resolveBlogSettings } from '@/lib/blog-settings';
 import { PostList } from '@/blocks/primitives/Blog/PostList';
 import { Pagination } from '@/blocks/primitives/Blog/Pagination';
 
@@ -38,6 +38,7 @@ export default async function TagPage({
   if (!tag) notFound();
 
   const blogSettings = resolveBlogSettings(settings);
+  const column = blogColumn(blogSettings.columnWidth);
   const {
     docs,
     totalPages,
@@ -50,7 +51,9 @@ export default async function TagPage({
   });
 
   return (
-    <main className="mx-auto max-w-wide px-4 md:px-6 py-8 md:py-12 flex flex-col gap-8 md:gap-12">
+    <main
+      className={`mx-auto ${column.className} px-4 md:px-6 py-8 md:py-12 flex flex-col gap-8 md:gap-12`}
+    >
       <header className="text-center flex flex-col gap-3">
         <p className="text-muted text-sm uppercase tracking-wide">Тема</p>
         <h1 className="text-h1 font-display font-semibold text-ink tracking-tight">{tag.label}</h1>

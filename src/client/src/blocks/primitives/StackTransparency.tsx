@@ -51,9 +51,10 @@ export function StackTransparency({
                 icon={item.icon}
                 label={item.label}
                 size={48}
+                background="logo-plate"
                 rounded="md"
                 innerScale={0.7}
-                className="!bg-white border border-border shadow-sm"
+                className="border border-border shadow-sm"
               />
               {item.href ? (
                 <Link

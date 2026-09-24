@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import type { MediaRef } from 'contracts';
+
 import { listCities, listSpecialists, type CityDoc, type SpecialistDoc } from '@/lib/api-client';
 
 import { permanentRedirect } from 'next/navigation';
@@ -9,7 +11,9 @@ import { CATALOG_RENAMED, catalogPath } from '@/lib/catalog-path';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { CardRows } from '@/blocks/arrangements/CardRows';
 import { CatalogFilters } from '@/blocks/primitives/CatalogFilters';
+import { MediaImage } from '@/blocks/primitives/Media';
 import { RatingStars } from '@/blocks/primitives/RatingStars';
+import { CARD_PLACE, resolveMediaUrl } from '@/lib/media';
 
 /**
  * /specialists — полный список специалистов с фильтром по городу.
@@ -31,10 +35,17 @@ export const metadata: Metadata = {
 
 type Search = { city?: string; skill?: string };
 
-function photoUrl(doc: SpecialistDoc): string | undefined {
+/**
+ * Фото специалиста документом медиатеки.
+ *
+ * @remarks
+ * Документ, а не адрес: по нему показ берёт ступень под размер карточки.
+ * Голый номер вместо документа приходит там, где запрос идёт без вложенности -
+ * рисовать по нему нечего.
+ */
+function photoOf(doc: SpecialistDoc): MediaRef | null {
   const photo = doc.photo;
-  if (!photo || typeof photo !== 'object') return undefined;
-  return (photo as { url?: string }).url;
+  return photo && typeof photo === 'object' ? (photo as MediaRef) : null;
 }
 
 function cityIdOf(doc: SpecialistDoc): string | null {
@@ -45,14 +56,19 @@ function cityIdOf(doc: SpecialistDoc): string | null {
 }
 
 function Card({ doc, cityName }: { readonly doc: SpecialistDoc; readonly cityName?: string }) {
-  const url = photoUrl(doc);
+  const photo = photoOf(doc);
   const disciplines = (doc.disciplines ?? []).map((d) => d.title).filter(Boolean);
   return (
     <Link href={doc.slug ? catalogPath(doc.slug) : '#'} className="no-underline">
       <article className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface transition-colors hover:border-accent">
-        {url ? (
-          // eslint-disable-next-line @next/next/no-img-element -- источник S3 нашей CMS
-          <img src={url} alt={doc.fullName} className="aspect-[4/3] w-full object-cover" />
+        {photo ? (
+          <MediaImage
+            media={photo}
+            place={CARD_PLACE}
+            alt={doc.fullName}
+            zoom={false}
+            className="aspect-[4/3] w-full object-cover"
+          />
         ) : (
           <div className="aspect-[4/3] w-full bg-accent-soft" aria-hidden="true" />
         )}
@@ -93,7 +109,7 @@ function listJsonLd(people: readonly SpecialistDoc[]): string {
         '@type': 'Person',
         name: doc.fullName,
         ...(doc.slug ? { url: catalogPath(doc.slug) } : {}),
-        ...(photoUrl(doc) ? { image: photoUrl(doc) } : {}),
+        ...(resolveMediaUrl(photoOf(doc)) ? { image: resolveMediaUrl(photoOf(doc)) } : {}),
         ...(doc.headline ? { jobTitle: doc.headline } : {}),
       },
     })),

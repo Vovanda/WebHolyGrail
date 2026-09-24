@@ -1,12 +1,14 @@
 import type { BlogArticle, BlogGlobalSettings } from 'contracts';
 import { resolveDisplay } from 'contracts';
 
+import { CARD_PLACE } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
 import { PublishedDateBadge } from './PublishedDateBadge';
 import { ReadingTimeBadge } from './ReadingTimeBadge';
 import { AuthorBadge } from './AuthorBadge';
 import { TagList } from './TagList';
+import { MediaImage } from '@/blocks/primitives/Media';
 
 /**
  * PostCard — превью одной статьи блога. Server component (R14).
@@ -53,12 +55,14 @@ export function PostCard({ article, globalBlog, variant = 'card', className }: P
       <article data-part="card" className={cn('group relative', className)}>
         {article.cover?.url && (
           <div className="overflow-hidden rounded-lg mb-6">
-            <img
-              data-part="card-media"
-              src={article.cover.url}
+            <MediaImage
+              media={article.cover}
+              place="(max-width: 768px) 100vw, 768px"
               alt={article.cover.alt ?? article.title}
               className="w-full aspect-[16/9] object-cover transition-transform duration-300 group-hover:scale-[1.02]"
               loading="eager"
+              /* Карточка ведёт к статье: открывать обложку крупно незачем. */
+              zoom={false}
             />
           </div>
         )}
@@ -96,12 +100,12 @@ export function PostCard({ article, globalBlog, variant = 'card', className }: P
         >
           {cover?.url && (
             <div className="shrink-0 overflow-hidden rounded-md md:w-56">
-              <img
-                data-part="card-media"
-                src={cover.url}
+              <MediaImage
+                media={cover}
+                place="(max-width: 768px) 100vw, 224px"
                 alt={cover.alt ?? article.title}
                 className="w-full aspect-[16/10] object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                loading="lazy"
+                zoom={false}
               />
             </div>
           )}
@@ -166,12 +170,12 @@ export function PostCard({ article, globalBlog, variant = 'card', className }: P
     >
       {article.cover?.url && (
         <div className="overflow-hidden rounded-md">
-          <img
-            data-part="card-media"
-            src={article.cover.url}
+          <MediaImage
+            media={article.cover}
+            place={CARD_PLACE}
             alt={article.cover.alt ?? article.title}
             className="w-full aspect-[16/9] object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-            loading="lazy"
+            zoom={false}
           />
         </div>
       )}

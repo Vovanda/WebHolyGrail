@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 
 import { AccessCodeForm } from '@/blocks/primitives/Video/AccessCodeForm';
 import { VideoPlayer } from '@/blocks/primitives/Video/VideoPlayer';
+import { VideoNotice } from '@/blocks/primitives/Video/VideoNotice';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { VideoDescription } from '@/blocks/primitives/Video/VideoDescription';
 import { VideoSetLinks } from '@/blocks/primitives/Video/VideoSetLinks';
@@ -128,38 +129,14 @@ export default async function VideoPage({
           title={video.title}
         />
       ) : (
-        <div className="border-border bg-surface relative flex aspect-video flex-col items-center justify-center gap-4 overflow-hidden rounded-xl border px-6 text-center">
-          {/*
-            Кадр под формой - тот же, что виден затемнённым на карточке. Без него
-            на месте плеера серый прямоугольник, и человек не понимает, что ему
-            предлагают открыть.
-
-            Картинка обычная, а не фоном в стиле: адрес приходит с записью,
-            и инлайновый стиль перебил бы правку владельца через «Вид блока».
-          */}
-          {video.poster?.url && (
-            <>
-              {/*
-                Картинкой фона, а не тегом img: пропавший кадр тогда просто
-                не рисуется, тогда как img на его месте показывает значок
-                битого файла - хуже, чем пустая подложка.
-              */}
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 bg-cover bg-center opacity-25"
-                style={{ backgroundImage: `url(${video.poster.url})` }}
-              />
-              {/* Затемнение поверх кадра: иначе текст теряется на светлых местах. */}
-              <div aria-hidden="true" className="bg-surface/60 absolute inset-0" />
-            </>
-          )}
-
-          <p className="text-body text-ink relative">
-            {video.status !== 'ready'
+        <VideoNotice
+          poster={video.poster ?? null}
+          text={
+            video.status !== 'ready'
               ? 'Видео готовится к показу'
-              : 'Видео открывается по коду доступа'}
-          </p>
-
+              : 'Видео открывается по коду доступа'
+          }
+        >
           {/*
             Код принимается прямо здесь: человек упёрся в замок именно тут,
             и отправлять его на другую страницу за тем же действием незачем.
@@ -169,10 +146,8 @@ export default async function VideoPage({
             по нему поле появлялось бы сразу у всех посетителей и всё равно
             не у того, кто держит код в руках.
           */}
-          {video.status === 'ready' && token && (
-            <AccessCodeForm className="relative w-full max-w-sm" />
-          )}
-        </div>
+          {video.status === 'ready' && token && <AccessCodeForm />}
+        </VideoNotice>
       )}
 
       <header className="flex max-w-content flex-col gap-2">

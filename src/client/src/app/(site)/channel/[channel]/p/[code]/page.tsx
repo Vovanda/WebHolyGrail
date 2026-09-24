@@ -1,10 +1,20 @@
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
+import type { MediaRef } from 'contracts';
+
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
+import { MediaImage } from '@/blocks/primitives/Media';
 import { VideoSetPlayer } from '@/blocks/primitives/Video/VideoSetPlayer';
 import { getPlaylistByCode } from '@/lib/api-client';
+import { resolveMediaUrl } from '@/lib/media';
 import { cn } from '@/lib/utils';
+
+/** Адрес обложки для карточки в соцсетях: там берут готовую ссылку, не документ. */
+function coverUrl(cover: MediaRef | null): string[] | undefined {
+  const url = resolveMediaUrl(cover);
+  return url ? [url] : undefined;
+}
 
 /**
  * Страница плейлиста: `/@<канал>/p/<код>`.
@@ -36,7 +46,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
     openGraph: {
       title: playlist.title,
       description: playlist.description ?? undefined,
-      images: playlist.cover ? [playlist.cover] : undefined,
+      images: coverUrl(playlist.cover),
     },
   };
 }
@@ -87,9 +97,13 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
       >
         {playlist.cover && (
           <>
-            <img
-              src={playlist.cover}
+            {/* Обложка лежит фоном заголовка во всю ширину страницы - это же
+                сказано показу, чтобы он взял вариант под неё, а не кадр целиком. */}
+            <MediaImage
+              media={playlist.cover}
+              place="100vw"
               alt=""
+              zoom={false}
               className="absolute inset-0 -z-10 h-full w-full object-cover"
             />
             <span

@@ -3,6 +3,7 @@
 import type { VideoSetItem } from 'contracts';
 
 import { cn } from '@/lib/utils';
+import { MediaImage } from '@/blocks/primitives/Media';
 
 /**
  * Карточка видео в плейлисте.
@@ -61,14 +62,16 @@ export function VideoSetCard({
         )}
       >
         {item.poster ? (
-          <img
-            src={item.poster}
+          <MediaImage
+            media={typeof item.poster === 'string' ? null : item.poster}
+            place="(max-width: 768px) 40vw, 320px"
             alt=""
-            loading="lazy"
             className={cn(
               'aspect-video w-full object-cover transition-[filter] duration-700',
               playable || unlocking ? '' : 'brightness-50',
             )}
+            /* Кадр ведёт к записи: открывать его крупно незачем. */
+            zoom={false}
           />
         ) : (
           <div className="aspect-video w-full" aria-hidden="true" />

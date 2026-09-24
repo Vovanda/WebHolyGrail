@@ -2,33 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Lightbox from 'yet-another-react-lightbox';
-import Zoom from 'yet-another-react-lightbox/plugins/zoom';
-import Counter from 'yet-another-react-lightbox/plugins/counter';
 import 'yet-another-react-lightbox/styles.css';
 import 'yet-another-react-lightbox/plugins/counter.css';
 
-/**
- * PhotoLightbox — fullscreen-просмотр группы фотографий с zoom + swipe.
- *
- * @remarks
- * **opensource:** `yet-another-react-lightbox` (R19-compat, ~30kb gz, активный).
- * Не велосипедим (см. `holygrail-ui-reference`).
- *
- * **URL sync через hash.** При открытии: `history.pushState(null, '', '#lb=<group>/<index>')`.
- * Web-share работает через прямую ссылку. Кнопка «назад» в браузере / swipe-back
- * на мобиле → `popstate` → lightbox закрывается без перехода на предыдущую страницу.
- *
- * **Зум + свайп — встроенные плагины:** Zoom, Counter (показывает «3 / 8»).
- *
- * **Триггер: render-prop.** Компонент сам не отрисовывает картинки — отдаёт
- * через children функцию `(open) => ReactNode`. Это даёт полную свободу
- * родителю (карусель / grid / превью) — лишь бы вызвать `open(index)`.
- *
- * @example
- *   <PhotoLightbox slides={photos} groupId="dog-65923">
- *     {(open) => <Carousel slides={photos} onSlideClick={open} />}
- *   </PhotoLightbox>
- */
+import { parseLaneHash } from '@/lib/lane-hash';
+
+import { LaneOverlay } from './Media/LaneOverlay';
+import { leaveLane, pushLane, replaceLane } from './Media/lane-history';
+import { LANE_PROPS } from './Media/lane-look';
+import { useLaneFrame } from './Media/useLaneFrame';
+import { useLaneZoom } from './Media/useLaneZoom';
+
+/** Кадр группы: адрес и подпись для тех, кто его не видит. */
 export interface LightboxSlide {
   readonly src: string;
   readonly alt?: string;
@@ -36,105 +21,125 @@ export interface LightboxSlide {
 
 export interface PhotoLightboxProps {
   readonly slides: ReadonlyArray<LightboxSlide>;
-  /** Уникальный id группы — попадает в hash для shareable-ссылки. */
+  /** Имя группы - оно попадает в адрес, поэтому ссылку можно переслать. */
   readonly groupId: string;
   readonly children: (open: (index: number) => void) => React.ReactNode;
 }
 
+/**
+ * Лента своей группы снимков: карусель, карточка, окно услуги.
+ *
+ * @remarks
+ * Показывает не всю страницу, а ровно те кадры, что ей передали, - этим
+ * и отличается от ленты страницы. Вид у обеих один: полотно, стёклышки кнопок,
+ * зоны листания во всю высоту. Владелец видит один сайт, и второй повадки
+ * у показа быть не должно.
+ *
+ * Открывается по адресу: при открытии в адрес уходит `#lb=<группа>/<номер>`,
+ * поэтому ссылку можно переслать, а кнопка «назад» закрывает ленту, а не
+ * уводит со страницы.
+ *
+ * Показ отдаётся вызывающему: компонент сам картинок не рисует, а даёт
+ * функцию открытия. Что нажимать - карусель, плитку или одну картинку -
+ * решает тот, кто ставит.
+ *
+ * @example
+ *   <PhotoLightbox slides={photos} groupId="dog-65923">
+ *     {(open) => <PhotoDeck slides={photos} onPick={open} />}
+ *   </PhotoLightbox>
+ */
 export function PhotoLightbox({ slides, groupId, children }: PhotoLightboxProps) {
   const [index, setIndex] = useState<number | null>(null);
+  const [zoomed, setZoomed] = useState(false);
   const isOpen = index !== null;
 
   const lbSlides = useMemo(() => slides.map((s) => ({ src: s.src, alt: s.alt ?? '' })), [slides]);
+
+  useLaneFrame({ open: isOpen, zoomed });
 
   const open = useCallback(
     (i: number) => {
       const clamped = Math.max(0, Math.min(slides.length - 1, i));
       setIndex(clamped);
-      try {
-        window.history.pushState(
-          { lb: groupId, i: clamped },
-          '',
-          `#lb=${encodeURIComponent(groupId)}/${clamped}`,
-        );
-      } catch {
-        /* SSR / sandbox */
-      }
+      setZoomed(false);
+      pushLane(groupId, clamped);
     },
     [slides.length, groupId],
   );
 
   const close = useCallback(() => {
     setIndex(null);
-    // Если предыдущий state в истории был наш lightbox-push — снимаем его.
-    // Иначе оставляем URL как есть (например при direct-open).
-    try {
-      if (window.location.hash.startsWith('#lb=')) {
-        window.history.back();
-      }
-    } catch {
-      /* */
-    }
+    leaveLane();
   }, []);
 
-  // Открыть по hash на mount (deep-link).
+  // Открытая по присланной ссылке страница показывает ленту сразу.
   useEffect(() => {
-    const m = window.location.hash.match(/^#lb=([^/]+)\/(\d+)$/);
-    if (m && decodeURIComponent(m[1] ?? '') === groupId) {
-      const i = Number(m[2]);
-      if (Number.isFinite(i) && i >= 0 && i < slides.length) {
-        setIndex(i);
-      }
-    }
+    const at = parseLaneHash(window.location.hash);
+    if (at?.group === groupId && at.index < slides.length) setIndex(at.index);
   }, [groupId, slides.length]);
 
-  // popstate → закрыть без back (которое уже произошло).
+  // Кнопка «назад» и движение пальцем от края закрывают ленту, а не уводят
+  // со страницы.
   useEffect(() => {
     function onPop() {
-      const m = window.location.hash.match(/^#lb=([^/]+)\/(\d+)$/);
-      if (!m || decodeURIComponent(m[1] ?? '') !== groupId) {
-        setIndex(null);
-      } else {
-        const i = Number(m[2]);
-        if (Number.isFinite(i)) setIndex(i);
-      }
+      const at = parseLaneHash(window.location.hash);
+      setIndex(at?.group === groupId ? at.index : null);
     }
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, [groupId]);
 
-  // Когда юзер свайпает внутри lightbox — обновляем hash без push (replace).
+  // Листание меняет адрес на месте: шаг назад тогда закрывает ленту, а не
+  // отматывает её по кадру.
   function onIndexChange(i: number) {
     setIndex(i);
-    try {
-      window.history.replaceState(
-        { lb: groupId, i },
-        '',
-        `#lb=${encodeURIComponent(groupId)}/${i}`,
-      );
-    } catch {
-      /* */
-    }
+    setZoomed(false);
+    replaceLane(groupId, i);
   }
+
+  const shown = index !== null ? slides[index] : undefined;
+  const zoom = useLaneZoom(index !== null ? lbSlides[index] : undefined);
 
   return (
     <>
       {children(open)}
-      <Lightbox
-        open={isOpen}
-        close={close}
-        slides={lbSlides}
-        index={index ?? 0}
-        on={{ view: ({ index: i }) => onIndexChange(i) }}
-        plugins={[Zoom, Counter]}
-        counter={{ container: { style: { top: 'unset', bottom: 16, left: 16 } } }}
-        zoom={{ maxZoomPixelRatio: 3, doubleTapDelay: 250 }}
-        controller={{ closeOnPullDown: true, closeOnBackdropClick: true }}
-        styles={{
-          container: { backgroundColor: 'rgba(28, 22, 16, 0.92)' },
-          toolbar: { top: 0, right: 0, padding: '0.5rem 1rem' },
-        }}
-      />
+      {isOpen && (
+        <>
+          <Lightbox
+            {...LANE_PROPS}
+            zoom={zoom}
+            open
+            close={close}
+            slides={lbSlides}
+            index={index}
+            on={{
+              view: ({ index: i }) => onIndexChange(i),
+              // Полотно снимается на первом же увеличении и возвращается,
+              // когда масштаб пришёл обратно к единице.
+              zoom: ({ zoom }) => setZoomed(zoom > 1),
+            }}
+            controller={{ closeOnPullDown: true, closeOnBackdropClick: true }}
+            render={{
+              controls: () =>
+                shown ? (
+                  <LaneOverlay
+                    shot={{
+                      src: shown.src,
+                      set: [],
+                      file: shown.src,
+                      blur: '',
+                      alt: shown.alt ?? '',
+                      title: '',
+                      note: '',
+                      width: 0,
+                      height: 0,
+                    }}
+                  />
+                ) : null,
+            }}
+          />
+        </>
+      )}
     </>
   );
 }

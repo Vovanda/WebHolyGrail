@@ -6,6 +6,7 @@ import type { VideoSetItem, VideoDeniedSettings } from 'contracts';
 import { cn } from '@/lib/utils';
 
 import { AccessCodeForm } from './AccessCodeForm';
+import { VideoNotice } from './VideoNotice';
 import { VideoPlayer } from './VideoPlayer';
 import { VideoSetDrawer } from './VideoSetDrawer';
 import { VideoSetColumn } from './VideoSetColumn';
@@ -14,6 +15,7 @@ import { VideoUpNext } from './VideoUpNext';
 import { neighboursOf } from './selected-video';
 import { useSelectedVideo } from './useSelectedVideo';
 import { useUnlockableItems } from './useUnlockableItems';
+import { resolveMediaUrl } from '@/lib/media';
 
 /**
  * Как показать список плейлиста.
@@ -255,10 +257,9 @@ export function VideoSetPlayer({
             окно: то же действие, но лишним шагом и с потерей из виду того,
             ради чего код вводят.
           */
-          <div className="border-border bg-surface flex aspect-video flex-col items-center justify-center gap-4 rounded-xl border px-6 text-center">
-            <p className="text-body text-ink">Видео открывается по коду доступа</p>
-            <AccessCodeForm className="w-full max-w-sm" />
-          </div>
+          <VideoNotice poster={current.poster} text="Видео открывается по коду доступа">
+            <AccessCodeForm />
+          </VideoNotice>
         ) : current?.playlistUrl ? (
           <>
             {/*
@@ -271,7 +272,8 @@ export function VideoSetPlayer({
               deniedSettings={deniedSettings}
               src={current.playlistUrl}
               mediaId={current.id}
-              poster={current.poster ?? undefined}
+              /* Плееру нужен адрес: постер он ставит сам, до первого кадра. */
+              poster={resolveMediaUrl(current.poster) ?? undefined}
               title={current.title}
               onPrev={prev ? () => setCurrent(prev) : undefined}
               onNext={next ? () => setCurrent(next) : undefined}
@@ -282,11 +284,7 @@ export function VideoSetPlayer({
             />
           </>
         ) : (
-          <div className="flex aspect-video items-center justify-center rounded-xl border border-border bg-surface px-6 text-center">
-            <p className="text-body text-muted">
-              В плейлисте нет видео, доступного к показу прямо сейчас.
-            </p>
-          </div>
+          <VideoNotice text="В плейлисте нет видео, доступного к показу прямо сейчас." />
         )}
 
         {view === 'column' && (

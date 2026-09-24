@@ -84,7 +84,7 @@ export function SidePanel({
   title,
   minTop = 80,
   alignTop = 'screen',
-  open: openСнаружи,
+  open: openFromOutside,
   onOpenChange,
   className,
 }: SidePanelProps) {
@@ -92,16 +92,16 @@ export function SidePanel({
     Состояние живёт внутри, пока снаружи не сказали иначе. Так панель с кнопкой
     работает как прежде, а та, что открывается адресом, слушается вызывающего.
   */
-  const снаружи = openСнаружи !== undefined;
-  const [своё, setСвоё] = useState(false);
-  const open = снаружи ? openСнаружи : своё;
+  const outer = openFromOutside !== undefined;
+  const [own, setOwn] = useState(false);
+  const open = outer ? openFromOutside : own;
   const setOpen = useCallback(
     (next: boolean | ((value: boolean) => boolean)) => {
-      const значение = typeof next === 'function' ? next(open) : next;
-      if (!снаружи) setСвоё(значение);
-      onOpenChange?.(значение);
+      const value = typeof next === 'function' ? next(open) : next;
+      if (!outer) setOwn(value);
+      onOpenChange?.(value);
     },
-    [open, снаружи, onOpenChange],
+    [open, outer, onOpenChange],
   );
   // Портал доступен только в браузере: на сервере узла body ещё нет.
   const [mounted, setMounted] = useState(false);

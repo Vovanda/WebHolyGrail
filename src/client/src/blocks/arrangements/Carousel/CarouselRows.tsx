@@ -33,7 +33,7 @@ export function CarouselRows(props: CarouselProps) {
     const { lightboxGroupId, ...rest } = props;
     return (
       <PhotoLightbox
-        slides={props.slides.map((s) => ({ src: s.url, alt: s.alt }))}
+        slides={props.slides.map((s) => ({ src: s.url ?? '', alt: s.alt }))}
         groupId={lightboxGroupId}
       >
         {(open: (index: number) => void) => <CarouselInner {...rest} onSlideClick={open} />}
@@ -153,7 +153,7 @@ function CarouselInner({
         // Hidden spacer = natural aspect первого слайда задаёт высоту контейнера.
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={slides[0]!.url}
+          src={slides[0]!.url ?? ''}
           alt=""
           aria-hidden
           draggable={false}
@@ -168,7 +168,7 @@ function CarouselInner({
       {backdropBlur && imgFit === 'contain' && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={slides[active]!.url}
+          src={slides[active]!.url ?? ''}
           alt=""
           aria-hidden
           draggable={false}
@@ -194,7 +194,7 @@ function CarouselInner({
           <img
             key={`${s.url}-${i}`}
             data-part="media"
-            src={s.url}
+            src={s.url ?? ''}
             alt={s.alt}
             draggable={false}
             onClick={onSlideClick && i === active ? () => onSlideClick(i) : undefined}

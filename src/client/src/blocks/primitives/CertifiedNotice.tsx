@@ -80,8 +80,13 @@ export function CertifiedNotice({
                 </p>
               )}
               <ul className={cn('flex flex-col gap-2', criteriaTitle ? 'mt-3' : '')}>
-                {items.map((c) => (
-                  <li key={c.id} data-part="item" className="flex items-start gap-3">
+                {/*
+                  Ключ - место пункта в списке, а не его текст: два одинаковых
+                  пункта владелец завести может, и на повторе показ терял один
+                  из них.
+                */}
+                {items.map((c, at) => (
+                  <li key={at} data-part="item" className="flex items-start gap-3">
                     <span
                       aria-hidden
                       className={cn(

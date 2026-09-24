@@ -5,6 +5,8 @@ import { checkVideoAccess, getVideoStream } from '@/lib/api-client';
 import { readVideoUi } from '@/lib/video-ui';
 import { cn } from '@/lib/utils';
 
+import { AccessCodeForm } from './AccessCodeForm';
+import { VideoNotice } from './VideoNotice';
 import { VideoPlayer } from './VideoPlayer';
 
 /**
@@ -27,7 +29,7 @@ export interface VideoSectionProps {
 
 /** Текст отказа. Позже задаётся владельцем в настройках сайта. */
 const DENIAL: Record<string, string> = {
-  'not-entitled': 'Откроется по коду доступа',
+  'not-entitled': 'Видео открывается по коду доступа',
   unavailable: 'Видео сейчас недоступно',
 };
 
@@ -73,7 +75,14 @@ export async function VideoSection({ node, settings, className }: VideoSectionPr
     );
   }
 
+  /*
+    Плееру нужен адрес: кадр до начала показа он ставит атрибутом, и документ
+    туда не положить. Рамке на месте плеера - наоборот, документ: она рисует
+    кадр картинкой, и по документу берётся вариант под размер блока.
+  */
   const poster = data.poster?.url ?? stream.poster?.url;
+  const posterDoc = data.poster ?? stream.poster ?? null;
+  const locked = stream.status === 'ready' && access.reason === 'not-entitled';
 
   /*
     Название и описание - свойства самой записи, а блок только решает,
@@ -100,7 +109,7 @@ export async function VideoSection({ node, settings, className }: VideoSectionPr
         />
       ) : (
         <VideoNotice
-          poster={poster}
+          poster={posterDoc}
           text={
             stream.status === 'failed'
               ? 'Видео не удалось подготовить к показу'
@@ -108,7 +117,13 @@ export async function VideoSection({ node, settings, className }: VideoSectionPr
                 ? 'Видео готовится к показу'
                 : (DENIAL[access.reason ?? 'unavailable'] ?? DENIAL['unavailable']!)
           }
-        />
+        >
+          {/*
+            Код вводится там же, где человек упёрся в замок. Погашенный код
+            перечитывает страницу, и сервер рисует на месте рамки плеер.
+          */}
+          {locked && <AccessCodeForm />}
+        </VideoNotice>
       )}
 
       {/*
@@ -133,38 +148,5 @@ export async function VideoSection({ node, settings, className }: VideoSectionPr
         </footer>
       )}
     </section>
-  );
-}
-
-/**
- * Заглушка вместо плеера.
- *
- * @remarks
- * С обложкой и текстом, а не чёрным прямоугольником: зритель должен понимать,
- * что видео есть и почему оно не играет, иначе страница выглядит сломанной.
- */
-function VideoNotice({ poster, text }: { poster?: string | undefined; text: string }) {
-  return (
-    <div className="relative overflow-hidden rounded-xl border border-border bg-surface">
-      {poster && (
-        <img
-          data-part="media"
-          src={poster}
-          alt=""
-          aria-hidden="true"
-          className="h-full w-full object-cover"
-        />
-      )}
-      <div
-        className={cn(
-          'flex items-center justify-center px-6 text-center',
-          poster ? 'absolute inset-0 bg-black/60 text-white' : 'aspect-video text-muted',
-        )}
-      >
-        <p data-part="caption" className="text-body font-medium">
-          {text}
-        </p>
-      </div>
-    </div>
   );
 }
