@@ -1,5 +1,5 @@
 import type { Block, Field } from 'payload';
-import { parseAreas } from 'contracts';
+import { areasProblem } from 'contracts';
 
 /**
  * Поля раскладки плиток - общие для всех блоков, которые её допускают.
@@ -36,9 +36,9 @@ function check(value: unknown): string | true {
 
   // Решётка в начале выключает запись, не стирая её - это не ошибка.
   if (raw.startsWith('#')) return true;
-  return parseAreas(raw)
-    ? true
-    : 'Запись не складывается в сетку: имя должно занимать цельный прямоугольник.';
+  // Причина называется точно: ошибка бывает в одном знаке, и общее
+  // «не складывается» не говорит, что поправить.
+  return areasProblem(raw) ?? true;
 }
 
 export const TILE_LAYOUT_FIELDS: Field[] = [

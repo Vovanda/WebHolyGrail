@@ -6,6 +6,7 @@ import { HeroCinematicBlock } from './HeroCinematic';
 import { CustomMarkupBlock } from './CustomMarkup';
 import { RequestFormBlock } from './RequestForm';
 import { DocumentListBlock } from './DocumentList';
+import { GalleryBlock } from './Gallery';
 import { InstallSnippetBlock } from './InstallSnippet';
 import { StackTransparencyBlock } from './StackTransparency';
 import { ComparisonTableBlock } from './ComparisonTable';
@@ -57,6 +58,7 @@ export const ENGINE_REUSABLE_INNER_BLOCKS = [
   CustomMarkupBlock,
   RequestFormBlock,
   DocumentListBlock,
+  GalleryBlock,
   InstallSnippetBlock,
   StackTransparencyBlock,
   ComparisonTableBlock,

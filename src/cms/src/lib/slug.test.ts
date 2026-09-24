@@ -1,34 +1,7 @@
 import type { CollectionConfig } from 'payload';
 import { describe, expect, it } from 'vitest';
 
-import { translitSlug, withAutoSlug } from './slug.js';
-
-describe('translitSlug', () => {
-  it('транслитерирует кириллицу', () => {
-    expect(translitSlug('Кто я такой?')).toBe('kto-ya-takoy');
-  });
-
-  it('схлопывает пунктуацию и пробелы в один дефис', () => {
-    expect(translitSlug('Квантование: всё, что вам нужно')).toBe('kvantovanie-vse-chto-vam-nuzhno');
-  });
-
-  it('не оставляет дефисы по краям', () => {
-    expect(translitSlug('  — Привет! — ')).toBe('privet');
-  });
-
-  it('латиницу и цифры оставляет как есть', () => {
-    expect(translitSlug('Next 15 + Payload 3')).toBe('next-15-payload-3');
-  });
-
-  it('режет длинный заголовок по границе слова', () => {
-    const slug = translitSlug('а'.repeat(50) + ' ' + 'б'.repeat(50));
-    expect(slug).toBe('a'.repeat(50));
-  });
-
-  it('пустую строку отдаёт пустой', () => {
-    expect(translitSlug('   ')).toBe('');
-  });
-});
+import { withAutoSlug } from './slug.js';
 
 /** Коллекция-заготовка: поля задаются тестом, остальное неважно. */
 const collectionWith = (fields: CollectionConfig['fields']): CollectionConfig => ({

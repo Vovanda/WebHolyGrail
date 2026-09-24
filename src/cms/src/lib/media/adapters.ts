@@ -9,7 +9,7 @@ import type { Payload } from 'payload';
 
 import { DEFAULT_LADDER, transcodeToHls, type HlsRung } from '../hls';
 import type { CatalogPort, EncoderPort, StoragePort, VideoPorts } from './ports';
-import { POSTER_PREFIX } from '../../collections/Media';
+import { POSTER_PREFIX } from '../media-folders';
 import { masterKey, wrapSecret } from '../video/key-vault';
 
 /**

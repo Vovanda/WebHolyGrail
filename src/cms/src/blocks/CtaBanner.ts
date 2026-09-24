@@ -9,7 +9,7 @@ import type { Block } from 'payload';
  */
 export const CtaBannerBlock: Block = {
   slug: 'cta-banner',
-  labels: { singular: 'CTA banner', plural: 'CTA banners' },
+  labels: { singular: 'Призыв к действию', plural: 'Призывы к действию' },
   fields: [
     {
       name: 'heading',

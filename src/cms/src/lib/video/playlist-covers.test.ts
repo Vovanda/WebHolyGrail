@@ -8,30 +8,38 @@ import { playlistCovers } from './playlist-covers.js';
  */
 
 /** Строка плейлиста в том виде, в каком её отдаёт база: кадр внутри видео. */
-const кадр = (url: string | null) => ({ video: { preview: url === null ? null : { url } } });
+const frame = (url: string | null) => ({ video: { preview: url === null ? null : { url } } });
 
 describe('кадры для стопки', () => {
+  it('отдаются документами, а не адресами: по документу показ выберет ступень', () => {
+    const [first] = playlistCovers([frame('/a.jpg')]);
+    expect(first).toMatchObject({ url: '/a.jpg' });
+  });
+
   it('берутся по порядку плейлиста', () => {
-    expect(playlistCovers([кадр('/a.jpg'), кадр('/b.jpg')])).toEqual(['/a.jpg', '/b.jpg']);
+    expect(playlistCovers([frame('/a.jpg'), frame('/b.jpg')])).toEqual([
+      { url: '/a.jpg' },
+      { url: '/b.jpg' },
+    ]);
   });
 
   it('не больше трёх: в стопке остальные не видны', () => {
-    const много = ['/a', '/b', '/c', '/d', '/e'].map(кадр);
-    expect(playlistCovers(много)).toEqual(['/a', '/b', '/c']);
+    const many = ['/a', '/b', '/c', '/d', '/e'].map(frame);
+    expect(playlistCovers(many)).toEqual([{ url: '/a' }, { url: '/b' }, { url: '/c' }]);
   });
 
   it('видео без кадра пропускается', () => {
-    expect(playlistCovers([кадр(null), кадр('/b.jpg'), {}])).toEqual(['/b.jpg']);
+    expect(playlistCovers([frame(null), frame('/b.jpg'), {}])).toEqual([{ url: '/b.jpg' }]);
   });
 
   it('нераскрытая связь пропускается: вместо видео пришёл его номер', () => {
-    expect(playlistCovers([{ video: 42 }, кадр('/b.jpg')])).toEqual(['/b.jpg']);
+    expect(playlistCovers([{ video: 42 }, frame('/b.jpg')])).toEqual([{ url: '/b.jpg' }]);
   });
 
   it('повторы не задваиваются', () => {
-    expect(playlistCovers([кадр('/a.jpg'), кадр('/a.jpg'), кадр('/b.jpg')])).toEqual([
-      '/a.jpg',
-      '/b.jpg',
+    expect(playlistCovers([frame('/a.jpg'), frame('/a.jpg'), frame('/b.jpg')])).toEqual([
+      { url: '/a.jpg' },
+      { url: '/b.jpg' },
     ]);
   });
 

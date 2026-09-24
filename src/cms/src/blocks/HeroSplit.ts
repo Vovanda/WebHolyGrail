@@ -12,7 +12,7 @@ import type { Block } from 'payload';
  */
 export const HeroSplitBlock: Block = {
   slug: 'hero-split',
-  labels: { singular: 'Hero split (2-колоночный)', plural: 'Hero split (2-колоночные)' },
+  labels: { singular: 'Главный экран в две колонки', plural: 'Главные экраны в две колонки' },
   fields: [
     {
       type: 'row',

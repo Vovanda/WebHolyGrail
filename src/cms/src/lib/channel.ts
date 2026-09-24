@@ -1,14 +1,14 @@
 import type { PayloadRequest } from 'payload';
 
-import { translitSlug } from './slug';
+import { translitSlug } from './translit';
 
 /**
  * Адрес канала для участника: транслит имени, а при пустом имени - часть почты
  * до собаки. Совпадения разводятся номером, потому что адрес уникален.
  */
 export function channelFrom(name: unknown, email: unknown): string {
-  const источник = String(name ?? '').trim() || String(email ?? '').split('@')[0] || '';
-  return translitSlug(источник, 24) || 'user';
+  const source = String(name ?? '').trim() || String(email ?? '').split('@')[0] || '';
+  return translitSlug(source, 24) || 'user';
 }
 
 /**
@@ -16,18 +16,18 @@ export function channelFrom(name: unknown, email: unknown): string {
  */
 export async function freeChannel(
   req: Pick<PayloadRequest, 'payload'>,
-  основа: string,
+  base: string,
 ): Promise<string> {
-  let кандидат = основа;
+  let candidate = base;
   for (let n = 2; n < 100; n += 1) {
-    const занято = await req.payload.count({
+    const taken = await req.payload.count({
       collection: 'users',
-      where: { channel: { equals: кандидат } },
+      where: { channel: { equals: candidate } },
     });
-    if (занято.totalDocs === 0) return кандидат;
-    кандидат = `${основа}-${n}`;
+    if (taken.totalDocs === 0) return candidate;
+    candidate = `${base}-${n}`;
   }
-  return кандидат;
+  return candidate;
 }
 
 /**
@@ -44,24 +44,24 @@ export async function freeChannel(
  */
 export async function ensureChannel(
   req: Pick<PayloadRequest, 'payload'>,
-  участник: string | number,
+  member: string | number,
 ): Promise<string | null> {
-  const человек = (await req.payload.findByID({
+  const person = (await req.payload.findByID({
     collection: 'users',
-    id: участник,
+    id: member,
     depth: 0,
     overrideAccess: true,
   })) as { channel?: string | null; name?: string | null; email?: string | null } | null;
 
-  if (!человек) return null;
-  if (человек.channel) return человек.channel;
+  if (!person) return null;
+  if (person.channel) return person.channel;
 
-  const адрес = await freeChannel(req, channelFrom(человек.name, человек.email));
+  const address = await freeChannel(req, channelFrom(person.name, person.email));
   await req.payload.update({
     collection: 'users',
-    id: участник,
-    data: { channel: адрес },
+    id: member,
+    data: { channel: address },
     overrideAccess: true,
   });
-  return адрес;
+  return address;
 }

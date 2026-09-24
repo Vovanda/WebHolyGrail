@@ -1,4 +1,5 @@
 import type { GlobalConfig } from 'payload';
+import { BLOG_COLUMN_PX, BLOG_TEXT_PX } from 'contracts';
 
 /**
  * SiteSettings — глобальные настройки сайта. Синглтон.
@@ -729,6 +730,20 @@ export const SiteSettings: GlobalConfig = {
                     { label: 'Сначала старые', value: 'oldest' },
                   ],
                   defaultValue: 'newest',
+                },
+                {
+                  name: 'columnWidth',
+                  label: 'Ширина колонки блога',
+                  type: 'radio',
+                  defaultValue: 'page',
+                  options: [
+                    { label: `Как у страницы - ${BLOG_COLUMN_PX.page} px`, value: 'page' },
+                    { label: `Средняя - ${BLOG_COLUMN_PX.medium} px`, value: 'medium' },
+                    { label: `Для чтения - ${BLOG_COLUMN_PX.reading} px`, value: 'reading' },
+                  ],
+                  admin: {
+                    description: `Текст статьи держит строку ${BLOG_TEXT_PX} px при любой колонке: слишком длинную строку трудно читать. Колонка задаёт, насколько шире текста встают галереи, видео и другие блоки.`,
+                  },
                 },
               ],
             },

@@ -1,33 +1,68 @@
-import { APIError, type CollectionConfig } from 'payload';
+import type { CollectionConfig } from 'payload';
+import { MEDIA_RENDITIONS } from 'contracts';
 
-import { generateShortCode } from '../lib/video/short-code';
-import { ensureChannel } from '../lib/channel';
-
-import { isDarkImage } from '../lib/image-luma';
-import { renderPdfPreview } from '../lib/pdf-preview';
+import { copiesOf, withoutCopy, type MediaRecord } from '../lib/media-copies';
+import {
+  bustCdnCache,
+  ensureAuthorChannel,
+  exposeManifestRoute,
+  exposeStreamPack,
+  issueShortCode,
+  makePdfPreview,
+  measureImage,
+  moveOnPrefixChange,
+  normalizeUploadName,
+  queueVideoCut,
+  softDeleteVideo,
+  stampUploader,
+  syncPreviewUrl,
+  syncTitle,
+} from '../lib/media-hooks';
+import { dropStoredFile } from '../lib/media-store';
 
 /**
- * Media — uploaded files (images and documents).
+ * Медиатека: картинки, видео и документы.
  *
  * @remarks
- * Storage is S3-compatible (any provider — AWS S3, Cloudflare R2, Backblaze B2,
- * MinIO, etc.) wired in `payload.config.ts` via `@payloadcms/storage-s3`. The
- * plugin automatically sets `disableLocalStorage: true` for the attached
- * collection, so `staticDir` is intentionally absent here (leaving it on would
- * make Payload also write a local copy and serve it via `/api/media/...`, which
- * would override the CDN URL).
+ * Хранилищ два, и выбирает их `payload.config.ts` по `S3_BUCKET`. Задан бакет -
+ * файлы лежат в нём (`@payloadcms/storage-s3` сам отключает локальную запись
+ * у коллекции). Не задан - файлы держит сама CMS в папке рядом с собой
+ * и раздаёт их по `/api/media/file/...`. Схема записи от этого не зависит.
  *
- * Derived image sizes are produced by sharp on upload. The variant names match
- * the keys of `MediaDoc.sizes` in `contracts`.
+ * Ступени картинок режет sharp при заливке; их имена совпадают с
+ * `MEDIA_RENDITIONS` из `contracts`. Поведение записи - в `lib/media-hooks.ts`.
  */
+
 /**
- * Папка, в которой лежат обложки видео.
+ * @deprecated Папка служебных кадров живёт в `lib/media-folders`, импортировать
+ * оттуда. Реэкспорт оставлен для скриптов собранных сайтов.
+ */
+export { POSTER_PREFIX } from '../lib/media-folders';
+
+/**
+ * Во что переводятся картинки и все их ступени.
  *
  * @remarks
- * По ней же они отсеиваются из списка медиа, поэтому значение общее с тем
- * местом, где обложка создаётся: разъехавшись, они снова засорят медиатеку.
+ * Одно значение на файл и на производные: заданное только файлу до ступеней
+ * не доходит, и они остаются в формате исходника.
  */
-export const POSTER_PREFIX = 'previews';
+const WEBP = { format: 'webp', options: { quality: 82 } } as const;
+
+/** Поле только у картинок: у записи и документа ступеней нет. */
+const onlyImages = (data: Record<string, unknown>): boolean =>
+  String(data?.['mimeType'] ?? '').startsWith('image/');
+
+/**
+ * Ступени на выбор владельцу: те же, по которым режется файл.
+ *
+ * @remarks
+ * Список собирается из шва, а не пишется здесь заново: разойдись они - и в
+ * админке предлагалась бы ступень, которой никто не режет.
+ */
+const RENDITION_OPTIONS = MEDIA_RENDITIONS.map(({ name, width }) => ({
+  label: `${name} - до ${width} точек`,
+  value: name,
+}));
 
 export const Media: CollectionConfig = {
   slug: 'media',
@@ -39,7 +74,7 @@ export const Media: CollectionConfig = {
     // выбора. Своя ячейка подменяет обёртку целиком, и запись перестаёт
     // открываться, а файл - выбираться.
     // Кадр показывает сама миниатюра имени файла: адрес кадра лежит рядом
-    // с записью, поэтому отдельная колонка превью больше не нужна.
+    // с записью.
     defaultColumns: ['filename', 'caption', 'mimeType', 'updatedAt'],
     group: 'Медиа',
     /**
@@ -72,15 +107,21 @@ export const Media: CollectionConfig = {
     // (`client_max_body_size` в `deploy/prod/nginx/`): загрузка упирается в
     // прокси раньше, чем доходит до приложения.
     mimeTypes: ['image/*', 'video/mp4', 'video/webm', 'video/quicktime', 'application/pdf'],
-    imageSizes: [
-      { name: 'thumbnail', width: 400, height: undefined, position: 'centre' },
-      { name: 'card', width: 768, height: undefined, position: 'centre' },
-      { name: 'hero', width: 1920, height: undefined, position: 'centre' },
-    ],
-    formatOptions: {
-      format: 'webp',
-      options: { quality: 82 },
-    },
+    /*
+      Ступени берутся из шва: по тому же списку сайт просит варианты, и между
+      соседними нет провала - браузер берёт ближайшую не мельче нужной.
+
+      Формат задаётся каждой ступени отдельно: производные наследуют формат
+      исходника, и снимок с телефона давал бы копии в jpeg при webp-оригинале.
+    */
+    imageSizes: MEDIA_RENDITIONS.map(({ name, width }) => ({
+      name,
+      width,
+      height: undefined,
+      position: 'centre' as const,
+      formatOptions: WEBP,
+    })),
+    formatOptions: WEBP,
   },
   fields: [
     {
@@ -89,8 +130,8 @@ export const Media: CollectionConfig = {
        *
        * @remarks
        * Заголовок карточки, крошки и подписи в выпадающих списках Payload
-       * берёт из одного поля. Раньше это было имя файла, и человек видел
-       * `lesson-4.mp4` там, где ожидал название видео.
+       * берёт из одного поля. Имя файла читалось бы там как `lesson-4.mp4`
+       * вместо названия видео.
        *
        * Заполняется само: название, а если его нет — имя файла, поэтому
        * у картинок и документов ничего не меняется. Руками не правится,
@@ -114,6 +155,23 @@ export const Media: CollectionConfig = {
        */
       name: 'isDark',
       type: 'checkbox',
+      index: false,
+      admin: { hidden: true, readOnly: true },
+    },
+    {
+      /**
+       * Размытая заготовка кадра строкой.
+       *
+       * @remarks
+       * Показывается на месте снимка, пока он идёт по сети. Лежит в записи,
+       * а не отдельным файлом: своего запроса у неё нет, и на медленной сети
+       * она появляется вместе с разметкой, а не после третьего похода в сеть.
+       *
+       * Снимается при заливке. У старых файлов пусто - показ тогда прежний,
+       * без заготовки.
+       */
+      name: 'blurData',
+      type: 'text',
       index: false,
       admin: { hidden: true, readOnly: true },
     },
@@ -152,12 +210,21 @@ export const Media: CollectionConfig = {
       },
     },
     {
+      /**
+       * Кадр документа: первая страница PDF.
+       *
+       * @remarks
+       * Показывается только у PDF, потому что только у него и заполняется.
+       * У картинки и записи это поле - пустой блок с пояснением про PDF
+       * посреди карточки: человек открывает снимок и читает про документы.
+       */
       name: 'preview',
       label: 'Превью',
       type: 'upload',
       relationTo: 'media',
       admin: {
         readOnly: true,
+        condition: (data) => String(data?.mimeType ?? '') === 'application/pdf',
         description:
           'Для PDF собирается само из первой страницы при загрузке. Заполнять вручную не нужно.',
       },
@@ -190,18 +257,107 @@ export const Media: CollectionConfig = {
        * По умолчанию пусто, то есть файл лежит в корне бакета.
        *
        * @remarks
-       * Раньше здесь стояло `media`, и адрес получался с удвоением:
-       * публичный корень хранилища уже заканчивается на `/media`, а к ключу
-       * добавлялась папка с тем же именем — выходило `/media/media/файл`.
+       * Публичный корень хранилища уже заканчивается на `/media`: папка
+       * с тем же именем дала бы адрес `/media/media/файл`.
        *
-       * Разложить по папкам по-прежнему можно, вписав своё имя; служебные
-       * обложки видео так и живут в собственной папке.
+       * Разложить по папкам можно, вписав своё имя; служебные кадры живут
+       * в собственной папке.
        */
       defaultValue: '',
+      /*
+        Переложить файл может тот, кто его залил, и администратор. Перенос
+        не деструктивен - файл остаётся тем же, меняется только место, - но
+        адрес после него другой, и раздавать это право всем подряд незачем.
+      */
+      access: {
+        update: ({ req: { user }, doc }) => {
+          if (!user) return false;
+          if (user.role === 'admin') return true;
+          const owner = doc?.['uploadedBy'];
+          const ownerId = typeof owner === 'object' && owner ? owner['id'] : owner;
+          return String(ownerId ?? '') === String(user.id);
+        },
+      },
       admin: {
         description: 'Пусто — файл лежит в корне хранилища. Имя папки задаётся вручную.',
         position: 'sidebar',
+        /*
+          Поле показывается только там, где файлы лежат в бакете. Без него
+          хранилищем служит сама CMS, и адрес у файла плоский: папка в него
+          не входит вовсе, а поле обещало бы то, чего не будет.
+
+          Колонка при этом есть всегда - схема у всех сайтов одна.
+        */
+        hidden: !process.env['S3_BUCKET'],
       },
+    },
+    {
+      /**
+       * Оригинал удалён, его место заняла копия.
+       *
+       * @remarks
+       * Без этой пометки админка выдавала бы самую крупную из копий за
+       * оригинал: после удаления она становится самим файлом записи, и по
+       * полям её от исходника не отличить. Человек видел бы «Оригинал» там,
+       * где оригинала уже нет, и удалил бы следующую копию, считая, что
+       * убирает лишнее.
+       *
+       * Ставится уборкой копий и руками не правится.
+       */
+      name: 'originalDropped',
+      type: 'checkbox',
+      defaultValue: false,
+      admin: { hidden: true, readOnly: true },
+    },
+    {
+      /*
+        Перечень копий с весом и удалением. Стоит перед названием: это первое,
+        что нужно увидеть, открыв тяжёлую картинку.
+      */
+      name: 'copies',
+      type: 'ui',
+      admin: {
+        components: {
+          Field: '/admin/components/MediaCopiesField#MediaCopiesField',
+        },
+      },
+    },
+    {
+      /*
+        Каким размером картинка идёт на страницу и каким открывается.
+
+        Размер под место показ выбирает сам, но про снимок владелец знает
+        больше: общий план читается и мелким, а весит втрое меньше. Пусто -
+        выбирает показ, как и раньше.
+
+        Поля стоят парой сразу за перечнем копий: там же видно, какие размеры
+        у файла вообще есть.
+      */
+      type: 'row',
+      fields: [
+        {
+          name: 'pageStep',
+          label: 'Размер на странице',
+          type: 'select',
+          options: RENDITION_OPTIONS,
+          admin: {
+            // Условие стоит у самих полей, а не у ряда: ряд - это расстановка,
+            // своей видимости у него нет, и поля показывались бы у записи.
+            condition: onlyImages,
+            description: 'Крупнее выбранного показ не возьмёт. Пусто - выбирает сам.',
+          },
+        },
+        {
+          name: 'laneStep',
+          label: 'Размер при открытии',
+          type: 'select',
+          options: RENDITION_OPTIONS,
+          admin: {
+            condition: onlyImages,
+            description: 'Каким файл открывается на весь экран. Пусто - самым крупным.',
+          },
+        },
+      ],
     },
     {
       name: 'caption',
@@ -228,19 +384,20 @@ export const Media: CollectionConfig = {
     },
     {
       /**
-       * Описание записи: то, что читает зритель под кадром.
+       * Пояснение к файлу: показывается под кадром, когда его открыли крупно,
+       * и уходит в поисковую выдачу у записей.
        *
        * @remarks
-       * Раньше его роль играл `alt` - поле, заведённое для картинок и
-       * скринридеров. У видео это разные вещи: alt описывает изображение
-       * тому, кто его не видит, а описание рассказывает, о чём запись.
+       * Это не `alt`: alt описывает изображение тому, кто его не видит,
+       * а описание рассказывает, о чём снимок или запись - что за этап, что
+       * на кадре.
        */
       name: 'description',
       label: 'Описание',
       type: 'textarea',
       admin: {
-        description: 'Показывается под кадром и в поисковой выдаче. Для картинок не нужно.',
-        condition: (data) => String(data?.mimeType ?? '').startsWith('video/'),
+        description: 'Показывается под кадром, когда его открыли крупно, и в поисковой выдаче.',
+        condition: (data) => !String(data?.mimeType ?? '').startsWith('application/'),
       },
     },
     {
@@ -307,14 +464,10 @@ export const Media: CollectionConfig = {
       type: 'relationship',
       relationTo: 'users',
       /*
-        Владение правится, а не только показывается.
-
-        Поле стояло только для чтения, и запись навсегда оставалась за тем, кто
-        нажал «загрузить». Владелец сайта заливал видео специалиста под своей
-        учётной записью, отмечал «Опубликовано» - и оно не появлялось на канале
-        специалиста, потому что канал берётся отсюда. Переложить было нечем.
-
-        Менять может только администратор: для редактора это чужая запись.
+        Владение правится: владелец сайта заливает видео специалиста под своей
+        учётной записью, а канал берётся отсюда - запись надо переложить на
+        специалиста. Менять может только администратор: для редактора это
+        чужая запись.
       */
       access: {
         update: ({ req: { user } }) => user?.role === 'admin',
@@ -330,16 +483,10 @@ export const Media: CollectionConfig = {
        * Кому выдаётся ключ.
        *
        * @remarks
-       * По умолчанию закрыто, и это не осторожность ради осторожности. Раньше
-       * значением по умолчанию было «всем»: платная запись открывалась любому
-       * с того мгновения, как дорезалась, и до того, как автор вспомнит
-       * переключить. Окном пользуется тот, кто первым обновит страницу канала.
-       *
-       * Обратное неверно: лишний раз открыть запись дёшево и обратимо, а
-       * утёкшую уже не закрыть - её успели скачать.
-       *
-       * У записей, залитых раньше, значение уже стоит в базе, и оно не меняется:
-       * открытое остаётся открытым.
+       * По умолчанию закрыто: открытая по умолчанию платная запись доступна
+       * любому с того мгновения, как дорезалась, и до того, как автор
+       * вспомнит переключить. Лишний раз открыть запись дёшево и обратимо,
+       * а утёкшую уже не закрыть - её успели скачать.
        */
       name: 'access',
       label: 'Доступ',
@@ -666,352 +813,70 @@ export const Media: CollectionConfig = {
     update: ({ req: { user } }) => Boolean(user),
     delete: ({ req: { user } }) => user?.role === 'admin',
   },
-  hooks: {
-    /**
-     * Проставляет автора при загрузке.
-     *
-     * @remarks
-     * Только при создании: у существующего файла автор не меняется, даже если
-     * видео правит кто-то другой. Иначе первая же правка чужой подписи
-     * переписала бы историю загрузок.
-     */
-    beforeChange: [
-      /*
-        Яркость картинки считается по загруженному файлу, пока он ещё в руках:
-        после сохранения он уходит в хранилище, и достать его обратно можно
-        только запросом по сети.
-      */
-      async ({ data, req }) => {
-        const upload = req.file;
-        if (upload?.data && String(upload.mimetype ?? '').startsWith('image/')) {
-          data['isDark'] = await isDarkImage(upload.data);
-        }
-        return data;
-      },
-      async ({ data, req, operation }) => {
-        if (operation === 'create' && req.user && !data['uploadedBy']) {
-          data['uploadedBy'] = req.user.id;
-        }
-
-        /*
-          Залитое видео само заводит автору канал, если у того адреса ещё нет.
-
-          Адрес проставлялся только при заведении учётной записи, а те, что
-          старше самого поля, остались без него. Владелец заливал запись,
-          отмечал её общедоступной, открывал канал - и получал «страница не
-          найдена», потому что канала с таким адресом не существовало.
-
-          Адрес берётся у самого автора записи, а не у того, кто нажал
-          «сохранить»: запись могли залить за него.
-        */
-        /*
-          Канал заводится и при перекладывании записи на другого: администратор
-          указал специалиста - у того появился адрес, и запись видна на его
-          канале. Раньше это работало только при заливке.
-        */
-        if (String(data['mimeType'] ?? '').startsWith('video/')) {
-          const автор = data['uploadedBy'];
-          const номер = typeof автор === 'object' && автор ? (автор as { id?: unknown }).id : автор;
-          if (номер !== undefined && номер !== null && номер !== '') {
-            await ensureChannel(req, номер as string | number).catch(() => undefined);
-          }
-        }
-        // Код выдаём только видео и только один раз: у остальных файлов
-        // своей страницы нет, а у существующего видео адрес не меняется.
-        if (
-          operation === 'create' &&
-          !data['shortCode'] &&
-          String(data['mimeType'] ?? '').startsWith('video/')
-        ) {
-          data['shortCode'] = generateShortCode();
-        }
-
-        /*
-          Адрес кадра держим в актуальном виде: кадр могли переснять, и тогда
-          у него новый отпечаток в адресе. Поле рядом с записью нужно списку -
-          там связь приходит номером, - но устаревать оно не должно.
-        */
-        const кадр = data['preview'] as { url?: string } | number | string | undefined;
-        if (typeof кадр === 'object' && кадр !== null && typeof кадр.url === 'string') {
-          data['previewUrl'] = кадр.url;
-        }
-
-        // Имя документа держим в актуальном виде: название могли только что
-        // поменять, а имя файла — единственное, что есть у картинок.
-        const caption = String(data['caption'] ?? '').trim();
-        const filename = String(data['filename'] ?? '').trim();
-        if (caption || filename) data['title'] = caption || filename;
-
-        return data;
-      },
-    ],
-
-    /**
-     * Удаление видео — пометка, а не стирание.
-     *
-     * @remarks
-     * Оригинал стёрт сразу после нарезки, восстановить видео неоткуда. Поэтому
-     * «удалить» означает скрыть: с сайта он пропадает немедленно, а файлы лежат
-     * до срока из настроек и уходят отдельной задачей.
-     *
-     * Картинок и документов это не касается — они удаляются как раньше.
-     */
-    beforeDelete: [
-      async ({ id, req, context }) => {
-        // Уборщик стирает по истечении срока — ему перехват не нужен.
-        if (context?.['skipDeleteGuard']) return;
-        const doc = (await req.payload.findByID({
-          collection: 'media',
-          id,
-          depth: 0,
-          overrideAccess: true,
-        })) as { mimeType?: string; hls?: { deletedAt?: string | null } };
-
-        if (!String(doc?.mimeType ?? '').startsWith('video/')) return;
-        // Уже помечен — значит стирает задача уборки, ей мешать не нужно.
-        if (doc?.hls?.deletedAt) return;
-
-        await req.payload.update({
-          collection: 'media',
-          id,
-          data: { hls: { deletedAt: new Date().toISOString() } },
-          context: { skipHlsQueue: true },
-        });
-
-        // APIError, а не обычная ошибка: иначе Payload отвечает «Something went
-        // wrong», и человек не понимает, удалилось вообще или нет.
-        throw new APIError(
-          'Видео скрыт с сайта. Файлы будут стёрты автоматически по истечении срока из настроек — до тех пор его можно вернуть.',
-          400,
-        );
-      },
-    ],
-
-    /**
-     * Cache-busting via `?v=<updatedAt>` appended to the public URL.
-     *
-     * Problem: many CDNs keep objects with a long TTL keyed by Etag. If the file
-     * at S3 is replaced under the same key (re-uploaded through the admin with
-     * the same filename, or written directly to the bucket out-of-band), the CDN
-     * edge keeps serving the old copy from its cache.
-     *
-     * This hook appends `?v=<timestamp>` to `url` and to each `sizes.*.url`. Any
-     * update of the Media record in Payload bumps `updatedAt` → the query string
-     * changes → the CDN edge fetches the fresh file from S3 (the query string is
-     * part of the cache key).
-     *
-     * Side-effect: if a file is replaced directly on S3 without saving the Media
-     * record through the admin, busting will not trigger (`updatedAt` is
-     * unchanged). In that case open the Media record in `/admin` and click Save
-     * (touches `updatedAt`) so the CDN picks up the new version.
-     */
-    afterRead: [
+  endpoints: [
+    {
       /**
-       * Адрес манифеста для плеера - зеркальная ручка, а не раздача.
+       * Уборка одной копии файла.
        *
        * @remarks
-       * В манифесте стоит путь ключа без домена, и браузер разрешает его
-       * от адреса самого манифеста: возьми плеер файл из раздачи - запрос
-       * ключа уйдёт туда же, в хранилище.
+       * Здесь только перевод запроса в вызов и обратно: что станет с записью,
+       * решает `withoutCopy`, файл убирает `dropStoredFile`. Обе части
+       * проверяются без сети.
        *
-       * В базе адрес остаётся прежним: он верен и нужен тому, кто идёт
-       * за файлом напрямую. Меняется только то, что отдаётся наружу.
+       * Убирать копии может тот же, кто удаляет файлы целиком: это действие
+       * необратимо и уменьшает то, что уже роздано по страницам.
        */
-      ({ doc }) => {
-        const hls = doc?.hls as { prefix?: string | null; playlistUrl?: string | null } | undefined;
-        if (!hls?.prefix || !hls.playlistUrl) return doc;
-
-        return {
-          ...doc,
-          hls: { ...hls, playlistUrl: `/internal/video/manifest/${String(doc.id)}` },
-        };
-      },
-      /**
-       * У нарезанного видео адресом становится его манифест потока.
-       *
-       * @remarks
-       * Исходник удаляется сразу после успешной нарезки, а адрес в базе
-       * оставался прежним — и любая ссылка на видео вела в «NoSuchKey»: и
-       * плашка файла в админке, и «скопировать ссылку», и обращение по API.
-       *
-       * Манифест (`master.m3u8`) — оглавление кусков этого же видео, оно есть
-       * у каждого нарезанного видео. К плейлистам видео отношения не имеет:
-       * плейлист — это подборка, и её у видео может не быть вовсе.
-       */
-      ({ doc }) => {
+      path: '/:id/copies/:step',
+      method: 'delete',
+      handler: async (req) => {
         /*
-          Миниатюрой служит снятый кадр. Адрес берётся из поля рядом с записью,
-          а не из связи: в списке связь приходит номером, и по ней адреса нет.
-          Развёрнутая связь остаётся запасным путём - для записей, у которых
-          поле ещё не заполнено.
+          В своём обработчике Payload не разбирает вход сам: `req.user` там
+          пуст даже у вошедшего. Поэтому спрашиваем его явно по заголовкам
+          запроса - иначе администратор получает отказ на своё же действие.
         */
-        const preview = doc?.preview as { url?: string } | number | string | undefined;
-        /*
-          Развёрнутая связь идёт первой, поле рядом с записью - запасным.
-
-          Порядок был обратным, и адрес прилипал: кадр пересняли, у самой записи
-          кадра адрес новый, а у видео осталось старое значение - на сайте
-          виднелся вчерашний кадр, а после смены имени файла и вовсе пустое
-          место. В списке связь приходит номером, и там по-прежнему работает
-          поле.
-        */
-        const posterUrl =
-          (typeof preview === 'object' && preview !== null ? preview.url : undefined) ||
-          (typeof doc?.previewUrl === 'string' ? doc.previewUrl : undefined);
-
-        const hls = doc?.hls as
-          | {
-              status?: string;
-              playlistUrl?: string | null;
-              prefix?: string | null;
-              packBytes?: number | null;
-            }
-          | undefined;
-        const streamUrl = hls?.status === 'ready' ? (hls.playlistUrl ?? undefined) : undefined;
-
-        /*
-          Имя показывается такое, как объект называется в хранилище. Исходника
-          давно нет, а плашка обещала `lesson-4.mp4` и вела на манифест: человек
-          нажимал в расчёте посмотреть видео и получал список кусков. Теперь имя
-          и адрес говорят об одном и том же - о пакете нарезки. Смотрят видео
-          не отсюда, а по ссылке на страницу в блоке предпросмотра ниже.
-        */
-        const packName = streamUrl && hls?.prefix ? `${hls.prefix}/master.m3u8` : undefined;
-
-        /*
-          Весом называется вес нарезки, а не исходника: исходник удалён, и его
-          вес рядом с именем пакета сбивал с толку. Прежний вес не теряется -
-          он уезжает в поле рядом и показывается в предпросмотре с оговоркой,
-          что он от исходника. У записей, нарезанных до подсчёта, веса пакета
-          нет, и подпись остаётся прежней.
-        */
-        const packBytes = streamUrl ? (hls?.packBytes ?? undefined) : undefined;
-        const sourceFilesize = typeof doc?.filesize === 'number' ? doc.filesize : undefined;
-
-        if (!posterUrl && !streamUrl) return doc;
-
-        return {
-          ...doc,
-          ...(streamUrl ? { url: streamUrl } : {}),
-          ...(packName ? { filename: packName } : {}),
-          ...(posterUrl ? { thumbnailURL: posterUrl } : {}),
-          ...(packBytes ? { filesize: packBytes, sourceFilesize: sourceFilesize ?? null } : {}),
-        };
-      },
-      ({ doc }) => {
-        if (!doc?.url) return doc;
-        const v = doc.updatedAt ? new Date(doc.updatedAt as string | Date).getTime() : Date.now();
-        const bust = (url: unknown): unknown => {
-          if (typeof url !== 'string' || !url) return url;
-          return url + (url.includes('?') ? '&' : '?') + `v=${v}`;
-        };
-        const sizes = doc.sizes as Record<string, { url?: unknown }> | undefined;
-        return {
-          ...doc,
-          url: bust(doc.url),
-          ...(sizes
-            ? {
-                sizes: Object.fromEntries(
-                  Object.entries(sizes).map(([k, s]) => [k, { ...s, url: bust(s?.url) }]),
-                ),
-              }
-            : {}),
-        };
-      },
-    ],
-
-    /**
-     * Нарезка загруженного видео ставится в очередь сама.
-     *
-     * @remarks
-     * От человека в админке не требуется ничего, кроме «выбрать файл»: кнопок
-     * «подготовить видео» нет и быть не должно — про них забывают, и видео
-     * молча остаётся неиграбельным.
-     *
-     * Ставится только на загрузку файла, а не на любое сохранение: правка
-     * подписи или переключение доступа перенарезки не требуют. Признак —
-     * наличие `req.file`; служебные обновления самой задачи помечены
-     * `context.skipHlsQueue`, иначе видео результата запустила бы новый круг.
-     */
-    afterChange: [
-      async ({ doc, req, context }) => {
-        if (context?.['skipHlsQueue']) return doc;
-        if (!req.file) return doc;
-        if (!String(doc?.mimeType ?? '').startsWith('video/')) return doc;
-
-        try {
-          await req.payload.jobs.queue({
-            task: 'build-hls',
-            input: { mediaId: String(doc.id) },
-          });
-          await req.payload.update({
-            collection: 'media',
-            id: doc.id as string | number,
-            data: { hls: { status: 'pending', error: null } },
-            context: { skipHlsQueue: true },
-          });
-        } catch (error) {
-          // Файл уже сохранён — ронять загрузку из-за очереди нельзя.
-          // Нарезку можно запустить кнопкой в списке задач.
-          req.payload.logger.error(
-            `[media] не удалось поставить нарезку для ${doc.id}: ${
-              error instanceof Error ? error.message : String(error)
-            }`,
+        const { user } = await req.payload.auth({ headers: req.headers });
+        if (user?.role !== 'admin') {
+          return Response.json(
+            { error: 'Удаление копий доступно администратору' },
+            { status: 403 },
           );
         }
-        return doc;
+
+        const id = req.routeParams?.['id'];
+        const step = String(req.routeParams?.['step'] ?? '');
+        if (!id) return Response.json({ error: 'Файл не указан' }, { status: 400 });
+
+        const doc = await req.payload.findByID({ collection: 'media', id: String(id), depth: 0 });
+        // Оригинал в адресе приходит словом, а у записи его ступень без имени.
+        const decision = withoutCopy(doc as MediaRecord, step === 'original' ? '' : step);
+        if (!decision.ok) return Response.json({ error: decision.why }, { status: 400 });
+
+        const copy = copiesOf(doc as MediaRecord).find((item) => item.filename === decision.drop);
+        await dropStoredFile(decision.drop, copy?.url ?? '');
+        await req.payload.update({
+          collection: 'media',
+          id: String(id),
+          data: decision.patch,
+          depth: 0,
+        });
+
+        return Response.json({ dropped: decision.drop });
       },
-
-      /**
-       * Превью первой страницы для загруженного PDF.
-       *
-       * @remarks
-       * Документы на сайте показываются плиткой с картинкой. Раньше её готовили
-       * руками и заливали отдельным файлом: лишний шаг, о котором забывают, и
-       * превью разъезжается с документом после его замены.
-       *
-       * Работает после создания, а не до: файл к этому моменту уже сохранён, и
-       * сбой рендера не мешает загрузить сам документ. Превью кладём отдельным
-       * медиафайлом и связываем — так оно попадает в то же хранилище и получает
-       * тот же CDN-адрес, что и всё остальное.
-       */
-      async ({ doc, operation, req }) => {
-        if (operation !== 'create') return doc;
-        if (doc?.mimeType !== 'application/pdf' || doc?.preview) return doc;
-
-        const data = req.file?.data;
-        if (!data) return doc;
-
-        const preview = await renderPdfPreview(data as Buffer);
-        if (!preview) return doc;
-
-        try {
-          const base = String(doc.filename ?? 'document').replace(/\.pdf$/i, '');
-          const created = await req.payload.create({
-            collection: 'media',
-            data: {
-              alt: `Первая страница документа «${base}»`,
-              prefix: POSTER_PREFIX,
-              derived: true,
-            },
-            file: {
-              data: preview,
-              name: `${base}-preview.webp`,
-              mimetype: 'image/webp',
-              size: preview.length,
-            },
-          });
-          await req.payload.update({
-            collection: 'media',
-            id: doc.id as string | number,
-            data: { preview: created.id, previewUrl: created.url ?? null },
-          });
-          return { ...doc, preview: created.id, previewUrl: created.url ?? null };
-        } catch {
-          // Документ уже сохранён — превью не критично, добавится при повторной загрузке.
-          return doc;
-        }
-      },
+    },
+  ],
+  hooks: {
+    beforeOperation: [normalizeUploadName],
+    beforeChange: [
+      moveOnPrefixChange,
+      measureImage,
+      stampUploader,
+      ensureAuthorChannel,
+      issueShortCode,
+      syncPreviewUrl,
+      syncTitle,
     ],
+    beforeDelete: [softDeleteVideo],
+    afterRead: [exposeManifestRoute, exposeStreamPack, bustCdnCache],
+    afterChange: [queueVideoCut, makePdfPreview],
   },
 };

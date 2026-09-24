@@ -14,6 +14,11 @@ import type { Block } from 'payload';
 export const VideoBlock: Block = {
   slug: 'video',
   labels: { singular: 'Видео', plural: 'Видео' },
+  /*
+    В тексте статьи блок показан превью - тем, что увидит читатель, а поля
+    открываются кнопкой «Изменить». На блоки страницы это не действует.
+  */
+  admin: { components: { Block: '/editor/attachment-preview#VideoPreview' } },
   fields: [
     {
       name: 'video',

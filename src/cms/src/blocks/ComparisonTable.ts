@@ -8,7 +8,7 @@ import type { Block } from 'payload';
  */
 export const ComparisonTableBlock: Block = {
   slug: 'comparison-table',
-  labels: { singular: 'Сравнение (red vs green)', plural: 'Сравнения' },
+  labels: { singular: 'Сравнение: было и стало', plural: 'Сравнения' },
   fields: [
     {
       name: 'heading',

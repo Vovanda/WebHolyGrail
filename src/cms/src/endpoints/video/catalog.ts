@@ -129,7 +129,8 @@ export const videoByCodeEndpoint: Endpoint = {
           code: item.shortCode ?? null,
           title: item.title?.trim() || 'Плейлист',
           count: item.items?.length ?? 0,
-          cover: item.cover?.url ?? null,
+          // Сам документ, а не адрес: по нему показ берёт ступень под карточку.
+          cover: item.cover ?? null,
           covers: playlistCovers(item.items ?? []),
         };
       }),
@@ -144,7 +145,8 @@ export const videoByCodeEndpoint: Endpoint = {
       playlistUrl: doc.hls?.playlistUrl ?? '',
       qualities: (doc.hls?.qualities ?? []).flatMap((q) => (q?.height ? [q.height] : [])),
       durationSeconds: doc.hls?.durationSeconds ?? null,
-      poster: doc.preview?.url ?? null,
+      // Сам документ, а не адрес: по нему показ берёт ступень под карточку.
+      poster: doc.preview ?? null,
       // Лента кадров для перемотки, если её сняли.
       storyboard: doc.hls?.storyboard?.url
         ? {
@@ -278,7 +280,8 @@ export const videoChannelEndpoint: Endpoint = {
             code: doc.shortCode,
             title: doc.title?.trim() || 'Плейлист',
             description: doc.description?.trim() || null,
-            cover: doc.cover?.url ?? null,
+            // Сам документ, а не адрес: по нему показ берёт ступень под карточку.
+            cover: doc.cover ?? null,
             // Кадры видео: ими плейлист показывается, когда своей обложки нет.
             covers: playlistCovers(doc.items ?? []),
             count: doc.items?.length ?? 0,
@@ -336,7 +339,8 @@ async function channelItems(
       code: doc.shortCode,
       title: doc.caption?.trim() || doc.alt?.trim() || 'Видео',
       playlistUrl: doc.hls?.playlistUrl ?? null,
-      poster: doc.preview?.url ?? null,
+      // Сам документ, а не адрес: по нему показ берёт ступень под карточку.
+      poster: doc.preview ?? null,
       posterIsDark: doc.preview?.isDark ?? null,
       durationSeconds: doc.hls?.durationSeconds ?? null,
       createdAt: doc.createdAt ?? null,

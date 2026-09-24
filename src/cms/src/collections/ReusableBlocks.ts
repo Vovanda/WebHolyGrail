@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
-import { REUSABLE_INNER_BLOCKS } from '../blocks';
+import { BLOCK_ROW_LABELS, REUSABLE_INNER_BLOCKS } from '../blocks';
 
 /**
  * ReusableBlocks — атомарные «шаблонные» композиции блоков, которые можно
@@ -44,6 +44,7 @@ export const ReusableBlocks: CollectionConfig = {
       name: 'content',
       label: 'Содержимое',
       type: 'blocks',
+      labels: BLOCK_ROW_LABELS,
       required: true,
       blocks: REUSABLE_INNER_BLOCKS,
     },

@@ -23,15 +23,15 @@
  */
 import { GetBucketCorsCommand, PutBucketCorsCommand, S3Client } from '@aws-sdk/client-s3';
 
-const писать = process.argv.includes('--apply');
+const write = process.argv.includes('--apply');
 
-const бакет = process.env['S3_BUCKET'];
-const адрес = process.env['S3_ENDPOINT'];
-const область = process.env['S3_REGION'];
-const ключ = process.env['S3_ACCESS_KEY_ID'];
-const секрет = process.env['S3_SECRET_ACCESS_KEY'];
+const bucket = process.env['S3_BUCKET'];
+const endpoint = process.env['S3_ENDPOINT'];
+const region = process.env['S3_REGION'];
+const accessKey = process.env['S3_ACCESS_KEY_ID'];
+const secretKey = process.env['S3_SECRET_ACCESS_KEY'];
 
-if (!бакет || !адрес || !ключ || !секрет) {
+if (!bucket || !endpoint || !accessKey || !secretKey) {
   console.error('Нет настроек хранилища: нужны S3_BUCKET, S3_ENDPOINT, ключ и секрет.');
   process.exit(1);
 }
@@ -43,7 +43,7 @@ if (!бакет || !адрес || !ключ || !секрет) {
  * Свой домен и его вариант с www, плюс адрес показа, если он задан отдельно.
  * Местные адреса стенда - чтобы кадр был виден и при разработке.
  */
-const источники = Array.from(
+const origins = Array.from(
   new Set(
     [
       process.env['NEXT_PUBLIC_SITE_URL'],
@@ -59,33 +59,33 @@ const источники = Array.from(
   ),
 );
 
-const клиент = new S3Client({
-  region: область ?? 'us-east-1',
-  endpoint: адрес,
+const client = new S3Client({
+  region: region ?? 'us-east-1',
+  endpoint: endpoint,
   forcePathStyle: true,
-  credentials: { accessKeyId: ключ, secretAccessKey: секрет },
+  credentials: { accessKeyId: accessKey, secretAccessKey: secretKey },
 });
 
-const текущее = await клиент
-  .send(new GetBucketCorsCommand({ Bucket: бакет }))
+const current = await client
+  .send(new GetBucketCorsCommand({ Bucket: bucket }))
   .then((r) => r.CORSRules ?? [])
   .catch(() => null);
 
-console.log('сейчас в хранилище:', текущее ? JSON.stringify(текущее) : 'разрешения нет');
-console.log('выдаём источникам:', источники.join(', '));
+console.log('сейчас в хранилище:', current ? JSON.stringify(current) : 'разрешения нет');
+console.log('выдаём источникам:', origins.join(', '));
 
-if (!писать) {
+if (!write) {
   console.log('Показ без записи. Повторите с --apply.');
   process.exit(0);
 }
 
-await клиент.send(
+await client.send(
   new PutBucketCorsCommand({
-    Bucket: бакет,
+    Bucket: bucket,
     CORSConfiguration: {
       CORSRules: [
         {
-          AllowedOrigins: источники,
+          AllowedOrigins: origins,
           // Только чтение: записывает в хранилище сам сайт, ключами, а не страница.
           AllowedMethods: ['GET', 'HEAD'],
           AllowedHeaders: ['*'],

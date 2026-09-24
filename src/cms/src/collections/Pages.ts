@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
-import { PAGE_BLOCKS } from '../blocks';
+import { BLOCK_ROW_LABELS, PAGE_BLOCKS } from '../blocks';
+import { previewPath } from '../lib/preview';
 
 /**
  * Pages — страницы сайта из блоков.
@@ -20,6 +21,8 @@ export const Pages: CollectionConfig = {
     useAsTitle: 'title',
     defaultColumns: ['title', 'slug', '_status', 'updatedAt'],
     group: 'Контент',
+    // Предпросмотр открывает страницу такой, какой её увидит посетитель.
+    preview: (doc) => previewPath('', doc?.['slug']),
   },
   versions: {
     drafts: {
@@ -49,6 +52,7 @@ export const Pages: CollectionConfig = {
       name: 'blocks',
       label: 'Блоки страницы',
       type: 'blocks',
+      labels: BLOCK_ROW_LABELS,
       blocks: PAGE_BLOCKS,
       admin: {
         description:

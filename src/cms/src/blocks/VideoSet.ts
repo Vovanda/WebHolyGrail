@@ -18,7 +18,7 @@ import type { Block } from 'payload';
  */
 export const VideoSetBlock: Block = {
   slug: 'videoSet',
-  labels: { singular: 'Плейлист видео', plural: 'Плейлисты видео' },
+  labels: { singular: 'Видео плейлист', plural: 'Видео плейлисты' },
   fields: [
     {
       name: 'playlist',
