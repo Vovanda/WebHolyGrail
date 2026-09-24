@@ -28,6 +28,7 @@
 import payload from 'payload';
 import { MEDIA_RENDITIONS } from 'contracts';
 
+import { KEEP_FILENAME } from '../src/lib/media-hooks';
 import config from '../src/payload.config';
 
 const apply = process.argv.includes('--apply');
@@ -137,6 +138,13 @@ async function main(): Promise<void> {
           size: data.byteLength,
         },
         overrideAccess: true,
+        /*
+          Под прежним именем: без этого Payload считает имя занятым самим
+          файлом и дописывает -1, а хук латиницы меняет регистр. Адрес,
+          вписанный строкой, после такого отдавал 404.
+        */
+        overwriteExistingFiles: true,
+        context: { [KEEP_FILENAME]: true },
       });
       payload.logger.info(`${name}: пересобран (${gaps.join('; ') || 'принудительно'})`);
       done += 1;

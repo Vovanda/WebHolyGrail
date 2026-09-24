@@ -18,6 +18,9 @@ import { renderPdfPreview } from './pdf-preview';
 import { latinFilename } from './translit';
 import { generateShortCode } from './video/short-code';
 
+/** Признак в контексте вызова: файл перезаливается под прежним именем. */
+export const KEEP_FILENAME = 'keepFilename';
+
 /**
  * Хуки коллекции медиатеки, по одному делу на хук.
  *
@@ -39,9 +42,14 @@ const relationId = (value: unknown): unknown =>
  * Стоит до начала работы с файлом, а не перед сохранением записи: к тому
  * времени имя уже разошлось по ступеням, и переименование исходника оставило
  * бы копии с прежним.
+ *
+ * Пересборка файла (пробег медиатеки) имя не трогает: она ставит в контекст
+ * `keepFilename`. Иначе имя меняло регистр, и адрес, вписанный где-то строкой,
+ * начинал отдавать 404.
  */
-export const normalizeUploadName: CollectionBeforeOperationHook = ({ req, operation }) => {
+export const normalizeUploadName: CollectionBeforeOperationHook = ({ req, operation, context }) => {
   if (operation !== 'create' && operation !== 'update') return;
+  if (context?.[KEEP_FILENAME]) return;
   const upload = req.file;
   if (upload?.name) upload.name = latinFilename(upload.name);
 };
