@@ -195,6 +195,16 @@ describe('заготовка кадра', () => {
     });
     expect(mediaFrame(old)?.blur).toBe('https://site.ru/media/OLD-400x300.webp');
   });
+
+  it('у файла без копий размывать нечего', () => {
+    const bare = {
+      id: '9',
+      url: 'https://site.ru/media/ONLY.webp',
+      width: 800,
+      height: 600,
+    } as MediaDoc;
+    expect(mediaFrame(bare)?.blur).toBeNull();
+  });
 });
 
 describe('кадр для показа', () => {

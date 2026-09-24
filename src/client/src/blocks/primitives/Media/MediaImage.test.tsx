@@ -17,6 +17,15 @@ const photo = {
   },
 } as MediaDoc;
 
+/** Файл без копий: размывать нечего, кадр идёт без рамки. */
+const bare = {
+  id: '40',
+  url: 'https://site.ru/media/IMG_2198.webp?v=1',
+  alt: 'Чистое помещение',
+  width: 5712,
+  height: 4284,
+} as MediaDoc;
+
 describe('MediaImage', () => {
   it('отдаёт браузеру list вариантов и место показа', () => {
     const html = renderToStaticMarkup(
@@ -101,11 +110,19 @@ describe('показ ступенями', () => {
     expect(html).toContain('data-part="media-image-blur"');
   });
 
-  it('кадр без заготовки идёт без рамки и откладывает отрисовку', () => {
-    const html = renderToStaticMarkup(<MediaImage media={photo} place="768px" />);
+  it('кадр без заготовки и копий идёт без рамки и откладывает отрисовку', () => {
+    const html = renderToStaticMarkup(<MediaImage media={bare} place="768px" />);
     expect(html).toContain('decoding="async"');
     expect(html).not.toContain('media-image-frame');
     expect(html).not.toContain('media-image-blur');
+  });
+
+  it('залитый раньше файл без заготовки размывает наименьшую копию', () => {
+    const html = renderToStaticMarkup(<MediaImage media={photo} place="768px" />);
+    expect(html).toContain('data-part="media-image-blur"');
+    expect(html).toContain(
+      'background-image:url(&quot;https://site.ru/media/IMG-400x300.webp&quot;)',
+    );
   });
 
   it('место показа лежит рядом: помощник вернёт его после мелкой ступени', () => {
@@ -130,7 +147,7 @@ describe('показ ступенями', () => {
 
   it('пропорция кадра стоит на элементе с классами места - на снимке без заготовки', () => {
     const tag = tagOf(
-      renderToStaticMarkup(<MediaImage media={photo} className="media-single" />),
+      renderToStaticMarkup(<MediaImage media={bare} className="media-single" />),
       'data-part="media-image"',
     );
     expect(tag).toContain('media-single');
@@ -178,7 +195,7 @@ describe('показ ступенями', () => {
 
   it('без заготовки форма места ложится на сам снимок', () => {
     const tag = tagOf(
-      renderToStaticMarkup(<MediaImage media={photo} aspect={{ width: 9, height: 16 }} />),
+      renderToStaticMarkup(<MediaImage media={bare} aspect={{ width: 9, height: 16 }} />),
       'data-part="media-image"',
     );
     expect(tag).toContain('aspect-ratio:9 / 16');
