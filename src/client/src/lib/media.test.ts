@@ -187,6 +187,16 @@ describe('предел по ширине', () => {
   });
 });
 
+describe('заготовка кадра', () => {
+  it('без заготовки строкой размывается наименьшая копия', () => {
+    const old = doc({
+      thumbnail: { url: 'https://site.ru/media/OLD-400x300.webp', width: 400, height: 300 },
+      hero: { url: 'https://site.ru/media/OLD-1920x1440.webp', width: 1920, height: 1440 },
+    });
+    expect(mediaFrame(old)?.blur).toBe('https://site.ru/media/OLD-400x300.webp');
+  });
+});
+
 describe('кадр для показа', () => {
   const photo = {
     ...doc({

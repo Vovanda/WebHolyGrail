@@ -14,6 +14,7 @@
 #   4. Healthcheck loop (60 сек total)
 #   5. Switch nginx upstream symlink → reload
 #   6. Stop старый color (5 сек на in-flight)
+#   6.5. Пробег медиатеки у старых файлов (не блокер)
 #
 # При failure healthcheck — rollback (down inactive, active не трогаем).
 
@@ -602,6 +603,21 @@ if [ "$ACTIVE" != "$INACTIVE" ] && docker ps --format '{{.Names}}' | grep -q "$S
   echo "   ✓ $ACTIVE stopped"
 fi
 
+# 6.5. Пробег медиатеки: заготовка кадра и ступени у файлов, залитых раньше.
+# Хук снимает их только при заливке, поэтому после обновления показа старые
+# снимки оставались без размытия и с прежними ступенями, пока пробег не запустят
+# руками. Идёт после переключения: сайт уже на новой версии, а пробег трогает
+# только неполные файлы - на обычной выкладке он ничего не пересобирает.
+# Не блокер: неудача не откатывает выкладку. Отключить: RESTOCK_MEDIA=0.
+if [ "${RESTOCK_MEDIA:-1}" != "0" ]; then
+  echo
+  echo "→ Restocking media (заготовка и ступени у старых файлов)..."
+  if timeout 1800 docker exec "$SITE_SLUG-cms-$INACTIVE" pnpm -s --filter cms restock:media --apply 2>&1 | tail -3; then
+    echo "   ✓ media restock done"
+  else
+    echo "   ⚠ media restock failed — deploy continues (не блокер)"
+  fi
+fi
 
 # 7. Post-success housekeeping — удалить unused images / containers / buildx-
 # cache. Делается после успешного switch чтобы освободить место под следующий
