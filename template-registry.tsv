@@ -735,6 +735,7 @@ mirror	src/cms/src/lib/image-luma.ts
 mirror	src/cms/src/lib/media-copies.test.ts
 mirror	src/cms/src/lib/media-copies.ts
 mirror	src/cms/src/lib/media-folders.ts
+mirror	src/cms/src/lib/media-hooks.name.test.ts
 mirror	src/cms/src/lib/media-hooks.test.ts
 mirror	src/cms/src/lib/media-hooks.ts
 mirror	src/cms/src/lib/media-move.test.ts
