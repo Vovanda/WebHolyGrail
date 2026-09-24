@@ -168,7 +168,8 @@ export interface MediaFrame {
   readonly laneSet: string;
   /**
    * Что показать размытым до прихода кадра: заготовка строкой, а у файла
-   * без неё - наименьшая копия.
+   * без неё - наименьшая копия. У файла без копий - ничего: размывать
+   * оригинал незачем, он и есть тот кадр, которого ждут.
    *
    * @remarks
    * Заготовку снимает хук при заливке, и у файлов, залитых раньше, её нет,
@@ -214,7 +215,7 @@ export function mediaFrame(
     srcSet: mediaSrcSet(page),
     file,
     laneSet: mediaSrcSet(laneWithFile) ?? src,
-    blur: doc?.blurData ?? mediaSmallestUrl(media),
+    blur: doc?.blurData ?? all.at(0)?.url ?? null,
     focus:
       typeof doc?.focalX === 'number' && typeof doc.focalY === 'number'
         ? `${doc.focalX}% ${doc.focalY}%`
