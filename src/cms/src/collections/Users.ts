@@ -1,6 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
-import { canReadAccountSecret } from '../lib/access/account-secret';
+import { canReadApiKey } from '../lib/access/api-key-access';
 import { channelFrom, freeChannel } from '../lib/channel';
 
 /**
@@ -128,7 +128,7 @@ export const Users: CollectionConfig = {
       type: 'text',
       access: {
         read: ({ req: { user }, id, doc }) =>
-          canReadAccountSecret(user, id ?? (doc as { id?: number } | undefined)?.id),
+          canReadApiKey(user, id ?? (doc as { id?: number } | undefined)?.id),
       },
     },
   ],

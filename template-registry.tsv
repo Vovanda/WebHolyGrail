@@ -719,6 +719,8 @@ mirror	src/cms/src/jobs/engine.ts
 mirror	src/cms/src/jobs/purge-access.task.ts
 mirror	src/cms/src/jobs/purge-key-usage.task.ts
 mirror	src/cms/src/jobs/purge-videos.task.ts
+mirror	src/cms/src/lib/access/api-key-access.test.ts
+mirror	src/cms/src/lib/access/api-key-access.ts
 mirror	src/cms/src/lib/block-parts.ts
 mirror	src/cms/src/lib/bytes.test.ts
 mirror	src/cms/src/lib/bytes.ts
