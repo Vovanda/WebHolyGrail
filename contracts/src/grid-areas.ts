@@ -80,8 +80,16 @@ function cells(
       if (hidden && found[1]) {
         return { bad: `«${chunk}» - у выключенной карточки размера нет` };
       }
+      /*
+        Русская буква - частая ошибка: раскладку набирают на той же клавиатуре,
+        что и тексты, и «с» или «а» не отличить от латинских на глаз. Поэтому
+        называем её прямо, а не общим «пишется буквой».
+      */
+      if (/[Ѐ-ӿ]/.test(knak)) {
+        return { bad: `«${knak}» набрана русской раскладкой - нужна латинская буква` };
+      }
       if (knak !== HOLE && !/^[a-zA-Z]$/.test(knak)) {
-        return { bad: `«${knak}» - имя пишется буквой` };
+        return { bad: `«${knak}» - имя пишется латинской буквой` };
       }
 
       /*
@@ -99,6 +107,66 @@ function cells(
   }
 
   return { ok: out, off };
+}
+
+type Box = { top: number; left: number; bottom: number; right: number };
+
+/**
+ * Прямоугольник каждого имени; имя, разбросанное не прямоугольником, - отдельно.
+ */
+function nameBoxes(
+  rows: ReadonlyArray<ReadonlyArray<string>>,
+): { boxes: Map<string, Box> } | { broken: string } {
+  const boxes = new Map<string, Box>();
+  rows.forEach((row, y) => {
+    row.forEach((name, x) => {
+      if (name === HOLE) return;
+      const box = boxes.get(name);
+      if (!box) {
+        boxes.set(name, { top: y, left: x, bottom: y, right: x });
+        return;
+      }
+      box.top = Math.min(box.top, y);
+      box.left = Math.min(box.left, x);
+      box.bottom = Math.max(box.bottom, y);
+      box.right = Math.max(box.right, x);
+    });
+  });
+
+  // Область каждого имени должна быть цельным прямоугольником: «a b : b a»
+  // описывает фигуру, которой не бывает.
+  for (const [name, box] of boxes) {
+    for (let y = box.top; y <= box.bottom; y += 1) {
+      for (let x = box.left; x <= box.right; x += 1) {
+        if (rows[y]?.[x] !== name) return { broken: name };
+      }
+    }
+  }
+  return { boxes };
+}
+
+/**
+ * Почему запись не складывается в сетку; `null` - складывается или пустая.
+ *
+ * @remarks
+ * Поле в админке показывает эту причину: общее «не складывается» не говорит,
+ * что поправить, а ошибка бывает в одном знаке.
+ */
+export function areasProblem(raw: string | null | undefined): string | null {
+  if (!raw || raw.trim().startsWith('#')) return null;
+  const read = raw.split(':').map((row) => cells(row));
+  const bad = read.findIndex((row) => 'bad' in row);
+  if (bad >= 0) {
+    const row = read[bad] as { bad: string };
+    return `Ряд ${bad + 1}: ${row.bad}.`;
+  }
+  const rows = read.map((row) => ('ok' in row ? row.ok : [])).filter((row) => row.length > 0);
+  if (rows.length === 0) return 'В записи нет ни одной плитки.';
+  const found = nameBoxes(rows);
+  if ('broken' in found) {
+    return `«${found.broken}» разбросано: одно имя должно занимать цельный прямоугольник.`;
+  }
+  return null;
 }
 
 function expand(cells: ReadonlyArray<string>): ReadonlyArray<string> {
@@ -173,36 +241,10 @@ export function parseAreas(raw: string | null | undefined): ReadonlyArray<Area> 
     return null;
   }
 
-  const seen = new Map<string, { top: number; left: number; bottom: number; right: number }>();
-
-  rows.forEach((row, y) => {
-    row.forEach((name, x) => {
-      if (name === HOLE) return;
-
-      const box = seen.get(name);
-      if (!box) {
-        seen.set(name, { top: y, left: x, bottom: y, right: x });
-        return;
-      }
-
-      box.top = Math.min(box.top, y);
-      box.left = Math.min(box.left, x);
-      box.bottom = Math.max(box.bottom, y);
-      box.right = Math.max(box.right, x);
-    });
-  });
-
+  const found = nameBoxes(rows);
+  if ('broken' in found) return null;
+  const seen = found.boxes;
   if (seen.size === 0) return null;
-
-  // Область каждого имени должна быть цельным прямоугольником: «a b : b a»
-  // описывает фигуру, которой не бывает.
-  for (const [name, box] of seen) {
-    for (let y = box.top; y <= box.bottom; y += 1) {
-      for (let x = box.left; x <= box.right; x += 1) {
-        if (rows[y]?.[x] !== name) return null;
-      }
-    }
-  }
 
   /*
     Порядок имён и есть порядок карточек: первое по алфавиту имя означает первую
@@ -224,7 +266,7 @@ export function parseAreas(raw: string | null | undefined): ReadonlyArray<Area> 
   return order
     .filter((name) => seen.has(name))
     .map((name) => {
-      const box = seen.get(name) as { top: number; left: number; bottom: number; right: number };
+      const box = seen.get(name) as Box;
       return {
         name,
         index: order.indexOf(name),
@@ -340,6 +382,15 @@ export interface Cell {
   readonly height: number;
 }
 
+/** Как считать сетку, кроме самой записи. */
+export interface LayoutOptions {
+  /**
+   * Сетка держит заданное число колонок, даже если карточек меньше: карточка
+   * остаётся своей ширины, а не растягивается на весь ряд.
+   */
+  readonly keepColumns?: boolean;
+}
+
 /** Раскладка блока целиком: плитки и во сколько долей их класть. */
 export interface Layout {
   readonly cells: ReadonlyArray<Cell>;
@@ -358,16 +409,21 @@ export interface Layout {
  * Ряд, в котором стоит карточка на несколько рядов, не сдвигается: сдвинуть его
  * к центру значило бы развести её соседние ряды по разным местам, и она налезла
  * бы на чужие.
+ *
+ * Сетка шириной в самый длинный ряд: одна карточка занимает всю ширину, две -
+ * по половине. С `keepColumns` сетка держит `perRow` колонок, и карточек меньше,
+ * чем помещается в ряд, стоят по центру своей обычной ширины.
  */
 export function layout(
   raw: string | null | undefined,
   count: number,
   perRow: number,
+  options: LayoutOptions = {},
 ): Layout | null {
   const placed = placeAll(raw, count, perRow);
   if (!placed) return null;
 
-  const width = Math.max(...placed.rows, 1);
+  const width = Math.max(...placed.rows, options.keepColumns ? perRow : 1);
 
   const tall = new Set<number>();
   for (const area of placed.areas) {
@@ -420,10 +476,11 @@ export function layouts(
   },
   count: number,
   perRow: number,
+  options: LayoutOptions = {},
 ): Layouts {
   return {
-    lg: layout(raw.lg, count, perRow),
-    md: layout(raw.md, count, 2),
-    sm: layout(raw.sm, count, 1),
+    lg: layout(raw.lg, count, perRow, options),
+    md: layout(raw.md, count, 2, options),
+    sm: layout(raw.sm, count, 1, options),
   };
 }

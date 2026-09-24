@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { areasWidth, parseAreas, type Area } from './grid-areas';
+import { areasProblem, areasWidth, parseAreas, type Area } from './grid-areas';
 
 /**
  * Раскладка именами описывает и вертикальное объединение, но допускает фигуры,
@@ -106,5 +106,28 @@ describe('ширина сетки', () => {
     expect(areasWidth('a b c : d e f')).toBe(3);
     expect(areasWidth('a b : c d e')).toBe(3);
     expect(areasWidth('')).toBeNull();
+  });
+});
+
+describe('раскладка, набранная русской раскладкой', () => {
+  it('русская «с» не принимается и названа с рядом', () => {
+    expect(parseAreas('a a b : a a с : d e')).toBeNull();
+    const problem = areasProblem('a a b : a a с : d e');
+    expect(problem).toContain('Ряд 2');
+    expect(problem).toContain('«с»');
+    expect(problem).toContain('русской раскладкой');
+  });
+
+  it('русская «а», неотличимая от латинской, тоже названа', () => {
+    expect(areasProblem('а а')).toContain('русской раскладкой');
+  });
+
+  it('разбросанное имя названо в ошибке', () => {
+    expect(areasProblem('a b : b a')).toContain('«a»');
+  });
+
+  it('латинская запись ошибки не даёт', () => {
+    expect(areasProblem('a a b : a a c : d e')).toBeNull();
+    expect(areasProblem('#a b : b a')).toBeNull();
   });
 });
