@@ -101,6 +101,21 @@ describe('перенос в другую папку', () => {
     });
   });
 
+  it('у нарезанного видео файлы не переезжают: имя в записи подменено на мастер пакета', () => {
+    const video = {
+      prefix: '',
+      filename: 'u1/hls/abc/master.m3u8',
+      url: '/internal/video/manifest/13',
+      mimeType: 'video/mp4',
+      sizes: {},
+      hls: { prefix: 'u1/hls/abc' },
+    };
+    expect(movePlan({ doc: video, to: 'objects', urlForKey: url })).toEqual({
+      moves: [],
+      patch: {},
+    });
+  });
+
   it('файл без копий переезжает один', () => {
     const document: MediaRecord = {
       prefix: '',

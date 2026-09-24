@@ -41,20 +41,24 @@ export function storageKey(prefix: string | null | undefined, filename: string):
  * Ступень в правке записи передаётся целиком, с новым адресом. Одного адреса
  * мало: проверка Payload видит у ступени имя файла без типа и отвечает
  * «Invalid file type» - так падал перенос на sng74.
+ *
+ * У нарезанного видео файлы не переезжают. Исходник удалён после нарезки,
+ * играет пакет по своему адресу, а имя файла в прочитанной записи подменено
+ * на мастер пакета: перенос по нему уносил мастер, и видео переставало играть.
  */
 export function movePlan({
   doc,
   to,
   urlForKey,
 }: {
-  readonly doc: MediaRecord;
+  readonly doc: MediaRecord & { readonly hls?: { readonly prefix?: string | null } | null };
   readonly to: string;
   /** Как хранилище строит адрес по ключу. */
   readonly urlForKey: (key: string) => string;
 }): { moves: Move[]; patch: Record<string, unknown> } {
   const from = doc.prefix ?? '';
   const same = storageKey(from, 'x') === storageKey(to, 'x');
-  if (same) return { moves: [], patch: {} };
+  if (same || doc.hls?.prefix) return { moves: [], patch: {} };
 
   const copies = copiesOf(doc);
   const moves = copies.map((copy) => ({
