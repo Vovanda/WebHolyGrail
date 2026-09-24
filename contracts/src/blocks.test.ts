@@ -24,15 +24,15 @@ describe('scopedAppearance', () => {
       от порядка подключения.
     */
     const css = scopedAppearance('b7', '[data-part="dot"] { height: 9px }');
-    const признаков = (css.match(/\[data-block="b7"\]/g) ?? []).length;
-    expect(признаков).toBe(2);
+    const marks = (css.match(/\[data-block="b7"\]/g) ?? []).length;
+    expect(marks).toBe(2);
     expect(css.startsWith('[data-block="b7"][data-block="b7"] {')).toBe(true);
   });
 
   it('поднимает вес и правилу по тегу, и правилу по классу', () => {
-    const поТегу = scopedAppearance('b7', 'button { border-radius: 0 }');
-    const поКлассу = scopedAppearance('b7', '.title { color: red }');
-    for (const css of [поТегу, поКлассу]) {
+    const byTag = scopedAppearance('b7', 'button { border-radius: 0 }');
+    const byClass = scopedAppearance('b7', '.title { color: red }');
+    for (const css of [byTag, byClass]) {
       expect(css.startsWith('[data-block="b7"][data-block="b7"] {')).toBe(true);
     }
   });

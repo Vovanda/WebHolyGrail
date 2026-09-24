@@ -6,6 +6,8 @@
  * (depth раскрывает relations).
  */
 
+import type { MediaRef } from './media';
+
 export interface BlogMediaRef {
   readonly id: string | number;
   readonly url: string;
@@ -75,6 +77,33 @@ export interface BlogArticle {
 }
 
 /**
+ * Ширина центральной колонки блога.
+ *
+ * @remarks
+ * `page` - та же, что у обычной страницы: блог и страницы сайта читаются
+ * одной вёрсткой. `medium` - поуже, `reading` - колонка для чтения.
+ * Значение - имя варианта, а не число: сами ширины задают токены сайта.
+ */
+export type BlogColumnWidth = 'page' | 'medium' | 'reading';
+
+/**
+ * Ширина колонки блога в точках, по варианту.
+ *
+ * @remarks
+ * Повторяет токены контейнеров сайта: числа нужны там, где переменную CSS
+ * не прочитать, - в подсказке браузеру о размере кадра и в листе редактора
+ * статьи, который показывает колонку так же, как сайт.
+ */
+export const BLOG_COLUMN_PX: Readonly<Record<BlogColumnWidth, number>> = {
+  page: 1300,
+  medium: 1080,
+  reading: 880,
+};
+
+/** Строка текста статьи в точках: при любой ширине колонки текст держит её. */
+export const BLOG_TEXT_PX = 880;
+
+/**
  * Global blog settings из SiteSettings.blog group.
  * Per-article overrides → resolveDisplay() helper.
  */
@@ -85,6 +114,8 @@ export interface BlogGlobalSettings {
   readonly showTags: boolean;
   readonly postsPerPage: number;
   readonly defaultSort: 'newest' | 'oldest';
+  /** Ширина колонки блога. Пусто - как у страницы. */
+  readonly columnWidth?: BlogColumnWidth;
 }
 
 /**
@@ -257,7 +288,15 @@ export interface VideoSetItem {
   readonly title: string;
   /** Адрес потока: пусто у закрытых и ещё не готовых. */
   readonly playlistUrl: string | null;
-  readonly poster: string | null;
+  /**
+   * Кадр записи.
+   *
+   * @remarks
+   * Документ или готовый адрес - как и обложка подборки. По документу показ
+   * берёт ступень под размер карточки: в ленте подборки кадр на весь экран
+   * не нужен.
+   */
+  readonly poster: MediaRef | string | null;
   readonly durationSeconds: number | null;
   readonly ready: boolean;
   readonly locked: boolean;
@@ -325,15 +364,23 @@ export interface VideoSetRef {
   readonly title: string;
   /** Сколько видео внутри. */
   readonly count: number;
-  /** Своя обложка плейлиста, если задана. */
-  readonly cover?: string | null;
+  /**
+   * Своя обложка плейлиста, если задана.
+   *
+   * @remarks
+   * Документ или готовый адрес. Документ даёт показу ступени нарезки - в
+   * карточке уходит вариант под её размер, а не кадр на весь экран. Строка
+   * остаётся рабочей: так это поле отдавали раньше, и сайты, собранные
+   * на прежней версии, не должны ослепнуть после обновления.
+   */
+  readonly cover?: MediaRef | string | null;
   /**
    * Кадры видео из плейлиста - ими он показывается, когда своей обложки нет.
    *
    * @remarks
    * Не больше трёх: в стопке остальные всё равно не видны.
    */
-  readonly covers?: ReadonlyArray<string>;
+  readonly covers?: ReadonlyArray<MediaRef | string>;
 }
 
 /**

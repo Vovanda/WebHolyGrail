@@ -174,3 +174,31 @@ describe('три ширины', () => {
     expect(grid.md?.cells.every((cell) => cell.width === 2)).toBe(true);
   });
 });
+
+describe('сетка держит колонки', () => {
+  it('без keepColumns одна карточка занимает всю ширину', () => {
+    expect(layout('', 1, 3)?.columns).toBe(2);
+  });
+
+  it('с keepColumns одна карточка своей ширины и по центру', () => {
+    const grid = layout('', 1, 3, { keepColumns: true });
+    expect(grid?.columns).toBe(6);
+    expect(grid?.cells[0]).toMatchObject({ column: 3, width: 2 });
+  });
+
+  it('две карточки из трёх - по центру, по трети ширины', () => {
+    const grid = layout('', 2, 3, { keepColumns: true });
+    expect(grid?.cells.map((cell) => [cell.column, cell.width])).toEqual([
+      [2, 2],
+      [4, 2],
+    ]);
+  });
+
+  it('полный набор раскладывается как без свойства', () => {
+    expect(layout('', 5, 3, { keepColumns: true })).toEqual(layout('', 5, 3));
+  });
+
+  it('на планшете одна карточка - половина ширины', () => {
+    expect(layouts({}, 1, 3, { keepColumns: true }).md?.columns).toBe(4);
+  });
+});
