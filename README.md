@@ -15,12 +15,22 @@
 ```bash
 gh repo create my-site --template Vovanda/WebHolyGrail --private --clone
 cd my-site && corepack enable && pnpm install
-pnpm setup-infisical -- --site my-site
 ./dev-setup.sh
 ./dev.sh
 ```
 
 Открывается http://localhost:3000 (сайт), http://localhost:3001/admin (CMS).
+
+Кроме Node и pnpm ничего не нужно: настройки лежат в `.env.local`, а залитые файлы
+CMS хранит у себя и сама раздаёт. Докер и хранилище секретов подключаются, когда
+настройки становятся общими на команду:
+
+```bash
+./dev-setup.sh --shared       # Infisical + локальное хранилище файлов в докере
+```
+
+Внешнее хранилище на стенде включается строками `S3_*` в `.env.local` - пояснение
+лежит там же.
 
 ## Стек
 
@@ -32,8 +42,8 @@ pnpm setup-infisical -- --site my-site
 | Database   | SQLite / Postgres (адаптер одной строкой)          |
 | Contracts  | `contracts/` workspace (one-way seam)              |
 | Containers | Docker compose + blue-green в проде                |
-| Storage    | S3-совместимое (MinIO, B2, R2, AWS S3, Yandex)     |
-| Secrets    | Infisical (self-host или cloud)                    |
+| Storage    | своё на стенде, S3-совместимое на боевом сайте     |
+| Secrets    | `.env.local` на стенде, Infisical на боевом сайте  |
 | Tests      | Vitest + Playwright (scaffolded; coverage WIP)     |
 | Video      | Своя раздача: нарезка ffmpeg, шифрование, плеер    |
 

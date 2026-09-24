@@ -149,6 +149,8 @@ function parse(text) {
 function invariants(nodes) {
   const bad = [];
   const say = (node, text) => bad.push({ line: node?.line ?? 0, id: node?.id ?? '-', text });
+  // Не прошедшая проверка закрыта, если issue= ведёт на пункт плана или задачу трекера.
+  const ids = new Set(nodes.map((n) => n.id));
 
   const marked = nodes.filter((n) => n.now);
   if (marked.length === 0) say(null, 'маркера нет вовсе: непонятно, чем занят');
@@ -179,8 +181,12 @@ function invariants(nodes) {
       say(node, `свободных заметок ${node.notes.length} у не-текущего пункта: расписали дальнее`);
     }
     for (const check of node.checks) {
-      if (check['ok'] === 'false') {
+      if (check['ok'] !== 'false') continue;
+      const fix = check['issue'];
+      if (!fix) {
         say(node, `проверка не прошла и не заведён пункт-починка: «${check.text.slice(0, 40)}»`);
+      } else if (!fix.startsWith('#') && !ids.has(fix)) {
+        say(node, `проверка ведёт на пункт-починку ${fix}, а его в плане нет`);
       }
     }
   }
@@ -230,7 +236,9 @@ function where(nodes, tail = 6) {
   const current = at >= 0 ? queue[at] : null;
 
   if (!current) {
-    out.push('СЕЙЧАС  маркера нет - взять пункт: node scripts/plan.mjs take <слаг>');
+    out.push(
+      'СЕЙЧАС  маркера нет - взять пункт: node .claude/skills/whg-plan/plan.mjs take <слаг>',
+    );
   } else {
     const spent = current.attrs['since']
       ? forHuman(minutesSince(current.attrs['since']))
@@ -271,7 +279,7 @@ function where(nodes, tail = 6) {
 
   const bad = invariants(nodes);
   if (bad.length) {
-    out.push('', `НАРУШЕНИЙ ${bad.length} - подробно: node scripts/plan.mjs check`);
+    out.push('', `НАРУШЕНИЙ ${bad.length} - подробно: node .claude/skills/whg-plan/plan.mjs check`);
   }
   return out.join('\n');
 }
@@ -418,7 +426,7 @@ switch (command) {
   default:
     result = {
       text: [
-        'node scripts/plan.mjs [команда]',
+        'node .claude/skills/whg-plan/plan.mjs [команда]',
         '',
         '  where [N]                       где я: текущий пункт целиком и N следующих (по умолчанию 6)',
         '  check                           инварианты узлов и порядка; код возврата 1, если нарушены',

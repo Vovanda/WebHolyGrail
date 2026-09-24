@@ -16,16 +16,6 @@
 set -e
 cd "$(dirname "$0")"
 
-# MinIO (S3 storage для Media) — поднимаем заранее в обоих режимах.
-if command -v docker >/dev/null 2>&1; then
-  if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q 'holygrail-minio'; then
-    echo "  → MinIO не запущен, поднимаю..."
-    docker compose --profile minio -f deploy/local/docker-compose.yml up -d minio minio-init >/dev/null 2>&1 || {
-      echo "  ⚠ Не удалось поднять MinIO. Запусти вручную: pnpm minio:up"
-    }
-  fi
-fi
-
 INFISICAL_OK=0
 if command -v infisical >/dev/null 2>&1 && [ -f .infisical.json ]; then
   # health-check: infisical run с пустой командой проверяет connectivity + auth
@@ -67,6 +57,35 @@ if [ -f .env.local ]; then
     [ -n "$pair" ] && eval "export $(printf '%s' "${pair%%=*}")=\"\${pair#*=}\""
   done <"$BEFORE_ENV"
   rm -f "$BEFORE_ENV"
+fi
+
+# Хранилище файлов. По умолчанию его нет вовсе: CMS складывает залитое у себя
+# и сама раздаёт - стенд поднимается на чистой машине без докера.
+#
+# Внешнее хранилище включается одной настройкой: задан S3_BUCKET - значит стенд
+# работает на нём, и локальное хранилище поднимается заранее. Без неё докер
+# не трогается: у того, кто взял шаблон, его может не быть вовсе, а образы
+# тянутся не везде.
+#
+# Проверка стоит после чтения настроек: до него значение ещё не известно
+# ни из файла, ни из хранилища секретов.
+BUCKET="${S3_BUCKET:-}"
+if [ -z "$BUCKET" ] && [ "$INFISICAL_OK" = "1" ]; then
+  BUCKET=$(infisical secrets get S3_BUCKET --env=dev --plain 2>/dev/null || echo "")
+fi
+
+if [ -n "$BUCKET" ]; then
+  if command -v docker >/dev/null 2>&1; then
+    if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q 'holygrail-minio'; then
+      echo "  → Задано хранилище $BUCKET, поднимаю локальное..."
+      docker compose --profile minio -f deploy/local/docker-compose.yml up -d minio minio-init >/dev/null 2>&1 || {
+        echo "  ⚠ Не удалось поднять хранилище. Запусти вручную: pnpm minio:up"
+      }
+    fi
+  else
+    echo "  ⚠ Задано хранилище $BUCKET, но докера нет - файлы отдаваться не будут."
+    echo "    Убери S3_* из настроек, и CMS будет хранить их у себя."
+  fi
 fi
 
 CMS_PORT="${CMS_PORT:-3001}"
