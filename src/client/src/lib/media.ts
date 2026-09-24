@@ -166,7 +166,16 @@ export interface MediaFrame {
   readonly file: string | null;
   /** Перечень для ленты, в пределах `laneStep`; без предела с самим файлом. */
   readonly laneSet: string;
-  /** Размытая заготовка строкой. */
+  /**
+   * Что показать размытым до прихода кадра: заготовка строкой, а у файла
+   * без неё - наименьшая копия.
+   *
+   * @remarks
+   * Заготовку снимает хук при заливке, и у файлов, залитых раньше, её нет,
+   * пока не прошёл пробег медиатеки. Без запасного пути такой кадр до
+   * прихода стоял пустым местом; наименьшая копия весит десятки килобайт
+   * и размытой читается так же.
+   */
   readonly blur: string | null;
   /** Точка подрезки владельца в процентах, `x% y%`. */
   readonly focus: string | undefined;
@@ -205,7 +214,7 @@ export function mediaFrame(
     srcSet: mediaSrcSet(page),
     file,
     laneSet: mediaSrcSet(laneWithFile) ?? src,
-    blur: doc?.blurData ?? null,
+    blur: doc?.blurData ?? mediaSmallestUrl(media),
     focus:
       typeof doc?.focalX === 'number' && typeof doc.focalY === 'number'
         ? `${doc.focalX}% ${doc.focalY}%`
