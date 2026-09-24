@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ROW_CAPACITY,
+  ROW_MIN_FRAMES,
   balancedRowLengths,
   rowBreaks,
   stretchAll,
@@ -91,6 +92,24 @@ describe('ровные ряды', () => {
     // Строка с суммой flex-grow меньше 1 не дотягивается до краёв.
     expect(visibleSum(0.5625)).toBe(1);
     expect(visibleSum(1.9)).toBe(1.9);
+  });
+
+  it('три панорамы на широком экране - одним рядом, а не стопкой', () => {
+    const wide = [2, 2, 2];
+    expect(balancedRowLengths(wide, ROW_CAPACITY.lg, ROW_MIN_FRAMES.lg)).toEqual([3]);
+    expect(balancedRowLengths(wide, ROW_CAPACITY.sm, ROW_MIN_FRAMES.sm).length).toBeGreaterThan(1);
+  });
+
+  it('с минимумом два кадра в ряду одиночных рядов нет', () => {
+    for (const count of [4, 5, 6, 7, 8, 9]) {
+      const aspects = Array.from(
+        { length: count },
+        (_, i) => [2, 0.5625, 1.33, 0.75][i % 4] as number,
+      );
+      const lengths = balancedRowLengths(aspects, ROW_CAPACITY.lg, 2);
+      expect(Math.min(...lengths)).toBeGreaterThanOrEqual(2);
+      expect(lengths.reduce((a, b) => a + b, 0)).toBe(count);
+    }
   });
 
   it('пустой набор - без рядов', () => {
