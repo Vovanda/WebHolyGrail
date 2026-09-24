@@ -13,7 +13,7 @@ import { isDarkImage } from './image-luma';
 import type { MediaRecord } from './media-copies';
 import { POSTER_PREFIX } from './media-folders';
 import { withCacheBust, withManifestRoute, withStreamAddress } from './media-read';
-import { moveToFolder } from './media-store';
+import { copyToFolder, dropLeftovers } from './media-store';
 import { renderPdfPreview } from './pdf-preview';
 import { latinFilename } from './translit';
 import { generateShortCode } from './video/short-code';
@@ -54,26 +54,49 @@ export const normalizeUploadName: CollectionBeforeOperationHook = ({ req, operat
   if (upload?.name) upload.name = latinFilename(upload.name);
 };
 
+/** Ключ контекста: файлы на прежнем месте, которые убираются после записи. */
+const MOVED_FROM = 'movedFrom';
+
 /**
- * Смена папки двигает сам файл, а не только запись.
+ * Смена папки копирует сам файл, а не только запись.
  *
  * @remarks
- * Идёт до сохранения: пока новые адреса не записаны, оборванный перенос
- * оставляет запись целой и указывающей на прежнее место. Заливка нового файла
- * кладёт его сразу в нужную папку - двигать нечего.
+ * Хук коллекции идёт раньше проверки полей, и сохранение после него ещё может
+ * не пройти. Поэтому здесь файлы только копируются, а прежнее место убирает
+ * {@link dropMovedLeftovers} после записи: сорвалось сохранение - запись
+ * и файлы остаются вместе на старом месте. Заливка нового файла кладёт его
+ * сразу в нужную папку - двигать нечего.
  */
 export const moveOnPrefixChange: CollectionBeforeChangeHook = async ({
   data,
   originalDoc,
   operation,
   req,
+  context,
 }) => {
   if (operation !== 'update' || !originalDoc || req.file) return data;
   const to = typeof data?.['prefix'] === 'string' ? data['prefix'] : null;
   if (to === null || to === originalDoc.prefix) return data;
 
-  const patch = await moveToFolder(originalDoc as MediaRecord, to);
+  const { patch, leftovers } = await copyToFolder(originalDoc as MediaRecord, to);
+  context[MOVED_FROM] = leftovers;
   return { ...data, ...patch };
+};
+
+/**
+ * Прежнее место файла убирается, когда запись уже переехала.
+ *
+ * @remarks
+ * Сбой уборки не отменяет сохранения: запись и новые файлы на месте,
+ * на старом остаются лишние копии - место, а не сломанный кадр.
+ */
+export const dropMovedLeftovers: CollectionAfterChangeHook = async ({ doc, req, context }) => {
+  const keys = context[MOVED_FROM];
+  if (!Array.isArray(keys) || keys.length === 0) return doc;
+  await dropLeftovers(keys as string[]).catch((error: unknown) => {
+    req.payload.logger.warn(`Перенос файла ${doc.id}: старое место не убрано - ${String(error)}`);
+  });
+  return doc;
 };
 
 /**

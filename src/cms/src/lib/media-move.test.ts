@@ -10,6 +10,7 @@ const photo: MediaRecord = {
   filename: 'shot.webp',
   url: 'https://cdn.site.ru/shot.webp',
   filesize: 900_000,
+  mimeType: 'image/jpeg',
   width: 3000,
   height: 2000,
   sizes: {
@@ -19,6 +20,7 @@ const photo: MediaRecord = {
       width: 768,
       height: 512,
       filesize: 80_000,
+      mimeType: 'image/webp',
     },
   },
 };
@@ -42,8 +44,18 @@ describe('перенос в другую папку', () => {
   it('переезжают все копии разом, иначе запись ведёт в два места', () => {
     const { moves } = movePlan({ doc: photo, to: 'photos', urlForKey: url });
     expect(moves).toEqual([
-      { filename: 'shot-768.webp', from: 'shot-768.webp', to: 'photos/shot-768.webp' },
-      { filename: 'shot.webp', from: 'shot.webp', to: 'photos/shot.webp' },
+      {
+        filename: 'shot-768.webp',
+        from: 'shot-768.webp',
+        to: 'photos/shot-768.webp',
+        contentType: 'image/webp',
+      },
+      {
+        filename: 'shot.webp',
+        from: 'shot.webp',
+        to: 'photos/shot.webp',
+        contentType: 'image/jpeg',
+      },
     ]);
   });
 
@@ -53,6 +65,20 @@ describe('перенос в другую папку', () => {
       prefix: 'photos',
       url: 'https://cdn.site.ru/photos/shot.webp',
       sizes: { card: { url: 'https://cdn.site.ru/photos/shot-768.webp' } },
+    });
+  });
+
+  it('ступень уходит в правку целиком: без типа проверка Payload отвечает Invalid file type', () => {
+    const { patch } = movePlan({ doc: photo, to: 'photos', urlForKey: url });
+    expect(patch['sizes']).toEqual({
+      card: {
+        filename: 'shot-768.webp',
+        url: 'https://cdn.site.ru/photos/shot-768.webp',
+        width: 768,
+        height: 512,
+        filesize: 80_000,
+        mimeType: 'image/webp',
+      },
     });
   });
 
@@ -83,6 +109,13 @@ describe('перенос в другую папку', () => {
       sizes: {},
     };
     const { moves } = movePlan({ doc: document, to: 'docs', urlForKey: url });
-    expect(moves).toEqual([{ filename: 'act.pdf', from: 'act.pdf', to: 'docs/act.pdf' }]);
+    expect(moves).toEqual([
+      {
+        filename: 'act.pdf',
+        from: 'act.pdf',
+        to: 'docs/act.pdf',
+        contentType: 'application/octet-stream',
+      },
+    ]);
   });
 });

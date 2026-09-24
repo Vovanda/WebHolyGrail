@@ -742,6 +742,7 @@ mirror	src/cms/src/lib/media-move.test.ts
 mirror	src/cms/src/lib/media-move.ts
 mirror	src/cms/src/lib/media-read.test.ts
 mirror	src/cms/src/lib/media-read.ts
+mirror	src/cms/src/lib/media-store.test.ts
 mirror	src/cms/src/lib/media-store.ts
 mirror	src/cms/src/lib/media/adapters.ts
 mirror	src/cms/src/lib/media/build-hls.test.ts
