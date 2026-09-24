@@ -1,5 +1,5 @@
 import { getSiteSettings, listArticles } from '@/lib/api-client';
-import { resolveBlogSettings } from '@/lib/blog-settings';
+import { blogColumn, resolveBlogSettings } from '@/lib/blog-settings';
 import { PostList } from '@/blocks/primitives/Blog/PostList';
 import { Pagination } from '@/blocks/primitives/Blog/Pagination';
 import { SectionEyebrow } from '@/blocks/primitives/SectionEyebrow';
@@ -35,6 +35,7 @@ export default async function BlogIndexPage({
   const page = Math.max(1, Number(params.page ?? 1));
   const settings = await getSiteSettings();
   const blogSettings = resolveBlogSettings(settings);
+  const column = blogColumn(blogSettings.columnWidth);
 
   const {
     docs,
@@ -47,7 +48,9 @@ export default async function BlogIndexPage({
   });
 
   return (
-    <main className="mx-auto max-w-content px-4 md:px-6 py-8 md:py-12 flex flex-col gap-8 md:gap-10">
+    <main
+      className={`mx-auto ${column.className} px-4 md:px-6 py-8 md:py-12 flex flex-col gap-8 md:gap-10`}
+    >
       <h1 className="text-h2 font-display font-semibold text-ink tracking-tight">Блог</h1>
 
       <div className="flex flex-col gap-5 md:gap-6">

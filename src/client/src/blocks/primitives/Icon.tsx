@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import { COLOR_EMOJI_TOKEN, ICON_MAP } from '@/lib/icon-map';
+import { darkThemeIconUrl } from '@/lib/icon-url';
 
 /**
  * Icon — универсальный primitive для рендера любого icon-source:
@@ -33,8 +34,11 @@ export function Icon({
   readonly label: string;
   /** Размер box'a в px. */
   readonly size?: number;
-  /** Фон box'a: tailwind color-name (например 'accent-soft', 'surface') или 'transparent'. */
-  readonly background?: 'transparent' | 'accent-soft' | 'surface' | 'bg' | 'paper';
+  /**
+   * Фон box'a: токен палитры или 'transparent'. `logo-plate` - светлая плашка
+   * в обеих темах, под знаки брендов в фирменном цвете.
+   */
+  readonly background?: 'transparent' | 'accent-soft' | 'surface' | 'bg' | 'paper' | 'logo-plate';
   /** Скругление углов: full / xl / lg / md / sm / none. */
   readonly rounded?: 'full' | 'xl' | 'lg' | 'md' | 'sm' | 'none';
   /** Доля размера которую занимает inner content (default 0.6 = 60%). */
@@ -42,6 +46,12 @@ export function Icon({
   readonly className?: string;
 }) {
   const isUrl = /^https?:\/\//i.test(icon);
+  /*
+    Тёмный знак бренда на тёмной теме пропадает: для неё идёт светлый вариант.
+    Кроме светлой плашки - она светлая и в тёмной теме, светлый знак на ней
+    пропал бы уже сам.
+  */
+  const onDark = isUrl && background !== 'logo-plate' ? darkThemeIconUrl(icon) : null;
   const innerSize = Math.round(size * innerScale);
   const LucideIcon = !isUrl ? ICON_MAP[icon] : undefined;
   const colorClass = !isUrl ? COLOR_EMOJI_TOKEN[icon] : undefined;
@@ -52,6 +62,7 @@ export function Icon({
     surface: 'bg-surface',
     bg: 'bg-bg',
     paper: 'bg-paper',
+    'logo-plate': 'bg-logo-plate',
   }[background];
 
   const roundedClass = {
@@ -76,13 +87,25 @@ export function Icon({
       style={{ width: size, height: size }}
     >
       {isUrl ? (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
-          src={icon}
-          alt=""
-          className="block object-contain"
-          style={{ width: innerSize, height: innerSize }}
-        />
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={icon}
+            alt=""
+            className={cn('object-contain', onDark ? 'shot-light' : 'block')}
+            style={{ width: innerSize, height: innerSize }}
+          />
+          {onDark && (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={onDark}
+              alt=""
+              loading="lazy"
+              className="shot-dark object-contain"
+              style={{ width: innerSize, height: innerSize }}
+            />
+          )}
+        </>
       ) : LucideIcon ? (
         <LucideIcon
           aria-hidden

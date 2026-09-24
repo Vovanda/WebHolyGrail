@@ -118,7 +118,7 @@ export function VideoPlayerVidstack({
   // Форма кадра общая с соседним слоем: вертикальная запись не должна
   // растягиваться поперёк себя ни в одном из них.
   const ratio = useVideoRatio(media);
-  const ориентация = useMemo(() => fullscreenOrientationOf(ratio), [ratio]);
+  const orientation = useMemo(() => fullscreenOrientationOf(ratio), [ratio]);
 
   // Оглавление собирается дорожкой прямо здесь: файла на диске не появляется.
   const chaptersUrl = useMemo(
@@ -215,7 +215,7 @@ export function VideoPlayerVidstack({
             ложилась набок - зритель держал телефон стоя, а картинка лежала.
             Вертикальную разворачиваем стоя, горизонтальную - как прежде.
           */
-          fullscreenOrientation={ориентация}
+          fullscreenOrientation={orientation}
           src={{ src, type: 'application/x-mpegurl' }}
           title={title ?? ''}
           playsInline

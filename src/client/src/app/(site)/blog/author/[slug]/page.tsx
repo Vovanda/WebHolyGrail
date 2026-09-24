@@ -1,10 +1,11 @@
 import { notFound } from 'next/navigation';
 
 import { getAuthorBySlug, getSiteSettings, listArticles } from '@/lib/api-client';
-import { resolveBlogSettings } from '@/lib/blog-settings';
+import { blogColumn, resolveBlogSettings } from '@/lib/blog-settings';
 import { PostList } from '@/blocks/primitives/Blog/PostList';
 import { Pagination } from '@/blocks/primitives/Blog/Pagination';
 import { SectionEyebrow } from '@/blocks/primitives/SectionEyebrow';
+import { MediaImage } from '@/blocks/primitives/Media';
 
 /**
  * /blog/author/[slug] — записи одного автора. SSR (R14).
@@ -43,6 +44,7 @@ export default async function AuthorPage({
   if (!author) notFound();
 
   const blogSettings = resolveBlogSettings(settings);
+  const column = blogColumn(blogSettings.columnWidth);
   const {
     docs,
     totalDocs,
@@ -56,14 +58,19 @@ export default async function AuthorPage({
   });
 
   return (
-    <main className="mx-auto max-w-content px-4 md:px-6 py-8 md:py-12 flex flex-col gap-8 md:gap-10">
+    <main
+      className={`mx-auto ${column.className} px-4 md:px-6 py-8 md:py-12 flex flex-col gap-8 md:gap-10`}
+    >
       <header className="flex items-start gap-4">
         {author.avatar?.url && (
-          <img
-            src={author.avatar.url}
+          <MediaImage
+            media={author.avatar}
+            place="64px"
             alt={author.avatar.alt ?? author.name}
             className="w-16 h-16 rounded-full object-cover shrink-0"
             loading="eager"
+            /* Значок автора служебный: открывать его крупно незачем. */
+            zoom={false}
           />
         )}
         <div className="flex flex-col gap-2 min-w-0">

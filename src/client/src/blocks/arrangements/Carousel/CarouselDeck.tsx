@@ -251,9 +251,9 @@ export function CarouselDeck({
     const auto = embla.plugins().autoScroll ?? embla.plugins().autoplay;
     if (!auto) return;
 
-    const есть = embla.scrollSnapList().length > 1;
+    const present = embla.scrollSnapList().length > 1;
     try {
-      if (fits || !есть) auto.stop();
+      if (fits || !present) auto.stop();
       else if (!auto.isPlaying()) auto.play();
     } catch {
       /* движок не готов - ход заведётся на следующей перерисовке */

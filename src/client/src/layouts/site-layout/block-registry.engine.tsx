@@ -13,6 +13,7 @@ import { HeroCinematic } from '@/blocks/primitives/HeroCinematic';
 import { CustomMarkup } from '@/blocks/primitives/CustomMarkup';
 import { RequestForm } from '@/blocks/primitives/RequestForm';
 import { DocumentList } from '@/blocks/primitives/DocumentList';
+import { Gallery } from '@/blocks/primitives/Gallery';
 import { InstallSnippet } from '@/blocks/primitives/InstallSnippet';
 import { StackTransparency } from '@/blocks/primitives/StackTransparency';
 import { ComparisonTable } from '@/blocks/primitives/ComparisonTable';
@@ -20,6 +21,7 @@ import { FeatureGrid } from '@/blocks/primitives/FeatureGrid';
 import { BuiltWith } from '@/blocks/primitives/BuiltWith';
 import { CtaBanner } from '@/blocks/primitives/CtaBanner';
 import { Quote } from '@/blocks/primitives/Quote';
+import { QuoteCycle } from '@/blocks/primitives/QuoteCycle';
 import { Timeline } from '@/blocks/primitives/Timeline';
 import { Prose } from '@/blocks/primitives/Prose';
 import { WaveDivider } from '@/blocks/primitives/Separator/WaveDivider';
@@ -63,6 +65,7 @@ export const engineRegistry: Record<string, BlockRenderer> = {
   'custom-markup': (node, settings) => <CustomMarkup node={node} settings={settings} />,
   'request-form': (node, settings) => <RequestForm node={node} settings={settings} />,
   'document-list': (node, settings) => <DocumentList node={node} settings={settings} />,
+  gallery: (node, settings) => <Gallery node={node} settings={settings} />,
   'install-snippet': (node, settings) => <InstallSnippet node={node} settings={settings} />,
   'stack-transparency': (node, settings) => <StackTransparency node={node} settings={settings} />,
   'comparison-table': (node, settings) => <ComparisonTable node={node} settings={settings} />,
@@ -70,6 +73,7 @@ export const engineRegistry: Record<string, BlockRenderer> = {
   'built-with': (node, settings) => <BuiltWith node={node} settings={settings} />,
   'cta-banner': (node, settings) => <CtaBanner node={node} settings={settings} />,
   quote: (node, settings) => <Quote node={node} settings={settings} />,
+  'quote-cycle': (node, settings) => <QuoteCycle node={node} settings={settings} />,
   timeline: (node, settings) => <Timeline node={node} settings={settings} />,
   prose: (node, settings) => <Prose node={node} settings={settings} />,
   'wave-divider': (node, settings) => <WaveDivider node={node} settings={settings} />,

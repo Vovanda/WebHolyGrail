@@ -1,3 +1,6 @@
+import type { MediaRef } from 'contracts';
+
+import { MediaImage } from '@/blocks/primitives/Media';
 import { cn } from '@/lib/utils';
 
 /**
@@ -16,11 +19,25 @@ import { cn } from '@/lib/utils';
  * она обещает содержимое, которого не будет.
  */
 export interface PlaylistCoverProps {
-  /** Своя обложка плейлиста, если владелец её задал. */
-  readonly cover?: string | null;
+  /**
+   * Своя обложка плейлиста, если владелец её задал.
+   *
+   * @remarks
+   * Документ или готовый адрес. По документу показ берёт ступень под размер
+   * карточки; строка остаётся рабочей ради того, что собрано раньше.
+   */
+  readonly cover?: MediaRef | string | null;
   /** Кадры видео: из них собирается стопка, когда своей обложки нет. */
-  readonly covers?: ReadonlyArray<string>;
+  readonly covers?: ReadonlyArray<MediaRef | string>;
   readonly className?: string;
+}
+
+/** Место обложки в карточке: по нему выбирается ступень. */
+const PLACE = '(max-width: 768px) 50vw, 320px';
+
+/** Адрес для того случая, когда пришла строка, а не документ. */
+function urlOf(source: MediaRef | string): string {
+  return typeof source === 'string' ? source : ((source as { url?: string }).url ?? '');
 }
 
 /** Насколько сдвинут каждый следующий слой стопки. */
@@ -28,12 +45,21 @@ const STEP = 7;
 
 export function PlaylistCover({ cover, covers = [], className }: PlaylistCoverProps) {
   if (cover) {
-    return (
+    return typeof cover === 'string' ? (
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         data-part="card-thumb"
         src={cover}
         alt=""
         className={cn('aspect-video w-full object-cover', className)}
+      />
+    ) : (
+      <MediaImage
+        media={cover}
+        place={PLACE}
+        alt=""
+        className={cn('aspect-video w-full object-cover', className)}
+        zoom={false}
       />
     );
   }
@@ -51,21 +77,29 @@ export function PlaylistCover({ cover, covers = [], className }: PlaylistCoverPr
       className={cn('relative block aspect-video w-full overflow-hidden bg-surface', className)}
       aria-hidden="true"
     >
-      {layers.map((url, index) => {
+      {layers.map((layer, index) => {
         // Считаем от конца: у верхнего слоя сдвиг нулевой.
         const depth = layers.length - 1 - index;
+        const look = {
+          transform: `translate(${depth * STEP}px, ${depth * -STEP}px) scale(${1 - depth * 0.04})`,
+          opacity: depth === 0 ? 1 : 0.55 - depth * 0.1,
+        };
+        const shape =
+          'absolute inset-0 h-full w-full rounded-lg object-cover shadow-sm transition-transform';
+        /*
+          Сдвиг слоя висит на обёртке, а не на самом кадре: кубик своего стиля
+          в разметке не принимает - он перебил бы вид, который владелец задал
+          блоку.
+        */
         return (
-          <img
-            key={url}
-            data-part="card-thumb"
-            src={url}
-            alt=""
-            className="absolute inset-0 h-full w-full rounded-lg object-cover shadow-sm transition-transform"
-            style={{
-              transform: `translate(${depth * STEP}px, ${depth * -STEP}px) scale(${1 - depth * 0.04})`,
-              opacity: depth === 0 ? 1 : 0.55 - depth * 0.1,
-            }}
-          />
+          <span key={urlOf(layer)} className="absolute inset-0" style={look}>
+            {typeof layer === 'string' ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img data-part="card-thumb" src={layer} alt="" className={shape} />
+            ) : (
+              <MediaImage media={layer} place={PLACE} alt="" className={shape} zoom={false} />
+            )}
+          </span>
         );
       })}
     </span>

@@ -45,14 +45,14 @@ export function ratioOf(width: number, height: number): string | null {
 export function fullscreenOrientationOf(
   ratio: string | null | undefined,
 ): 'portrait' | 'landscape' {
-  const части = String(ratio ?? DEFAULT_RATIO)
+  const parts = String(ratio ?? DEFAULT_RATIO)
     .split('/')
     .map(Number);
-  const ширина = части[0] ?? 0;
-  const высота = части[1] ?? 0;
-  if (!Number.isFinite(ширина) || !Number.isFinite(высота)) return 'landscape';
-  if (ширина <= 0 || высота <= 0) return 'landscape';
-  return высота > ширина ? 'portrait' : 'landscape';
+  const width = parts[0] ?? 0;
+  const height = parts[1] ?? 0;
+  if (!Number.isFinite(width) || !Number.isFinite(height)) return 'landscape';
+  if (width <= 0 || height <= 0) return 'landscape';
+  return height > width ? 'portrait' : 'landscape';
 }
 
 export function useVideoRatio(video: HTMLVideoElement | null): string | null {

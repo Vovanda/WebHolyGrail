@@ -63,12 +63,12 @@ function parseHash(): string | null {
  */
 export function openDetail(slug: string): void {
   try {
-    const адрес = `#d=${encodeURIComponent(slug)}`;
-    const ужеОткрыта = window.location.hash.startsWith('#d=');
-    if (ужеОткрыта) {
-      window.history.replaceState({ d: slug }, '', адрес);
+    const address = `#d=${encodeURIComponent(slug)}`;
+    const alreadyOpen = window.location.hash.startsWith('#d=');
+    if (alreadyOpen) {
+      window.history.replaceState({ d: slug }, '', address);
     } else {
-      window.history.pushState({ d: slug }, '', адрес);
+      window.history.pushState({ d: slug }, '', address);
     }
     // Force popstate listeners to re-check
     window.dispatchEvent(new HashChangeEvent('hashchange'));
@@ -88,8 +88,8 @@ export function openDetail(slug: string): void {
 export function closeDetail(): void {
   try {
     if (!window.location.hash.startsWith('#d=')) return;
-    const наша = (window.history.state as { d?: string } | null)?.d;
-    if (наша) {
+    const ours = (window.history.state as { d?: string } | null)?.d;
+    if (ours) {
       window.history.back();
       return;
     }

@@ -5,6 +5,8 @@ import { getPlaylistById } from '@/lib/api-client';
 import { readVideoUi } from '@/lib/video-ui';
 import { cn } from '@/lib/utils';
 
+import { MediaImage } from '@/blocks/primitives/Media';
+
 import { VideoSetColumn } from './VideoSetColumn';
 import { VideoSetStrip } from './VideoSetStrip';
 import { VideoSetPlayer } from './VideoSetPlayer';
@@ -61,10 +63,13 @@ export async function VideoSetSection({ node, settings, className }: VideoSetSec
       className={cn('mx-auto flex w-full max-w-wide flex-col gap-5 px-4 md:px-6', className)}
     >
       {data.showCover !== false && playlist.cover && (
-        <img
-          data-part="media"
-          src={playlist.cover}
+        /* Обложка идёт полосой во всю ширину блока: на широком экране это
+           примерно тысяча двести точек, на узком - ширина окна. */
+        <MediaImage
+          media={playlist.cover}
+          place="(max-width: 768px) 100vw, 1200px"
           alt=""
+          zoom={false}
           className="aspect-[21/6] w-full rounded-xl object-cover"
         />
       )}

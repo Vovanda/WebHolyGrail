@@ -1,12 +1,18 @@
-import type { BlockNode, SiteSettings } from 'contracts';
+import type { BlockNode, MediaRef, SiteSettings } from 'contracts';
 import { BannerSlider } from './BannerSlider';
 
 /**
- * BannerSliderBlock — page-block wrapper для BannerSlider.
- * Читает поле `banners[].{imageUrl, alt}` из CMS и передаёт в UI-компонент.
+ * Баннер страницы: поле блока превращается в слайды ленты.
+ *
+ * @remarks
+ * Картинка берётся из медиатеки, а внешний адрес остаётся рядом и работает
+ * как прежде: страницы, собранные на нём до появления медиатеки в этом блоке,
+ * не должны погаснуть.
  */
 export interface BannerSliderData {
   readonly banners?: readonly {
+    image?: MediaRef | null;
+    /** @deprecated Заменено полем `image`. Остаётся у страниц, собранных раньше. */
     imageUrl?: string | null;
     alt?: string | null;
   }[];
@@ -19,8 +25,12 @@ export function BannerSliderBlock({
   readonly settings: SiteSettings;
 }) {
   const items = (node.data?.banners ?? [])
-    .filter((b) => b.imageUrl)
-    .map((b) => ({ url: b.imageUrl!, alt: b.alt ?? '' }));
+    .filter((banner) => banner.image ?? banner.imageUrl)
+    .map((banner) => ({
+      ...(banner.image ? { media: banner.image } : {}),
+      ...(banner.imageUrl ? { url: banner.imageUrl } : {}),
+      alt: banner.alt ?? '',
+    }));
 
   if (items.length === 0) return null;
 

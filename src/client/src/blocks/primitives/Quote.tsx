@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { cva, type VariantProps } from 'class-variance-authority';
-import type { BlockNode, SiteSettings } from 'contracts';
+import type { BlockNode, MediaRef, SiteSettings } from 'contracts';
 
 import { cn } from '@/lib/utils';
 import { PhotoDeck } from '@/blocks/arrangements/Carousel';
@@ -83,6 +83,12 @@ const quoteRole = cva('block mt-1 normal-case font-normal', {
 
 type QuoteVariantProps = VariantProps<typeof quoteCard>;
 
+/** Одно фото автора: файл медиатеки либо внешний адрес у собранных раньше страниц. */
+export interface QuotePhoto {
+  readonly file?: MediaRef | null;
+  readonly url?: string | null;
+}
+
 /**
  * Контракт пропсов блока — JSON-сериализуем (R5+).
  * `variant` приходит из CMS как string-литерал; компонент валидирует через CVA.
@@ -95,10 +101,22 @@ export interface QuoteData {
   readonly role?: string | undefined;
   /** Опциональная ссылка из атрибуции (GitHub профиль, личный сайт). */
   readonly authorHref?: string | undefined;
-  /** Одно фото (legacy). Если задан и photoUrls пустой — используется. */
+  /**
+   * Одно фото автора, самое старое поле блока. Читается, когда `photoUrls` пуст.
+   *
+   * @deprecated Фото задаются в `photoUrls`.
+   */
   readonly photoUrl?: string | undefined;
-  /** Карусель фото (новое). Перебивает photoUrl. */
-  readonly photoUrls?: readonly string[] | undefined;
+  /**
+   * Фото автора: одно стоит неподвижно, несколько листаются.
+   *
+   * @remarks
+   * Поле блока так и называется - `photoUrls`, - но приходят в нём уже не
+   * адреса: у строки лежит файл медиатеки, а прежний адрес рядом с ним. Имя
+   * оставлено, потому что оно записано в базах собранных сайтов; читается оно
+   * как «фото автора».
+   */
+  readonly photoUrls?: readonly QuotePhoto[] | undefined;
   readonly variant?: QuoteVariantProps['variant'] | undefined;
 }
 
@@ -109,16 +127,19 @@ export function Quote({
   readonly node: BlockNode & { data?: Partial<QuoteData> };
   readonly settings: SiteSettings;
 }) {
-  // Payload-array возвращает [{ url }, ...]; legacy в коде допускает string[].
-  // Принимаем оба формата + одиночный photoUrl (старое поле).
-  const rawPhotos = (node.data?.photoUrls ?? []) as readonly (string | { url?: string })[];
-  const photoUrls: readonly string[] =
-    rawPhotos.length > 0
-      ? rawPhotos
-          .map((p) => (typeof p === 'string' ? p : p?.url))
-          .filter((u): u is string => Boolean(u))
+  /*
+    Строка фото приходит объектом с файлом и прежним адресом. Кроме них читается
+    и одиночное `photoUrl` - самое старое поле блока, и голая строка вместо
+    объекта: так фото приходило до того, как строка стала объектом.
+  */
+  const raw = (node.data?.photoUrls ?? []) as readonly (string | QuotePhoto)[];
+  const photos: readonly QuotePhoto[] =
+    raw.length > 0
+      ? raw
+          .map((photo) => (typeof photo === 'string' ? { url: photo } : photo))
+          .filter((photo) => photo.file ?? photo.url)
       : node.data?.photoUrl
-        ? [node.data.photoUrl]
+        ? [{ url: node.data.photoUrl }]
         : [];
 
   const data: QuoteData = {
@@ -127,7 +148,7 @@ export function Quote({
     author: node.data?.author ?? '',
     role: node.data?.role ?? '',
     authorHref: node.data?.authorHref,
-    photoUrls,
+    photoUrls: photos,
     variant: node.data?.variant ?? 'card-accent-left',
   };
 
@@ -140,7 +161,7 @@ export function Quote({
   // Photo column показываем только если фото реально загружены. card-accent-left
   // и photo-card раньше всегда рендерили big placeholder "загрузим из CMS" —
   // он занимал много пустого места на marketing-landing без фото.
-  const hasPhoto = photoUrls.length > 0;
+  const hasPhoto = photos.length > 0;
   const showPhotoColumn =
     hasPhoto && (data.variant === 'card-accent-left' || data.variant === 'photo-card');
 
@@ -177,7 +198,7 @@ export function Quote({
         {showPhotoColumn ? (
           <div className="grid gap-9 md:grid-cols-[3fr_2fr] items-center">
             {figureEl}
-            <PhotoFrame photoUrls={data.photoUrls ?? []} alt={data.author} />
+            <PhotoFrame photos={data.photoUrls ?? []} alt={data.author} />
           </div>
         ) : (
           <div className="mx-auto max-w-[720px]">{figureEl}</div>
@@ -188,13 +209,13 @@ export function Quote({
 }
 
 function PhotoFrame({
-  photoUrls,
+  photos,
   alt,
 }: {
-  readonly photoUrls: readonly string[];
+  readonly photos: readonly QuotePhoto[];
   readonly alt: string;
 }) {
-  if (photoUrls.length === 0) {
+  if (photos.length === 0) {
     return (
       <div className="relative w-full h-[380px] md:h-[460px] rounded-xl overflow-hidden bg-surface-hover border border-border flex items-center justify-center">
         <span className="text-muted font-display italic text-base px-6 text-center">
@@ -208,12 +229,19 @@ function PhotoFrame({
 
   return (
     <PhotoDeck
-      slides={photoUrls.map((url) => ({ url, alt }))}
+      slides={photos.map((photo) => ({
+        ...(photo.file ? { media: photo.file } : {}),
+        ...(photo.url ? { url: photo.url } : {}),
+        alt,
+      }))}
       period={5000}
       arrows
       swipe
       objectFit="cover"
       height="460px"
+      /* Фото автора стоит в правой колонке: на широком экране это две пятых
+         содержательной ширины, на узком - вся ширина. */
+      place="(max-width: 768px) 100vw, 420px"
       background="var(--color-surface)"
       rounded="14px"
       lightboxGroupId={`quote-${alt || 'photo'}`.replace(/\s+/g, '-')}

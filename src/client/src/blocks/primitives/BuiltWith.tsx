@@ -6,7 +6,10 @@ import { ArrowUpRight } from 'lucide-react';
 import { CarouselDeck, CarouselItem } from '@/blocks/arrangements/Carousel';
 import type { BlockNode, SiteSettings, MediaRef } from 'contracts';
 
-import { resolveMediaUrl } from '@/lib/media';
+import { MediaImage } from '@/blocks/primitives/Media';
+
+/** Карточка сайта шириной в двадцать строчных долей, на узком - почти всё окно. */
+const CARD_PLACE = 'min(20rem, 85vw)';
 
 /**
  * BuiltWith — карточки реальных production-сайтов на стеке. Embla-carousel
@@ -24,10 +27,6 @@ export interface BuiltWithData {
     readonly screenshot?: MediaRef | null;
     readonly screenshotDark?: MediaRef | null;
   }[];
-}
-
-function mediaUrl(m: MediaRef | null | undefined): string | null {
-  return resolveMediaUrl(m);
 }
 
 export function BuiltWith({
@@ -63,10 +62,10 @@ export function BuiltWith({
         <div className="mt-10">
           <CarouselDeck gap="lg" edge="gap" marquee loop label={heading}>
             {items.map((item, i) => {
-              const preview = mediaUrl(item.screenshot);
+              const preview = item.screenshot;
               // Второй снимок для тёмной темы: светлый там выбивается ярким
               // пятном. Нет второго - показываем единственный.
-              const previewDark = mediaUrl(item.screenshotDark) ?? preview ?? undefined;
+              const previewDark = item.screenshotDark ?? preview;
               return (
                 <CarouselItem key={i} width="min(20rem, 85vw)">
                   <Link
@@ -79,18 +78,18 @@ export function BuiltWith({
                     <div className="aspect-[16/10] bg-surface relative overflow-hidden">
                       {preview ? (
                         <>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            data-part="card-media"
-                            src={preview}
+                          <MediaImage
+                            media={preview}
+                            place={CARD_PLACE}
                             alt={item.siteName}
+                            zoom={false}
                             className="shot-light absolute inset-0 h-full w-full object-cover"
                           />
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            data-part="card-media"
-                            src={previewDark}
+                          <MediaImage
+                            media={previewDark}
+                            place={CARD_PLACE}
                             alt={item.siteName}
+                            zoom={false}
                             className="shot-dark absolute inset-0 h-full w-full object-cover"
                           />
                         </>

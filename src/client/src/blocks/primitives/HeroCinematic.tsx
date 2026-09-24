@@ -2,6 +2,8 @@ import Link from 'next/link';
 
 import type { BlockNode, MediaRef, SiteSettings } from 'contracts';
 
+import { MediaImage } from '@/blocks/primitives/Media';
+
 import { VideoBackdrop } from './VideoBackdrop';
 
 /**
@@ -161,6 +163,9 @@ export function HeroCinematic({
   // Постер владельца первым, за ним кадр, снятый при подготовке записи: без
   // него обложка на медленной связи стоит тёмным прямоугольником.
   const poster = mediaUrl(data.poster) ?? previewUrl(data.video);
+  // Тот же постер документом: им рисуется обложка, когда записи нет. Плееру
+  // документ не годится - кадр до начала показа он ставит атрибутом.
+  const posterDoc = data.poster ?? null;
   const at = (position: HeroCinematicCorner['position']) =>
     corners.find((c) => (c.position ?? 'top-left') === position);
 
@@ -190,8 +195,17 @@ export function HeroCinematic({
   return (
     <section className="relative w-full overflow-hidden bg-bg">
       {src && <VideoBackdrop src={src} {...(poster ? { poster } : {})} />}
-      {!src && poster && (
-        // eslint-disable-next-line @next/next/no-img-element -- фон обложки, размеры задаёт секция
+      {!src && posterDoc && (
+        <MediaImage
+          media={posterDoc}
+          place="100vw"
+          alt=""
+          zoom={false}
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      )}
+      {!src && !posterDoc && poster && (
+        // eslint-disable-next-line @next/next/no-img-element -- кадр записи приходит адресом
         <img
           src={poster}
           alt=""
@@ -203,12 +217,12 @@ export function HeroCinematic({
       {/* Знак фоном: крупно, приглушённо, наполовину за краем кадра — читается
           как фактура, а не как ещё один элемент, спорящий с заголовком.
           Прячем на узких экранах: там он налезает на текст. */}
-      {mediaUrl(data.watermark) && (
-        // eslint-disable-next-line @next/next/no-img-element -- декоративный слой, размеры задаёт секция
-        <img
-          src={mediaUrl(data.watermark)}
+      {data.watermark && (
+        <MediaImage
+          media={data.watermark}
+          place="min(46vw, 560px)"
           alt=""
-          aria-hidden="true"
+          zoom={false}
           className={[
             'pointer-events-none absolute top-1/2 hidden w-[46%] max-w-[560px] -translate-y-1/2 opacity-[0.14] mix-blend-luminosity md:block',
             (data.watermarkSide ?? 'right') === 'left' ? '-left-[8%]' : '-right-[8%]',

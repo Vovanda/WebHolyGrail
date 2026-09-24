@@ -3,7 +3,12 @@ import { notFound } from 'next/navigation';
 import { resolveDisplay } from 'contracts';
 
 import { getArticleBySlug, getSiteSettings, listArticles } from '@/lib/api-client';
-import { resolveBlogSettings } from '@/lib/blog-settings';
+import { editorPass } from '@/lib/editor';
+import { RefreshOnSave } from '@/blocks/primitives/RefreshOnSave';
+import { PreviewScrollFollower } from '@/blocks/primitives/PreviewScrollFollower';
+import { PreviewLiveData } from '@/blocks/primitives/PreviewLiveData';
+import { withPreviewDraft } from '@/lib/preview-draft';
+import { blogColumn, resolveBlogSettings } from '@/lib/blog-settings';
 import { lexicalToParagraphs } from '@/lib/lexical-text';
 import { PublishedDateBadge } from '@/blocks/primitives/Blog/PublishedDateBadge';
 import { ReadingTimeBadge } from '@/blocks/primitives/Blog/ReadingTimeBadge';
@@ -11,6 +16,7 @@ import { AuthorBadge } from '@/blocks/primitives/Blog/AuthorBadge';
 import { TagList } from '@/blocks/primitives/Blog/TagList';
 import { PostList } from '@/blocks/primitives/Blog/PostList';
 import { LexicalRenderer } from '@/blocks/primitives/RichText';
+import { MediaImage } from '@/blocks/primitives/Media';
 
 /**
  * /blog/[slug] — детальная страница статьи. SSR (R14).
@@ -75,11 +81,18 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
 
 export default async function BlogArticlePage({ params }: { params: Promise<Params> }) {
   const { slug } = await params;
-  const article = await getArticleBySlug(slug);
+  /*
+    Редактору страница отдаёт то, что он правит: в панели рядом с формой открыта
+    она же, и опубликованная версия там бесполезна. Посетителю всё как прежде.
+  */
+  const pass = await editorPass();
+  // Правка из панели, ещё не сохранённая, главнее сохранённой.
+  const article = withPreviewDraft(await getArticleBySlug(slug, pass), pass, 'articles');
   if (!article) notFound();
 
   const settings = await getSiteSettings();
   const blogSettings = resolveBlogSettings(settings);
+  const column = blogColumn(blogSettings.columnWidth);
   const display = resolveDisplay(article, blogSettings);
 
   // Если статья в треде — подтянуть siblings
@@ -90,7 +103,12 @@ export default async function BlogArticlePage({ params }: { params: Promise<Para
     : [];
 
   return (
-    <article className="mx-auto max-w-content px-4 md:px-6 py-8 md:py-12 flex flex-col gap-6">
+    <article
+      className={`article-flow mx-auto ${column.className} px-4 md:px-6 py-8 md:py-12 flex flex-col gap-6`}
+    >
+      <RefreshOnSave />
+      <PreviewLiveData />
+      <PreviewScrollFollower />
       {/*
         Переход к серии, в которую входит запись. Раньше здесь стояла карточка
         с рамкой: у плашки над заголовком не читалось назначение — кнопка
@@ -136,11 +154,17 @@ export default async function BlogArticlePage({ params }: { params: Promise<Para
       </header>
 
       {article.cover?.url && (
-        <img
-          src={article.cover.url}
+        <MediaImage
+          media={article.cover}
+          /*
+            Обложка статьи - главный кадр страницы: идёт первой и в полную
+            ширину колонки, поэтому грузится сразу и с приоритетом.
+          */
+          place={`(max-width: 768px) 100vw, ${column.width}px`}
           alt={article.cover.alt ?? article.title}
-          className="w-full rounded-lg object-cover aspect-[16/9]"
+          className="flow-wide w-full rounded-lg object-cover aspect-[16/9]"
           loading="eager"
+          fetchPriority="high"
         />
       )}
 
@@ -150,7 +174,11 @@ export default async function BlogArticlePage({ params }: { params: Promise<Para
         </p>
       )}
 
-      <LexicalRenderer value={article.body} settings={settings ?? undefined} className="text-lg" />
+      <LexicalRenderer
+        value={article.body}
+        settings={settings ?? undefined}
+        className="article-flow flow-wide text-lg"
+      />
 
       {threadSiblings.length > 0 && article.thread && (
         <section className="mt-12 pt-8 border-t border-border flex flex-col gap-6">

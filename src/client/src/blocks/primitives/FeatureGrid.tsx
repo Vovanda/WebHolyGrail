@@ -6,8 +6,10 @@ import { ArrowRight, ArrowUpRight, X } from 'lucide-react';
 import type { BlockNode, MediaRef, SiteSettings } from 'contracts';
 
 import { CarouselDeck, CarouselItem } from '@/blocks/arrangements/Carousel';
+import { MediaImage } from '@/blocks/primitives/Media';
 import { CardRows } from '@/blocks/arrangements/CardRows';
-import { resolveMediaUrl } from '@/lib/media';
+import { CARD_PLACE, resolveMediaUrl } from '@/lib/media';
+import { cn } from '@/lib/utils';
 
 import { Icon } from './Icon';
 import { PhotoLightbox } from './PhotoLightbox';
@@ -49,15 +51,26 @@ function isExternal(href: string): boolean {
   return /^https?:\/\//i.test(href);
 }
 
-function imageUrls(item: FeatureItem): readonly string[] {
+/**
+ * Картинки карточки документами медиатеки.
+ *
+ * @remarks
+ * Документ, а не адрес: по нему показ берёт ступень под размер карточки,
+ * а из строки этого не узнать - в карточку шириной в треть ряда уезжал кадр
+ * с телефона целиком.
+ */
+function imagesOf(item: FeatureItem): readonly MediaRef[] {
   return (item.images ?? [])
-    .map((entry) => resolveMediaUrl(entry.image))
-    .filter((url): url is string => Boolean(url));
+    .map((entry) => entry.image)
+    .filter((image): image is MediaRef => Boolean(image));
 }
 
 /** Сетка держит карточку узкой — там 4/3 экономит высоту; в карусели карточка
  * шире и несёт превью страниц, для них привычнее 16/10. */
 type MediaRatio = '4/3' | '16/10';
+
+/* Окно услуги ограничено своей шириной и на большом экране не растёт. */
+const MODAL_PLACE = '(max-width: 768px) 100vw, 448px';
 
 const RATIO_CLASS: Record<MediaRatio, string> = {
   '4/3': 'aspect-[4/3]',
@@ -79,7 +92,8 @@ const RATIO_VALUE: Record<MediaRatio, string> = {
  * иначе уводило бы со страницы.
  */
 function CardMedia({
-  urls,
+  images,
+  place,
   alt,
   ratio,
   natural = false,
@@ -87,7 +101,9 @@ function CardMedia({
   frameHref,
   frameExternal = false,
 }: {
-  readonly urls: readonly string[];
+  readonly images: readonly MediaRef[];
+  /** Сколько места кадр занимает на экране: знает про это тот, кто ставит карточку. */
+  readonly place: string;
   readonly alt: string;
   readonly ratio: MediaRatio;
   /**
@@ -114,18 +130,37 @@ function CardMedia({
 }) {
   const ratioClass = natural ? '' : RATIO_CLASS[ratio];
 
-  const picture = (url: string, i: number) => {
-    const img = (
-      /* eslint-disable-next-line @next/next/no-img-element */
-      <img
-        data-part="card-media"
-        src={url}
+  const picture = (image: MediaRef, i: number) => {
+    const frame = (
+      <MediaImage
+        media={image}
+        place={place}
         alt={alt}
-        {...(onPick ? { onClick: () => onPick(i), role: 'button', tabIndex: 0 } : {})}
+        fit={natural ? 'contain' : 'cover'}
+        zoom={false}
         className={
           natural ? `w-full ${onPick ? 'cursor-zoom-in' : ''}` : 'h-full w-full object-cover'
         }
       />
+    );
+    /*
+      Открытие крупно ведёт сама карточка: своё окно с лентой у неё уже есть,
+      и кубику открытие отключено, чтобы за одно нажатие не брались два показа.
+    */
+    const img = onPick ? (
+      <span
+        data-part="card-media"
+        role="button"
+        tabIndex={0}
+        onClick={() => onPick(i)}
+        className={cn('block', natural ? 'w-full' : 'h-full w-full')}
+      >
+        {frame}
+      </span>
+    ) : (
+      <span data-part="card-media" className={cn('block', natural ? 'w-full' : 'h-full w-full')}>
+        {frame}
+      </span>
     );
     if (!frameHref) return img;
     return (
@@ -141,8 +176,10 @@ function CardMedia({
     );
   };
 
-  if (urls.length <= 1) {
-    return <div className={`${ratioClass} overflow-hidden bg-surface`}>{picture(urls[0]!, 0)}</div>;
+  if (images.length <= 1) {
+    return (
+      <div className={`${ratioClass} overflow-hidden bg-surface`}>{picture(images[0]!, 0)}</div>
+    );
   }
 
   return (
@@ -158,9 +195,9 @@ function CardMedia({
         label={alt}
         {...(natural ? {} : { aspect: RATIO_VALUE[ratio] })}
       >
-        {urls.map((url, i) => (
+        {images.map((image, i) => (
           <CarouselItem key={i} width="full">
-            {picture(url, i)}
+            {picture(image, i)}
           </CarouselItem>
         ))}
       </CarouselDeck>
@@ -183,15 +220,16 @@ function FeatureCard({
   readonly ratio: MediaRatio;
   readonly onOpen: () => void;
 }) {
-  const urls = imageUrls(item);
+  const images = imagesOf(item);
   const href = item.href?.trim();
 
   const body = (
     <>
-      {urls.length > 0 ? (
+      {images.length > 0 ? (
         <div data-part="card-media" className="-mx-5 -mt-5 mb-4">
           <CardMedia
-            urls={urls}
+            images={images}
+            place={CARD_PLACE}
             alt={item.title}
             ratio={ratio}
             {...(item.details
@@ -209,7 +247,7 @@ function FeatureCard({
         к верхнему краю карточки, иначе отошла бы от него.
       */}
       <div data-part="card-content" className="flex flex-1 flex-col justify-center">
-        {urls.length === 0 && (
+        {images.length === 0 && (
           <div data-part="card-icon" className="mx-auto mb-3">
             <Icon
               icon={item.icon}
@@ -352,7 +390,7 @@ function FeatureModal({
   readonly item: FeatureItem;
   readonly onClose: () => void;
 }) {
-  const modalUrls = imageUrls(item);
+  const modalImages = imagesOf(item);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -384,16 +422,26 @@ function FeatureModal({
         >
           <X size={18} />
         </button>
-        {modalUrls.length > 0 ? (
+        {modalImages.length > 0 ? (
           <div className="mb-5 -mx-7 -mt-7 overflow-hidden rounded-t-2xl">
             {/* Картинка услуги — это афиша с текстом: в модалке он мелкий, а по
                 клику открывается во весь экран с зумом. */}
             <PhotoLightbox
-              slides={modalUrls.map((src) => ({ src, alt: item.title }))}
+              slides={modalImages.map((image) => ({
+                src: resolveMediaUrl(image) ?? '',
+                alt: item.title,
+              }))}
               groupId={`feature-${item.title}`}
             >
               {(open) => (
-                <CardMedia urls={modalUrls} alt={item.title} ratio="16/10" natural onPick={open} />
+                <CardMedia
+                  images={modalImages}
+                  place={MODAL_PLACE}
+                  alt={item.title}
+                  ratio="16/10"
+                  natural
+                  onPick={open}
+                />
               )}
             </PhotoLightbox>
           </div>

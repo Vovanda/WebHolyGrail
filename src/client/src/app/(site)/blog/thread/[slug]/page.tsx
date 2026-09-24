@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import { getSiteSettings, getThreadBySlug, listArticles } from '@/lib/api-client';
-import { resolveBlogSettings } from '@/lib/blog-settings';
+import { blogColumn, resolveBlogSettings } from '@/lib/blog-settings';
 import { PostList } from '@/blocks/primitives/Blog/PostList';
 import { ThreadCard } from '@/blocks/primitives/Blog/ThreadCard';
 import { Pagination } from '@/blocks/primitives/Blog/Pagination';
@@ -50,6 +50,7 @@ export default async function ThreadPage({
   if (!thread) notFound();
 
   const blogSettings = resolveBlogSettings(settings);
+  const column = blogColumn(blogSettings.columnWidth);
   const [{ docs, totalDocs, totalPages, page: currentPage }, latest] = await Promise.all([
     listArticles({
       page,
@@ -71,7 +72,9 @@ export default async function ThreadPage({
   };
 
   return (
-    <main className="mx-auto max-w-content px-4 md:px-6 py-8 md:py-12 flex flex-col gap-8 md:gap-10">
+    <main
+      className={`mx-auto ${column.className} px-4 md:px-6 py-8 md:py-12 flex flex-col gap-8 md:gap-10`}
+    >
       <ThreadCard
         thread={thread}
         variant="hero"

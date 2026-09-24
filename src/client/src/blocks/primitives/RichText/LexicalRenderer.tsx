@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/utils';
-import type { BlockNode, SiteSettings } from 'contracts';
+import type { BlockNode, MediaDoc, SiteSettings } from 'contracts';
 import { renderBlockNode } from '@/layouts/site-layout/block-registry';
+import { singleFrameAspect } from '@/lib/media';
+import { MediaImage } from '../Media';
 
 /**
  * LexicalRenderer — рендер Lexical AST (Payload `richText`) в React.
@@ -49,13 +51,15 @@ interface LexNode {
     readonly linkType?: string;
     readonly doc?: { readonly value?: { readonly slug?: string } | string };
   };
-  readonly value?: {
-    readonly url?: string;
-    readonly alt?: string;
-    readonly width?: number;
-    readonly height?: number;
-    readonly filename?: string;
-  };
+  /**
+   * Вставленный файл: редактор кладёт сюда документ медиатеки целиком.
+   *
+   * @remarks
+   * Описывать его здесь своими полями нельзя: у документа есть варианты
+   * нарезки, и урезанный тип отрезал бы показ от них - картинка в тексте
+   * снова поехала бы оригиналом.
+   */
+  readonly value?: MediaDoc;
   readonly relationTo?: string;
   readonly language?: string;
 }
@@ -64,14 +68,32 @@ export function LexicalRenderer({ value, className, settings }: LexicalRendererP
   const root = (value as { root?: LexNode } | null | undefined)?.root;
   if (!root?.children?.length) return null;
 
+  /*
+    Верхние кадры грузятся вне общей очереди. Ленивая загрузка сама порядка
+    не держит: браузер берёт кадры как придётся, и нижний снимок появляется
+    раньше верхнего - читающий видит, как страница собирается задом наперёд.
+  */
+  const PRIORITY_COUNT = 2;
+  const priority = new Set(
+    root.children
+      .map((node, i) => (node.type === 'upload' ? i : -1))
+      .filter((i) => i >= 0)
+      .slice(0, PRIORITY_COUNT),
+  );
+
   return (
     <div className={cn('flex flex-col gap-5 text-ink leading-relaxed', className)}>
-      {root.children.map((node, index) => renderNode(node, index, settings))}
+      {root.children.map((node, index) => renderNode(node, index, settings, priority))}
     </div>
   );
 }
 
-function renderNode(node: LexNode, key: number, settings?: SiteSettings): ReactNode {
+function renderNode(
+  node: LexNode,
+  key: number,
+  settings?: SiteSettings,
+  priority: ReadonlySet<number> = new Set(),
+): ReactNode {
   if (!node) return null;
 
   switch (node.type) {
@@ -138,7 +160,12 @@ function renderNode(node: LexNode, key: number, settings?: SiteSettings): ReactN
       return renderLink(node, key, settings);
 
     case 'upload':
-      return renderUpload(node, key);
+      /*
+        Первый кадр статьи виден сразу при открытии, поэтому грузится не в общей
+        очереди, а раньше прочего: иначе браузер берёт картинки как придётся,
+        и нижняя появляется прежде верхней.
+      */
+      return renderUpload(node, key, priority.has(key));
 
     case 'block':
       return renderBlock(node, key, settings);
@@ -161,14 +188,14 @@ function renderChildren(node: LexNode, settings?: SiteSettings): ReactNode[] {
  * видео на странице пришлось бы поддерживать по отдельности, и они разошлись бы
  * на первой же правке.
  *
- * Блок выходит из колонки текста: видео шириной в 880 пикселей посреди статьи
- * выглядит вставкой из другого макета.
+ * Блок идёт на всю колонку статьи, а не в строку текста (`flow-wide`): видео
+ * шириной в строку посреди статьи выглядит вставкой из другого макета.
  *
  * Вертикальные поля задаёт обёртка. Собственные поля секции здесь снимаются:
  * на странице они отделяют её от соседних секций, а внутри статьи складываются
  * с отступами абзацев, и вокруг видео образуется пустая полоса.
  */
-const В_ПОТОКЕ_ТЕКСТА = new Set(['collapsible']);
+const IN_TEXT_FLOW = new Set(['collapsible']);
 
 function renderBlock(node: LexNode, key: number, settings?: SiteSettings): ReactNode {
   const fields = (node as { fields?: Record<string, unknown> }).fields;
@@ -182,7 +209,7 @@ function renderBlock(node: LexNode, key: number, settings?: SiteSettings): React
     просит: расстояние вокруг него задаёт та же щель, что между абзацами. Поля и
     ширину секции здесь снимаем - на странице они отделяют её от соседних секций.
   */
-  if (В_ПОТОКЕ_ТЕКСТА.has(blockType)) {
+  if (IN_TEXT_FLOW.has(blockType)) {
     return (
       <div
         key={key}
@@ -194,7 +221,7 @@ function renderBlock(node: LexNode, key: number, settings?: SiteSettings): React
   }
 
   return (
-    <div key={key} className="my-6 -mx-4 md:-mx-8 lg:-mx-16 [&>section]:py-0">
+    <div key={key} className="flow-wide my-6 [&>section]:py-0">
       {renderBlockNode({ blockType, id: String(key), data: fields } as BlockNode, settings)}
     </div>
   );
@@ -287,24 +314,48 @@ function renderLink(node: LexNode, key: number, settings?: SiteSettings): ReactN
 }
 
 /**
- * Картинка, вставленная в текст. Payload кладёт загруженный документ в
- * `node.value`; если populate не доехал (голый id) — рендерить нечего.
+ * Сколько места занимает картинка в тексте статьи.
+ *
+ * @remarks
+ * Колонка текста упирается в ширину читаемой строки, на телефоне занимает её
+ * целиком. Значение должно совпадать с вёрсткой: сказав больше, чем есть,
+ * получаешь вариант крупнее нужного - при 880 вместо 830 браузер уходил
+ * на ступень вверх и тянул полуторамегабайтный кадр.
  */
-function renderUpload(node: LexNode, key: number): ReactNode {
+const TEXT_COLUMN_SIZES = '(max-width: 832px) 100vw, 832px';
+
+/**
+ * Картинка, вставленная в текст.
+ *
+ * @remarks
+ * Payload кладёт документ в `node.value`; голый номер - файл не раскрылся,
+ * рисовать нечего.
+ *
+ * Кадр идёт одной из двух форм - 16:9 или 9:16 - и подрезается вокруг точки,
+ * выбранной владельцем: снимки любой формы дают в статье ровный ритм. Ширину
+ * держит потолок высоты, поэтому стоячий кадр не занимает три экрана.
+ * Целиком, как снят, кадр показывает лента.
+ */
+function renderUpload(node: LexNode, key: number, isPriority: boolean): ReactNode {
   const media = node.value;
   if (!media || typeof media !== 'object' || !media.url) return null;
+  /*
+    Под кадром - его название, тот же заголовок, что в ленте. Без названия
+    идёт alt: так подписаны кадры в уже написанных статьях, и подпись у них
+    не должна пропасть.
+  */
+  const caption = media.caption || media.alt;
   return (
     <figure key={key} className="flex flex-col gap-2 my-2">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={media.url}
-        alt={media.alt ?? ''}
-        {...(media.width ? { width: media.width } : {})}
-        {...(media.height ? { height: media.height } : {})}
-        className="w-full rounded-lg object-cover"
-        loading="lazy"
+      <MediaImage
+        media={media}
+        place={TEXT_COLUMN_SIZES}
+        aspect={singleFrameAspect(media)}
+        className="media-single rounded-lg"
+        loading={isPriority ? 'eager' : 'lazy'}
+        {...(isPriority ? { fetchPriority: 'high' as const } : {})}
       />
-      {media.alt && <figcaption className="text-sm text-muted text-center">{media.alt}</figcaption>}
+      {caption && <figcaption className="text-sm text-muted text-center">{caption}</figcaption>}
     </figure>
   );
 }
