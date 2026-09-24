@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
-import { BLOCK_ROW_LABELS, PAGE_BLOCKS } from '../blocks';
+import { PAGE_BLOCKS } from '../blocks';
+import { BLOCK_ROW_LABELS } from '../blocks/engine';
 import { previewPath } from '../lib/preview';
 
 /**
