@@ -5,71 +5,13 @@ import type {
   PayloadRequest,
 } from 'payload';
 
+import { translitSlug } from './translit';
+
 /**
- * Slug из заголовка: кириллица транслитерируется в латиницу (#70).
- *
- * @remarks
- * Раньше каждая коллекция чистила заголовок своей регуляркой и кириллицу
- * оставляла как есть — «Кто я такой?» уезжал в URL кириллицей, и slug
- * приходилось писать латиницей руками.
- *
- * Таблица — та же что в импортёре Ghost, чтобы slug перевезённой записи и
- * slug созданной в админке считались одинаково.
+ * @deprecated Перевод в латиницу живёт в `./translit`, импортировать оттуда.
+ * Реэкспорт оставлен для собранных сайтов, которые берут его по этому пути.
  */
-const TRANSLIT: Record<string, string> = {
-  а: 'a',
-  б: 'b',
-  в: 'v',
-  г: 'g',
-  д: 'd',
-  е: 'e',
-  ё: 'e',
-  ж: 'zh',
-  з: 'z',
-  и: 'i',
-  й: 'y',
-  к: 'k',
-  л: 'l',
-  м: 'm',
-  н: 'n',
-  о: 'o',
-  п: 'p',
-  р: 'r',
-  с: 's',
-  т: 't',
-  у: 'u',
-  ф: 'f',
-  х: 'h',
-  ц: 'c',
-  ч: 'ch',
-  ш: 'sh',
-  щ: 'sch',
-  ъ: '',
-  ы: 'y',
-  ь: '',
-  э: 'e',
-  ю: 'yu',
-  я: 'ya',
-};
-
-/** Максимальная длина slug — режем по границе слова, не посреди него. */
-const MAX_SLUG_LENGTH = 80;
-
-export function translitSlug(value: string, maxLength: number = MAX_SLUG_LENGTH): string {
-  const slug = value
-    .toLowerCase()
-    .split('')
-    .map((ch) => TRANSLIT[ch] ?? ch)
-    .join('')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-
-  if (slug.length <= maxLength) return slug;
-
-  const cut = slug.slice(0, maxLength);
-  const lastDash = cut.lastIndexOf('-');
-  return (lastDash > 0 ? cut.slice(0, lastDash) : cut).replace(/-+$/, '');
-}
+export { translitSlug } from './translit';
 
 /**
  * Поля-заголовки, из которых берётся slug, в порядке предпочтения.

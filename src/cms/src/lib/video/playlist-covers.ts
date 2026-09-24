@@ -15,6 +15,11 @@
 /** Сколько кадров показывать в стопке. */
 const MAX_COVERS = 3;
 
+/** Кадр видео: сам документ, а не только его адрес. */
+interface Preview {
+  readonly url?: string | null;
+}
+
 /**
  * Строка плейлиста: ссылка на видео, а кадр лежит уже внутри самого видео.
  *
@@ -23,16 +28,19 @@ const MAX_COVERS = 3;
  * и строка пропускается.
  */
 interface PlaylistRow {
-  readonly video?:
-    | { readonly preview?: { readonly url?: string | null } | null }
-    | number
-    | string
-    | null;
+  readonly video?: { readonly preview?: Preview | null } | number | string | null;
 }
 
-/** Кадры для стопки: по порядку плейлиста, без повторов и пустот. */
-export function playlistCovers(items: ReadonlyArray<unknown>): ReadonlyArray<string> {
-  const seen = new Set<string>();
+/**
+ * Кадры для стопки: по порядку плейлиста, без повторов и пустот.
+ *
+ * @remarks
+ * Отдаётся сам документ кадра, а не его адрес: по документу показ выбирает
+ * ступень под размер карточки, а из строки узнать нечего - в стопку сорока
+ * точек уходил кадр на весь экран.
+ */
+export function playlistCovers(items: ReadonlyArray<unknown>): ReadonlyArray<Preview> {
+  const seen = new Map<string, Preview>();
 
   for (const raw of items) {
     if (seen.size >= MAX_COVERS) break;
@@ -40,10 +48,11 @@ export function playlistCovers(items: ReadonlyArray<unknown>): ReadonlyArray<str
     const video = (raw as PlaylistRow | null)?.video;
     if (typeof video !== 'object' || video === null) continue;
 
-    const url = video.preview?.url;
+    const preview = video.preview;
+    const url = preview?.url;
     if (typeof url !== 'string' || url.length === 0) continue;
-    seen.add(url);
+    if (!seen.has(url)) seen.set(url, preview as Preview);
   }
 
-  return [...seen];
+  return [...seen.values()];
 }

@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
+import { canReadAccountSecret } from '../lib/access/account-secret';
 import { channelFrom, freeChannel } from '../lib/channel';
 
 /**
@@ -114,6 +115,20 @@ export const Users: CollectionConfig = {
         // First-user wizard: user ещё не залогинен → скрываем выбор роли,
         // beforeChange hook форсит admin для самого первого пользователя.
         condition: (_data, _siblingData, { user }) => Boolean(user),
+      },
+    },
+    /*
+      Ключ API объявлен здесь только ради доступа: остальное (шифрование,
+      индекс для входа по ключу) Payload сливает со своим полем. Без этого
+      ключ админа читал бы любой редактор - список пользователей открыт
+      всем вошедшим.
+    */
+    {
+      name: 'apiKey',
+      type: 'text',
+      access: {
+        read: ({ req: { user }, id, doc }) =>
+          canReadAccountSecret(user, id ?? (doc as { id?: number } | undefined)?.id),
       },
     },
   ],

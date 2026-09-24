@@ -9,7 +9,7 @@ import type { Block } from 'payload';
  */
 export const QuoteCycleBlock: Block = {
   slug: 'quote-cycle',
-  labels: { singular: 'Quote rotation (auto-switch variants)', plural: 'Quote rotations' },
+  labels: { singular: 'Цитаты по кругу', plural: 'Цитаты по кругу' },
   fields: [
     { name: 'body', label: 'Quote text', type: 'textarea', required: true },
     { name: 'author', label: 'Author', type: 'text', required: true },

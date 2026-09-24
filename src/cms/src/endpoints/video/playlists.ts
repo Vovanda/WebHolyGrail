@@ -82,7 +82,8 @@ async function describePlaylist(
       // адрес уже известен, и перезагружать страницу не нужно.
       playlistUrl: video.hls?.playlistUrl ?? null,
       title: video.caption?.trim() || video.alt?.trim() || 'Видео',
-      poster: video.preview?.url ?? null,
+      // Сам документ, а не адрес: по нему показ берёт ступень под карточку.
+      poster: video.preview ?? null,
       posterIsDark: video.preview?.isDark ?? null,
       durationSeconds: video.hls?.durationSeconds ?? null,
       ready: video.hls?.status === 'ready',
@@ -104,7 +105,7 @@ async function describePlaylist(
     // видео: пустое место выглядит недоделкой, а кадр и так снят при нарезке.
     // Подставляется при выдаче, а не пишется в базу, иначе автоподстановка
     // однажды затрёт обложку, выбранную руками.
-    cover: doc.cover?.url ?? items.find((item) => item.poster)?.poster ?? null,
+    cover: doc.cover ?? items.find((item) => item.poster)?.poster ?? null,
     // Яркость - от той картинки, которая в итоге показывается: своей обложки
     // или подставленного кадра. По ней страница выбирает цвет текста поверх.
     coverIsDark: doc.cover?.url

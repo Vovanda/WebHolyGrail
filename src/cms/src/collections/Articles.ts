@@ -1,10 +1,12 @@
 import type { CollectionConfig } from 'payload';
-import { BlocksFeature, FixedToolbarFeature, lexicalEditor } from '@payloadcms/richtext-lexical';
+import { FixedToolbarFeature, lexicalEditor } from '@payloadcms/richtext-lexical';
 
 import { CaretReadyFeature } from '../editor/caret-ready';
-import { CollapsibleBlock } from '../blocks/Collapsible';
-import { VideoBlock } from '../blocks/Video';
-import { VideoSetBlock } from '../blocks/VideoSet';
+import { AttachmentFeature } from '../editor/attachment';
+import { CuratedBlocksFeature } from '../editor/curated-blocks';
+import { EditorSheetFeature } from '../editor/editor-sheet';
+import { PAGE_BLOCKS } from '../blocks';
+import { previewPath } from '../lib/preview';
 
 /**
  * Articles — основная сущность блога (Posts в терминологии Ghost / Substack).
@@ -24,6 +26,9 @@ import { VideoSetBlock } from '../blocks/VideoSet';
  *  - beforeChange: расчёт `readingTime` из `body` (Lexical AST → words ÷ 200)
  *  - beforeChange: set `publishedAt = now()` при первом переходе status → published
  */
+/** Блоки, которые ставят в текст постоянно: они стоят в «+» первыми. */
+const FREQUENT = ['gallery', 'videoSet', 'collapsible'];
+
 export const Articles: CollectionConfig = {
   slug: 'articles',
   labels: { singular: 'Статья', plural: 'Статьи' },
@@ -32,6 +37,12 @@ export const Articles: CollectionConfig = {
     defaultColumns: ['title', 'status', 'publishedAt', 'thread', 'author'],
     group: 'Блог',
     description: 'Статьи блога. Status = draft/published, displayOverrides per-article.',
+    /*
+      Предпросмотр открывает статью такой, какой её увидит посетитель. Правка
+      в форме - это перечень полей, и что выйдет на странице, без этого видно
+      только после публикации.
+    */
+    preview: (doc) => previewPath('blog', doc?.['slug']),
   },
   versions: {
     drafts: {
@@ -86,6 +97,82 @@ export const Articles: CollectionConfig = {
       relationTo: 'media',
     },
     {
+      /*
+        Настройки статьи стоят до текста, а не после: решение о статусе, серии
+        и авторе принимают до того, как писать, а пролистывать ради них весь
+        текст - лишняя работа.
+
+        Поля идут парами: на широком экране это два столбца, на узком строка
+        разворачивается сама. Своей вёрстки для этого не нужно - ряд умеет
+        и то, и другое.
+      */
+      type: 'row',
+      fields: [
+        {
+          name: 'status',
+          label: 'Статус',
+          type: 'select',
+          options: [
+            { label: 'Черновик', value: 'draft' },
+            { label: 'Опубликовано', value: 'published' },
+          ],
+          defaultValue: 'draft',
+          required: true,
+          index: true,
+        },
+        {
+          name: 'publishedAt',
+          label: 'Опубликовано',
+          type: 'date',
+          admin: {
+            date: { pickerAppearance: 'dayAndTime' },
+            description: 'Авто-set при первом status=published. Можно поменять руками.',
+          },
+          index: true,
+        },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'thread',
+          label: 'Тред (серия)',
+          type: 'relationship',
+          relationTo: 'threads',
+          admin: { description: 'Опционально — статья как часть серии.' },
+        },
+        {
+          name: 'tags',
+          label: 'Теги',
+          type: 'relationship',
+          relationTo: 'tags',
+          hasMany: true,
+        },
+      ],
+    },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'author',
+          label: 'Автор',
+          type: 'relationship',
+          relationTo: 'authors',
+          admin: { description: 'Опционально. Single-author блог может не использовать.' },
+        },
+        {
+          name: 'readingTime',
+          label: 'Время чтения (мин)',
+          type: 'number',
+          admin: {
+            readOnly: true,
+            description: 'Авто-расчёт по body (слова / 200).',
+          },
+        },
+      ],
+    },
+    {
       /**
        * Текст статьи с блоками внутри.
        *
@@ -103,9 +190,22 @@ export const Articles: CollectionConfig = {
       type: 'richText',
       required: true,
       editor: lexicalEditor({
+        /*
+          Порядок фич задаёт порядок пунктов в меню вставки. Payload загружает
+          фичи с конца списка, и пункты без номера идут в порядке загрузки.
+          Блоки стоят первыми - загружаются последними, и их пункты встают
+          под чертой после штатных: файл, линия, ссылка на запись, потом
+          блоки сайта. «Фото/Видео/Документ» стоит последним - загружается
+          первым и в своей группе слэш-меню идёт первым, перед линией.
+
+          Блоки объявлены набором страницы целиком: поля блока собираются
+          на сервере по его имени, и не объявленный здесь встал бы в текст
+          пустой карточкой. В меню только частые, остальные - через окно
+          «Другие компоненты».
+        */
         features: ({ defaultFeatures }) => [
+          CuratedBlocksFeature({ blocks: PAGE_BLOCKS, frequent: FREQUENT }),
           ...defaultFeatures,
-          BlocksFeature({ blocks: [VideoBlock, VideoSetBlock, CollapsibleBlock] }),
           /*
             Закреплённая панель нужна не для красоты: без неё вставка живёт только
             в плавающей панели выделения и в слэш-меню, а кнопка «добавить» на строке
@@ -119,60 +219,11 @@ export const Articles: CollectionConfig = {
             потому что вставлять некуда - в тексте ещё не нажимали.
           */
           CaretReadyFeature(),
+          AttachmentFeature(),
+          // Поле показывает колонку сайта: текст переносится так же, как у читателя.
+          EditorSheetFeature(),
         ],
       }),
-    },
-    {
-      name: 'status',
-      label: 'Статус',
-      type: 'select',
-      options: [
-        { label: 'Черновик', value: 'draft' },
-        { label: 'Опубликовано', value: 'published' },
-      ],
-      defaultValue: 'draft',
-      required: true,
-      index: true,
-    },
-    {
-      name: 'publishedAt',
-      label: 'Опубликовано',
-      type: 'date',
-      admin: {
-        date: { pickerAppearance: 'dayAndTime' },
-        description: 'Авто-set при первом status=published. Можно поменять руками.',
-      },
-      index: true,
-    },
-    {
-      name: 'thread',
-      label: 'Тред (серия)',
-      type: 'relationship',
-      relationTo: 'threads',
-      admin: { description: 'Опционально — статья как часть серии.' },
-    },
-    {
-      name: 'tags',
-      label: 'Теги',
-      type: 'relationship',
-      relationTo: 'tags',
-      hasMany: true,
-    },
-    {
-      name: 'author',
-      label: 'Автор',
-      type: 'relationship',
-      relationTo: 'authors',
-      admin: { description: 'Опционально. Single-author блог может не использовать.' },
-    },
-    {
-      name: 'readingTime',
-      label: 'Время чтения (мин)',
-      type: 'number',
-      admin: {
-        readOnly: true,
-        description: 'Авто-расчёт по body (слова / 200).',
-      },
     },
     {
       name: 'displayOverrides',

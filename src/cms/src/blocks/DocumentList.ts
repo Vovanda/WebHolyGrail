@@ -17,6 +17,11 @@ import { withTileLayout } from './_tile-layout';
 const documentListBlockBase: Block = {
   slug: 'document-list',
   labels: { singular: 'Документы', plural: 'Блоки документов' },
+  /*
+    В тексте статьи блок показан превью - тем, что увидит читатель, а поля
+    открываются кнопкой «Изменить». На блоки страницы это не действует.
+  */
+  admin: { components: { Block: '/editor/attachment-preview#DocumentListPreview' } },
   fields: [
     {
       name: 'heading',

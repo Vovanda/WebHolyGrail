@@ -44,3 +44,383 @@
 .fixed-toolbar--hide {
   visibility: visible;
 }
+
+/*
+  Кадр в тексте статьи стоит по центру, как встанет на сайте.
+
+  Редактор прижимает загруженный файл к левому краю, и статья в админке
+  выглядит списком полей, а не страницей: владелец правит вслепую и идёт
+  проверять на сайт.
+
+  Правило держится на именах классов редактора, а они никому не обещаны
+  и меняются с версией. Поэтому оно и стоит здесь, рядом с такими же:
+  после подъёма Payload вид проверяется глазами, и если центровка отвалилась,
+  чинится она здесь одной строкой. Ничего, кроме вида, от неё не зависит.
+*/
+.LexicalEditorTheme__upload {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/*
+  Штатное «Загрузить» в «+» спрятано: его заменяет «Вложение», которое ставит
+  в текст готовый блок по типу файла. Сама загрузка остаётся включённой -
+  на ней стоят картинки в уже написанных статьях.
+
+  Класс строится редактором из ключа пункта (`upload`).
+*/
+.toolbar-popup__dropdown-item-upload {
+  display: none;
+}
+
+/*
+  Черта в «+» между штатными пунктами и блоками сайта.
+*/
+.whg-menu-separator {
+  height: 1px;
+  margin: 0.25rem 0.5rem;
+  background: var(--theme-elevation-150);
+}
+
+/*
+  Окно «Другие компоненты».
+
+  Стоит над колонкой своего редактора: рядом может быть открыт предпросмотр,
+  и окно его не закрывает. Колонку меряет редактор и отдаёт переменными;
+  без замера окно занимает весь экран.
+
+  Затемнение и тень названы здесь: у Payload для них токенов нет, его окна
+  сами пишут тень литералом. Затемнение одно на обе темы - оно гасит то,
+  что под окном, какого бы цвета оно ни было.
+*/
+$whg-picker-backdrop: rgb(0 0 0 / 0.45);
+$whg-picker-shadow: 0 12px 40px rgb(0 0 0 / 0.25);
+
+.whg-block-picker {
+  position: fixed;
+  inset-block: 0;
+  left: var(--whg-picker-left, 0px);
+  width: var(--whg-picker-width, 100vw);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $whg-picker-backdrop;
+}
+
+.whg-block-picker__box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: min(32rem, calc(100% - 2rem));
+  max-height: min(36rem, 80vh);
+  padding: 1rem;
+  border-radius: var(--style-radius-m, 0.5rem);
+  background: var(--theme-elevation-0);
+  color: var(--theme-text);
+  box-shadow: $whg-picker-shadow;
+}
+
+.whg-block-picker__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.whg-block-picker__close {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.whg-block-picker__search {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: var(--style-radius-s, 0.375rem);
+  background: var(--theme-input-bg, var(--theme-elevation-0));
+  color: inherit;
+}
+
+.whg-block-picker__list {
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.whg-block-picker__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-radius: var(--style-radius-s, 0.375rem);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.whg-block-picker__item:hover,
+.whg-block-picker__item:focus-visible {
+  background: var(--theme-elevation-50);
+}
+
+.whg-block-picker__item svg {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.whg-block-picker__empty {
+  padding: 0.5rem 0.75rem;
+  color: var(--theme-elevation-500);
+}
+
+/*
+  Лист статьи: поле показывает колонку сайта в настоящих точках.
+
+  Лист шириной колонки блога, текст и одиночные кадры в нём держат строку
+  сайта, блоки идут на весь лист - как у читателя. Где поле шире листа, по
+  бокам серое; где уже - лист занимает всё поле, как узкий экран сайта.
+  Переменные и признак ставит плагин листа на контейнер редактора; вложенные
+  редакторы внутри блоков не задеваются - правила идут от этого контейнера
+  по прямым потомкам.
+*/
+[data-whg-sheet] {
+  background: var(--theme-elevation-100);
+}
+
+[data-whg-sheet] > .editor-scroller > .editor > .ContentEditable__root {
+  max-width: var(--whg-sheet-width);
+  margin-inline: auto;
+  background: var(--theme-elevation-0);
+}
+
+[data-whg-sheet='left'] > .editor-scroller > .editor > .ContentEditable__root {
+  margin-inline: 0 auto;
+}
+
+[data-whg-sheet]
+  > .editor-scroller
+  > .editor
+  > .ContentEditable__root
+  > :not(.LexicalEditorTheme__block) {
+  max-width: var(--whg-sheet-text);
+  margin-inline: auto;
+}
+
+/*
+  «+» строки и хваталка стоят у края листа, а не у края поля.
+
+  Редактор ставит их от левого края поля, и при листе по центру они висели
+  в сером поле далеко от своей строки. Сдвиг - ширина серого поля слева:
+  у листа слева и у поля уже листа он нулевой. Процент берётся от ширины
+  редактора - от неё же редактор и отсчитывает положение значков.
+*/
+[data-whg-sheet='center'] > .editor-scroller > .editor > .add-block-menu,
+[data-whg-sheet='center'] > .editor-scroller > .editor > .draggable-block-menu {
+  margin-left: max(0px, calc((100% - var(--whg-sheet-width)) / 2));
+}
+
+/*
+  Превью вложений в тексте статьи: кадры, кадр записи, строки документов.
+
+  Кадр одиночный держит ту же форму, что на сайте, и не выше колонки текста:
+  стоячий снимок в полный рост занял бы экран редактора целиком.
+*/
+// Значок поверх кадра светлый в обеих темах: кадр от темы админки не зависит,
+// а токены темы в тёмной становятся тёмными.
+$whg-on-media: #fff;
+
+.whg-attach-preview {
+  margin: 0;
+  padding: 0.75rem;
+  list-style: none;
+}
+
+.whg-attach-preview--frames {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.whg-attach-preview__frame {
+  display: block;
+  object-fit: cover;
+  border-radius: var(--style-radius-s, 4px);
+  background: var(--theme-elevation-100);
+}
+
+/* Плиткой: ряд делит ширину по пропорциям кадров, как ряды сайта. */
+.whg-attach-preview--tiles {
+  flex-wrap: wrap;
+}
+
+.whg-attach-preview--tiles .whg-attach-preview__frame {
+  flex: var(--whg-ratio) 1 calc(var(--whg-ratio) * 8rem);
+  min-width: 0;
+}
+
+/* Подряд: кадры один под другим, по центру, не выше экрана редактора. */
+.whg-attach-preview--list {
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.whg-attach-preview--list .whg-attach-preview__frame {
+  height: min(22rem, calc(var(--whg-sheet-text, 100%) / var(--whg-ratio)));
+  max-width: 100%;
+}
+
+/* Каруселью: один ряд с прокруткой. */
+.whg-attach-preview--carousel {
+  overflow-x: auto;
+}
+
+.whg-attach-preview--carousel .whg-attach-preview__frame {
+  flex: none;
+  height: 10rem;
+}
+
+.whg-attach-preview--recording {
+  max-width: var(--whg-sheet-text, 100%);
+  margin-inline: auto;
+}
+
+.whg-attach-preview--wide {
+  max-width: none;
+}
+
+.whg-attach-preview__stage {
+  position: relative;
+}
+
+.whg-attach-preview__poster {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--style-radius-s, 4px);
+  background: var(--theme-elevation-150);
+}
+
+.whg-attach-preview__play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  padding-left: 0.2rem;
+  /* Подложка держит значок на светлой плашке без кадра, как и на тёмной. */
+  border-radius: 50%;
+  background: $whg-picker-backdrop;
+  font-size: 1.5rem;
+  color: $whg-on-media;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.whg-attach-preview__title {
+  display: block;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+.whg-attach-preview--empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--theme-elevation-500);
+}
+
+.whg-attach-preview__action {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--theme-elevation-250);
+  border-radius: var(--style-radius-s, 4px);
+  background: var(--theme-elevation-0);
+  color: var(--theme-text);
+  cursor: pointer;
+}
+
+.whg-attach-preview__action:hover {
+  background: var(--theme-elevation-100);
+}
+
+.whg-attach-preview__document {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--theme-elevation-150);
+}
+
+.whg-attach-preview__document:last-child {
+  border-bottom: 0;
+}
+
+/* Плитками: карточки по три в ряд, как на сайте, с кадром первой страницы. */
+.whg-attach-preview--cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+/* Карточка шириной в треть ряда и по центру, как список документов на сайте. */
+.whg-attach-preview--cards .whg-attach-preview__document {
+  flex: 0 0 calc((100% - 1.5rem) / 3);
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0 0 0.5rem;
+  border: 1px solid var(--theme-elevation-150);
+  border-radius: var(--style-radius-m, 6px);
+  overflow: hidden;
+}
+
+.whg-attach-preview--cards .whg-attach-preview__document:last-child {
+  border-bottom: 1px solid var(--theme-elevation-150);
+}
+
+.whg-attach-preview--cards .whg-attach-preview__name,
+.whg-attach-preview--cards .whg-attach-preview__size {
+  padding-inline: 0.6rem;
+}
+
+.whg-attach-preview__thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  object-position: top;
+  background: var(--theme-elevation-100);
+}
+
+/* Кадр страницы в своей форме, как на сайте: альбомный лист не обрезается. */
+img.whg-attach-preview__thumb {
+  height: auto;
+  aspect-ratio: auto;
+}
+
+.whg-attach-preview__kind {
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--theme-elevation-600);
+}
+
+.whg-attach-preview__size {
+  color: var(--theme-elevation-500);
+  white-space: nowrap;
+}

@@ -6,7 +6,7 @@ import type { Block } from 'payload';
  */
 export const QuoteBlock: Block = {
   slug: 'quote',
-  labels: { singular: 'Quote / Testimonial', plural: 'Quotes' },
+  labels: { singular: 'Цитата или отзыв', plural: 'Цитаты и отзывы' },
   fields: [
     {
       name: 'heading',
@@ -21,18 +21,32 @@ export const QuoteBlock: Block = {
       name: 'photoUrls',
       label: 'Author photo (one or more → carousel)',
       type: 'array',
-      labels: { singular: 'Photo', plural: 'Photos' },
+      labels: { singular: 'Фото', plural: 'Фото' },
       admin: {
         description:
-          'If more than one — rotates in a carousel (5s auto-advance), with arrows and swipe.',
+          'Одно фото стоит неподвижно, несколько листаются сами каждые 5 секунд, со стрелками и перелистыванием пальцем.',
       },
       fields: [
         {
+          name: 'file',
+          label: 'Фото',
+          type: 'upload',
+          relationTo: 'media',
+          admin: { description: 'Файл из медиатеки: показ сам берёт вариант под размер места.' },
+        },
+        {
+          /**
+           * @deprecated Заменено полем `file`. Оставлено для страниц, собранных
+           * до появления медиатеки в этом блоке: удаление поля стёрло бы фото
+           * у тех, кто вписал сюда внешний адрес.
+           */
           name: 'url',
-          label: 'URL',
+          label: 'Адрес (устарело)',
           type: 'text',
-          required: true,
-          admin: { description: 'Public URL of the image (e.g. https://cdn.example.com/img.jpg).' },
+          admin: {
+            description:
+              'Внешний адрес картинки. Для новых страниц заполняйте «Фото»: у адреса нет вариантов по размеру.',
+          },
         },
       ],
     },

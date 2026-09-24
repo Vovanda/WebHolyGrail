@@ -44,44 +44,44 @@ export const SYSTEM_TOGGLES: readonly SystemToggle[] = [
  * а дубли пришлось бы разбирать руками.
  */
 export async function adoptSystemToggles(payload: Payload): Promise<number> {
-  const ключи = SYSTEM_TOGGLES.map((t) => t.key);
-  if (ключи.length === 0) return 0;
+  const keys = SYSTEM_TOGGLES.map((t) => t.key);
+  if (keys.length === 0) return 0;
 
-  const известные = await payload
+  const known = await payload
     .find({
       collection: 'feature-toggles',
       depth: 0,
       limit: 500,
-      where: { key: { in: ключи } },
+      where: { key: { in: keys } },
       overrideAccess: true,
     })
     .catch(() => null);
 
-  if (!известные) return 0;
+  if (!known) return 0;
 
-  const есть = new Set(известные.docs.map((doc) => (doc as { key?: string }).key));
-  let заведено = 0;
+  const present = new Set(known.docs.map((doc) => (doc as { key?: string }).key));
+  let created = 0;
 
-  for (const признак of SYSTEM_TOGGLES) {
-    if (есть.has(признак.key)) continue;
+  for (const toggle of SYSTEM_TOGGLES) {
+    if (present.has(toggle.key)) continue;
 
-    const создан = await payload
+    const added = await payload
       .create({
         collection: 'feature-toggles',
         data: {
-          title: признак.title,
-          key: признак.key,
-          description: признак.description,
-          production: признак.enabled,
-          staging: признак.enabled,
-          development: признак.enabled,
+          title: toggle.title,
+          key: toggle.key,
+          description: toggle.description,
+          production: toggle.enabled,
+          staging: toggle.enabled,
+          development: toggle.enabled,
         },
         overrideAccess: true,
       })
       .catch(() => null);
 
-    if (создан) заведено += 1;
+    if (added) created += 1;
   }
 
-  return заведено;
+  return created;
 }

@@ -57,6 +57,15 @@ import * as migration_20260831_113000_right_source_ref from './20260831_113000_r
 import * as migration_20260831_114000_key_usage_names from './20260831_114000_key_usage_names';
 import * as migration_20260831_115553_collapsible_block from './20260831_115553_collapsible_block';
 import * as migration_20260831_160500_hero_video_media from './20260831_160500_hero_video_media';
+import * as migration_20260831_223005_anchor from './20260831_223005_anchor';
+import * as migration_20260923_115655_media_blur_and_sizes from './20260923_115655_media_blur_and_sizes';
+import * as migration_20260923_154333_original_dropped from './20260923_154333_original_dropped';
+import * as migration_20260923_162749_gallery_block from './20260923_162749_gallery_block';
+import * as migration_20260923_174538_block_media_refs from './20260923_174538_block_media_refs';
+import * as migration_20260923_191441_media_render_steps from './20260923_191441_media_render_steps';
+import * as migration_20260924_102901_gallery_files from './20260924_102901_gallery_files';
+import * as migration_20260924_125632_blog_column_width from './20260924_125632_blog_column_width';
+import * as migration_20260924_161302_gallery_without_tile_layout from './20260924_161302_gallery_without_tile_layout';
 
 export const migrations = [
   {
@@ -353,5 +362,50 @@ export const migrations = [
     up: migration_20260831_160500_hero_video_media.up,
     down: migration_20260831_160500_hero_video_media.down,
     name: '20260831_160500_hero_video_media',
+  },
+  {
+    up: migration_20260831_223005_anchor.up,
+    down: migration_20260831_223005_anchor.down,
+    name: '20260831_223005_anchor',
+  },
+  {
+    up: migration_20260923_115655_media_blur_and_sizes.up,
+    down: migration_20260923_115655_media_blur_and_sizes.down,
+    name: '20260923_115655_media_blur_and_sizes',
+  },
+  {
+    up: migration_20260923_154333_original_dropped.up,
+    down: migration_20260923_154333_original_dropped.down,
+    name: '20260923_154333_original_dropped',
+  },
+  {
+    up: migration_20260923_162749_gallery_block.up,
+    down: migration_20260923_162749_gallery_block.down,
+    name: '20260923_162749_gallery_block',
+  },
+  {
+    up: migration_20260923_174538_block_media_refs.up,
+    down: migration_20260923_174538_block_media_refs.down,
+    name: '20260923_174538_block_media_refs',
+  },
+  {
+    up: migration_20260923_191441_media_render_steps.up,
+    down: migration_20260923_191441_media_render_steps.down,
+    name: '20260923_191441_media_render_steps',
+  },
+  {
+    up: migration_20260924_102901_gallery_files.up,
+    down: migration_20260924_102901_gallery_files.down,
+    name: '20260924_102901_gallery_files',
+  },
+  {
+    up: migration_20260924_125632_blog_column_width.up,
+    down: migration_20260924_125632_blog_column_width.down,
+    name: '20260924_125632_blog_column_width',
+  },
+  {
+    up: migration_20260924_161302_gallery_without_tile_layout.up,
+    down: migration_20260924_161302_gallery_without_tile_layout.down,
+    name: '20260924_161302_gallery_without_tile_layout',
   },
 ];

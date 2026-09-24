@@ -21,47 +21,49 @@ import { getPayload } from 'payload';
 import config from '../src/payload.config';
 import { channelFrom, freeChannel } from '../src/lib/channel';
 
-const писать = process.argv.includes('--apply');
+const write = process.argv.includes('--apply');
 
 const payload = await getPayload({ config, disableOnInit: true });
 const req = { payload } as Parameters<typeof freeChannel>[0];
 
-const люди = await payload.find({
+const people = await payload.find({
   collection: 'users',
   limit: 500,
   depth: 0,
   overrideAccess: true,
 });
-const без = (
-  люди.docs as Array<{
+const without = (
+  people.docs as Array<{
     id: string | number;
     channel?: string | null;
     name?: string | null;
     email?: string | null;
   }>
-).filter((человек) => !человек.channel);
+).filter((person) => !person.channel);
 
-if (без.length === 0) {
+if (without.length === 0) {
   console.log('заводить нечего: адрес есть у всех');
   process.exit(0);
 }
 
-for (const человек of без) {
-  const адрес = await freeChannel(req, channelFrom(человек.name, человек.email));
-  if (!писать) {
-    console.log(`будет заведён канал: ${человек.name ?? человек.email} → /@${адрес}`);
+for (const person of without) {
+  const address = await freeChannel(req, channelFrom(person.name, person.email));
+  if (!write) {
+    console.log(`будет заведён канал: ${person.name ?? person.email} → /@${address}`);
     continue;
   }
   await payload.update({
     collection: 'users',
-    id: человек.id,
-    data: { channel: адрес },
+    id: person.id,
+    data: { channel: address },
     overrideAccess: true,
   });
-  console.log(`заведён канал: ${человек.name ?? человек.email} → /@${адрес}`);
+  console.log(`заведён канал: ${person.name ?? person.email} → /@${address}`);
 }
 
 console.log(
-  писать ? `Заведено: ${без.length}.` : `Найдено без канала: ${без.length}. Повторите с --apply.`,
+  write
+    ? `Заведено: ${without.length}.`
+    : `Найдено без канала: ${without.length}. Повторите с --apply.`,
 );
 process.exit(0);

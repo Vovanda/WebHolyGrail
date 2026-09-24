@@ -6,24 +6,38 @@ import type { Block } from 'payload';
  */
 export const BannerSliderBlock: Block = {
   slug: 'banner-slider',
-  labels: { singular: 'Banner slider', plural: 'Banner sliders' },
+  labels: { singular: 'Баннеры в слайдере', plural: 'Баннеры в слайдере' },
   fields: [
     {
       name: 'banners',
       label: 'Banners (images)',
       type: 'array',
-      labels: { singular: 'Banner', plural: 'Banners' },
+      labels: { singular: 'Слайд', plural: 'Слайды' },
       minRows: 1,
       admin: {
-        description: 'Paste image URLs. If more than one, rotates as a carousel (5s).',
+        description: 'Один баннер стоит неподвижно, несколько листаются сами каждые 5 секунд.',
       },
       fields: [
         {
+          name: 'image',
+          label: 'Изображение',
+          type: 'upload',
+          relationTo: 'media',
+          admin: { description: 'Файл из медиатеки: показ сам берёт вариант под размер места.' },
+        },
+        {
+          /**
+           * @deprecated Заменено полем `image`. Оставлено для страниц, собранных
+           * до появления медиатеки в этом блоке: удаление поля стёрло бы баннер
+           * у тех, кто вписал сюда внешний адрес.
+           */
           name: 'imageUrl',
-          label: 'Image URL',
+          label: 'Адрес (устарело)',
           type: 'text',
-          required: true,
-          admin: { description: 'Public URL (e.g. https://cdn.example.com/banners/1.png).' },
+          admin: {
+            description:
+              'Внешний адрес картинки. Для новых баннеров заполняйте «Изображение»: у адреса нет вариантов по размеру.',
+          },
         },
         {
           name: 'alt',

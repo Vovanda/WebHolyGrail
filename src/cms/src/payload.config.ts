@@ -18,6 +18,7 @@ import { engineCollections } from './collections/engine';
 // Каталог специалистов - ниша витрины, а не движка: сайту без специалистов
 // эти коллекции пустой груз, и синк папку domain не обходит.
 import { engineTasks } from './jobs/engine';
+import { previewPath, siteUrl } from './lib/preview';
 import { withAutoSlug } from './lib/slug';
 import { engineEndpoints } from './endpoints/engine';
 // Своё этого сайта - коллекции, ручки, задания, глобалы. Файл принадлежит
@@ -65,8 +66,8 @@ function parseOrigins(csv: string | undefined, fallback: string): string[] {
     поэтому читаем мягко - без поля выходит пустой список, а не падение
     сборки и не ошибка проверки типов.
   */
-  const свои = (site as { origins?: string[] }).origins ?? [];
-  return Array.from(new Set([...defaults, ...свои, ...fromEnv]));
+  const own = (site as { origins?: string[] }).origins ?? [];
+  return Array.from(new Set([...defaults, ...own, ...fromEnv]));
 }
 
 /**
@@ -98,10 +99,32 @@ export default buildConfig({
     importMap: {
       baseDir: dirname,
     },
+    /*
+      Страница рядом с формой. Без неё владелец правит перечень полей и уходит
+      смотреть результат в другую вкладку, каждый раз сохраняя; с ней правка
+      видна на месте.
+
+      Адрес считается от самой записи: у страниц свой корень, у статей - раздел
+      блога. У записи без имени в адресе своей страницы ещё нет, и панель
+      открывает главную.
+    */
+    livePreview: {
+      collections: ['pages', 'articles'],
+      url: ({ data, collectionConfig }) =>
+        previewPath(collectionConfig?.slug === 'articles' ? 'blog' : '', data?.['slug']) ??
+        siteUrl(),
+      breakpoints: [
+        { label: 'Телефон', name: 'mobile', width: 390, height: 844 },
+        { label: 'Планшет', name: 'tablet', width: 834, height: 1112 },
+        { label: 'Монитор', name: 'desktop', width: 1440, height: 900 },
+      ],
+    },
     components: {
       // Напоминание об уведомлении Роскомнадзора — висит, пока владелец не
       // отметит, что подал его. Убирается только галочкой в настройках.
       beforeDashboard: ['/admin/components/ComplianceNotice#ComplianceNotice'],
+      // Страница в панели предпросмотра идёт за прокруткой формы.
+      providers: ['/admin/components/PreviewScrollSync#PreviewScrollSync'],
       /*
         Канал одной страницей: записи и подборки участника вместе, как их видит
         посетитель. В медиатеке записи лежат вперемешку с картинками, подборки -
@@ -150,8 +173,8 @@ export default buildConfig({
       обновлением, а запись живёт в базе сайта: без этого владелец видел
       поведение и не находил, чем его переключить.
     */
-    const свои = await adoptSystemToggles(payload).catch(() => 0);
-    if (свои > 0) payload.logger.info(`Заведено переключателей движка: ${свои}`);
+    const own = await adoptSystemToggles(payload).catch(() => 0);
+    if (own > 0) payload.logger.info(`Заведено переключателей движка: ${own}`);
   },
   /**
    * Jobs Queue — admin UI на /admin/collections/payload-jobs. Template поставляет
@@ -249,28 +272,22 @@ export default buildConfig({
   ),
   plugins: [
     /**
-     * S3-совместимое хранилище для Media.
+     * Внешнее хранилище файлов.
      *
-     * Подключается **только если задан `S3_BUCKET`**. Docker-build и CLI-команды
-     * (`payload migrate:create`, `generate:types`) идут без S3-env — при жёстком
-     * требовании они падали бы на пустых переменных. В prod-runtime env приходит
-     * из Infisical, и плагин активируется.
+     * @remarks
+     * Включается одной настройкой: задана корзина - файлы уходят в неё, не задана -
+     * CMS хранит их у себя и сама раздаёт. Стенд поэтому поднимается на чистой
+     * машине, без докера и без учётной записи у провайдера.
      *
-     * Holy Grail работает на S3 от day 1 — dev (MinIO в Docker) и prod
-     * (любой S3 провайдер) используют один и тот же storage layer. Это
-     * избавляет от painful миграции "local-disk → S3" с пересозданием URL.
+     * На боевом сайте хранилище обязательно: выкладка подменяет файловую систему
+     * контейнера на каждом выпуске, и залитому внутри неё не место.
      *
-     * Env (через Infisical):
-     *  - `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`
-     *  - `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`
-     *  - `S3_PUBLIC_URL` — публичный base (CDN или прямой S3-endpoint)
+     * Значения: `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`,
+     * `S3_SECRET_ACCESS_KEY` и `S3_PUBLIC_URL` - адрес, по которому файл
+     * отдаётся зрителю.
      *
-     * Dev по умолчанию: MinIO на localhost:9000, bucket `local-media`,
-     * креды `minioadmin/minioadmin`. Поднимается через `pnpm minio:up`
-     * (вызывается из `dev-setup.sh` автоматически при первом запуске).
-     *
-     * Prod: настрой облачный S3 через Infisical UI (см. SKILL
-     * `holygrail-infisical`).
+     * Сборка образа и команды вроде `payload migrate:create` идут без этих
+     * значений: требуй их всегда - и они падали бы на пустом окружении.
      */
     ...(process.env.S3_BUCKET
       ? [

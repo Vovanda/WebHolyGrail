@@ -9,7 +9,7 @@ import type { Block } from 'payload';
  */
 export const InstallSnippetBlock: Block = {
   slug: 'install-snippet',
-  labels: { singular: 'Install snippet (терминальная команда)', plural: 'Install snippets' },
+  labels: { singular: 'Команда для терминала', plural: 'Команды для терминала' },
   fields: [
     {
       name: 'command',
