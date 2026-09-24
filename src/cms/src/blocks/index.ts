@@ -24,13 +24,6 @@ import { SpecialistProfileBlock } from './domain/whg/SpecialistProfile';
   раньше они лежали в наборе движка и попадали в оба списка. Забыть один из них
   значит выкинуть блок оттуда, где его уже используют, - и вместе с ним таблицу.
 */
-/**
- * Как поле блоков называет свою строку: «Добавить блок», «Блок 03».
- *
- * Без подписи Payload пишет «Block» по-английски посреди русской админки.
- */
-export const BLOCK_ROW_LABELS = { singular: 'Блок', plural: 'Блоки' } as const;
-
 export const REUSABLE_INNER_BLOCKS = [
   ...ENGINE_REUSABLE_INNER_BLOCKS,
   withAppearance(BlockShowcaseBlock),

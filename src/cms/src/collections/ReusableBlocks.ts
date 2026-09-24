@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
-import { BLOCK_ROW_LABELS, REUSABLE_INNER_BLOCKS } from '../blocks';
+import { REUSABLE_INNER_BLOCKS } from '../blocks';
+import { BLOCK_ROW_LABELS } from '../blocks/engine';
 
 /**
  * ReusableBlocks — атомарные «шаблонные» композиции блоков, которые можно
