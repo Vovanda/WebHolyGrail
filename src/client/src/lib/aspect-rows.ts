@@ -81,6 +81,15 @@ export type RowWidth = 'sm' | 'md' | 'lg';
 export const ROW_CAPACITY: Readonly<Record<RowWidth, number>> = { sm: 1.4, md: 2.4, lg: 3 };
 
 /**
+ * Сколько кадров самое меньшее стоит в ряду на каждой ширине.
+ *
+ * @remarks
+ * На телефоне кадр в свою строку - нормальный вид: два в ряд там уже полоски.
+ * Шире - в ряду минимум два, иначе галерея превращается в стопку снимков.
+ */
+export const ROW_MIN_FRAMES: Readonly<Record<RowWidth, number>> = { sm: 1, md: 2, lg: 2 };
+
+/**
  * Сумма пропорций ряда, по которой видна его высота.
  *
  * @remarks
@@ -93,8 +102,13 @@ export function visibleSum(sum: number): number {
   return Math.max(sum, 1);
 }
 
-/** Кадры по порядку на ровно `rows` рядов с ближайшими по высоте рядами. */
-function partition(aspects: readonly number[], rows: number): number[] {
+/**
+ * Кадры по порядку на ровно `rows` рядов с ближайшими по высоте рядами.
+ *
+ * @remarks
+ * В ряду не меньше `minPerRow` кадров, если кадров на это хватает.
+ */
+function partition(aspects: readonly number[], rows: number, minPerRow = 1): number[] {
   const count = aspects.length;
   const prefix = [0];
   for (const aspect of aspects) prefix.push((prefix.at(-1) as number) + aspect);
@@ -110,9 +124,10 @@ function partition(aspects: readonly number[], rows: number): number[] {
   const best: number[][] = Array.from({ length: rows + 1 }, () => Array(count + 1).fill(Infinity));
   const cut: number[][] = Array.from({ length: rows + 1 }, () => Array(count + 1).fill(0));
   (best[0] as number[])[0] = 0;
+  const least = count >= rows * minPerRow ? minPerRow : 1;
   for (let r = 1; r <= rows; r += 1) {
-    for (let j = r; j <= count; j += 1) {
-      for (let i = r - 1; i < j; i += 1) {
+    for (let j = r * least; j <= count; j += 1) {
+      for (let i = (r - 1) * least; i <= j - least; i += 1) {
         const value = ((best[r - 1] as number[])[i] as number) + cost(i, j);
         if (value < ((best[r] as number[])[j] as number)) {
           (best[r] as number[])[j] = value;
@@ -150,10 +165,20 @@ const STRETCH_LIMIT = 1.6;
  * Порядок кадров менять нельзя, поэтому ровнее иногда выходит на ряд меньше:
  * восемь снимков ложатся 4 + 4, а не 2 + 3 + 3 с последним рядом в полтора
  * раза ниже первого.
+ *
+ * `minPerRow` - сколько кадров самое меньшее стоит в ряду. На широком экране
+ * галерея, где каждый кадр занял свою строку, читается не галереей, а стопкой
+ * отдельных снимков: три панорамы вставали друг под другом во всю ширину.
  */
-export function balancedRowLengths(aspects: readonly number[], capacity: number): number[] {
+export function balancedRowLengths(
+  aspects: readonly number[],
+  capacity: number,
+  minPerRow = 1,
+): number[] {
   const count = aspects.length;
   if (count === 0) return [];
+  // Рядов не больше, чем выходит при минимуме кадров в каждом.
+  const maxRows = Math.max(1, Math.floor(count / minPerRow));
   const total = aspects.reduce((sum, aspect) => sum + aspect, 0);
   const ideal = total / capacity;
   const near = [Math.floor(ideal), Math.ceil(ideal)];
@@ -163,13 +188,13 @@ export function balancedRowLengths(aspects: readonly number[], capacity: number)
     (rows) => rows > 0 && Math.abs(Math.log(total / rows / capacity)) <= Math.log(STRETCH_LIMIT),
   );
   const options = [...near, ...far]
-    .map((rows) => Math.min(count, Math.max(1, rows)))
+    .map((rows) => Math.min(maxRows, Math.max(1, rows)))
     .filter((rows, index, all) => all.indexOf(rows) === index);
 
   let chosen: number[] = [count];
   let chosenPrice = Infinity;
   for (const rows of options) {
-    const lengths = partition(aspects, rows);
+    const lengths = partition(aspects, rows, minPerRow);
     let at = 0;
     const sums = lengths.map((length) => {
       const sum = aspects.slice(at, at + length).reduce((a, b) => a + b, 0);
@@ -198,7 +223,7 @@ export function balancedRowLengths(aspects: readonly number[], capacity: number)
 export function rowBreaks(shapes: readonly Shape[]): Record<RowWidth, number[]> {
   const aspects = shapes.map((shape) => stretchOf(shape).aspect);
   const breaksFor = (width: RowWidth) => {
-    const lengths = balancedRowLengths(aspects, ROW_CAPACITY[width]);
+    const lengths = balancedRowLengths(aspects, ROW_CAPACITY[width], ROW_MIN_FRAMES[width]);
     const out: number[] = [];
     let at = -1;
     for (const length of lengths.slice(0, -1)) {
