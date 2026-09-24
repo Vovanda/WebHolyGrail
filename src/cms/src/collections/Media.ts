@@ -4,6 +4,7 @@ import { MEDIA_RENDITIONS } from 'contracts';
 import { copiesOf, withoutCopy, type MediaRecord } from '../lib/media-copies';
 import {
   bustCdnCache,
+  dropMovedLeftovers,
   ensureAuthorChannel,
   exposeManifestRoute,
   exposeStreamPack,
@@ -877,6 +878,6 @@ export const Media: CollectionConfig = {
     ],
     beforeDelete: [softDeleteVideo],
     afterRead: [exposeManifestRoute, exposeStreamPack, bustCdnCache],
-    afterChange: [queueVideoCut, makePdfPreview],
+    afterChange: [dropMovedLeftovers, queueVideoCut, makePdfPreview],
   },
 };

@@ -17,6 +17,8 @@ export interface Move {
   readonly from: string;
   readonly to: string;
   readonly filename: string;
+  /** Тип у копии свой: ступени бывают в webp при оригинале в jpeg. */
+  readonly contentType: string;
 }
 
 /** Ключ объекта в хранилище: папка и имя файла. */
@@ -35,6 +37,10 @@ export function storageKey(prefix: string | null | undefined, filename: string):
  * Пустая папка - это корень хранилища, и переезд в неё такой же обычный, как
  * и из неё. Совпадение старой и новой папки переездом не считается: делать
  * нечего, и лишняя работа с хранилищем тут опаснее бездействия.
+ *
+ * Ступень в правке записи передаётся целиком, с новым адресом. Одного адреса
+ * мало: проверка Payload видит у ступени имя файла без типа и отвечает
+ * «Invalid file type» - так падал перенос на sng74.
  */
 export function movePlan({
   doc,
@@ -55,12 +61,19 @@ export function movePlan({
     filename: copy.filename,
     from: storageKey(from, copy.filename),
     to: storageKey(to, copy.filename),
+    contentType:
+      (copy.original ? null : doc.sizes?.[copy.step]?.mimeType) ??
+      doc.mimeType ??
+      'application/octet-stream',
   }));
 
-  const sizes: Record<string, { url: string }> = {};
+  const sizes: Record<string, Record<string, unknown>> = {};
   for (const copy of copies) {
     if (copy.original) continue;
-    sizes[copy.step] = { url: urlForKey(storageKey(to, copy.filename)) };
+    sizes[copy.step] = {
+      ...doc.sizes?.[copy.step],
+      url: urlForKey(storageKey(to, copy.filename)),
+    };
   }
 
   const original = copies.find((copy: Copy) => copy.original);
