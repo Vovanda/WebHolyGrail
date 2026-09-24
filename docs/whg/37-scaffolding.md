@@ -109,7 +109,13 @@ Migration path from old setup: if your instance was scaffolded before this REST 
 
 ## Secrets for dev
 
-`./dev-setup.sh` automatically sets reasonable defaults in your Infisical dev environment if they're empty:
+`./dev-setup.sh` writes an `.env.local` next to the project and generates `PAYLOAD_SECRET`.
+Node and pnpm are all it needs: uploads are stored by the CMS itself, and no container
+is started.
+
+`./dev-setup.sh --shared` is the team path: it links the folder to Infisical, starts the
+local file storage in Docker and sets reasonable defaults in the dev environment if
+they're empty:
 
 - `PAYLOAD_SECRET` — generated (32 random bytes hex)
 - `DATABASE_URI` — `file:./data/site.db` (SQLite)
@@ -140,22 +146,29 @@ The rest (`DATABASE_URI`, `S3_*`, `SITE_NAME`, `NEXT_PUBLIC_CMS_URL`) the app ne
 
 Don't count on the Web UI: on a fresh self-host the superadmin password exists only in the bootstrap output, and there is no built-in reset.
 
-## Storage: S3 only, no local-disk fallback
+## Storage: local on the dev box, S3 in production
 
-Holy Grail uses **S3-compatible storage from day 1** — dev and prod both. This avoids the painful "we used local-disk and now we need to migrate to S3" path.
+On a dev box the CMS keeps uploads in `src/cms/media` and serves them itself, so the stack
+runs on a clean machine without Docker.
 
-- **Dev:** MinIO in Docker (auto-started by `dev-setup.sh`). Bucket `local-media`, exposed on `localhost:9000` (API) and `localhost:9001` (web console).
-- **Prod:** any S3-compatible provider — Backblaze B2 (free 10GB), Cloudflare R2 (free 10GB), AWS S3, MinIO Cloud, VK Cloud, Yandex Object Storage.
+To put a dev box on real storage, uncomment the `S3_*` block in `.env.local`; the same
+values go to Infisical when you run `./dev-setup.sh --shared`. With a bucket configured,
+MinIO starts together with the stack: bucket `local-media`, `localhost:9000` for the API,
+`localhost:9001` for the console.
 
-If `S3_BUCKET` is empty when Payload boots, it **fails loud** with a clear message — no silent local-disk fallback that bites you later.
+Switching is one setting: `S3_BUCKET` present means the S3 plugin is active, absent means
+the CMS stores files itself. No code change either way.
 
-If you really need to skip Docker / MinIO for a quick local test — set `S3_*` to a free Backblaze B2 or Cloudflare R2 bucket; same env-shape, no code change.
+Production runs on S3 - Backblaze B2 (free 10GB), Cloudflare R2 (free 10GB), AWS S3,
+MinIO Cloud, VK Cloud, Yandex Object Storage. Blue-green deploys replace the container
+filesystem on every release, so uploads cannot live inside it.
 
 ## Start the dev stack
 
 ```bash
-./dev-setup.sh                # first time only — verify CLI, init project link
-./dev.sh                      # infisical run --env=dev --recursive -- pnpm dev
+./dev-setup.sh                # first run: writes .env.local, generates the secret
+./dev-setup.sh --shared       # team path: Infisical link plus local file storage in Docker
+./dev.sh                      # runs both apps; reads Infisical when it is set up
 ```
 
 You should see:
