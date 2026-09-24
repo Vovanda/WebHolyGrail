@@ -28,10 +28,11 @@
 ## Разработчикам
 
 **Что под капотом?**
-Next 15 + Payload 3 в монорепо. Готово: коллекции, блоки, contracts-слой типов, Docker-деплой с blue-green, S3-хранилище (MinIO/B2/R2/AWS), Infisical-секреты. Вы пишете свою логику, не собираете фундамент заново.
+Next 15 + Payload 3 в монорепо. Готово: коллекции, блоки, contracts-слой типов, Docker-деплой с blue-green, хранилище файлов (своё на стенде, S3 на боевом), Infisical-секреты. Вы пишете свою логику, не собираете фундамент заново.
 
 **Сложно ли поднять?**
-**Dev** — минуты: `pnpm install && pnpm setup-infisical && ./dev-setup.sh && ./dev.sh`.
+**Dev** - минуты: `pnpm install && ./dev-setup.sh && ./dev.sh`. Кроме Node и pnpm ничего
+не нужно: настройки лежат в `.env.local`, файлы CMS хранит у себя.
 **Prod на VPS** — первый раз ~30-40 минут (Docker, домен, certbot, Infisical client). С готовыми Claude Code skills (`.claude/skills/whg-*`) большая часть автоматизирована.
 
 **С чего начать новый блок?**

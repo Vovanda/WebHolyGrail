@@ -43,7 +43,9 @@ The rule is opinionated and Infisical-heavy. Some things to watch as we run the 
 - **Audit / version history.** Infisical keeps history per secret, but the diff UX is per-key, not per-deploy. If we end up doing complex coordinated config changes, we may want code-review-style flow (PR through git). Mitigation later if it bites: keep config as code in a small `config/` folder, sync to Infisical via a script.
 - **Vendor lock-in.** If Infisical goes down or pricing changes, we're migrating dozens of project configs. Mitigation: keep `.env.example` accurate (lists every variable used), so migration to another provider is mechanical.
 - **No clear answer for "both content and devops change this"** — e.g. site banner toggle (marketing manager wants it for sales campaigns, devops wants it for outages). Currently: default to Payload. Watch if it causes friction.
-- **Local-dev UX.** Developers without Infisical CLI installed can't run the dev stack. `dev-setup.sh` enforces install. So far that's fine; if onboarding pain grows, we add a "demo mode" that runs from a fixture file.
+- **Local-dev UX.** The dev stack no longer needs Infisical: `./dev-setup.sh` writes an
+  `.env.local` and the CMS stores uploads itself, so a clean machine needs only Node and
+  pnpm. `./dev-setup.sh --shared` is the path for teams that want one source of settings.
 
 ## Why not a dedicated feature-flag system
 

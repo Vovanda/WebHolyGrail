@@ -89,7 +89,7 @@
 │                                    #            infisical,template-sync},
 │                                    # payload, payload-jobs, payload-migration
 │
-├── dev.sh, dev-setup.sh             # `infisical run --env=dev -- pnpm dev`
+├── dev.sh, dev-setup.sh             # dev stack; settings from .env.local or Infisical
 ├── .env.example                     # what env vars exist (real values via Infisical)
 ├── package.json                     # root: workspaces + scripts + Infisical SDK
 ├── pnpm-workspace.yaml              # contracts, src/cms, src/client
