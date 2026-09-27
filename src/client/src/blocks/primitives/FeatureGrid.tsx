@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { ArrowRight, ArrowUpRight, X } from 'lucide-react';
 import type { BlockNode, MediaRef, SiteSettings } from 'contracts';
@@ -402,7 +403,12 @@ function FeatureModal({
     };
   }, [onClose]);
 
-  return (
+  /*
+    Окно выводится в body: внутри страницы его положение считалось бы от
+    предка с фильтром или трансформом, а не от экрана, и затемнение не
+    накрывало бы липкую шапку.
+  */
+  return createPortal(
     <div
       role="presentation"
       onClick={onClose}
@@ -478,6 +484,7 @@ function FeatureModal({
           </Link>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

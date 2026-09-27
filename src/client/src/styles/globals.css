@@ -644,13 +644,25 @@
     на них мелкий текст. Токен цвета фона не трогаем - он служит ещё и цветом
     текста на акцентных кнопках.
   */
+  /*
+    Стекло лежит на подложке ::before, а не на самой полосе: backdrop-filter
+    делает элемент контейнером для position:fixed, и окна карточек внутри
+    полосы открывались от её верха, а не посреди экрана.
+  */
   [data-site-shell][data-backdrop] > [data-slot='center'] {
+    background-color: transparent;
+  }
+  [data-site-shell][data-backdrop] > [data-slot='center']::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
     background-color: color-mix(in oklab, var(--color-bg) 72%, transparent);
     backdrop-filter: blur(22px) saturate(1.15);
   }
 
   /* Тёмная пара фона и так приглушена - вуаль тоньше, иначе фото пропадает. */
-  :root[data-theme='dark'] [data-site-shell][data-backdrop] > [data-slot='center'] {
+  :root[data-theme='dark'] [data-site-shell][data-backdrop] > [data-slot='center']::before {
     background-color: color-mix(in oklab, var(--color-bg) 55%, transparent);
   }
 
