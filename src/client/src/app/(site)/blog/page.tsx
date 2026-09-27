@@ -21,6 +21,7 @@ export const dynamic = 'force-dynamic';
 
 export async function generateMetadata() {
   return {
+    alternates: { canonical: '/blog' },
     title: 'Блог',
     description: 'Статьи и материалы блога.',
   };

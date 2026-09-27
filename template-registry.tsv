@@ -428,6 +428,8 @@ overlay	src/client/src/lib/placeholders.ts
 overlay	src/client/src/lib/preview-draft.test.ts
 overlay	src/client/src/lib/preview-draft.ts
 overlay	src/client/src/lib/seo/index.ts
+overlay	src/client/src/lib/share-image.test.ts
+overlay	src/client/src/lib/share-image.ts
 overlay	src/client/src/lib/theme-bootstrap.tsx
 overlay	src/client/src/lib/theme-recover.tsx
 overlay	src/client/src/lib/timeline.test.ts

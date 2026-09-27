@@ -30,6 +30,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
   const thread = await getThreadBySlug(slug);
   if (!thread) return {};
   return {
+    alternates: { canonical: `/blog/thread/${slug}` },
     title: thread.title,
     description: thread.description ?? `Все записи серии «${thread.title}».`,
   };

@@ -18,6 +18,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
   const tag = await getTagBySlug(slug);
   if (!tag) return {};
   return {
+    alternates: { canonical: `/blog/tag/${slug}` },
     title: `${tag.label} — материалы`,
     description: tag.description ?? `Все материалы по теме «${tag.label}».`,
   };

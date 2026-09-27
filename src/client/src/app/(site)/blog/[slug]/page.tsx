@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import { resolveDisplay } from 'contracts';
+import type { MediaRef } from 'contracts';
 
 import { getArticleBySlug, getSiteSettings, listArticles } from '@/lib/api-client';
 import { editorPass } from '@/lib/editor';
@@ -10,6 +11,8 @@ import { PreviewLiveData } from '@/blocks/primitives/PreviewLiveData';
 import { withPreviewDraft } from '@/lib/preview-draft';
 import { blogColumn, resolveBlogSettings } from '@/lib/blog-settings';
 import { lexicalToParagraphs } from '@/lib/lexical-text';
+import { resolveMediaUrl } from '@/lib/media';
+import { pageShareImage } from '@/lib/share-image';
 import { PublishedDateBadge } from '@/blocks/primitives/Blog/PublishedDateBadge';
 import { ReadingTimeBadge } from '@/blocks/primitives/Blog/ReadingTimeBadge';
 import { AuthorBadge } from '@/blocks/primitives/Blog/AuthorBadge';
@@ -70,12 +73,20 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
   const { slug } = await params;
   const article = await getArticleBySlug(slug).catch(() => null);
   if (!article) return { title: 'Статья не найдена' };
+  const settings = await getSiteSettings().catch(() => null);
+  // Своя картинка, обложка, первая картинка в тексте, логотип - превью есть всегда
+  const image = resolveMediaUrl(
+    pageShareImage(
+      (article.seo?.ogImage ?? article.cover) as MediaRef | null | undefined,
+      [{ blockType: 'body', id: 'body', data: { body: article.body } }],
+      settings?.logo,
+    ),
+  );
   return {
     title: article.seo?.title ?? article.title,
     description: article.seo?.description ?? article.lead,
-    openGraph: {
-      images: article.seo?.ogImage?.url ?? article.cover?.url,
-    },
+    alternates: { canonical: `/blog/${slug}` },
+    ...(image ? { openGraph: { images: [image] } } : {}),
   };
 }
 

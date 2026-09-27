@@ -11,6 +11,7 @@ import { withPreviewDraft } from '@/lib/preview-draft';
 import { FALLBACK_SITE_SETTINGS } from '@/layouts/presets/fallback-site-settings';
 import { renderBlockNode } from '@/layouts/site-layout';
 import { resolveMediaUrl } from '@/lib/media';
+import { pageShareImage } from '@/lib/share-image';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 
 /**
@@ -45,9 +46,10 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
   const page = await getPageBySlug(resolved).catch(() => null);
   if (!page) return {};
 
+  const settings = await getSiteSettings().catch(() => null);
   const title = page.seo?.title ?? page.title;
   const description = page.seo?.description;
-  const image = resolveMediaUrl(page.seo?.ogImage);
+  const image = resolveMediaUrl(pageShareImage(page.seo?.ogImage, page.blocks, settings?.logo));
   const canonical = page.seo?.canonical ?? (resolved === 'home' ? '/' : `/${resolved}`);
 
   return {
@@ -60,8 +62,8 @@ export async function generateMetadata({ params }: { params: Promise<Params> }) 
       type: 'website',
       title,
       ...(description ? { description } : {}),
-      // Своя картинка страницы — если её нет, остаётся логотип из корневого
-      // layout: пустой og:image мессенджер покажет как ссылку без превью.
+      // Next не сливает openGraph страницы с корневым - заменяет целиком, поэтому
+      // картинка ставится здесь всегда: своя, первая со страницы или логотип.
       ...(image ? { images: [{ url: image, alt: title }] } : {}),
     },
     ...(image ? { twitter: { card: 'summary_large_image' as const, images: [image] } } : {}),
