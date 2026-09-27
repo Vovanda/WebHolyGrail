@@ -31,7 +31,11 @@ describe('хранение секрета потока', () => {
     // уехала в плеер.
     const wrapped = wrapSecret(secret, key);
     const [iv, sealed, tag] = wrapped.split('.') as [string, string, string];
-    const broken = [iv, `${sealed.slice(0, -2)}AA`, tag].join('.');
+    // Портится байт шифротекста, а не буквы записи: замена хвоста base64
+    // изредка попадала в биты выравнивания и не меняла ни одного байта.
+    const bytes = Buffer.from(sealed, 'base64');
+    bytes[0] = (bytes[0] ?? 0) ^ 0x01;
+    const broken = [iv, bytes.toString('base64'), tag].join('.');
     expect(() => unwrapSecret(broken, key)).toThrow();
   });
 
