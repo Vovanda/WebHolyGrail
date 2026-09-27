@@ -28,7 +28,7 @@ export const BlockShowcaseBlock: Block = {
       label: 'Карточки блоков',
       type: 'array',
       minRows: 3,
-      maxRows: 12,
+      maxRows: 40,
       fields: [
         { name: 'label', label: 'Название блока', type: 'text', required: true },
         {
