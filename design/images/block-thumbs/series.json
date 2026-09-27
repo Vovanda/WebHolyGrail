@@ -1,14 +1,14 @@
 {
   "name": "Иллюстрации компонентов в окне выбора админки WHG",
   "engine": "qwen",
-  "style": "Stylish flat cartoon illustration, playful and clean, bold simple geometric shapes with soft rounded corners, limited palette of royal blue #2563eb, light sky blue, white and slate grey, subtle soft shadows, the whole scene isolated on a plain light neutral grey background, centered composition with generous empty space around, no text, no letters, no numbers, no logos",
+  "style": "Simple flat cartoon illustration, minimal and clean, few bold simple shapes with soft rounded corners, strictly neutral palette of white, light grey, mid grey and dark charcoal only, no brand colors, subtle soft shadows, the whole scene isolated on a plain light neutral grey background, centered composition with generous empty space around, no text, no letters, no numbers, no logos",
   "negative": "photo, photorealistic, 3d render, clutter, busy background, text, letters, numbers, watermark, dark background, gradients everywhere",
   "items": [
     {
       "id": "faq-accordion",
       "size": "3:2",
       "seed": 27301,
-      "subject": "A friendly stack of three rounded speech-bubble panels, one of them opened like a drawer showing a few lines inside, with a big question mark symbol floating beside them"
+      "subject": "A simple vertical list of four rounded rows like questions in a list, each row has a short bar and a small chevron arrow on the right; the second row is expanded downward showing two short lines of answer and its chevron points up"
     },
     {
       "id": "gallery",
@@ -39,7 +39,7 @@
       "size": "3:2",
       "seed": 27306,
       "subject": "A mosaic of rounded cards laid out on a three column and three row grid: one big square card marked with a large lowercase letter a spans two columns and two rows in the top left; a small card marked b sits top right; a tall card marked c spans the right column in the two lower rows; two small cards marked d and e fill the bottom row left. Each card shows only its single bold lowercase Latin letter in the center",
-      "style": "Stylish flat cartoon illustration, playful and clean, bold simple geometric shapes with soft rounded corners, limited palette of royal blue #2563eb, light sky blue, white and slate grey, subtle soft shadows, the whole scene isolated on a plain light neutral grey background, centered composition with generous empty space around, no other text besides the single letters, no numbers, no logos",
+      "style": "Stylish flat cartoon illustration, playful and clean, bold simple geometric shapes with soft rounded corners, strictly neutral palette of white, light grey, mid grey and dark charcoal only, subtle soft shadows, the whole scene isolated on a plain light neutral grey background, centered composition with generous empty space around, no other text besides the single letters, no numbers, no logos",
       "negative": "photo, photorealistic, 3d render, clutter, busy background, words, numbers, watermark, dark background, gradients everywhere"
     }
   ]
