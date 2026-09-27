@@ -1,10 +1,12 @@
 import { ENGINE_PAGE_BLOCKS, ENGINE_REUSABLE_INNER_BLOCKS } from './engine';
 import { withAppearance } from './_appearance';
+import { withThumbnail } from './_thumbnails';
 import { BlockShowcaseBlock } from './domain/whg/BlockShowcase';
 import { DemoAccessBlock } from './domain/whg/DemoAccess';
 import { ProjectTypesGridBlock } from './domain/whg/ProjectTypesGrid';
 import { SpecialistDirectoryBlock } from './domain/whg/SpecialistDirectory';
 import { SpecialistProfileBlock } from './domain/whg/SpecialistProfile';
+import { WHG_BLOCK_THUMBNAILS as T } from './domain/whg/thumbnails';
 
 /**
  * Точка сборки блоков. Принадлежит сайту.
@@ -26,11 +28,11 @@ import { SpecialistProfileBlock } from './domain/whg/SpecialistProfile';
 */
 export const REUSABLE_INNER_BLOCKS = [
   ...ENGINE_REUSABLE_INNER_BLOCKS,
-  withAppearance(BlockShowcaseBlock),
-  withAppearance(DemoAccessBlock),
-  withAppearance(ProjectTypesGridBlock),
-  withAppearance(SpecialistDirectoryBlock),
-  withAppearance(SpecialistProfileBlock),
+  withThumbnail(withAppearance(BlockShowcaseBlock), T['block-showcase']),
+  withThumbnail(withAppearance(DemoAccessBlock), T.demoAccess),
+  withThumbnail(withAppearance(ProjectTypesGridBlock), T['project-types-grid']),
+  withThumbnail(withAppearance(SpecialistDirectoryBlock), T['specialist-directory']),
+  withThumbnail(withAppearance(SpecialistProfileBlock), T['specialist-profile']),
 ];
 
 /*
@@ -40,9 +42,9 @@ export const REUSABLE_INNER_BLOCKS = [
 */
 export const PAGE_BLOCKS = [
   ...ENGINE_PAGE_BLOCKS,
-  withAppearance(BlockShowcaseBlock),
-  withAppearance(DemoAccessBlock),
-  withAppearance(ProjectTypesGridBlock),
-  withAppearance(SpecialistDirectoryBlock),
-  withAppearance(SpecialistProfileBlock),
+  withThumbnail(withAppearance(BlockShowcaseBlock), T['block-showcase']),
+  withThumbnail(withAppearance(DemoAccessBlock), T.demoAccess),
+  withThumbnail(withAppearance(ProjectTypesGridBlock), T['project-types-grid']),
+  withThumbnail(withAppearance(SpecialistDirectoryBlock), T['specialist-directory']),
+  withThumbnail(withAppearance(SpecialistProfileBlock), T['specialist-profile']),
 ];

@@ -35,6 +35,7 @@ import { PageRefBlock } from './PageRef';
 // если они не нужны для конкретной ниши.
 
 import { withAppearance } from './_appearance';
+import { withThumbnail } from './_thumbnails';
 
 /**
  * Generic content-блоки template. Header/Footer/PageOutlet — layout-блоки
@@ -94,10 +95,10 @@ export const ENGINE_REUSABLE_INNER_BLOCKS = [
     секцией. Навешивается разом, а не переписыванием тридцати семи файлов,
     и новый блок получает то же поведение сам собой.
   */
-].map((block) => withAppearance(block));
+].map((block) => withThumbnail(withAppearance(block)));
 
 export const ENGINE_PAGE_BLOCKS = [
   ...ENGINE_REUSABLE_INNER_BLOCKS,
-  withAppearance(ReusableRefBlock),
-  withAppearance(PageRefBlock),
+  withThumbnail(withAppearance(ReusableRefBlock)),
+  withThumbnail(withAppearance(PageRefBlock)),
 ];

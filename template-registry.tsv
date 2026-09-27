@@ -160,6 +160,7 @@ overlay	docs/whg/55-faq.md
 mirror	pnpm-workspace.yaml
 mirror	scripts/bootstrap-site-on-vps.sh
 mirror	scripts/encrypt-db.mjs
+mirror	scripts/imagegen.mjs
 mirror	scripts/infisical-template.ts
 mirror	scripts/lib/zones.mjs
 mirror	scripts/README.md
@@ -618,6 +619,9 @@ mirror	src/cms/src/app/(payload)/api/graphql/route.ts
 mirror	src/cms/src/app/(payload)/custom.scss
 mirror	src/cms/src/app/(payload)/layout.tsx
 mirror	src/cms/src/blocks/_appearance.ts
+mirror	src/cms/src/blocks/_thumbnails/draw.ts
+mirror	src/cms/src/blocks/_thumbnails/index.test.ts
+mirror	src/cms/src/blocks/_thumbnails/index.ts
 mirror	src/cms/src/blocks/_tile-layout.ts
 mirror	src/cms/src/blocks/_visibility.ts
 mirror	src/cms/src/blocks/AchievementBanner.ts
