@@ -30,7 +30,9 @@ export function PageBackdrop({
       place="100vw"
       alt=""
       zoom={false}
-      loading="eager"
+      // Лениво: скрытую пару другой темы браузер тогда не грузит вовсе, а
+      // видимая лежит во весь экран и приходит сразу.
+      loading="lazy"
       fetchPriority="low"
       className={`absolute inset-0 h-full w-full bg-transparent object-cover ${className}`}
     />

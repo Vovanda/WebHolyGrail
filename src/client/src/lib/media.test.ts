@@ -9,6 +9,7 @@ import {
   mediaSrcSet,
   mediaUpTo,
   widthsUpTo,
+  withFileOnTop,
   singleFrameAspect,
 } from './media';
 
@@ -247,5 +248,29 @@ describe('кадр для показа', () => {
   it('форма места главнее формы снимка', () => {
     expect(mediaFrame(photo)?.shape).toEqual({ width: 5712, height: 4284 });
     expect(mediaFrame(photo, { width: 16, height: 9 })?.shape).toEqual({ width: 16, height: 9 });
+  });
+});
+
+describe('файл сверх ступеней', () => {
+  const steps = [
+    { url: 'a-400.webp', width: 400 },
+    { url: 'a-1200.webp', width: 1200 },
+  ];
+
+  it('встаёт последним, когда шире самой крупной ступени', () => {
+    expect(withFileOnTop(steps, 'a.webp', 1664).at(-1)).toEqual({ url: 'a.webp', width: 1664 });
+  });
+
+  it('не добавляется, когда ступени его перекрывают', () => {
+    expect(withFileOnTop(steps, 'a.webp', 1200)).toEqual(steps);
+  });
+
+  it('крупный оригинал со снимка не добавляется', () => {
+    expect(withFileOnTop(steps, 'a.webp', 5712)).toEqual(steps);
+  });
+
+  it('без ширины или адреса перечень не меняется', () => {
+    expect(withFileOnTop(steps, 'a.webp', undefined)).toEqual(steps);
+    expect(withFileOnTop(steps, null, 1664)).toEqual(steps);
   });
 });

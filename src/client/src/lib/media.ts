@@ -64,6 +64,30 @@ export function mediaSrcSet(renditions: readonly MediaRendition[]): string | und
 }
 
 /**
+ * Перечень с самим файлом сверху, если он шире самой крупной ступени.
+ *
+ * @remarks
+ * Ступени шире исходника не режутся: снимок в 1664 точки получает ступени до
+ * 1200, и широкое место растягивает 1200 - кадр мылится. Сам файл в таком
+ * случае и есть недостающая ступень. Браузер берёт его только для места шире
+ * последней ступени, узкие места его не трогают.
+ *
+ * Только когда файл уже следующей ступени - то есть она не нарезана как раз
+ * из-за малого исходника. Крупный оригинал со снимка в разметку страницы
+ * не идёт: он для ленты, а на странице весил бы мегабайты.
+ */
+export function withFileOnTop(
+  renditions: readonly MediaRendition[],
+  file: string | null,
+  width: number | null | undefined,
+): MediaRendition[] {
+  const largest = renditions.at(-1)?.width ?? 0;
+  const next = MEDIA_RENDITIONS.find((step) => step.width > largest)?.width;
+  if (!file || !width || width <= largest || !next || width >= next) return [...renditions];
+  return [...renditions, { url: file, width }];
+}
+
+/**
  * Адрес для браузера, который перечня не понимает.
  *
  * @remarks
@@ -210,9 +234,12 @@ export function mediaFrame(
   const laneWithFile =
     file && doc?.width && !doc.laneStep ? [...lane, { url: file, width: doc.width }] : lane;
 
+  // Ступень, выбранная владельцем, - потолок: сверх неё файл не добавляется.
+  const pageSet = doc?.pageStep ? page : withFileOnTop(page, file, doc?.width);
+
   return {
     src,
-    srcSet: mediaSrcSet(page),
+    srcSet: mediaSrcSet(pageSet),
     file,
     laneSet: mediaSrcSet(laneWithFile) ?? src,
     blur: doc?.blurData ?? all.at(0)?.url ?? null,
