@@ -50,10 +50,24 @@ export interface SiteSettings {
   readonly header?: HeaderSettings;
   /** Шаг секции по вертикали - общий для всех блоков страницы. */
   readonly blockSpace?: BlockSpaceSettings;
+  /** Фон страницы - картинка под всем содержимым. */
+  readonly pageBackground?: PageBackgroundSettings;
   /** Конфигурация layout — какие панели в каких слотах. См. R11. */
   readonly layout?: SiteLayoutConfig;
   /** Настройки видео, которые нужны странице. */
   readonly video?: VideoSettings;
+}
+
+/**
+ * Фон страницы: картинка на всю ширину под всем содержимым сайта.
+ *
+ * @remarks
+ * Пусто - страница залита цветом темы, как раньше. Своя картинка для тёмной
+ * темы не обязательна: без неё в тёмной показывается та же.
+ */
+export interface PageBackgroundSettings {
+  readonly image?: MediaRef | null;
+  readonly imageDark?: MediaRef | null;
 }
 
 /**

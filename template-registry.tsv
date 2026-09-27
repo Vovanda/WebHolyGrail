@@ -375,6 +375,7 @@ mirror	src/client/src/layouts/presets/classic.ts
 mirror	src/client/src/layouts/presets/fallback-site-settings.ts
 mirror	src/client/src/layouts/site-layout/block-registry.engine.tsx
 mirror	src/client/src/layouts/site-layout/index.ts
+mirror	src/client/src/layouts/site-layout/PageBackdrop.tsx
 mirror	src/client/src/layouts/site-layout/panel-routes.test.ts
 mirror	src/client/src/layouts/site-layout/panel-routes.ts
 mirror	src/client/src/layouts/site-layout/panel-visibility.test.ts
@@ -573,6 +574,8 @@ overlay	src/cms/migrations/20260924_125632_blog_column_width.json
 overlay	src/cms/migrations/20260924_125632_blog_column_width.ts
 overlay	src/cms/migrations/20260924_161302_gallery_without_tile_layout.json
 overlay	src/cms/migrations/20260924_161302_gallery_without_tile_layout.ts
+overlay	src/cms/migrations/20260927_135202_page_background.json
+overlay	src/cms/migrations/20260927_135202_page_background.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts

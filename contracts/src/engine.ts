@@ -50,6 +50,7 @@ export type {
   SiteSettings,
   ContactsInfo,
   SocialLink,
+  PageBackgroundSettings,
   VideoSettings,
   VideoDeniedSettings,
 } from './globals';
