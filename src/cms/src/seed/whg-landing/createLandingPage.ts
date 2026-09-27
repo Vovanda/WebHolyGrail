@@ -61,7 +61,7 @@ const ASSETS = {
   },
   siteSng74: {
     filename: 'sites/sng74-screenshot.jpeg',
-    alt: 'sng74.ru — главная страница',
+    alt: 'iso-vent.ru — главная страница',
   },
   siteFitnessMafia: {
     filename: 'sites/fitness-mafia-screenshot.jpeg',
@@ -345,8 +345,8 @@ function buildLandingPageData(media: MediaMap) {
             screenshot: media.siteSawkingTech.id,
           },
           {
-            siteName: 'sng74.ru',
-            url: 'https://sng74.ru',
+            siteName: 'iso-vent.ru',
+            url: 'https://iso-vent.ru',
             niche: 'Чистые помещения для фармы — B2B стройка',
             screenshot: media.siteSng74.id,
           },
