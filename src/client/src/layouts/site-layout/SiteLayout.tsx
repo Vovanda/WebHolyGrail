@@ -3,6 +3,7 @@ import type { PanelConfig, SiteLayoutConfig, SiteSettings, SlotName } from 'cont
 
 import { MediaReveal, PageLightbox } from '@/blocks/primitives/Media';
 
+import { PageBackdrop } from './PageBackdrop';
 import { panelMatchesRoute } from './panel-routes';
 import { panelScreenClass } from './panel-visibility';
 import { renderPanelContent } from './renderPanelContent';
@@ -68,6 +69,7 @@ export function SiteLayout({
       полосой фона страницы, хотя отступ - дело самого содержимого.
     */
     <div data-site-shell className="relative flex min-h-screen flex-col text-ink">
+      <PageBackdrop background={settings.pageBackground} />
       {grouped.top.length > 0 && (
         <div
           data-slot="top"
