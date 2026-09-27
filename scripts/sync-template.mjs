@@ -90,17 +90,17 @@ if (!repo) {
   cleanupSource = true;
 } else {
   sourceDir = path.resolve(repo);
+  /*
+    Локальный клон шаблона берётся так же, как сам WHG: через временное рабочее
+    дерево. Раньше здесь был checkout прямо в клоне - после синка шаблон оставался
+    на отсоединённом HEAD, и следующие коммиты ложились мимо ветки.
+  */
   if (fs.existsSync(path.join(sourceDir, '.git'))) {
-    const current = git(['rev-parse', '--abbrev-ref', 'HEAD'], sourceDir).trim();
-    if (ref !== current) {
-      console.log(`→ git checkout ${ref} in ${sourceDir}`);
-      git(['fetch', '--quiet'], sourceDir);
-      git(['checkout', ref, '--quiet'], sourceDir);
-    }
+    safeGit(['fetch', '--quiet', '--tags'], sourceDir);
   }
 }
+const localGitSource = !isUrl && fs.existsSync(path.join(sourceDir, '.git'));
 
-const sourceSha = safeGit(['rev-parse', '--short', 'HEAD'], sourceDir) ?? 'unknown';
 /*
   Источник - отправленная версия, а не рабочее дерево.
 
@@ -112,7 +112,7 @@ const sourceSha = safeGit(['rev-parse', '--short', 'HEAD'], sourceDir) ?? 'unkno
   ветке. Рабочая копия при этом остаётся нетронутой, и можно спокойно править
   шаблон, пока идёт круг.
 */
-if (!repo) {
+if (localGitSource) {
   /*
     Что просили: имя ветки или отпечаток коммита - хоть целиком, хоть началом.
     Ветку берём отправленную, отпечаток - как он есть: он уже указывает на точку
@@ -153,6 +153,8 @@ if (!repo) {
   cleanupSource = false;
 }
 
+// Отпечаток - того, что синкается, а не текущей рабочей копии шаблона.
+const sourceSha = safeGit(['rev-parse', '--short', 'HEAD'], sourceDir) ?? 'unknown';
 console.log(`→ Source: ${sourceDir} @ ${ref} (${sourceSha})`);
 console.log(`→ Target: ${INSTANCE}`);
 
