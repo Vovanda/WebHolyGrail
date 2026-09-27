@@ -511,5 +511,5 @@ for (const item of series.items) {
     path.join(outDir, `${item.id}.json`),
     JSON.stringify({ engine: engineName, draft: args.draft, seconds, ...p, graph }, null, 2),
   );
-  console.log(`${item.id}: ${width}x${height}, seed ${item.seed}, ${seconds} с`);
+  console.log(`${item.id}: ${p.width}x${p.height}, seed ${item.seed}, ${seconds} с`);
 }
