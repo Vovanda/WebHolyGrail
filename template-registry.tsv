@@ -45,6 +45,8 @@ overlay	.claude/skills/payload/SKILL.md
 overlay	.claude/skills/whg-components/SKILL.md
 overlay	.claude/skills/whg-deploy/SKILL.md
 overlay	.claude/skills/whg-git-commit/SKILL.md
+overlay	.claude/skills/whg-imagegen/imagegen.mjs
+overlay	.claude/skills/whg-imagegen/SKILL.md
 overlay	.claude/skills/whg-infisical/SKILL.md
 overlay	.claude/skills/whg-layouts/SKILL.md
 overlay	.claude/skills/whg-modals/SKILL.md
@@ -160,7 +162,6 @@ overlay	docs/whg/55-faq.md
 mirror	pnpm-workspace.yaml
 mirror	scripts/bootstrap-site-on-vps.sh
 mirror	scripts/encrypt-db.mjs
-mirror	scripts/imagegen.mjs
 mirror	scripts/infisical-template.ts
 mirror	scripts/lib/zones.mjs
 mirror	scripts/README.md

@@ -3,8 +3,9 @@
  * Генерация серии картинок через локальный ComfyUI.
  *
  * Usage:
- *   node scripts/imagegen.mjs <series.json> [--only <id,id>] [--engine qwen|flux] [--draft]
- *                                           [--host http://127.0.0.1:8188]
+ *   node .claude/skills/whg-imagegen/imagegen.mjs doctor [--host ...] [--models <папка models ComfyUI>]
+ *   node .claude/skills/whg-imagegen/imagegen.mjs <series.json> [--only <id,id>] [--engine qwen|flux] [--draft]
+ *                                                  [--host http://127.0.0.1:8188]
  *
  * Серия - это файл series.json: общий стиль, параметры модели и список картинок
  * с seed. Стиль приклеивается к предмету картинки здесь, а не руками в каждом
@@ -40,13 +41,14 @@ const { values: args, positionals } = parseArgs({
     engine: { type: 'string' },
     draft: { type: 'boolean', default: false },
     host: { type: 'string', default: 'http://127.0.0.1:8188' },
+    models: { type: 'string' },
   },
 });
 
 const seriesPath = positionals[0];
 if (!seriesPath) {
   console.error(
-    'Usage: node scripts/imagegen.mjs <series.json> [--only id] [--engine qwen|flux] [--draft]',
+    'Usage: node .claude/skills/whg-imagegen/imagegen.mjs <series.json|doctor> [--only id] [--draft]',
   );
   process.exit(2);
 }
@@ -209,7 +211,17 @@ function editGraph(p, uploaded) {
     4: { class_type: 'ModelSamplingAuraFlow', inputs: { model: ['1', 0], shift: 3.1 } },
     5: { class_type: 'CFGNorm', inputs: { model: ['4', 0], strength: 1 } },
     20: { class_type: 'LoadImage', inputs: { image: uploaded } },
-    21: { class_type: 'FluxKontextImageScale', inputs: { image: ['20', 0] } },
+    /*
+      Шаблон подгоняет исходник под размеры Kontext, и правка выходит другого
+      кадра (1664x928 -> 1392x752): при смене темы картинка сдвигается. Родной
+      размер Qwen проходит без подгонки, поэтому масштаб - только по просьбе.
+    */
+    21: p.scale
+      ? { class_type: 'FluxKontextImageScale', inputs: { image: ['20', 0] } }
+      : {
+          class_type: 'ImageScaleBy',
+          inputs: { image: ['20', 0], upscale_method: 'lanczos', scale_by: 1 },
+        },
     22: { class_type: 'VAEEncode', inputs: { pixels: ['21', 0], vae: ['3', 0] } },
     6: encode(p.positive),
     7: encode(''),
@@ -237,11 +249,29 @@ function editGraph(p, uploaded) {
       },
     },
     10: { class_type: 'VAEDecode', inputs: { samples: ['9', 0], vae: ['3', 0] } },
+    // Правка в размере Kontext выходит кадром уже исходника; подгоняем обратно,
+    // чтобы светлая и тёмная версии совпадали при смене темы.
+    23: {
+      class_type: 'ImageScale',
+      inputs: {
+        image: ['10', 0],
+        upscale_method: 'lanczos',
+        width: p.width,
+        height: p.height,
+        crop: 'center',
+      },
+    },
     11: {
       class_type: 'SaveImage',
-      inputs: { images: ['10', 0], filename_prefix: `imagegen/${p.id}` },
+      inputs: { images: [p.scale ? '23' : '10', 0], filename_prefix: `imagegen/${p.id}` },
     },
   };
+}
+
+/** Ширина и высота PNG из заголовка. */
+function pngSize(file) {
+  const head = fs.readFileSync(file).subarray(16, 24);
+  return [head.readUInt32BE(0), head.readUInt32BE(4)];
 }
 
 /** Кладёт исходник в input ComfyUI; имя с отпечатком, чтобы разные файлы не путались. */
@@ -282,6 +312,154 @@ async function run(graph) {
   }
 }
 
+/*
+  Проверка готовности: есть ли ComfyUI, нужные модели и ресурсы на них.
+  Итог - одно из трёх: работать, поставить (с командами) или не применять навык.
+  Порог ресурсов - проверенный: 24 ГБ видеопамяти хватает; меньше не проверялось.
+*/
+const REQUIRED = [
+  [
+    'diffusion_models',
+    'qwen_image_2512_fp8_e4m3fn.safetensors',
+    'Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_2512_fp8_e4m3fn.safetensors',
+    20.4,
+  ],
+  [
+    'diffusion_models',
+    'qwen_image_edit_2511_fp8mixed.safetensors',
+    'Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_fp8mixed.safetensors',
+    20.5,
+  ],
+  [
+    'text_encoders',
+    'qwen_2.5_vl_7b_fp8_scaled.safetensors',
+    'Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors',
+    9.4,
+  ],
+  [
+    'vae',
+    'qwen_image_vae.safetensors',
+    'Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors',
+    0.25,
+  ],
+  [
+    'loras',
+    'Qwen-Image-2512-Lightning-8steps-V1.0-bf16.safetensors',
+    'lightx2v/Qwen-Image-2512-Lightning/resolve/main/Qwen-Image-2512-Lightning-8steps-V1.0-bf16.safetensors',
+    0.8,
+  ],
+];
+
+async function doctor() {
+  const { execFileSync } = await import('node:child_process');
+  const lines = [];
+  let gpuGb = 0;
+  try {
+    const out = execFileSync(
+      'nvidia-smi',
+      ['--query-gpu=name,memory.total', '--format=csv,noheader,nounits'],
+      { encoding: 'utf8' },
+    );
+    const [name, mib] = out
+      .trim()
+      .split(String.fromCharCode(10))[0]
+      .split(',')
+      .map((x) => x.trim());
+    gpuGb = Number(mib) / 1024;
+    lines.push(`видеокарта: ${name}, ${gpuGb.toFixed(0)} ГБ`);
+  } catch {
+    lines.push('видеокарта: NVIDIA не найдена (nvidia-smi недоступен)');
+  }
+
+  let comfy = null;
+  try {
+    comfy = await (await fetch(`${args.host}/system_stats`)).json();
+    lines.push(`ComfyUI: ${comfy.system?.comfyui_version ?? '?'} на ${args.host}`);
+  } catch {
+    lines.push(`ComfyUI: не отвечает на ${args.host}`);
+  }
+
+  const missing = [];
+  if (comfy) {
+    const listed = new Set();
+    for (const [node, input] of [
+      ['UNETLoader', 'unet_name'],
+      ['CLIPLoader', 'clip_name'],
+      ['VAELoader', 'vae_name'],
+      ['LoraLoaderModelOnly', 'lora_name'],
+    ]) {
+      const info = await (await fetch(`${args.host}/object_info/${node}`)).json();
+      for (const f of info[node]?.input?.required?.[input]?.[0] ?? []) listed.add(f);
+    }
+    for (const r of REQUIRED) if (!listed.has(r[1])) missing.push(r);
+  } else {
+    missing.push(...REQUIRED);
+  }
+
+  const needGb = missing.reduce((sum, r) => sum + r[3], 0) + (comfy ? 0 : 2);
+  let freeGb = null;
+  const target = args.models ?? process.cwd();
+  try {
+    freeGb = (fs.statfsSync(target).bavail * fs.statfsSync(target).bsize) / 1e9;
+    lines.push(
+      `свободно на диске (${target}): ${freeGb.toFixed(0)} ГБ, нужно ещё ~${needGb.toFixed(0)} ГБ`,
+    );
+  } catch {
+    lines.push(`свободно на диске: не удалось узнать для ${target}`);
+  }
+
+  console.log(lines.map((l) => `  ${l}`).join(String.fromCharCode(10)));
+
+  if (comfy && missing.length === 0) {
+    console.log('');
+    console.log('ГОТОВО: ComfyUI и все модели на месте.');
+    return;
+  }
+  if (gpuGb === 0) {
+    console.log('');
+    console.log(
+      'НЕ ПРИМЕНЯТЬ: без видеокарты NVIDIA генерация недоступна. Навык отключается до смены машины.',
+    );
+    process.exitCode = 3;
+    return;
+  }
+  if (gpuGb < 23) {
+    console.log('');
+    console.log(
+      `НЕ ПРОВЕРЕНО: ${gpuGb.toFixed(0)} ГБ видеопамяти меньше проверенных 24 ГБ. ComfyUI выгружает веса в память, может работать, но медленно - ставить только по решению владельца.`,
+    );
+  }
+  if (freeGb !== null && freeGb < needGb + 10) {
+    console.log('');
+    console.log(
+      `НЕ ПРИМЕНЯТЬ: на диске ${freeGb.toFixed(0)} ГБ, а с запасом нужно ${(needGb + 10).toFixed(0)} ГБ. Освободи место или укажи другой диск через --models.`,
+    );
+    process.exitCode = 3;
+    return;
+  }
+  console.log('');
+  console.log('МОЖНО ПОСТАВИТЬ (с согласия владельца):');
+  if (!comfy) {
+    console.log(
+      '  1. ComfyUI portable для NVIDIA: https://github.com/Comfy-Org/ComfyUI/releases (ComfyUI_windows_portable_nvidia.7z),',
+    );
+    console.log(
+      '     распаковать, запустить: python_embeded/python.exe -s ComfyUI/main.py --listen 127.0.0.1 --port 8188',
+    );
+  }
+  for (const [dir, file, url] of missing) {
+    console.log(
+      `  curl -L -C - -o "<ComfyUI>/models/${dir}/${file}" https://huggingface.co/${url}`,
+    );
+  }
+  process.exitCode = 2;
+}
+
+if (seriesPath === 'doctor') {
+  await doctor();
+  process.exit();
+}
+
 const series = JSON.parse(fs.readFileSync(seriesPath, 'utf8'));
 const engineName = args.engine ?? series.engine ?? 'qwen';
 const engine = ENGINES[engineName];
@@ -311,8 +489,11 @@ for (const item of series.items) {
   };
   let graph;
   if (item.edit) {
+    const sourceFile = path.join(path.dirname(seriesPath), item.source);
     p.source = item.source;
-    graph = editGraph(p, await upload(path.join(path.dirname(seriesPath), item.source)));
+    p.scale = Boolean(item.scale);
+    [p.width, p.height] = pngSize(sourceFile);
+    graph = editGraph(p, await upload(sourceFile));
   } else {
     graph = engineName === 'qwen' ? qwenGraph(engine, p) : fluxGraph(engine, p);
   }
