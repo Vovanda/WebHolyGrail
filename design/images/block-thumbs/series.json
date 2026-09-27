@@ -1,0 +1,32 @@
+{
+  "name": "Иллюстрации компонентов в окне выбора админки WHG",
+  "engine": "qwen",
+  "style": "Stylish flat cartoon illustration, playful and clean, bold simple geometric shapes with soft rounded corners, limited palette of royal blue #2563eb, light sky blue, white and slate grey, subtle soft shadows, the whole scene isolated on a plain light neutral grey background, centered composition with generous empty space around, no text, no letters, no numbers, no logos",
+  "negative": "photo, photorealistic, 3d render, clutter, busy background, text, letters, numbers, watermark, dark background, gradients everywhere",
+  "items": [
+    {
+      "id": "faq-accordion",
+      "size": "3:2",
+      "seed": 27301,
+      "subject": "A friendly stack of three rounded speech-bubble panels, one of them opened like a drawer showing a few lines inside, with a big question mark symbol floating beside them"
+    },
+    {
+      "id": "gallery",
+      "size": "3:2",
+      "seed": 27302,
+      "subject": "Several framed pictures of different sizes arranged in a neat mosaic, each picture a simple landscape of a sun and mountains"
+    },
+    {
+      "id": "request-form",
+      "size": "3:2",
+      "seed": 27303,
+      "subject": "A paper form with two empty input fields and a big rounded blue button, and a paper airplane taking off from the button"
+    },
+    {
+      "id": "carousel",
+      "size": "3:2",
+      "seed": 27304,
+      "subject": "A row of three picture cards on a conveyor belt moving to the right, the middle card slightly bigger, with round arrow buttons on both sides"
+    }
+  ]
+}
