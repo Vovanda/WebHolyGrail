@@ -181,7 +181,7 @@ export function Quote({
   );
 
   return (
-    <section className="bg-bg pt-10 md:pt-14 pb-8 md:pb-10">
+    <section className="block-space bg-bg">
       <ContentFrame side="none" className="px-6">
         {data.heading && (
           <>
@@ -255,7 +255,7 @@ function PhotoFrame({
  */
 function FullWidthDarkQuote({ data }: { readonly data: QuoteData }) {
   return (
-    <section className="bg-dark-block text-dark-block-fg py-20 md:py-28">
+    <section className="block-space bg-dark-block text-dark-block-fg">
       <div className="mx-auto max-w-content px-4 md:px-6 text-center">
         <span aria-hidden className="font-display text-6xl text-dark-block-fg/30 leading-none">
           {'“'}

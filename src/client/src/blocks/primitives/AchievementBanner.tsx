@@ -53,7 +53,7 @@ export function AchievementBanner({
   const palette = ACCENT_PALETTE[accent];
 
   return (
-    <section className="bg-bg pt-4 pb-4 md:pt-6 md:pb-6">
+    <section className="block-space bg-bg">
       <ContentFrame side="none" className="px-6">
         <div>
           <div

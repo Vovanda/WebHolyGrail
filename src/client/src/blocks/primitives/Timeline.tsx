@@ -44,7 +44,7 @@ export function Timeline({
   const hidden = entries.length - visibleCount;
 
   return (
-    <section className="bg-bg py-12 md:py-16">
+    <section className="block-space bg-bg">
       <ContentFrame side="right" decor="vines" className="px-6">
         <h2
           data-part="title"

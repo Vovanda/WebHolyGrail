@@ -33,7 +33,7 @@ export async function ThreadsSection({ node, className }: ThreadsSectionProps) {
   const list = data.layout === 'list';
 
   return (
-    <section className={cn('mx-auto max-w-wide px-4 md:px-6 py-10 md:py-14', className)}>
+    <section className={cn('mx-auto max-w-wide px-4 md:px-6 block-space', className)}>
       {/* Заголовок как у соседних секций страницы — витрина серий стоит в одном
           ряду с блоками услуг и ленты статей, и своя типографика её бы вырвала
           из ряда. */}

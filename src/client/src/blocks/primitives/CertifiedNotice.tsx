@@ -31,7 +31,7 @@ export function CertifiedNotice({
     .filter(Boolean);
 
   return (
-    <section className="bg-bg pt-8 md:pt-12 pb-8 md:pb-12">
+    <section className="block-space bg-bg">
       {/* Без `ContentFrame decor="vines"` — блок имеет accent-bar (border-l 1.5px) как
           собственный декоративный акцент. Правило: лоза только когда нет своей линии. */}
       <div className="px-6">

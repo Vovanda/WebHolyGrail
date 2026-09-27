@@ -37,7 +37,7 @@ export function InstallSnippet({
   }
 
   return (
-    <section className="bg-page-bg py-10 md:py-12">
+    <section className="block-space bg-page-bg">
       <div className="mx-auto max-w-content px-4 md:px-6">
         <div className="group relative rounded-lg bg-dark-block px-6 md:px-7 py-5 md:py-6 shadow-lg border border-white/10 ring-1 ring-accent/20">
           <code className="block font-mono text-sm md:text-base text-dark-block-fg pr-12 overflow-x-auto leading-relaxed">

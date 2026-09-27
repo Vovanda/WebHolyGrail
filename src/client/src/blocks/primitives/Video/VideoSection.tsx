@@ -69,7 +69,7 @@ export async function VideoSection({ node, settings, className }: VideoSectionPr
   */
   if (!stream) {
     return (
-      <section className={cn('mx-auto px-4 md:px-6 py-8 md:py-12', width, className)}>
+      <section className={cn('mx-auto px-4 md:px-6 block-space', width, className)}>
         <VideoNotice text={GONE} />
       </section>
     );
@@ -97,7 +97,7 @@ export async function VideoSection({ node, settings, className }: VideoSectionPr
   // при отказе незачем.
 
   return (
-    <section className={cn('mx-auto px-4 md:px-6 py-8 md:py-12', width, className)}>
+    <section className={cn('mx-auto px-4 md:px-6 block-space', width, className)}>
       {access.allowed && stream.status === 'ready' ? (
         <VideoPlayer
           ui={playerUi}

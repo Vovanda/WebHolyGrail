@@ -47,7 +47,7 @@ export function Hero({
   // Выделяемая часть заголовка ищется общим способом - тем же, что у соседних блоков.
 
   return (
-    <section className="bg-bg py-10 md:py-14">
+    <section className="block-space bg-bg">
       <div className="mx-auto max-w-wide px-6 text-center">
         <h1
           data-part="title"

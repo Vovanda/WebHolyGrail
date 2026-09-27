@@ -23,13 +23,13 @@ export function WaveDivider({
   const variant = (node.data?.variant ?? 'wave') as Variant;
   const flipped = node.data?.flipped === true;
   /*
-    Воздух вокруг разделителя один на все виды и задаётся здесь, а не соседями.
-    Раньше у волны была своя высота, а у линии, точек и градиента - никакой,
-    и вокруг них дышало по-разному.
+    Своего воздуха у разделителя нет: его дают соседние блоки шагом секции.
+    С собственным шагом блок, разделитель и блок складывали три отступа, и
+    вокруг тонкой линии зияла дыра в полэкрана.
   */
 
   return (
-    <div className="block-space">
+    <div data-part="divider">
       {variant === 'line' ? (
         <LineSep />
       ) : variant === 'dots' ? (

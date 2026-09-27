@@ -33,7 +33,7 @@ export async function ArticlesSection({ node, settings, className }: ArticlesSec
   const cta = data.cta?.href && data.cta.label ? data.cta : null;
 
   return (
-    <section className={cn('mx-auto max-w-wide px-4 md:px-6 py-10 md:py-14', className)}>
+    <section className={cn('mx-auto max-w-wide px-4 md:px-6 block-space', className)}>
       {/* Заголовок набран как у остальных секций страницы: на посадочной
           лента статей стоит в одном ряду с блоками услуг и опыта, и мелкий
           eyebrow рядом с ними читался как служебная подпись. */}

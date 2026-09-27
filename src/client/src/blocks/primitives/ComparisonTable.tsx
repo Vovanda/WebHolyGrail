@@ -29,7 +29,7 @@ export function ComparisonTable({
   const rightItems = data.rightItems ?? [];
 
   return (
-    <section className="py-14 md:py-18">
+    <section className="block-space">
       <div className="mx-auto max-w-wide px-4 md:px-6">
         {heading && (
           <h2

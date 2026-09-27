@@ -54,7 +54,7 @@ export async function FaqAccordion({
   const cta = data.cta;
 
   return (
-    <section className="bg-bg py-8 md:py-12">
+    <section className="block-space bg-bg">
       <div className="mx-auto max-w-[880px] px-4 md:px-6">
         <h1
           data-part="title"

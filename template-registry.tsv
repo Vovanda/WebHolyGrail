@@ -576,6 +576,8 @@ overlay	src/cms/migrations/20260924_161302_gallery_without_tile_layout.json
 overlay	src/cms/migrations/20260924_161302_gallery_without_tile_layout.ts
 overlay	src/cms/migrations/20260927_135202_page_background.json
 overlay	src/cms/migrations/20260927_135202_page_background.ts
+overlay	src/cms/migrations/20260927_151802_page_background_veil.json
+overlay	src/cms/migrations/20260927_151802_page_background_veil.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts

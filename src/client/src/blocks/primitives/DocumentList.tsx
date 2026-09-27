@@ -62,7 +62,7 @@ export function DocumentList({
   const asCards = (data.layout ?? 'cards') === 'cards';
 
   return (
-    <section className="bg-bg py-10 md:py-14">
+    <section className="block-space bg-bg">
       <div className="mx-auto max-w-wide px-4 md:px-6">
         {data.heading && (
           <h2

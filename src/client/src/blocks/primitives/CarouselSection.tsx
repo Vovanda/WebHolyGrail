@@ -33,7 +33,7 @@ export async function CarouselSection({ node }: CarouselSectionProps) {
   const place = cardPlace(data);
 
   return (
-    <section className="py-10 md:py-14">
+    <section className="block-space">
       <div className="mx-auto w-full max-w-wide px-6">
         {data.heading && (
           <h2

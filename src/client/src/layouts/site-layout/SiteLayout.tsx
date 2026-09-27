@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { PanelConfig, SiteLayoutConfig, SiteSettings, SlotName } from 'contracts';
 
 import { MediaReveal, PageLightbox } from '@/blocks/primitives/Media';
@@ -72,6 +72,7 @@ export function SiteLayout({
       data-site-shell
       data-backdrop={hasBackdrop(settings) ? '' : undefined}
       className="relative flex min-h-screen flex-col text-ink"
+      style={blockSpaceVars(settings)}
     >
       <PageBackdrop background={settings.pageBackground} />
       {grouped.top.length > 0 && (
@@ -251,4 +252,20 @@ function warnUnimplementedSlots(grouped: Record<SlotName, PanelConfig[]>): void 
       );
     }
   }
+}
+
+/**
+ * Шаг секции из настроек - переменными на корне раскладки.
+ *
+ * @remarks
+ * Пустое поле переменную не ставит: тогда действует умолчание из стилей.
+ */
+function blockSpaceVars(settings: SiteSettings): CSSProperties | undefined {
+  const narrow = settings.blockSpace?.narrow?.trim();
+  const wide = settings.blockSpace?.wide?.trim();
+  if (!narrow && !wide) return undefined;
+  return {
+    ...(narrow ? { '--block-space-narrow': narrow } : {}),
+    ...(wide ? { '--block-space-wide': wide } : {}),
+  } as CSSProperties;
 }

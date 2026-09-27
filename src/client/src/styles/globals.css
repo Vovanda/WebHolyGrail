@@ -156,15 +156,20 @@
 
     Владелец меняет это у отдельного блока своим стилем; в коде значение одно.
   */
+  /*
+    Шаг секции - один на все блоки: отступ сверху и снизу у каждого. Между
+    двумя блоками выходит два шага, с разделителем - два шага и линия.
+    Значение задаётся в настройках сайта, здесь умолчание.
+  */
   .block-space {
-    padding-top: 3.5rem;
-    padding-bottom: 3.5rem;
+    padding-top: var(--block-space-narrow, 1.5rem);
+    padding-bottom: var(--block-space-narrow, 1.5rem);
   }
 
   @media (min-width: 768px) {
     .block-space {
-      padding-top: 4.5rem;
-      padding-bottom: 4.5rem;
+      padding-top: var(--block-space-wide, 2rem);
+      padding-bottom: var(--block-space-wide, 2rem);
     }
   }
 

@@ -114,7 +114,7 @@ export function RequestForm({
     'w-full rounded-md border border-border bg-bg px-3 py-2.5 text-ink outline-none placeholder:text-muted focus:border-accent';
 
   return (
-    <section id={anchorId} className="bg-bg py-10 md:py-14 scroll-mt-24">
+    <section id={anchorId} className="block-space bg-bg scroll-mt-24">
       <div className="mx-auto max-w-content px-4 md:px-6">
         <h2 data-part="title" className="font-display text-2xl font-semibold text-ink md:text-3xl">
           {data.heading}
