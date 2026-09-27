@@ -38,5 +38,28 @@ export const HeroBlock: Block = {
           'На mobile показывается этот вариант. Если пусто — используется обычный subtitle на всех экранах.',
       },
     },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'photo',
+          label: 'Фото под текстом',
+          type: 'upload',
+          relationTo: 'media',
+          admin: { description: 'Ложится под заголовок во всю ширину блока. Пусто — без фото.' },
+        },
+        {
+          name: 'veil',
+          label: 'Вуаль над фото, %',
+          type: 'number',
+          min: 0,
+          max: 95,
+          admin: {
+            description:
+              'Слой цвета фона темы поверх фото: больше - текст читается легче. Пусто - 60.',
+          },
+        },
+      ],
+    },
   ],
 };

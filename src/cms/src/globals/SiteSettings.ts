@@ -205,8 +205,8 @@ export const SiteSettings: GlobalConfig = {
                   label: 'На узком экране',
                   type: 'text',
                   admin: {
-                    placeholder: '1rem',
-                    description: 'Любая мера CSS. Пусто — как задано в коде.',
+                    placeholder: '1.5rem',
+                    description: 'Любая мера CSS. Пусто — 1.5rem.',
                   },
                 },
                 {
@@ -214,8 +214,8 @@ export const SiteSettings: GlobalConfig = {
                   label: 'На широком экране',
                   type: 'text',
                   admin: {
-                    placeholder: '1.5rem',
-                    description: 'От 768 точек ширины.',
+                    placeholder: '2rem',
+                    description: 'От 768 точек ширины. Пусто — 2rem.',
                   },
                 },
               ],
@@ -241,6 +241,30 @@ export const SiteSettings: GlobalConfig = {
                   type: 'upload',
                   relationTo: 'media',
                   admin: { description: 'Пусто - в тёмной теме та же картинка.' },
+                },
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'veil',
+                      label: 'Вуаль в светлой теме, %',
+                      type: 'number',
+                      min: 0,
+                      max: 95,
+                      admin: {
+                        description:
+                          'Слой цвета фона темы поверх фото: больше - фото светлее и спокойнее.',
+                      },
+                    },
+                    {
+                      name: 'veilDark',
+                      label: 'Вуаль в тёмной теме, %',
+                      type: 'number',
+                      min: 0,
+                      max: 95,
+                      admin: { description: 'Больше - фото темнее.' },
+                    },
+                  ],
                 },
               ],
             },
