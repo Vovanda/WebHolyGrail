@@ -3,7 +3,7 @@ import type { PanelConfig, SiteLayoutConfig, SiteSettings, SlotName } from 'cont
 
 import { MediaReveal, PageLightbox } from '@/blocks/primitives/Media';
 
-import { PageBackdrop } from './PageBackdrop';
+import { PageBackdrop, hasBackdrop } from './PageBackdrop';
 import { panelMatchesRoute } from './panel-routes';
 import { panelScreenClass } from './panel-visibility';
 import { renderPanelContent } from './renderPanelContent';
@@ -68,7 +68,11 @@ export function SiteLayout({
       Слоты идут вплотную: общий зазор между ними отделял шапку от содержимого
       полосой фона страницы, хотя отступ - дело самого содержимого.
     */
-    <div data-site-shell className="relative flex min-h-screen flex-col text-ink">
+    <div
+      data-site-shell
+      data-backdrop={hasBackdrop(settings) ? '' : undefined}
+      className="relative flex min-h-screen flex-col text-ink"
+    >
       <PageBackdrop background={settings.pageBackground} />
       {grouped.top.length > 0 && (
         <div

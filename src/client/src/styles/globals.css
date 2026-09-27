@@ -588,6 +588,30 @@
     position: relative;
     z-index: 20;
   }
+
+  /*
+    Фон страницы задан - содержимое лежит на матовом стекле, а не на сплошном
+    листе: фото читается под всем контентом, а текст держит вуаль цвета темы
+    с размытием за ней.
+
+    Заливку снимают только секции: карточки, поля и окна остаются сплошными,
+    на них мелкий текст. Токен цвета фона не трогаем - он служит ещё и цветом
+    текста на акцентных кнопках.
+  */
+  [data-site-shell][data-backdrop] > [data-slot='center'] {
+    background-color: color-mix(in oklab, var(--color-bg) 72%, transparent);
+    backdrop-filter: blur(22px) saturate(1.15);
+  }
+
+  /* Тёмная пара фона и так приглушена - вуаль тоньше, иначе фото пропадает. */
+  html[data-theme='dark'] [data-site-shell][data-backdrop] > [data-slot='center'],
+  html.dark [data-site-shell][data-backdrop] > [data-slot='center'] {
+    background-color: color-mix(in oklab, var(--color-bg) 55%, transparent);
+  }
+
+  [data-site-shell][data-backdrop] > [data-slot='center'] section.bg-bg {
+    background-color: transparent;
+  }
 }
 
 @layer components {

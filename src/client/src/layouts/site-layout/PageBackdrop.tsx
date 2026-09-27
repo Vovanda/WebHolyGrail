@@ -1,6 +1,17 @@
-import type { PageBackgroundSettings } from 'contracts';
+import type { PageBackgroundSettings, SiteSettings } from 'contracts';
 
 import { MediaImage } from '@/blocks/primitives/Media';
+
+/**
+ * Задан ли у сайта фон страницы.
+ *
+ * @remarks
+ * По этому признаку раскладка переходит в стекло: лист становится
+ * полупрозрачным, секции снимают заливку, и фото читается под содержимым.
+ */
+export function hasBackdrop(settings: SiteSettings): boolean {
+  return Boolean(settings.pageBackground?.image || settings.pageBackground?.imageDark);
+}
 
 /**
  * Фон страницы: картинка на всю ширину под всем содержимым сайта.
