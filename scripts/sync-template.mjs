@@ -573,7 +573,9 @@ function runStep(название, команда, подсказка) {
 if (writing && (brought.size > 0 || touchedPackages || touchedSchema)) {
   console.log(`${String.fromCharCode(10)}→ Довожу круг${String.fromCharCode(10)}`);
 
-  if (touchedPackages) {
+  // Свежее рабочее дерево приходит без зависимостей: без них ни якорь, ни
+  // типы не соберутся, даже если сам круг пакеты не трогал.
+  if (touchedPackages || !fs.existsSync(path.join(INSTANCE, 'node_modules'))) {
     runStep('зависимости на месте', 'pnpm install --prefer-offline', 'Сделайте сами: pnpm install');
   }
 
@@ -582,6 +584,17 @@ if (writing && (brought.size > 0 || touchedPackages || touchedSchema)) {
       'типы CMS пересобраны',
       'pnpm -s --filter cms generate:types',
       'Сделайте сами: pnpm --filter cms generate:types',
+    );
+  }
+
+  // Карта компонентов админки в git не хранится: в свежем рабочем дереве её
+  // нет, и проверка типов падает на импорте, которого просто не создали.
+  const importMap = path.join(INSTANCE, 'src/cms/src/app/(payload)/admin/importMap.js');
+  if (touchedSchema || !fs.existsSync(importMap)) {
+    runStep(
+      'карта компонентов админки на месте',
+      'pnpm -s --filter cms generate:importmap',
+      'Сделайте сами: pnpm --filter cms generate:importmap',
     );
   }
 
@@ -652,8 +665,8 @@ console.log('──────────────────────�
  * пропускаются, кавычки по краям снимаются.
  */
 function localEnv() {
-  const file = path.join(INSTANCE, '.env.local');
-  if (!fs.existsSync(file)) return {};
+  const file = envFile();
+  if (!file) return throwawayEnv();
 
   const out = {};
   for (const line of fs.readFileSync(file, 'utf8').split(String.fromCharCode(10))) {
@@ -665,7 +678,39 @@ function localEnv() {
     const value = row.slice(gap + 1).trim();
     out[name] = value.replace(/^["']|["']$/g, '');
   }
-  return out;
+  return { ...throwawayEnv(), ...out };
+}
+
+/**
+ * Файл настроек сайта: свой, а у рабочего дерева - основной копии.
+ *
+ * @remarks
+ * Синк часто идёт в отдельном рабочем дереве от свежего main, где `.env.local`
+ * нет: он в git не хранится. Основная копия находится через общий каталог git.
+ */
+function envFile() {
+  const own = path.join(INSTANCE, '.env.local');
+  if (fs.existsSync(own)) return own;
+  const common = safeGit(['rev-parse', '--path-format=absolute', '--git-common-dir'], INSTANCE);
+  if (!common) return null;
+  const main = path.join(path.dirname(common.trim()), '.env.local');
+  return fs.existsSync(main) ? main : null;
+}
+
+/**
+ * Одноразовые секрет и база для шагов, которым нужна только схема.
+ *
+ * @remarks
+ * Якорь схемы, типы и сверка с миграциями читают конфигурацию, а не данные,
+ * но Payload без секрета и адреса базы не стартует. Без настроек сайта шаг
+ * молча не проходил, и CI падал на сверке схемы. Своё значение сайта всегда
+ * главнее этого.
+ */
+function throwawayEnv() {
+  return {
+    PAYLOAD_SECRET: `sync-${process.pid}-${Date.now()}`,
+    DATABASE_URI: `file:${path.join(os.tmpdir(), `whg-sync-${process.pid}.db`).replaceAll(path.sep, '/')}`,
+  };
 }
 
 function syncPath(rel, mirror) {
