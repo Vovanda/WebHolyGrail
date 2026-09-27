@@ -604,6 +604,19 @@ if (writing && (brought.size > 0 || touchedPackages || touchedSchema)) {
   }
 }
 
+/*
+  Реестр зон перечисляет файлы сайта. Новый файл шаблона или удалённый
+  зеркалом делают его устаревшим, и CI сайта падает на проверке реестра -
+  поэтому он пересобирается на каждом круге, где что-то записано.
+*/
+if (writing && (stats.copied > 0 || stats.deleted > 0)) {
+  runStep(
+    'реестр зон пересобран',
+    'node scripts/zones.mjs',
+    'Сделайте сами: node scripts/zones.mjs',
+  );
+}
+
 if (cleanupSource) fs.rmSync(sourceDir, { recursive: true, force: true });
 if (worktreePath) {
   safeGit(['worktree', 'remove', '--force', worktreePath], worktreeOf);
