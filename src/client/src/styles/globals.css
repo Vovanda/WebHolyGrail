@@ -65,6 +65,34 @@
     color: inherit;
     text-decoration: none;
   }
+  /*
+    Обложка HeroCinematic: слои, которые ведут себя по-разному в темах. Тема
+    переключается через data-theme, как все токены (R5+++), а не префиксом.
+  */
+  .hero-cine-glow-dark {
+    display: none;
+  }
+  :root[data-theme='dark'] .hero-cine-glow-light {
+    display: none;
+  }
+  :root[data-theme='dark'] .hero-cine-glow-dark {
+    display: block;
+  }
+  .hero-cine-fade {
+    opacity: 0.4;
+  }
+  :root[data-theme='dark'] .hero-cine-fade {
+    opacity: 0.25;
+  }
+  .hero-cine-grain {
+    opacity: 0.07;
+  }
+  :root[data-theme='dark'] .hero-cine-grain {
+    opacity: 0.09;
+  }
+  :root[data-theme='dark'] .hero-cine-text {
+    text-shadow: var(--shadow-text-on-dark);
+  }
 }
 
 @layer components {
@@ -619,9 +647,28 @@
   }
 
   /* Тёмная пара фона и так приглушена - вуаль тоньше, иначе фото пропадает. */
-  html[data-theme='dark'] [data-site-shell][data-backdrop] > [data-slot='center'],
-  html.dark [data-site-shell][data-backdrop] > [data-slot='center'] {
+  :root[data-theme='dark'] [data-site-shell][data-backdrop] > [data-slot='center'] {
     background-color: color-mix(in oklab, var(--color-bg) 55%, transparent);
+  }
+
+  /*
+    Пара фона и вуаль переключаются темой через data-theme, как все токены:
+    своя картинка тёмной темы сменяет светлую, вуаль берёт свой процент.
+  */
+  [data-part='page-backdrop'] .page-backdrop-dark {
+    display: none;
+  }
+  :root[data-theme='dark'] [data-part='page-backdrop'] .page-backdrop-light {
+    display: none;
+  }
+  :root[data-theme='dark'] [data-part='page-backdrop'] .page-backdrop-dark {
+    display: block;
+  }
+  .page-backdrop-veil {
+    opacity: var(--veil);
+  }
+  :root[data-theme='dark'] .page-backdrop-veil {
+    opacity: var(--veil-dark);
   }
 
   [data-site-shell][data-backdrop] > [data-slot='center'] section.bg-bg {

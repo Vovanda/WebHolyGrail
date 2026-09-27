@@ -1,13 +1,17 @@
-import type { BlockNode, SiteSettings } from 'contracts';
+import type { BlockNode, MediaRef, SiteSettings } from 'contracts';
 
+import { MediaImage } from '@/blocks/primitives/Media';
 import { renderAccentHeading } from '@/lib/heading-accent';
+import { veilOpacity } from '@/lib/veil';
 
 /**
  * Hero — секция с главным заголовком сайта (H1 + подзаголовок).
  *
  * @remarks
- * Самостоятельный блок — только текстовая часть. Баннеры (фото-слайдер)
- * идут отдельным блоком `BannerSliderBlock` выше или ниже по странице.
+ * Текст по центру. Фото, если задано, ложится под него во всю ширину блока,
+ * а вуаль цвета фона темы держит текст читаемым на любом кадре и в обеих
+ * темах. Раскладка от фото не меняется. Слайдер снимков - отдельный блок
+ * `BannerSliderBlock`.
  *
  * H1 поддерживает акцентное слово через маркер `{accent}` в поле title.
  * Subtitle адаптирует длину на mobile через `subtitleShort`.
@@ -21,6 +25,10 @@ export interface HeroData {
   readonly subtitle?: string;
   /** Подзаголовок на mobile (≤md). Если пусто — `subtitle` на всех экранах. */
   readonly subtitleShort?: string;
+  /** Фото под текстом; пусто - блок без фото. */
+  readonly photo?: MediaRef | null;
+  /** Вуаль цвета фона темы над фото, 0-95 %. Пусто - 60. */
+  readonly veil?: number | null;
 }
 
 export function Hero({
@@ -46,9 +54,31 @@ export function Hero({
   */
   // Выделяемая часть заголовка ищется общим способом - тем же, что у соседних блоков.
 
+  const photo = data.photo && typeof data.photo === 'object' ? data.photo : null;
+  const veil = veilOpacity(data.veil, 60);
+
   return (
-    <section className="block-space bg-bg">
-      <div className="mx-auto max-w-wide px-6 text-center">
+    <section className="block-space relative overflow-hidden bg-bg">
+      {photo ? (
+        <>
+          <MediaImage
+            media={photo}
+            place="100vw"
+            alt=""
+            zoom={false}
+            loading="eager"
+            fetchPriority="high"
+            className="absolute inset-0 h-full w-full bg-transparent object-cover"
+          />
+          <div
+            data-part="veil"
+            aria-hidden
+            className="absolute inset-0 bg-page-bg"
+            style={{ opacity: veil }}
+          />
+        </>
+      ) : null}
+      <div className="relative mx-auto max-w-wide px-6 text-center">
         <h1
           data-part="title"
           className="font-display text-3xl md:text-h1 font-semibold leading-tight tracking-tight text-ink"

@@ -1,17 +1,8 @@
-import type { PageBackgroundSettings, SiteSettings } from 'contracts';
+import type { CSSProperties } from 'react';
+import type { PageBackgroundSettings } from 'contracts';
 
 import { MediaImage } from '@/blocks/primitives/Media';
-
-/**
- * Задан ли у сайта фон страницы.
- *
- * @remarks
- * По этому признаку раскладка переходит в стекло: лист становится
- * полупрозрачным, секции снимают заливку, и фото читается под содержимым.
- */
-export function hasBackdrop(settings: SiteSettings): boolean {
-  return Boolean(settings.pageBackground?.image || settings.pageBackground?.imageDark);
-}
+import { veilOpacity } from '@/lib/veil';
 
 /**
  * Фон страницы: картинка на всю ширину под всем содержимым сайта.
@@ -49,10 +40,26 @@ export function PageBackdrop({
     />
   );
 
+  /*
+    Вуаль цвета фона темы поверх фото: смягчает кадр и связывает его с
+    палитрой. Процент задаёт владелец, отдельно для светлой и тёмной темы.
+  */
+  const veil = veilOpacity(background?.veil, 30);
+  const veilDark = veilOpacity(background?.veilDark, 40);
+
   return (
-    <div data-part="page-backdrop" aria-hidden className="pointer-events-none fixed inset-0 -z-10">
-      {light && layer(light, dark ? 'dark:hidden' : '')}
-      {dark && layer(dark, light ? 'hidden dark:block' : '')}
+    <div
+      data-part="page-backdrop"
+      aria-hidden
+      className="pointer-events-none fixed inset-0 -z-10"
+      style={{ '--veil': veil, '--veil-dark': veilDark } as CSSProperties}
+    >
+      {light && layer(light, dark ? 'page-backdrop-light' : '')}
+      {dark && layer(dark, light ? 'page-backdrop-dark' : '')}
+      <div
+        data-part="page-backdrop-veil"
+        className="page-backdrop-veil absolute inset-0 bg-page-bg"
+      />
     </div>
   );
 }

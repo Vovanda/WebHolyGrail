@@ -241,12 +241,12 @@ export function HeroCinematic({
           тогда исчезает совсем. */}
       <div
         aria-hidden="true"
-        className="absolute inset-0 dark:hidden"
+        className="hero-cine-glow-light absolute inset-0"
         style={{ background: cornerGlow(paper) }}
       />
       <div
         aria-hidden="true"
-        className="absolute inset-0 hidden dark:block"
+        className="hero-cine-glow-dark absolute inset-0"
         style={{ background: cornerGlow(edge) }}
       />
 
@@ -275,7 +275,7 @@ export function HeroCinematic({
           Ровное по всему листу читается как фильтр, а не как прожитое время. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-40 dark:opacity-25"
+        className="hero-cine-fade pointer-events-none absolute inset-0"
         style={{
           background: `linear-gradient(170deg, ${paper} 0%, transparent 45%)`,
         }}
@@ -284,7 +284,7 @@ export function HeroCinematic({
       {/* Зерно: чуть-чуть, только чтобы кадр перестал быть стерильно чистым. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.07] mix-blend-overlay dark:opacity-[0.09]"
+        className="hero-cine-grain pointer-events-none absolute inset-0 mix-blend-overlay"
         style={{ backgroundImage: GRAIN, backgroundRepeat: 'repeat' }}
       />
 
@@ -307,7 +307,7 @@ export function HeroCinematic({
         ) : null}
 
         {!mediaUrl(data.logo) && data.brand && (
-          <p className="py-2 text-center font-display text-3xl font-black uppercase tracking-[0.15em] text-white dark:[text-shadow:0_2px_12px_rgba(0,0,0,0.6)] md:text-5xl">
+          <p className="py-2 text-center font-display text-3xl font-black uppercase tracking-[0.15em] hero-cine-text text-on-media md:text-5xl">
             {data.brand}
           </p>
         )}
@@ -315,7 +315,7 @@ export function HeroCinematic({
         <div className="flex flex-grow items-center py-4 md:px-[6%]">
           <h1
             data-part="title"
-            className="font-display text-2xl font-bold uppercase leading-tight tracking-wide text-accent dark:[text-shadow:0_2px_10px_rgba(0,0,0,0.6)] md:text-4xl"
+            className="font-display text-2xl font-bold uppercase leading-tight tracking-wide hero-cine-text text-accent md:text-4xl"
           >
             {data.headline}
             {data.highlightHref ? (
