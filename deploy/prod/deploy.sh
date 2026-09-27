@@ -207,6 +207,8 @@ docker network inspect "$SITE_SLUG-net" >/dev/null 2>&1 || docker network create
 # Требует на VPS:
 #   - PRIMARY_DOMAIN env (или из vhost сайта если уже есть)
 #   - EXTRA_DOMAINS env (опц.) — доп. домены сайта через запятую/пробел
+#   - REDIRECT_DOMAINS env (опц.) — домены, которые отдают 301 на PRIMARY_DOMAIN
+#     с тем же путём и query; www каждого из них перенаправляется тоже
 #   - admin email для certbot — $CERTBOT_EMAIL env (fallback noreply@$PRIMARY_DOMAIN)
 #   - shared host-nginx container `holygrail-nginx` (host-network mode)
 #   - MinIO container `minio` доступен на 127.0.0.1:9100
@@ -217,6 +219,7 @@ docker network inspect "$SITE_SLUG-net" >/dev/null 2>&1 || docker network create
 # добираются на следующем деплое через --expand. Ручных шагов не требуется.
 PRIMARY_DOMAIN="${PRIMARY_DOMAIN:-}"
 EXTRA_DOMAINS="${EXTRA_DOMAINS:-}"
+REDIRECT_DOMAINS="${REDIRECT_DOMAINS:-}"
 NGINX_CONFD="/opt/proxy/nginx/conf.d"
 NGINX_SNIPPETS="/opt/proxy/nginx/snippets"
 CERTS_ROOT="/opt/proxy/certs"
@@ -247,6 +250,28 @@ for d in $(echo "$EXTRA_DOMAINS" | tr ',;' '  '); do
   ALL_DOMAINS="$ALL_DOMAINS $d"
 done
 
+# Перенаправляемые домены: старый адрес после переезда и купленные для защиты
+# имени. Каждый вместе со своим www отдаёт 301 на основной, чтобы поиск не видел
+# дублей. Имя, которое уже отдаёт сайт, сюда не попадает - иначе nginx получит
+# одно имя в двух server-блоках.
+REDIRECT_NAMES=""
+for d in $(echo "$REDIRECT_DOMAINS" | tr ',;' '  '); do
+  [ -n "$d" ] || continue
+  for n in "$d" "www.${d#www.}"; do
+    case " $ALL_DOMAINS www.$PRIMARY_DOMAIN $REDIRECT_NAMES " in *" $n "*) continue ;; esac
+    REDIRECT_NAMES="$REDIRECT_NAMES $n"
+  done
+done
+REDIRECT_NAMES="${REDIRECT_NAMES# }"
+
+# nginx и certbot понимают только ASCII: кириллический домен задаётся punycode.
+for d in $ALL_DOMAINS $REDIRECT_NAMES; do
+  if printf '%s' "$d" | LC_ALL=C grep -q '[^A-Za-z0-9.-]'; then
+    echo "ERROR: домен '$d' не в ASCII - задай его в punycode (xn--...)." >&2
+    exit 1
+  fi
+done
+
 # Имя LE-lineage. Новые сайты — по слагу: смена основного домена не должна рвать
 # пути к серту внутри vhost. Сайты с уже выпущенным lineage-по-домену остаются на нём.
 if [ -d "$CERTS_ROOT/live/$PRIMARY_DOMAIN" ]; then
@@ -259,6 +284,7 @@ echo
 echo "→ Pre-flight ensure-site-infra"
 echo "   primary : $PRIMARY_DOMAIN"
 [ "$ALL_DOMAINS" != "$PRIMARY_DOMAIN" ] && echo "   domains : $ALL_DOMAINS"
+[ -n "$REDIRECT_NAMES" ] && echo "   301     : $REDIRECT_NAMES"
 echo "   cert    : $CERT_NAME"
 
 # Порты сайта заняты чужим контейнером? Внятная ошибка вместо
@@ -380,22 +406,56 @@ server {
     }
 }
 EOF
+  # Без серта перенаправляем по http: https на этих именах ещё не отвечает.
+  if [ -n "$REDIRECT_NAMES" ]; then
+    sudo tee -a "$vhost" >/dev/null <<EOF
+
+# redirect-names: ${REDIRECT_NAMES}
+server {
+    listen 80;
+    listen [::]:80;
+    server_name ${REDIRECT_NAMES};
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        try_files \$uri =404;
+    }
+
+    location / {
+        return 301 http://${PRIMARY_DOMAIN}\$request_uri;
+    }
+}
+EOF
+  fi
 }
 
-# Полный TLS-vhost из шаблона.
+# Полный TLS-vhost из шаблона; перенаправления дописываются вторым шаблоном.
 write_tls_vhost() {
+  {
+    render_template "$TEMPLATE_DIR/conf.d/site.conf.template"
+    if [ -n "$REDIRECT_NAMES" ]; then
+      echo
+      render_template "$TEMPLATE_DIR/conf.d/site-redirect.conf.template"
+    fi
+  } | sudo tee "$vhost" >/dev/null
+}
+
+render_template() {
   sed -e "s/<ALL_SERVER_NAMES>/${ALL_DOMAINS}/g" \
+      -e "s/<REDIRECT_SERVER_NAMES>/${REDIRECT_NAMES}/g" \
       -e "s/<PRIMARY_DOMAIN>/${PRIMARY_DOMAIN}/g" \
       -e "s/<CERT_NAME>/${CERT_NAME}/g" \
       -e "s/<SITE_SLUG>/${SITE_SLUG}/g" \
-      "$TEMPLATE_DIR/conf.d/site.conf.template" \
-    | sudo tee "$vhost" >/dev/null
+      "$1"
 }
 
 # Набор доменов в текущем vhost — чтобы поймать добавление/смену домена.
 # Без этого vhost, созданный один раз, навсегда остаётся со старым server_name.
+# Перенаправления сверяются по строке redirect-names: у vhost без них её нет,
+# и пустой список совпадает с пустым - старые сайты не переписываются.
 current_names="$(awk '/^[[:space:]]*server_name/ {sub(/;.*/,""); sub(/^[[:space:]]*server_name[[:space:]]*/,""); print; exit}' "$vhost" 2>/dev/null || true)"
-want_names="$ALL_DOMAINS www.${PRIMARY_DOMAIN}"
+current_names="$current_names | $(sed -n 's/^# redirect-names: //p' "$vhost" 2>/dev/null | head -1)"
+want_names="$ALL_DOMAINS www.${PRIMARY_DOMAIN} | $REDIRECT_NAMES"
 
 if [ ! -f "$vhost" ]; then
   write_http_only_vhost
@@ -417,7 +477,7 @@ fi
 # они доедут сами на следующем деплое, когда обновится DNS.
 CERT_DOMAINS=""
 CERT_SKIPPED=""
-for d in $ALL_DOMAINS "www.$PRIMARY_DOMAIN"; do
+for d in $ALL_DOMAINS "www.$PRIMARY_DOMAIN" $REDIRECT_NAMES; do
   if getent hosts "$d" >/dev/null 2>&1; then
     CERT_DOMAINS="$CERT_DOMAINS $d"
   else

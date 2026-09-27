@@ -13,6 +13,8 @@ name: Build & blue-green deploy
 #   VPS_PATH              /opt/sites/<slug>
 #   PUBLIC_URL            https://<your-domain>
 #   PRIMARY_DOMAIN        <your-domain> — для pre-flight (nginx-conf + LE-cert)
+#   EXTRA_DOMAINS         (optional) доп. домены, отдающие сайт
+#   REDIRECT_DOMAINS      (optional) домены с 301 на PRIMARY_DOMAIN; IDN - в punycode
 #   INFISICAL_HOST_URL    https://infisical.<your-host> — shared self-host instance
 #                         для всех WHG-сайтов на VPS (deploy.sh login через UA-creds
 #                         в /etc/infisical/<slug>/).
@@ -163,6 +165,7 @@ jobs:
           GHCR_OWNER_LC: ${{ env.GHCR_OWNER }}
           PRIMARY_DOMAIN: ${{ vars.PRIMARY_DOMAIN }}
           EXTRA_DOMAINS: ${{ vars.EXTRA_DOMAINS }}
+          REDIRECT_DOMAINS: ${{ vars.REDIRECT_DOMAINS }}
           INFISICAL_HOST_URL: ${{ vars.INFISICAL_HOST_URL }}
           PORT_BASE: ${{ vars.PORT_BASE }}
         run: |
@@ -178,7 +181,7 @@ jobs:
           set +e
           for i in 1 2 3; do
             ssh -o ConnectTimeout=15 -o ServerAliveInterval=10 -o ServerAliveCountMax=30 "$VPS_USER@$VPS_HOST" \
-              "GHCR_OWNER=$OWNER_LC PRIMARY_DOMAIN=$PRIMARY_DOMAIN EXTRA_DOMAINS='$EXTRA_DOMAINS' INFISICAL_HOST_URL=$INFISICAL_HOST_URL PORT_BASE=$PORT_BASE $VPS_PATH/deploy/prod/deploy.sh ${{ needs.build.outputs.tag }}"
+              "GHCR_OWNER=$OWNER_LC PRIMARY_DOMAIN=$PRIMARY_DOMAIN EXTRA_DOMAINS='$EXTRA_DOMAINS' REDIRECT_DOMAINS='$REDIRECT_DOMAINS' INFISICAL_HOST_URL=$INFISICAL_HOST_URL PORT_BASE=$PORT_BASE $VPS_PATH/deploy/prod/deploy.sh ${{ needs.build.outputs.tag }}"
             code=$?
             if [ $code -eq 0 ]; then
               exit 0

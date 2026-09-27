@@ -1,0 +1,35 @@
+# redirect-names: <REDIRECT_SERVER_NAMES>
+# Домены-перенаправления сайта <SITE_SLUG>: старый адрес после переезда и купленные
+# для защиты имени. Весь хост уходит 301 на основной домен с тем же путём и query,
+# чтобы поиск видел один сайт, а не дубли. deploy.sh дописывает этот файл в vhost
+# сайта, когда задан REDIRECT_DOMAINS; строка redirect-names выше - то, по чему он
+# замечает смену списка.
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name <REDIRECT_SERVER_NAMES>;
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        try_files $uri =404;
+    }
+
+    location / {
+        return 301 https://<PRIMARY_DOMAIN>$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+    server_name <REDIRECT_SERVER_NAMES>;
+
+    ssl_certificate /etc/letsencrypt/live/<CERT_NAME>/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/<CERT_NAME>/privkey.pem;
+    include /etc/nginx/snippets/ssl-modern.conf;
+    include /etc/nginx/snippets/security-headers.conf;
+
+    return 301 https://<PRIMARY_DOMAIN>$request_uri;
+}

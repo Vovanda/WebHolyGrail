@@ -111,6 +111,7 @@ mirror	deploy/prod/deploy.sh
 mirror	deploy/prod/README.md
 mirror	deploy/proxy-stack/docker-compose.yml
 mirror	deploy/proxy-stack/nginx/conf.d/00-limits.conf
+mirror	deploy/proxy-stack/nginx/conf.d/site-redirect.conf.template
 mirror	deploy/proxy-stack/nginx/conf.d/site.conf.template
 mirror	deploy/proxy-stack/nginx/nginx.conf
 mirror	deploy/proxy-stack/nginx/snippets/proxy-upstream.conf
