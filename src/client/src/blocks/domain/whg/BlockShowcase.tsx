@@ -12,7 +12,7 @@ const CARD_PLACE = 'min(15rem, 46vw)';
  * BlockShowcase (WHG-specific) — живая embla-карусель превью блоков template'а.
  *
  * @remarks
- * Использует embla-carousel-react + autoplay (4 сек) — заодно демонстрирует
+ * Использует embla-carousel-react + autoplay (4 сек, первый шаг через 1,2 сек) — заодно демонстрирует
  * сам Carousel-блок в работе (т.е. одна из карточек "Карусель" — и есть он сам).
  * 'use client' нужен для embla-state.
  */
@@ -40,7 +40,7 @@ export function BlockShowcase({
   if (items.length === 0) return null;
 
   return (
-    <section className="py-14 md:py-18 bg-page-bg">
+    <section className="block-space bg-page-bg">
       <div className="mx-auto max-w-wide px-4 md:px-6">
         <h2
           data-part="title"
@@ -55,7 +55,15 @@ export function BlockShowcase({
         )}
 
         <div className="mt-10">
-          <CarouselDeck gap="lg" edge="gap" dots autoplay={4000} loop label={heading}>
+          <CarouselDeck
+            gap="lg"
+            edge="gap"
+            dots
+            autoplay={4000}
+            autoplayFirst={1200}
+            loop
+            label={heading}
+          >
             {items.map((item, i) => {
               const preview = item.preview;
               return (

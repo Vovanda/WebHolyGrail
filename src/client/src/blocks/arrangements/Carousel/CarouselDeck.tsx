@@ -57,6 +57,15 @@ export interface CarouselDeckProps {
   /** Пауза между кадрами, мс. Без значения листание только руками. */
   readonly autoplay?: number | undefined;
   /**
+   * Пауза на первом кадре, мс, если она короче обычной.
+   *
+   * @remarks
+   * Витрине, которая показывает, как много в ней всего, незачем ждать полный
+   * период до первого шага: лента трогается почти сразу, дальше идёт в обычном
+   * темпе. На круге первый кадр снова проходит быстрее - это и есть его отметка.
+   */
+  readonly autoplayFirst?: number | undefined;
+  /**
    * Непрерывное движение вместо перещёлкивания по кадрам.
    *
    * @remarks
@@ -155,6 +164,7 @@ export function CarouselDeck({
   controls = 'outside',
   loop = false,
   autoplay,
+  autoplayFirst,
   marquee = false,
   speed = 1,
   pauseOnHover = true,
@@ -181,10 +191,16 @@ export function CarouselDeck({
       list.push(AutoScroll({ speed, stopOnInteraction: false, stopOnMouseEnter: pauseOnHover }));
     else if (autoplay)
       list.push(
-        Autoplay({ delay: autoplay, stopOnInteraction: false, stopOnMouseEnter: pauseOnHover }),
+        Autoplay({
+          delay: autoplayFirst
+            ? (snaps: number[]) => snaps.map((_, i) => (i === 0 ? autoplayFirst : autoplay))
+            : autoplay,
+          stopOnInteraction: false,
+          stopOnMouseEnter: pauseOnHover,
+        }),
       );
     return list;
-  }, [transition, marquee, speed, pauseOnHover, autoplay]);
+  }, [transition, marquee, speed, pauseOnHover, autoplay, autoplayFirst]);
 
   const options = useMemo(
     () => ({
