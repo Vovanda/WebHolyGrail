@@ -32,6 +32,10 @@ export function BrandMark({
       Знак ведёт на главную, поэтому открытие крупно ему не нужно. Ступени
       же нужны: владелец заливает логотип как есть, и в значок тридцати точек
       уезжал бы файл на весь экран.
+
+      Логотип вписывается целиком: он бывает любой формы, а обрезанный знак
+      хуже маленького. Заливка рамки снята - у логотипа прозрачный фон, и
+      тон рамки просвечивал бы квадратом поверх шапки.
     */
     return (
       <span className={cn('block', className)} style={{ width: size, height: size }}>
@@ -39,7 +43,8 @@ export function BrandMark({
           media={logo}
           place={`${size}px`}
           alt={siteName}
-          className="block h-full w-full object-contain"
+          fit="contain"
+          className="block h-full w-full bg-transparent object-contain"
           zoom={false}
         />
       </span>
