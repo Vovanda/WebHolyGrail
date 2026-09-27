@@ -27,6 +27,20 @@
       "size": "3:2",
       "seed": 27304,
       "subject": "A row of three picture cards on a conveyor belt moving to the right, the middle card slightly bigger, with round arrow buttons on both sides"
+    },
+    {
+      "id": "wave-divider",
+      "size": "3:2",
+      "seed": 27305,
+      "subject": "A schematic of two page sections stacked vertically with a gap: at the top the bottom edge of the previous section drawn as a wide U shape with its open side facing up, at the bottom the top edge of the next section drawn as a wide upside-down U shape like the letter П with its open side facing down, and exactly in the middle between them one bold horizontal line. Simple outlined shapes only"
+    },
+    {
+      "id": "feature-grid",
+      "size": "3:2",
+      "seed": 27306,
+      "subject": "A mosaic of rounded cards laid out on a three column and three row grid: one big square card marked with a large lowercase letter a spans two columns and two rows in the top left; a small card marked b sits top right; a tall card marked c spans the right column in the two lower rows; two small cards marked d and e fill the bottom row left. Each card shows only its single bold lowercase Latin letter in the center",
+      "style": "Stylish flat cartoon illustration, playful and clean, bold simple geometric shapes with soft rounded corners, limited palette of royal blue #2563eb, light sky blue, white and slate grey, subtle soft shadows, the whole scene isolated on a plain light neutral grey background, centered composition with generous empty space around, no other text besides the single letters, no numbers, no logos",
+      "negative": "photo, photorealistic, 3d render, clutter, busy background, words, numbers, watermark, dark background, gradients everywhere"
     }
   ]
 }
