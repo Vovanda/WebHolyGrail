@@ -221,6 +221,30 @@ export const SiteSettings: GlobalConfig = {
               ],
             },
             {
+              name: 'pageBackground',
+              label: 'Фон страницы',
+              type: 'group',
+              admin: {
+                description:
+                  'Картинка на всю ширину под всем содержимым сайта. Пусто - фон цветом темы.',
+              },
+              fields: [
+                {
+                  name: 'image',
+                  label: 'Картинка',
+                  type: 'upload',
+                  relationTo: 'media',
+                },
+                {
+                  name: 'imageDark',
+                  label: 'Для тёмной темы',
+                  type: 'upload',
+                  relationTo: 'media',
+                  admin: { description: 'Пусто - в тёмной теме та же картинка.' },
+                },
+              ],
+            },
+            {
               name: 'theme',
               label: 'Тема',
               type: 'group',
