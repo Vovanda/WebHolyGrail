@@ -263,6 +263,7 @@ mirror	src/client/src/blocks/primitives/FaqAccordion/FaqToggleAllButtons.tsx
 mirror	src/client/src/blocks/primitives/FaqAccordion/index.ts
 mirror	src/client/src/blocks/primitives/FeatureGrid.tsx
 mirror	src/client/src/blocks/primitives/Gallery.tsx
+mirror	src/client/src/blocks/primitives/Hero.test.tsx
 mirror	src/client/src/blocks/primitives/Hero.tsx
 mirror	src/client/src/blocks/primitives/HeroCinematic.tsx
 mirror	src/client/src/blocks/primitives/HeroSplit.tsx
@@ -416,6 +417,8 @@ overlay	src/client/src/lib/media-network.test.ts
 overlay	src/client/src/lib/media-network.ts
 overlay	src/client/src/lib/media.test.ts
 overlay	src/client/src/lib/media.ts
+overlay	src/client/src/lib/page-backdrop.test.ts
+overlay	src/client/src/lib/page-backdrop.ts
 overlay	src/client/src/lib/palette-override.tsx
 overlay	src/client/src/lib/palette-presets.test.ts
 overlay	src/client/src/lib/palette-presets.ts
@@ -429,6 +432,8 @@ overlay	src/client/src/lib/theme-recover.tsx
 overlay	src/client/src/lib/timeline.test.ts
 overlay	src/client/src/lib/timeline.ts
 overlay	src/client/src/lib/utils.ts
+overlay	src/client/src/lib/veil.test.ts
+overlay	src/client/src/lib/veil.ts
 overlay	src/client/src/lib/video-ui.test.ts
 overlay	src/client/src/lib/video-ui.ts
 mirror	src/client/src/middleware.ts
@@ -578,6 +583,8 @@ overlay	src/cms/migrations/20260927_135202_page_background.json
 overlay	src/cms/migrations/20260927_135202_page_background.ts
 overlay	src/cms/migrations/20260927_151802_page_background_veil.json
 overlay	src/cms/migrations/20260927_151802_page_background_veil.ts
+overlay	src/cms/migrations/20260927_160018_hero_photo.json
+overlay	src/cms/migrations/20260927_160018_hero_photo.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts

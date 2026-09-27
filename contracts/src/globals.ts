@@ -68,6 +68,10 @@ export interface SiteSettings {
 export interface PageBackgroundSettings {
   readonly image?: MediaRef | null;
   readonly imageDark?: MediaRef | null;
+  /** Вуаль цвета темы поверх фото в светлой теме, 0-95 %. */
+  readonly veil?: number | null;
+  /** То же в тёмной теме. */
+  readonly veilDark?: number | null;
 }
 
 /**
