@@ -32,6 +32,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      force_redeploy:
+        description: 'Пересоздать контейнеры на том же коммите (новые секреты в Infisical)'
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-prod
@@ -166,6 +171,7 @@ jobs:
           PRIMARY_DOMAIN: ${{ vars.PRIMARY_DOMAIN }}
           EXTRA_DOMAINS: ${{ vars.EXTRA_DOMAINS }}
           REDIRECT_DOMAINS: ${{ vars.REDIRECT_DOMAINS }}
+          FORCE_REDEPLOY: ${{ inputs.force_redeploy && '1' || '' }}
           INFISICAL_HOST_URL: ${{ vars.INFISICAL_HOST_URL }}
           PORT_BASE: ${{ vars.PORT_BASE }}
         run: |
@@ -181,7 +187,7 @@ jobs:
           set +e
           for i in 1 2 3; do
             ssh -o ConnectTimeout=15 -o ServerAliveInterval=10 -o ServerAliveCountMax=30 "$VPS_USER@$VPS_HOST" \
-              "GHCR_OWNER=$OWNER_LC PRIMARY_DOMAIN=$PRIMARY_DOMAIN EXTRA_DOMAINS='$EXTRA_DOMAINS' REDIRECT_DOMAINS='$REDIRECT_DOMAINS' INFISICAL_HOST_URL=$INFISICAL_HOST_URL PORT_BASE=$PORT_BASE $VPS_PATH/deploy/prod/deploy.sh ${{ needs.build.outputs.tag }}"
+              "FORCE_REDEPLOY=$FORCE_REDEPLOY GHCR_OWNER=$OWNER_LC PRIMARY_DOMAIN=$PRIMARY_DOMAIN EXTRA_DOMAINS='$EXTRA_DOMAINS' REDIRECT_DOMAINS='$REDIRECT_DOMAINS' INFISICAL_HOST_URL=$INFISICAL_HOST_URL PORT_BASE=$PORT_BASE $VPS_PATH/deploy/prod/deploy.sh ${{ needs.build.outputs.tag }}"
             code=$?
             if [ $code -eq 0 ]; then
               exit 0

@@ -169,31 +169,6 @@ echo "   inactive : $INACTIVE (cms=$INACTIVE_CMS_PORT, client=$INACTIVE_CLIENT_P
 echo "   image tag: $TAG"
 echo "═══════════════════════════════════════════════════════"
 
-# Idempotency — skip если запрошенный SHA уже задеплоен на active.
-# (актуально при workflow rerun / повторных triggers того же commit'а)
-#
-# FORCE_REDEPLOY=1 отменяет пропуск. Нужен, когда изменился не код, а секреты:
-# ротация ключа или новая переменная в Infisical доезжают до приложения только
-# при пересоздании контейнеров, а нового коммита при этом нет.
-if [ "${FORCE_REDEPLOY:-}" = "1" ]; then
-  echo
-  echo "→ FORCE_REDEPLOY=1 — перекатываем тот же SHA (обычно ради новых секретов)"
-elif [ "$TAG" != "latest" ] && [ "$ACTIVE" != "" ]; then
-  if [ "$ACTIVE" = blue ]; then
-    ACTIVE_CLIENT_PORT=$PORT_BASE
-  else
-    ACTIVE_CLIENT_PORT=$((PORT_BASE + GREEN_OFFSET))
-  fi
-  CURRENT_SHA=$(curl -sf --max-time 3 "http://localhost:$ACTIVE_CLIENT_PORT/api/health" 2>/dev/null \
-                 | jq -r '.sha' 2>/dev/null || echo "")
-  EXPECTED_SHORT=$(echo "$TAG" | cut -c1-7)
-  if [ -n "$CURRENT_SHA" ] && [ "$CURRENT_SHA" = "$EXPECTED_SHORT" ]; then
-    echo
-    echo "✓ SHA $EXPECTED_SHORT уже задеплоен на $ACTIVE — skip"
-    exit 0
-  fi
-fi
-
 cd "$SCRIPT_DIR"
 
 # Убедимся что external network существует (per-site, согласно compose.bluegreen.yml)
@@ -538,6 +513,35 @@ fi
 docker exec holygrail-nginx nginx -t >/dev/null 2>&1 && \
   docker exec holygrail-nginx nginx -s reload >/dev/null 2>&1 || true
 echo "   ✓ infra ready"
+
+# Idempotency — skip если запрошенный SHA уже задеплоен на active.
+# (актуально при workflow rerun / повторных triggers того же commit'а)
+#
+# Стоит после подготовки инфраструктуры, а не до неё: смена доменов в переменных
+# без нового коммита тоже должна доехать. Подготовка идемпотентна - на неизменных
+# доменах ничего не трогает, а контейнеры пропуск по-прежнему не пересоздаёт.
+#
+# FORCE_REDEPLOY=1 отменяет пропуск. Нужен, когда изменился не код, а секреты:
+# ротация ключа или новая переменная в Infisical доезжают до приложения только
+# при пересоздании контейнеров, а нового коммита при этом нет.
+if [ "${FORCE_REDEPLOY:-}" = "1" ]; then
+  echo
+  echo "→ FORCE_REDEPLOY=1 — перекатываем тот же SHA (обычно ради новых секретов)"
+elif [ "$TAG" != "latest" ] && [ "$ACTIVE" != "" ]; then
+  if [ "$ACTIVE" = blue ]; then
+    ACTIVE_CLIENT_PORT=$PORT_BASE
+  else
+    ACTIVE_CLIENT_PORT=$((PORT_BASE + GREEN_OFFSET))
+  fi
+  CURRENT_SHA=$(curl -sf --max-time 3 "http://localhost:$ACTIVE_CLIENT_PORT/api/health" 2>/dev/null \
+                 | jq -r '.sha' 2>/dev/null || echo "")
+  EXPECTED_SHORT=$(echo "$TAG" | cut -c1-7)
+  if [ -n "$CURRENT_SHA" ] && [ "$CURRENT_SHA" = "$EXPECTED_SHORT" ]; then
+    echo
+    echo "✓ SHA $EXPECTED_SHORT уже задеплоен на $ACTIVE — skip"
+    exit 0
+  fi
+fi
 
 # 1. Pull новых images
 echo
