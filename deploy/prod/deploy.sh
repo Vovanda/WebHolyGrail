@@ -225,6 +225,11 @@ NGINX_SNIPPETS="/opt/proxy/nginx/snippets"
 CERTS_ROOT="/opt/proxy/certs"
 WEBROOT="/opt/proxy/nginx/webroot"
 
+# Конфиги прокси лежат под root с правами 600: без sudo чтение молча даёт пустоту,
+# и сверка «изменилось ли» всегда видит расхождение. Пустота - только для
+# отсутствующего файла.
+read_root() { sudo cat "$1" 2>/dev/null || true; }
+
 # Fallback: достать домен из уже существующего vhost этого сайта.
 if [ -z "$PRIMARY_DOMAIN" ]; then
   for cand in "$NGINX_CONFD/${SITE_SLUG}.conf" "$NGINX_CONFD"/*.conf; do
@@ -333,7 +338,7 @@ for color in blue green; do
   if [ ! -f "$snip" ]; then
     printf '%s\n' "$WANTED" | sudo tee "$snip" >/dev/null
     echo "   • generated $snip (cms=$C_CMS, client=$C_CLIENT)"
-  elif [ "$(cat "$snip")" != "$WANTED" ]; then
+  elif [ "$(read_root "$snip")" != "$WANTED" ]; then
     printf '%s\n' "$WANTED" | sudo tee "$snip" >/dev/null
     echo "   • обновлён $snip: порты разошлись, стало cms=$C_CMS, client=$C_CLIENT"
   fi
@@ -453,8 +458,9 @@ render_template() {
 # Без этого vhost, созданный один раз, навсегда остаётся со старым server_name.
 # Перенаправления сверяются по строке redirect-names: у vhost без них её нет,
 # и пустой список совпадает с пустым - старые сайты не переписываются.
-current_names="$(awk '/^[[:space:]]*server_name/ {sub(/;.*/,""); sub(/^[[:space:]]*server_name[[:space:]]*/,""); print; exit}' "$vhost" 2>/dev/null || true)"
-current_names="$current_names | $(sed -n 's/^# redirect-names: //p' "$vhost" 2>/dev/null | head -1)"
+vhost_text="$(read_root "$vhost")"
+current_names="$(awk '/^[[:space:]]*server_name/ {sub(/;.*/,""); sub(/^[[:space:]]*server_name[[:space:]]*/,""); print; exit}' <<<"$vhost_text")"
+current_names="$current_names | $(sed -n '0,/^# redirect-names: /s/^# redirect-names: //p' <<<"$vhost_text")"
 want_names="$ALL_DOMAINS www.${PRIMARY_DOMAIN} | $REDIRECT_NAMES"
 
 if [ ! -f "$vhost" ]; then
