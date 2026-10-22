@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
 import { generateShortCode } from '../lib/video/short-code';
+import { editorsOnly, isAdmin, isEditor } from '../lib/access/editors';
 
 /**
  * Playlists — плейлисты видео: подборки, циклы, серии.
@@ -219,17 +220,17 @@ export const Playlists: CollectionConfig = {
   },
   access: {
     read: () => true,
-    create: ({ req: { user } }) => Boolean(user),
+    create: editorsOnly,
     // Править плейлист может его автор или администратор: участник не должен
     // трогать чужой.
     update: ({ req: { user } }) => {
-      if (!user) return false;
-      if (user.role === 'admin') return true;
+      if (!isEditor(user)) return false;
+      if (isAdmin(user)) return true;
       return { author: { equals: user.id } };
     },
     delete: ({ req: { user } }) => {
-      if (!user) return false;
-      if (user.role === 'admin') return true;
+      if (!isEditor(user)) return false;
+      if (isAdmin(user)) return true;
       return { author: { equals: user.id } };
     },
   },

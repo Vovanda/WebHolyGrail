@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload';
+import { editorsOnly } from '../lib/access/editors';
 
 /**
  * Authors — авторы статей (M:1 с Article.author).
@@ -64,8 +65,8 @@ export const Authors: CollectionConfig = {
   ],
   access: {
     read: () => true,
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => Boolean(user),
+    create: editorsOnly,
+    update: editorsOnly,
+    delete: editorsOnly,
   },
 };

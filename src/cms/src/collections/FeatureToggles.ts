@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
 import { forgetToggles } from '../lib/toggles/source';
+import { editorsOnly, adminsOnly } from '../lib/access/editors';
 
 /**
  * Переключатели возможностей.
@@ -157,8 +158,8 @@ export const FeatureToggles: CollectionConfig = {
     // Читают все: значения нужны и сайту, и админке. Секретов здесь нет -
     // признак говорит лишь о том, включена ли возможность.
     read: () => true,
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    create: editorsOnly,
+    update: editorsOnly,
+    delete: adminsOnly,
   },
 };

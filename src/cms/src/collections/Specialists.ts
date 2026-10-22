@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload';
 
 import { PAGE_BLOCKS } from '../blocks';
 import { BLOCK_ROW_LABELS } from '../blocks/engine';
+import { adminsOnly, editorsOnly, isAdmin, isEditor } from '../lib/access/editors';
 
 /**
  * Специалисты — люди, ради которых существует каталог: тренеры, мастера,
@@ -32,14 +33,14 @@ export const Specialists: CollectionConfig = {
   },
   access: {
     read: () => true,
-    create: ({ req: { user } }) => Boolean(user),
+    create: editorsOnly,
     // Свой профиль правит владелец, чужой — только администратор.
     update: ({ req: { user } }) => {
-      if (!user) return false;
-      if (user.role === 'admin') return true;
+      if (!isEditor(user)) return false;
+      if (isAdmin(user)) return true;
       return { owner: { equals: user.id } };
     },
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    delete: adminsOnly,
   },
   fields: [
     {

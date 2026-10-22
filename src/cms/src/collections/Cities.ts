@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload';
+import { editorsOnly, adminsOnly } from '../lib/access/editors';
 
 /**
  * Города — справочник для каталога специалистов.
@@ -17,9 +18,9 @@ export const Cities: CollectionConfig = {
   },
   access: {
     read: () => true,
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    create: editorsOnly,
+    update: editorsOnly,
+    delete: adminsOnly,
   },
   fields: [
     { name: 'name', label: 'Название', type: 'text', required: true },

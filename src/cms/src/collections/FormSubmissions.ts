@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload';
+import { editorsOnly, adminsOnly } from '../lib/access/editors';
 
 /**
  * FormSubmissions — заявки с любых форм сайта.
@@ -101,9 +102,9 @@ export const FormSubmissions: CollectionConfig = {
     },
   ],
   access: {
-    read: ({ req: { user } }) => Boolean(user),
+    read: editorsOnly,
     create: () => true, // публичная отправка с фронта.
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    update: editorsOnly,
+    delete: adminsOnly,
   },
 };

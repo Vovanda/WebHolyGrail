@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload';
 
 import { canReadApiKey } from '../lib/access/api-key-access';
 import { channelFrom, freeChannel } from '../lib/channel';
+import { editorsOnly, adminsOnly } from '../lib/access/editors';
 
 /**
  * Users — редакторы CMS (admin-домен).
@@ -134,9 +135,9 @@ export const Users: CollectionConfig = {
   ],
   access: {
     // Все авторизованные читают список редакторов. Создавать/менять — только admin.
-    read: ({ req: { user } }) => Boolean(user),
-    create: ({ req: { user } }) => user?.role === 'admin',
-    update: ({ req: { user } }) => user?.role === 'admin',
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    read: editorsOnly,
+    create: adminsOnly,
+    update: adminsOnly,
+    delete: adminsOnly,
   },
 };

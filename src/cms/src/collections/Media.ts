@@ -20,6 +20,7 @@ import {
   syncTitle,
 } from '../lib/media-hooks';
 import { dropStoredFile } from '../lib/media-store';
+import { adminsOnly, adminsOnlyField, editorsOnly, isAdmin, isEditor } from '../lib/access/editors';
 
 /**
  * Медиатека: картинки, видео и документы.
@@ -277,8 +278,8 @@ export const Media: CollectionConfig = {
       */
       access: {
         update: ({ req: { user }, doc }) => {
-          if (!user) return false;
-          if (user.role === 'admin') return true;
+          if (!isEditor(user)) return false;
+          if (isAdmin(user)) return true;
           const owner = doc?.['uploadedBy'];
           const ownerId = typeof owner === 'object' && owner ? owner['id'] : owner;
           return String(ownerId ?? '') === String(user.id);
@@ -476,7 +477,7 @@ export const Media: CollectionConfig = {
         чужая запись.
       */
       access: {
-        update: ({ req: { user } }) => user?.role === 'admin',
+        update: adminsOnlyField,
       },
       admin: {
         position: 'sidebar',
@@ -815,9 +816,9 @@ export const Media: CollectionConfig = {
   ],
   access: {
     read: () => true, // Публичный URL для медиа — без авторизации.
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    create: editorsOnly,
+    update: editorsOnly,
+    delete: adminsOnly,
   },
   endpoints: [
     {
@@ -841,7 +842,7 @@ export const Media: CollectionConfig = {
           запроса - иначе администратор получает отказ на своё же действие.
         */
         const { user } = await req.payload.auth({ headers: req.headers });
-        if (user?.role !== 'admin') {
+        if (!isAdmin(user)) {
           return Response.json(
             { error: 'Удаление копий доступно администратору' },
             { status: 403 },

@@ -7,6 +7,7 @@ import { CuratedBlocksFeature } from '../editor/curated-blocks';
 import { EditorSheetFeature } from '../editor/editor-sheet';
 import { PAGE_BLOCKS } from '../blocks';
 import { previewPath } from '../lib/preview';
+import { editorsOnly } from '../lib/access/editors';
 
 /**
  * Articles — основная сущность блога (Posts в терминологии Ghost / Substack).
@@ -278,9 +279,9 @@ export const Articles: CollectionConfig = {
       if (user) return true;
       return { status: { equals: 'published' } };
     },
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => Boolean(user),
+    create: editorsOnly,
+    update: editorsOnly,
+    delete: editorsOnly,
   },
 };
 

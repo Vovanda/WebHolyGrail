@@ -3,6 +3,7 @@ import type { CollectionConfig } from 'payload';
 import { PAGE_BLOCKS } from '../blocks';
 import { BLOCK_ROW_LABELS } from '../blocks/engine';
 import { previewPath } from '../lib/preview';
+import { editorsOnly, adminsOnly } from '../lib/access/editors';
 
 /**
  * Pages — страницы сайта из блоков.
@@ -88,8 +89,8 @@ export const Pages: CollectionConfig = {
       if (user) return true;
       return { _status: { equals: 'published' } };
     },
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    create: editorsOnly,
+    update: editorsOnly,
+    delete: adminsOnly,
   },
 };

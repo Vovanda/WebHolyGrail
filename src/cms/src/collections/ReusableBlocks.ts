@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload';
 
 import { REUSABLE_INNER_BLOCKS } from '../blocks';
 import { BLOCK_ROW_LABELS } from '../blocks/engine';
+import { editorsOnly, adminsOnly } from '../lib/access/editors';
 
 /**
  * ReusableBlocks — атомарные «шаблонные» композиции блоков, которые можно
@@ -52,8 +53,8 @@ export const ReusableBlocks: CollectionConfig = {
   ],
   access: {
     read: () => true,
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    create: editorsOnly,
+    update: editorsOnly,
+    delete: adminsOnly,
   },
 };

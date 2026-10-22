@@ -1,6 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
 import { generateLinkToken } from '../lib/video/link-token';
+import { editorsOnly } from '../lib/access/editors';
 
 /**
  * AccessLinks — ссылки-приглашения на подборку или запись.
@@ -150,9 +151,9 @@ export const MediaAccessLinks: CollectionConfig = {
   access: {
     // Список ссылок - список ключей от закрытого, читать его может только тот,
     // кто их выдаёт.
-    read: ({ req: { user } }) => Boolean(user),
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => Boolean(user),
+    read: editorsOnly,
+    create: editorsOnly,
+    update: editorsOnly,
+    delete: editorsOnly,
   },
 };

@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload';
+import { adminsOnly, editorsOnly, isAdmin, isEditor } from '../lib/access/editors';
 
 /**
  * Право - личная запись «кому открыт доступ и на каких условиях».
@@ -183,12 +184,12 @@ export const MediaAccessRights: CollectionConfig = {
     // Свои права видит сам зритель, чужие — администратор.
     // Иначе список покупателей чужого доступа читался бы кем угодно.
     read: ({ req: { user } }) => {
-      if (!user) return false;
-      if (user.role === 'admin') return true;
+      if (!isEditor(user)) return false;
+      if (isAdmin(user)) return true;
       return { viewer: { equals: user.id } };
     },
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => user?.role === 'admin',
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    create: editorsOnly,
+    update: adminsOnly,
+    delete: adminsOnly,
   },
 };

@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload';
+import { editorsOnly } from '../lib/access/editors';
 
 /**
  * Tags — generic тэги для Articles (M:N через Article.tags).
@@ -49,8 +50,8 @@ export const Tags: CollectionConfig = {
   ],
   access: {
     read: () => true,
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => Boolean(user),
+    create: editorsOnly,
+    update: editorsOnly,
+    delete: editorsOnly,
   },
 };

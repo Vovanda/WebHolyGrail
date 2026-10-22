@@ -1,5 +1,6 @@
 import type { GlobalConfig } from 'payload';
 import { BLOG_COLUMN_PX, BLOG_TEXT_PX } from 'contracts';
+import { editorsOnly } from '../lib/access/editors';
 
 /**
  * SiteSettings — глобальные настройки сайта. Синглтон.
@@ -867,6 +868,6 @@ export const SiteSettings: GlobalConfig = {
   ],
   access: {
     read: () => true, // публичные настройки сайта читаются всеми.
-    update: ({ req: { user } }) => Boolean(user),
+    update: editorsOnly,
   },
 };
