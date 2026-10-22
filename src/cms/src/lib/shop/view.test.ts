@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { moneyPort } from './money';
 import type { StoredInvoice, StoredOrder } from './ports';
 import { hashOrderSecret, isOrderSecret, newOrderSecret } from './order-link';
-import { toBuyerView } from './view';
+import { toBuyerView, toOfferView } from './view';
 
 const order: StoredOrder = {
   id: 7,
@@ -115,5 +115,25 @@ describe('секрет ссылки заказа', () => {
     expect(a.hash).toBe(hashOrderSecret(a.token));
     expect(a.token).not.toBe(b.token);
     expect(isOrderSecret('../../etc')).toBe(false);
+  });
+});
+
+describe('позиция глазами покупателя', () => {
+  const card = (price: number | null) => ({
+    id: 1,
+    title: 'Позиция',
+    price,
+    stock: null,
+    summary: null,
+    image: null,
+    howToBuy: 'cart' as const,
+    deposit: null,
+  });
+
+  it('нулевая и пустая цена - по запросу, иначе Money', () => {
+    const now = new Date();
+    expect(toOfferView(card(0), moneyPort(), now).price).toBeNull();
+    expect(toOfferView(card(null), moneyPort(), now).price).toBeNull();
+    expect(toOfferView(card(1_000_000), moneyPort(), now).price?.units).toBe(1);
   });
 });

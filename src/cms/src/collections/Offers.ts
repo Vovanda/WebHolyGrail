@@ -30,7 +30,7 @@ export const Offers: CollectionConfig = {
       type: 'row',
       fields: [
         moneyField('priceMicros', 'Цена', {
-          admin: { description: 'Пусто - «цена по запросу», в корзину не кладётся.' },
+          admin: { description: 'Пусто или 0 - «цена по запросу», в корзину не кладётся.' },
         }),
         {
           name: 'stock',

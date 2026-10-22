@@ -61,12 +61,18 @@ export function toBuyerView(
   };
 }
 
-/** Позиция глазами покупателя: цена в валюте магазина по сегодняшнему курсу. */
+/**
+ * Позиция глазами покупателя: цена в валюте магазина по сегодняшнему курсу.
+ *
+ * @remarks
+ * Нулевая цена выходит как «по запросу»: в заказ позиция без цены не идёт
+ * (`buildOrder`), и витрина не должна предлагать положить её в корзину.
+ */
 export function toOfferView(card: OfferCard, money: MoneyPort, now: Date): OfferView {
   return {
     id: card.id,
     title: card.title,
-    price: card.price === null ? null : money.at(card.price, now),
+    price: card.price === null || card.price <= 0 ? null : money.at(card.price, now),
     stock: card.stock,
     summary: card.summary,
     image: card.image,
