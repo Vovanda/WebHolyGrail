@@ -67,6 +67,23 @@ function fieldsWithAccess(
 
 const targets: Array<CollectionConfig | GlobalConfig> = [...engineCollections, SiteSettings];
 
+/**
+ * Без своего правила Payload пускает к операции любого вошедшего - через любую
+ * коллекцию входа. Поэтому у коллекций движка правило явное на каждую операцию:
+ * пропущенная операция иначе молча открыта покупателю, а проверка ниже её
+ * не видит - сравнивать нечего.
+ */
+describe('у каждой коллекции движка явное правило на каждую операцию', () => {
+  for (const target of engineCollections) {
+    const access = (target.access ?? {}) as Record<string, unknown>;
+    for (const op of ['read', 'create', 'update', 'delete'] as const) {
+      it(`${target.slug}: ${op}`, () => {
+        expect(typeof access[op]).toBe('function');
+      });
+    }
+  }
+});
+
 describe('чужая учётная запись получает не больше гостя', () => {
   for (const target of targets) {
     const access = (target.access ?? {}) as Record<string, AnyAccess>;
