@@ -13,6 +13,8 @@ import { HeroCinematic } from '@/blocks/primitives/HeroCinematic';
 import { CustomMarkup } from '@/blocks/primitives/CustomMarkup';
 import { RequestForm } from '@/blocks/primitives/RequestForm';
 import { DocumentList } from '@/blocks/primitives/DocumentList';
+import { Cart } from '@/blocks/primitives/Shop/Cart';
+import { Showcase } from '@/blocks/primitives/Shop/Showcase';
 import { Gallery } from '@/blocks/primitives/Gallery';
 import { InstallSnippet } from '@/blocks/primitives/InstallSnippet';
 import { StackTransparency } from '@/blocks/primitives/StackTransparency';
@@ -65,6 +67,8 @@ export const engineRegistry: Record<string, BlockRenderer> = {
   'custom-markup': (node, settings) => <CustomMarkup node={node} settings={settings} />,
   'request-form': (node, settings) => <RequestForm node={node} settings={settings} />,
   'document-list': (node, settings) => <DocumentList node={node} settings={settings} />,
+  'shop-showcase': (node, settings) => <Showcase node={node} settings={settings} />,
+  'shop-cart': (node) => <Cart node={node} />,
   gallery: (node, settings) => <Gallery node={node} settings={settings} />,
   'install-snippet': (node, settings) => <InstallSnippet node={node} settings={settings} />,
   'stack-transparency': (node, settings) => <StackTransparency node={node} settings={settings} />,

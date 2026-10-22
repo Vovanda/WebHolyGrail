@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 
 import type {
   BlogArticle,
@@ -8,6 +8,8 @@ import type {
   BlogTag,
   BlogThread,
   BlogThreadSummary,
+  BuyerOrderView,
+  OfferDoc,
   VideoStream,
   FaqGroupDoc,
   MediaRef,
@@ -902,4 +904,37 @@ export async function getPlaylistByCode(
   );
   if (!response.ok) return null;
   return (await response.json()) as PlaylistView;
+}
+
+/**
+ * Позиции магазина для витрины: все по порядку или выбранные в блоке.
+ *
+ * @remarks
+ * `no-store`: остаток штучной позиции меняется заказом, и витрина должна
+ * показать «нет в наличии» сразу, а не после сборки.
+ */
+export async function listOffers(limit = 60): Promise<OfferDoc[]> {
+  const query = new URLSearchParams({ limit: String(limit), depth: '1', sort: 'title' });
+  const response = await fetch(`${CMS_URL}/api/offers?${query.toString()}`, { cache: 'no-store' });
+  if (!response.ok) return [];
+  return ((await response.json()) as { docs: OfferDoc[] }).docs;
+}
+
+/**
+ * Заказ по секрету ссылки - то, что покупатель вправе видеть (И-8).
+ *
+ * @remarks
+ * Цепочка адресов посетителя уходит в CMS как пришла: CMS считает лимит по
+ * последнему адресу. Без неё все страницы заказов всех покупателей шли бы с
+ * адреса сервера сайта одним счётом, и чужой перебор ссылок запирал бы всех.
+ */
+export async function getOrderView(token: string): Promise<BuyerOrderView | null> {
+  if (!/^[A-Za-z0-9_-]{22}$/.test(token)) return null;
+  const chain = (await headers()).get('x-forwarded-for');
+  const response = await fetch(`${CMS_URL}/api/shop/orders/view`, {
+    headers: { 'x-order-secret': token, ...(chain ? { 'x-forwarded-for': chain } : {}) },
+    cache: 'no-store',
+  }).catch(() => null);
+  if (!response?.ok) return null;
+  return (await response.json()) as BuyerOrderView;
 }
