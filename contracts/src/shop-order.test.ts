@@ -201,3 +201,13 @@ describe('анкета по правилам владельца', () => {
     expect(ok.ok && [ok.buyer.phone, ok.buyer.comment]).toEqual(['', '']);
   });
 });
+
+describe('сумма за пределом точных целых', () => {
+  it('заказ отклоняется, а не считается с потерей точности', () => {
+    const r = buildOrder(
+      [{ offer: 1, quantity: 1000 }],
+      [offer({ id: 1, price: 10_000_000_000_000 })],
+    );
+    expect(r.ok === false && r.tooLarge).toBe(true);
+  });
+});

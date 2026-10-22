@@ -247,6 +247,8 @@ export type BuildOrderResult =
       readonly empty: boolean;
       /** Позиции, которых меньше, чем просят: остаток мог уйти, пока человек выбирал. */
       readonly shortage: readonly { offer: number; available: number }[];
+      /** Сумма не помещается в точные целые: такой заказ не принимается. */
+      readonly tooLarge?: boolean;
     };
 
 export const MAX_QUANTITY = 1000;
@@ -304,7 +306,12 @@ export function buildOrder(
   if (shortage.length > 0 || lines.length === 0) {
     return { ok: false, empty: lines.length === 0 && shortage.length === 0, shortage };
   }
-  return { ok: true, lines, total: lines.reduce((t, l) => t + l.sum, 0) };
+  const total = lines.reduce((t, l) => t + l.sum, 0);
+  // Сумма строки и итог - целые микроединицы; за пределом точных целых счёт врёт.
+  if (!Number.isSafeInteger(total) || lines.some((l) => !Number.isSafeInteger(l.sum))) {
+    return { ok: false, empty: false, shortage: [], tooLarge: true };
+  }
+  return { ok: true, lines, total };
 }
 
 /** Строки счёта на бронь: по строке на каждую позицию заказа с бронью. */

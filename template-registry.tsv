@@ -839,6 +839,7 @@ mirror	src/cms/src/lib/shop/ports.ts
 mirror	src/cms/src/lib/shop/scenarios.test.ts
 mirror	src/cms/src/lib/shop/stock.test.ts
 mirror	src/cms/src/lib/shop/stock.ts
+mirror	src/cms/src/lib/shop/throttle.test.ts
 mirror	src/cms/src/lib/shop/throttle.ts
 mirror	src/cms/src/lib/shop/view.test.ts
 mirror	src/cms/src/lib/shop/view.ts
