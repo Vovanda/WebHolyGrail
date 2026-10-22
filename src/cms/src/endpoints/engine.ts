@@ -1,4 +1,5 @@
 import { blockPartsEndpoint } from './block-parts';
+import { shopEndpoints } from './shop';
 import { togglesEndpoint } from './toggles';
 import {
   videoAccessEndpoint,
@@ -42,4 +43,5 @@ export const engineEndpoints = [
   videoAccessEndpoint,
   videoKeyEndpoint,
   videoManifestEndpoint,
+  ...shopEndpoints,
 ];

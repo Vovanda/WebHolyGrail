@@ -178,6 +178,37 @@ const SCHEMES: Record<string, () => string[]> = {
     `<path d="M98 62 L78 80 L98 98 M142 62 L162 80 L142 98 M126 56 L114 104" fill="none" stroke="#4a90d9" stroke-opacity="0.85" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>`,
   ],
 
+  // Витрина: три карточки с картинкой, названием, ценой и кнопкой.
+  'shop-showcase': () => [
+    bar(20, 14, 90, 'ink', 8),
+    ...[0, 1, 2].flatMap((i) => {
+      const x = 20 + i * 70;
+      return [
+        frame(x, 32, 60, 116),
+        picture(x + 4, 36, 52, 40),
+        bar(x + 6, 84, 44, 'ink', 5),
+        bar(x + 6, 96, 30, 'soft', 4),
+        button(x + 6, 128, 48),
+      ];
+    }),
+  ],
+
+  // Корзина: строки с количеством и суммой, итог, кнопка оформления.
+  'shop-cart': () => [
+    bar(20, 14, 70, 'ink', 8),
+    ...[0, 1, 2].flatMap((i) => {
+      const y = 34 + i * 22;
+      return [
+        frame(20, y, W - 40, 18),
+        bar(28, y + 6, 90, 'ink', 5),
+        bar(150, y + 6, 20, 'soft', 5),
+        bar(186, y + 6, 26, 'ink', 5),
+      ];
+    }),
+    bar(150, 108, 70, 'ink', 7),
+    button(W - 104, 128, 84),
+  ],
+
   // Заголовок и строки документов: значок листа, название, пометка.
   'document-list': () => [
     bar(20, 16, 100, 'ink', 8),

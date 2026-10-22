@@ -69,6 +69,8 @@ import * as migration_20260924_161302_gallery_without_tile_layout from './202609
 import * as migration_20260927_135202_page_background from './20260927_135202_page_background';
 import * as migration_20260927_151802_page_background_veil from './20260927_151802_page_background_veil';
 import * as migration_20260927_160018_hero_photo from './20260927_160018_hero_photo';
+import * as migration_20261022_190657_shop from './20261022_190657_shop';
+import * as migration_20261022_192207_shop_blocks from './20261022_192207_shop_blocks';
 
 export const migrations = [
   {
@@ -425,5 +427,15 @@ export const migrations = [
     up: migration_20260927_160018_hero_photo.up,
     down: migration_20260927_160018_hero_photo.down,
     name: '20260927_160018_hero_photo',
+  },
+  {
+    up: migration_20261022_190657_shop.up,
+    down: migration_20261022_190657_shop.down,
+    name: '20261022_190657_shop',
+  },
+  {
+    up: migration_20261022_192207_shop_blocks.up,
+    down: migration_20261022_192207_shop_blocks.down,
+    name: '20261022_192207_shop_blocks',
   },
 ];

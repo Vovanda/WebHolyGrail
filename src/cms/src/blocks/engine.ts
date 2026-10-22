@@ -29,6 +29,8 @@ import { CollapsibleBlock } from './Collapsible';
 import { FaqAccordionBlock } from './FaqAccordion';
 import { ReusableRefBlock } from './ReusableRef';
 import { PageRefBlock } from './PageRef';
+import { ShopCartBlock } from './ShopCart';
+import { ShopShowcaseBlock } from './ShopShowcase';
 
 // WHG-specific landing blocks (используются для самой страницы WHG-template'а).
 // Downstream-сайты могут отфильтровать их в своём cms/src/blocks/index.ts
@@ -90,6 +92,8 @@ export const ENGINE_REUSABLE_INNER_BLOCKS = [
   VideoSetBlock,
   CollapsibleBlock,
   FaqAccordionBlock,
+  ShopShowcaseBlock,
+  ShopCartBlock,
   /*
     Вид блока - у каждого: где показывать и как выглядит, одной свёрнутой
     секцией. Навешивается разом, а не переписыванием тридцати семи файлов,

@@ -33,3 +33,11 @@ export const adminsOnly: Access = ({ req: { user } }) => isAdmin(user);
 
 /** То же для поля: у Payload доступ к полю - отдельный тип. */
 export const adminsOnlyField: FieldAccess = ({ req: { user } }) => isAdmin(user);
+
+/**
+ * Никому через API: запись меняют только сценарии модуля, локально и в обход
+ * доступа. Так поле или коллекция не правятся в обход их правил - например,
+ * статус заказа мимо таблицы переходов.
+ */
+export const nobody: Access = () => false;
+export const nobodyField: FieldAccess = () => false;

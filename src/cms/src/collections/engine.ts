@@ -10,7 +10,10 @@ import { KeyUsage } from './KeyUsage';
 import { FaqGroups } from './FaqGroups';
 import { FeatureToggles } from './FeatureToggles';
 import { FormSubmissions } from './FormSubmissions';
+import { Invoices } from './Invoices';
 import { Media } from './Media';
+import { Offers } from './Offers';
+import { Orders } from './Orders';
 import { Pages } from './Pages';
 import { Playlists } from './Playlists';
 import { ReusableBlocks } from './ReusableBlocks';
@@ -49,6 +52,11 @@ export const engineCollections = [
   FaqGroups,
   // Обращения - то, ради чего сайт обычно и заводят.
   FormSubmissions,
+  // Магазин: заказы рядом с обращениями - это тоже входящее от посетителя;
+  // позиции и счета следом (docs/whg/43-shop.md).
+  Orders,
+  Invoices,
+  Offers,
   // Записи и всё вокруг них.
   Articles,
   Threads,
