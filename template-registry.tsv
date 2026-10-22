@@ -198,8 +198,8 @@ mirror	src/client/src/app/(site)/channel/[channel]/p/[code]/page.tsx
 mirror	src/client/src/app/(site)/channel/[channel]/page.tsx
 mirror	src/client/src/app/(site)/channel/[channel]/v/[code]/page.tsx
 mirror	src/client/src/app/(site)/i/[token]/page.tsx
-mirror	src/client/src/app/api/geo/route.ts
 mirror	src/client/src/app/api/health/route.ts
+mirror	src/client/src/app/internal/geo/route.ts
 mirror	src/client/src/app/internal/preview/draft/route.ts
 mirror	src/client/src/app/internal/video/key/[id]/route.ts
 mirror	src/client/src/app/internal/video/manifest/[...path]/route.ts

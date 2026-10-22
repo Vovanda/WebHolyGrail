@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 
+import { visitorIp } from '@/lib/forwarded-for';
+
 /**
- * `/api/geo` — город посетителя по IP.
+ * `/internal/geo` — город посетителя по IP.
+ *
+ * Живёт под `/internal`: весь `/api` nginx отдаёт в CMS, и маршрут сайта там
+ * не находился.
  *
  * @remarks
  * Нужен, чтобы подборка на главной сразу открывалась на нужном городе. Браузер
@@ -16,13 +21,12 @@ import { NextResponse } from 'next/server';
  */
 export const runtime = 'nodejs';
 
+// Локальные и приватные адреса геосервису бесполезны — не ходим зря.
+const PRIVATE = /^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1|fc|fd)/i;
+
 function clientIp(request: Request): string | null {
-  const forwarded = request.headers.get('x-forwarded-for');
-  const ip = forwarded?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip');
-  if (!ip) return null;
-  // Локальные и приватные адреса геосервису бесполезны — не ходим зря.
-  if (/^(127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1|fc|fd)/i.test(ip)) return null;
-  return ip;
+  const ip = visitorIp(request);
+  return ip && !PRIVATE.test(ip) ? ip : null;
 }
 
 export async function GET(request: Request) {
@@ -38,7 +42,8 @@ export async function GET(request: Request) {
     const data = (await res.json()) as { status?: string; city?: string };
     return NextResponse.json(
       { city: data.status === 'success' ? (data.city ?? null) : null },
-      { headers: { 'Cache-Control': 'public, max-age=86400' } },
+      // Ответ свой у каждого адреса: общий кэш раздал бы один город всем.
+      { headers: { 'Cache-Control': 'private, max-age=86400' } },
     );
   } catch {
     return NextResponse.json({ city: null });
