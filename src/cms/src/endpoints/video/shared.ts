@@ -39,10 +39,15 @@ export function allowedOrigins(): ReadonlyArray<string> {
  * Берём адрес из заголовков обратного прокси, а при их отсутствии - токен
  * зрителя. Точность здесь не нужна: задача - сбить перебор, а не опознать
  * человека.
+ *
+ * Из X-Forwarded-For - последний адрес. Его дописывает наш nginx
+ * (`$proxy_add_x_forwarded_for`), всё левее присылает сам клиент: с первым
+ * адресом перебор менял бы его на каждой попытке и счёт не копился бы.
+ * Прокси сайта `/internal/*` пересылает заголовок как получил.
  */
 export function clientKey(req: { headers?: { get(name: string): string | null } }): string {
   const headers = req.headers;
-  const forwarded = headers?.get('x-forwarded-for')?.split(',')[0]?.trim();
+  const forwarded = headers?.get('x-forwarded-for')?.split(',').at(-1)?.trim();
   if (forwarded) return forwarded;
   const real = headers?.get('x-real-ip')?.trim();
   if (real) return real;

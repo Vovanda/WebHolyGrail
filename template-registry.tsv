@@ -401,6 +401,8 @@ overlay	src/client/src/lib/contrast.test.ts
 overlay	src/client/src/lib/contrast.ts
 overlay	src/client/src/lib/editor.test.ts
 overlay	src/client/src/lib/editor.ts
+overlay	src/client/src/lib/forwarded-for.test.ts
+overlay	src/client/src/lib/forwarded-for.ts
 overlay	src/client/src/lib/gallery.test.ts
 overlay	src/client/src/lib/gallery.ts
 overlay	src/client/src/lib/heading-accent.tsx
@@ -733,6 +735,7 @@ mirror	src/cms/src/endpoints/video/catalog.ts
 mirror	src/cms/src/endpoints/video/key.ts
 mirror	src/cms/src/endpoints/video/manifest.ts
 mirror	src/cms/src/endpoints/video/playlists.ts
+mirror	src/cms/src/endpoints/video/shared.test.ts
 mirror	src/cms/src/endpoints/video/shared.ts
 mirror	src/cms/src/globals/SiteSettings.ts
 mirror	src/cms/src/jobs/build-hls.task.ts
