@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
+import type { BuyerOrderView } from 'contracts';
 import { formatMoney, INVOICE_STATUS_LABELS, ORDER_STATUS_LABELS, shopSettings } from 'contracts';
 
 import { OrderActions } from '@/blocks/primitives/Shop/OrderActions';
@@ -23,6 +24,18 @@ export const metadata: Metadata = {
   referrer: 'no-referrer',
 };
 
+/** Что сейчас с заказом и что делать покупателю - одной фразой на состояние. */
+function nextStep(order: BuyerOrderView, openInvoices: number): string {
+  if (order.status === 'new')
+    return 'Заказ получен. Продавец свяжется с вами, подтвердит наличие и выставит счёт.';
+  if (order.status === 'accepted')
+    return openInvoices > 0
+      ? 'Заказ подтверждён. Оплатите счёт ниже и нажмите «Я оплатил».'
+      : 'Заказ подтверждён. Счёт появится на этой странице, как только продавец его выставит.';
+  if (order.status === 'done') return 'Заказ выполнен.';
+  return 'Заказ отменён.';
+}
+
 export default async function OrderPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const [order, settings] = await Promise.all([getOrderView(token), getSiteSettings()]);
@@ -37,8 +50,15 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
           Заказ № {order.id}
         </h1>
         <p data-part="status" className="mt-2 text-muted">
-          {ORDER_STATUS_LABELS[order.status]} ·{' '}
-          {new Date(order.createdAt).toLocaleDateString('ru-RU')}
+          {ORDER_STATUS_LABELS[order.status]}, от{' '}
+          {new Date(order.createdAt).toLocaleDateString('ru-RU', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })}
+        </p>
+        <p data-part="next-step" className="mt-4 text-ink">
+          {nextStep(order, invoices.filter((i) => i.status === 'issued').length)}
         </p>
         <p className="mt-2 text-sm text-muted">
           Сохраните эту страницу: по её адресу заказ открывается без входа.
@@ -69,9 +89,6 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
 
         {order.status === 'new' && (
           <div className="mt-6">
-            <p className="mb-3 text-muted">
-              Менеджер свяжется с вами, посчитает доставку и выставит счёт.
-            </p>
             <OrderActions token={token} action="cancel" />
           </div>
         )}

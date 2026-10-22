@@ -33,7 +33,7 @@ export function AddToCart({
 
   if (inCart > 0 && (added || full)) {
     return (
-      <a data-part="card-action" href={cartHref} className={secondaryButton}>
+      <a data-part="card-action" href={cartHref} className={`${secondaryButton} min-h-11 w-full`}>
         В корзине{inCart > 1 ? ` · ${inCart}` : ''}
       </a>
     );
@@ -42,7 +42,7 @@ export function AddToCart({
     <button
       type="button"
       data-part="card-action"
-      className={primaryButton}
+      className={`${primaryButton} min-h-11 w-full`}
       onClick={() => {
         cart.add(offer);
         setAdded(true);

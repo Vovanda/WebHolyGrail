@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseCart } from './cart';
+import { parseCart, rememberedOrders } from './cart';
 
 describe('корзина из хранилища', () => {
   it('битая строка и чужой формат - пустая корзина', () => {
@@ -15,5 +15,14 @@ describe('корзина из хранилища', () => {
         JSON.stringify([{ offer: 1, quantity: 1 }, { offer: 1, quantity: 2 }, { offer: 'x' }]),
       ),
     ).toEqual([{ offer: 1, quantity: 3 }]);
+  });
+});
+
+describe('запомненные заказы', () => {
+  it('берёт только ссылки заказов, мусор и битый JSON - пусто', () => {
+    const ok = 'A'.repeat(22);
+    expect(rememberedOrders(JSON.stringify([ok, '../x', 5, 'B'.repeat(21)]))).toEqual([ok]);
+    expect(rememberedOrders('не json')).toEqual([]);
+    expect(rememberedOrders(null)).toEqual([]);
   });
 });

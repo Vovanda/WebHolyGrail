@@ -106,3 +106,16 @@ export function rememberOrder(token: string): void {
     // Не запомнили - ссылка остаётся на странице заказа и в адресной строке.
   }
 }
+
+/** Запомненные ссылки на заказы, свежие первыми; чужое и битое отбрасывается. */
+export function rememberedOrders(raw?: string | null): string[] {
+  try {
+    const source = raw === undefined ? window.localStorage.getItem(ORDERS_KEY) : raw;
+    const list: unknown = JSON.parse(source ?? '[]');
+    return Array.isArray(list)
+      ? list.filter((t): t is string => typeof t === 'string' && /^[A-Za-z0-9_-]{22}$/.test(t))
+      : [];
+  } catch {
+    return [];
+  }
+}

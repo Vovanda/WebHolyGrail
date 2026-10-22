@@ -15,7 +15,9 @@ import { AddToCart } from './AddToCart';
  * блоке или все по названию; цена приходит `Money` в валюте магазина. Позиция
  * без цены в корзину не кладётся - на карточке «Цена по запросу». Позиция с нулевым остатком
  * остаётся видна с пометкой: щенка уже забрали, но витрина помнит, что он был.
- * Без картинки карточка просто без неё: пустая заглушка заняла бы полкарточки.
+ * Без картинки верх карточки занимает само название крупным шрифтом: высота
+ * совпадает с соседями, и пустой заглушки «фото скоро» нет.
+ * Главное в карточке - цена; кнопка всегда внизу, на одном месте у всех карточек.
  * Части размечены `data-part` - вид меняется в «Виде блока».
  */
 export interface ShowcaseData {
@@ -74,6 +76,11 @@ export async function Showcase({
             const price = offer.price;
             const stock = typeof offer.stock === 'number' ? offer.stock : null;
             const gone = stock !== null && stock <= 0;
+            const badge = gone
+              ? 'Нет в наличии'
+              : offer.howToBuy === 'request'
+                ? 'По заявке'
+                : null;
             return (
               <article
                 data-part="card"
@@ -81,47 +88,79 @@ export async function Showcase({
                 className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface"
               >
                 {image ? (
-                  <MediaImage
-                    media={image}
-                    place="(max-width: 768px) 100vw, 360px"
-                    alt=""
-                    className="aspect-[4/3] w-full border-b border-border object-cover"
-                  />
-                ) : null}
-                <div className="flex flex-1 flex-col gap-2 p-4">
-                  <h3 data-part="card-title" className="font-medium text-ink">
-                    {offer.title}
-                  </h3>
+                  <div
+                    data-part="card-media"
+                    className="aspect-[4/3] overflow-hidden border-b border-border"
+                  >
+                    <MediaImage
+                      media={image}
+                      place="(max-width: 768px) 100vw, 360px"
+                      alt=""
+                      className={`h-full w-full object-cover${gone ? ' opacity-60 grayscale' : ''}`}
+                    />
+                  </div>
+                ) : (
+                  <div
+                    data-part="card-media"
+                    className="flex aspect-[4/3] items-end border-b border-border bg-accent-soft p-5"
+                  >
+                    <h3
+                      data-part="card-title"
+                      className="line-clamp-3 text-balance font-display text-2xl font-semibold leading-tight text-ink"
+                    >
+                      {offer.title}
+                    </h3>
+                  </div>
+                )}
+                <div className="flex flex-1 flex-col p-5">
+                  {badge && (
+                    <p
+                      data-part="card-badge"
+                      className={`mb-3 self-start rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        gone ? 'bg-surface-hover text-muted' : 'bg-accent-soft text-ink'
+                      }`}
+                    >
+                      {badge}
+                    </p>
+                  )}
+                  {image && (
+                    <h3
+                      data-part="card-title"
+                      className="text-balance font-display text-lg font-semibold leading-snug text-ink"
+                    >
+                      {offer.title}
+                    </h3>
+                  )}
                   {offer.summary && (
-                    <p data-part="card-subtitle" className="text-sm text-muted">
+                    <p data-part="card-subtitle" className="mt-1.5 line-clamp-2 text-sm text-muted">
                       {offer.summary}
                     </p>
                   )}
-                  <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-2">
-                    <span data-part="card-price" className="text-lg font-semibold text-ink">
+                  <div className="mt-auto pt-5">
+                    <p
+                      data-part="card-price"
+                      className={
+                        price
+                          ? 'font-display text-2xl font-semibold tracking-tight tabular-nums text-ink'
+                          : 'font-medium text-muted'
+                      }
+                    >
                       {price ? formatMoney(price) : 'Цена по запросу'}
-                      {price && offer.deposit && (
-                        <span
-                          data-part="card-caption"
-                          className="block text-sm font-normal text-muted"
-                        >
-                          Бронь {formatMoney(offer.deposit)}
-                        </span>
-                      )}
-                    </span>
-                    {gone ? (
-                      <span data-part="card-caption" className="text-sm text-muted">
-                        Нет в наличии
-                      </span>
-                    ) : (
-                      price && (
+                    </p>
+                    {price && offer.deposit && (
+                      <p data-part="card-caption" className="mt-0.5 text-sm text-muted">
+                        Бронь {formatMoney(offer.deposit)} вперёд
+                      </p>
+                    )}
+                    {price && !gone && (
+                      <div className="mt-4">
                         <AddToCart
                           offer={offer.id}
                           available={stock}
                           cartHref={cartHref}
                           label={offer.howToBuy === 'request' ? 'Оставить заявку' : 'В корзину'}
                         />
-                      )
+                      </div>
                     )}
                   </div>
                 </div>
