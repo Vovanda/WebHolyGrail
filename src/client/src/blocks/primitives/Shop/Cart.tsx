@@ -110,12 +110,16 @@ export function Cart({
     [lines, offers],
   );
   const count = rows.reduce((n, r) => n + r.quantity, 0);
-  const total = rows.length
-    ? toMoney(
-        rows.reduce((t, r) => t + fromMoney(r.offer.price) * r.quantity, 0),
-        rows[0]!.offer.price.currency,
-      )
-    : null;
+  // За пределом точных целых сумму не показываем: сервер такой заказ всё равно не примет.
+  const lineSum = (r: Row) => {
+    const micros = fromMoney(r.offer.price) * r.quantity;
+    return Number.isSafeInteger(micros) ? toMoney(micros, r.offer.price.currency) : null;
+  };
+  const totalMicros = rows.reduce((t, r) => t + fromMoney(r.offer.price) * r.quantity, 0);
+  const total =
+    rows.length && Number.isSafeInteger(totalMicros)
+      ? toMoney(totalMicros, rows[0]!.offer.price.currency)
+      : null;
   const loading = lines.length > 0 && loaded !== ids;
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -214,6 +218,7 @@ export function Cart({
           <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
             <ul data-part="lines" className="divide-y divide-border border-y border-border">
               {rows.map(({ offer, quantity }) => {
+                const sum = lineSum({ offer, quantity });
                 const max = typeof offer.stock === 'number' ? offer.stock : 1000;
                 const image =
                   typeof offer.image === 'object' && offer.image ? (offer.image as MediaRef) : null;
@@ -288,9 +293,7 @@ export function Cart({
                         data-part="line-sum"
                         className="font-display text-lg font-semibold tabular-nums text-ink"
                       >
-                        {formatMoney(
-                          toMoney(fromMoney(offer.price) * quantity, offer.price.currency),
-                        )}
+                        {sum ? formatMoney(sum) : ''}
                       </span>
                       <button
                         type="button"
