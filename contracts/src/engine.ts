@@ -216,3 +216,27 @@ export type {
   RateResult,
   ScheduleResult,
 } from './money';
+export {
+  applyFilter,
+  editDistance,
+  facetsOf,
+  normalize,
+  readFilter,
+  searchItems,
+  specText,
+  switchLayout,
+  toggleValue,
+  typoBudget,
+  writeFilter,
+} from './catalog';
+export type {
+  CatalogItem,
+  Characteristic,
+  Facet,
+  FacetOption,
+  FilterState,
+  FilterView,
+  Selection,
+  SpecKind,
+  SpecValue,
+} from './catalog';
