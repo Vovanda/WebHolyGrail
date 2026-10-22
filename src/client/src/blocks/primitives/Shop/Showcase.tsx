@@ -100,6 +100,14 @@ export async function Showcase({
                   <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-2">
                     <span data-part="card-price" className="text-lg font-semibold text-ink">
                       {price ? formatMoney(price) : 'Цена по запросу'}
+                      {price && offer.deposit && (
+                        <span
+                          data-part="card-caption"
+                          className="block text-sm font-normal text-muted"
+                        >
+                          Бронь {formatMoney(offer.deposit)}
+                        </span>
+                      )}
                     </span>
                     {gone ? (
                       <span data-part="card-caption" className="text-sm text-muted">

@@ -82,7 +82,9 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
             className="mt-8 rounded-xl border border-border bg-surface p-4 md:p-6"
           >
             <header className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-lg font-semibold text-ink">Счёт № {inv.id}</h2>
+              <h2 className="text-lg font-semibold text-ink">
+                {inv.purpose === 'deposit' ? 'Счёт на бронь' : 'Счёт'} № {inv.id}
+              </h2>
               <span
                 data-part="invoice-status"
                 className={inv.overdue ? 'text-[color:var(--color-danger)]' : 'text-muted'}
