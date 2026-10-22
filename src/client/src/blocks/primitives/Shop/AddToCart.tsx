@@ -17,11 +17,14 @@ export function AddToCart({
   offer,
   available,
   cartHref = '/cart',
+  label = 'В корзину',
 }: {
   readonly offer: number;
   /** Сколько можно взять; пусто - без ограничений. */
   readonly available: number | null;
   readonly cartHref?: string;
+  /** Надпись на кнопке: «В корзину» или «Оставить заявку» у позиции по заявке. */
+  readonly label?: string;
 }) {
   const lines = useCart();
   const [added, setAdded] = useState(false);
@@ -45,7 +48,7 @@ export function AddToCart({
         setAdded(true);
       }}
     >
-      В корзину
+      {label}
     </button>
   );
 }

@@ -106,7 +106,14 @@ export async function Showcase({
                         Нет в наличии
                       </span>
                     ) : (
-                      price && <AddToCart offer={offer.id} available={stock} cartHref={cartHref} />
+                      price && (
+                        <AddToCart
+                          offer={offer.id}
+                          available={stock}
+                          cartHref={cartHref}
+                          label={offer.howToBuy === 'request' ? 'Оставить заявку' : 'В корзину'}
+                        />
+                      )
                     )}
                   </div>
                 </div>

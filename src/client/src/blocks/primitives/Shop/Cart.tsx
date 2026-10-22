@@ -142,6 +142,11 @@ export function Cart({ node }: { readonly node: BlockNode & { data?: CartData } 
                       className="min-w-0 basis-full text-ink md:basis-0 md:flex-1"
                     >
                       {offer.title}
+                      {offer.howToBuy === 'request' && (
+                        <span data-part="line-note" className="block text-sm text-muted">
+                          По заявке: наличие подтвердит продавец
+                        </span>
+                      )}
                     </span>
                     <span className="flex items-center gap-2">
                       <button

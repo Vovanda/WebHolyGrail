@@ -52,6 +52,11 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
             >
               <span>
                 {l.title} × {l.quantity}
+                {l.mode === 'request' && order.status === 'new' && (
+                  <span data-part="line-note" className="block text-sm text-muted">
+                    По заявке: продавец подтвердит наличие
+                  </span>
+                )}
               </span>
               <span className="tabular-nums">{formatMoney(l.sum)}</span>
             </li>
