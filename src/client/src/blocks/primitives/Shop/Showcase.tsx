@@ -1,5 +1,5 @@
-import type { BlockNode, MediaRef, OfferDoc, SiteSettings } from 'contracts';
-import { formatRub } from 'contracts';
+import type { BlockNode, MediaRef, OfferView, SiteSettings } from 'contracts';
+import { formatMoney } from 'contracts';
 
 import { CardRows } from '@/blocks/arrangements/CardRows';
 import { MediaImage } from '@/blocks/primitives/Media';
@@ -12,8 +12,8 @@ import { AddToCart } from './AddToCart';
  *
  * @remarks
  * Рисуется на сервере (R14), браузерная только кнопка. Позиции - выбранные в
- * блоке или все по названию. Цена в базе в рублях, в корзину позиция без цены
- * не кладётся - на карточке «Цена по запросу». Позиция с нулевым остатком
+ * блоке или все по названию; цена приходит `Money` в валюте магазина. Позиция
+ * без цены в корзину не кладётся - на карточке «Цена по запросу». Позиция с нулевым остатком
  * остаётся видна с пометкой: щенка уже забрали, но витрина помнит, что он был.
  * Без картинки карточка просто без неё: пустая заглушка заняла бы полкарточки.
  * Части размечены `data-part` - вид меняется в «Виде блока».
@@ -22,7 +22,7 @@ export interface ShowcaseData {
   readonly heading?: string;
   readonly description?: string;
   /** Выбранные позиции; пусто - все. */
-  readonly offers?: readonly (OfferDoc | number)[] | null;
+  readonly offers?: readonly (number | { readonly id: number })[] | null;
   readonly cartHref?: string | null;
   readonly tileLayout?: string | null | undefined;
   readonly tileLayoutMd?: string | null | undefined;
@@ -36,10 +36,8 @@ export async function Showcase({
   readonly settings: SiteSettings;
 }) {
   const data = node.data ?? {};
-  const picked = (data.offers ?? []).filter(
-    (o): o is OfferDoc => typeof o === 'object' && o !== null,
-  );
-  const offers = picked.length > 0 ? picked : await listOffers();
+  const picked = (data.offers ?? []).map((o) => (typeof o === 'number' ? o : o.id));
+  const offers: OfferView[] = await listOffers(picked.length > 0 ? { ids: picked } : { limit: 60 });
   if (offers.length === 0) return null;
   const cartHref = data.cartHref?.trim() || '/cart';
 
@@ -73,7 +71,7 @@ export async function Showcase({
           {(offer) => {
             const image =
               typeof offer.image === 'object' && offer.image ? (offer.image as MediaRef) : null;
-            const priced = typeof offer.price === 'number' && offer.price > 0;
+            const price = offer.price;
             const stock = typeof offer.stock === 'number' ? offer.stock : null;
             const gone = stock !== null && stock <= 0;
             return (
@@ -101,14 +99,14 @@ export async function Showcase({
                   )}
                   <div className="mt-auto flex flex-wrap items-center justify-between gap-3 pt-2">
                     <span data-part="card-price" className="text-lg font-semibold text-ink">
-                      {priced ? formatRub(Math.round(offer.price! * 100)) : 'Цена по запросу'}
+                      {price ? formatMoney(price) : 'Цена по запросу'}
                     </span>
                     {gone ? (
                       <span data-part="card-caption" className="text-sm text-muted">
                         Нет в наличии
                       </span>
                     ) : (
-                      priced && <AddToCart offer={offer.id} available={stock} cartHref={cartHref} />
+                      price && <AddToCart offer={offer.id} available={stock} cartHref={cartHref} />
                     )}
                   </div>
                 </div>

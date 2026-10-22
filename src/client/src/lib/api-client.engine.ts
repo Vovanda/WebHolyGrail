@@ -9,7 +9,7 @@ import type {
   BlogThread,
   BlogThreadSummary,
   BuyerOrderView,
-  OfferDoc,
+  OfferView,
   VideoStream,
   FaqGroupDoc,
   MediaRef,
@@ -913,11 +913,14 @@ export async function getPlaylistByCode(
  * `no-store`: остаток штучной позиции меняется заказом, и витрина должна
  * показать «нет в наличии» сразу, а не после сборки.
  */
-export async function listOffers(limit = 60): Promise<OfferDoc[]> {
-  const query = new URLSearchParams({ limit: String(limit), depth: '1', sort: 'title' });
-  const response = await fetch(`${CMS_URL}/api/offers?${query.toString()}`, { cache: 'no-store' });
+export async function listOffers(
+  pick: { readonly ids: readonly number[] } | { readonly limit: number },
+): Promise<OfferView[]> {
+  const query =
+    'ids' in pick ? `ids=${pick.ids.join(',')}` : `limit=${encodeURIComponent(pick.limit)}`;
+  const response = await fetch(`${CMS_URL}/api/shop/offers?${query}`, { cache: 'no-store' });
   if (!response.ok) return [];
-  return ((await response.json()) as { docs: OfferDoc[] }).docs;
+  return ((await response.json()) as { docs: OfferView[] }).docs;
 }
 
 /**

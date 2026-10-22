@@ -74,13 +74,7 @@ async function forward(request: NextRequest, path: string[]): Promise<NextRespon
   if (joined === 'offers') {
     const ids = offerIds(request);
     if (ids.length === 0) return NextResponse.json({ docs: [] });
-    const query = new URLSearchParams({
-      depth: '1',
-      limit: String(ids.length),
-      pagination: 'false',
-    });
-    ids.forEach((id, i) => query.set(`where[id][in][${i}]`, String(id)));
-    target = `${CMS_URL}/api/offers?${query.toString()}`;
+    target = `${CMS_URL}/api/shop/offers?ids=${ids.join(',')}`;
   }
 
   const secret = request.headers.get('x-order-secret');

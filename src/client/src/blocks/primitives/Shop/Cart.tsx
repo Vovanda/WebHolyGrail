@@ -1,7 +1,7 @@
 'use client';
 
-import type { BlockNode, BuyerErrors, OfferDoc } from 'contracts';
-import { checkBuyer, formatRub } from 'contracts';
+import type { BlockNode, BuyerErrors, Money, OfferView } from 'contracts';
+import { checkBuyer, formatMoney, fromMoney, toMoney } from 'contracts';
 import { useEffect, useMemo, useState } from 'react';
 
 import { cart, rememberOrder, useCart } from '@/lib/shop/cart';
@@ -35,7 +35,7 @@ const MESSAGES: Record<string, string> = {
 export function Cart({ node }: { readonly node: BlockNode & { data?: CartData } }) {
   const data = node.data ?? {};
   const lines = useCart();
-  const [offers, setOffers] = useState<Map<number, OfferDoc>>(new Map());
+  const [offers, setOffers] = useState<Map<number, OfferView>>(new Map());
   const [errors, setErrors] = useState<BuyerErrors>({});
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -45,7 +45,7 @@ export function Cart({ node }: { readonly node: BlockNode & { data?: CartData } 
     if (!ids) return;
     void fetch(`/internal/shop/offers?ids=${ids}`)
       .then((r) => (r.ok ? r.json() : { docs: [] }))
-      .then((d: { docs: OfferDoc[] }) => setOffers(new Map(d.docs.map((o) => [o.id, o]))))
+      .then((d: { docs: OfferView[] }) => setOffers(new Map(d.docs.map((o) => [o.id, o]))))
       .catch(() => undefined);
   }, [ids]);
 
@@ -53,12 +53,17 @@ export function Cart({ node }: { readonly node: BlockNode & { data?: CartData } 
     () =>
       lines
         .map((l) => ({ ...l, offer: offers.get(l.offer) }))
-        .filter((r): r is { offer: OfferDoc; quantity: number } =>
-          Boolean(r.offer && r.offer.price),
+        .filter((r): r is { offer: OfferView & { price: Money }; quantity: number } =>
+          Boolean(r.offer?.price),
         ),
     [lines, offers],
   );
-  const total = rows.reduce((t, r) => t + Math.round(r.offer.price! * 100) * r.quantity, 0);
+  const total = rows.length
+    ? toMoney(
+        rows.reduce((t, r) => t + fromMoney(r.offer.price) * r.quantity, 0),
+        rows[0]!.offer.price.currency,
+      )
+    : null;
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -167,7 +172,9 @@ export function Cart({ node }: { readonly node: BlockNode & { data?: CartData } 
                       data-part="line-sum"
                       className="ml-auto w-28 text-right tabular-nums text-ink md:ml-0"
                     >
-                      {formatRub(Math.round(offer.price! * 100) * quantity)}
+                      {formatMoney(
+                        toMoney(fromMoney(offer.price) * quantity, offer.price.currency),
+                      )}
                     </span>
                     <button
                       type="button"
@@ -181,7 +188,7 @@ export function Cart({ node }: { readonly node: BlockNode & { data?: CartData } 
               })}
             </ul>
             <p data-part="total" className="mt-4 text-right text-lg font-semibold text-ink">
-              Итого: {formatRub(total)}
+              Итого: {total ? formatMoney(total) : ''}
             </p>
 
             <form onSubmit={submit} noValidate className="mt-6 grid gap-3 md:max-w-xl">

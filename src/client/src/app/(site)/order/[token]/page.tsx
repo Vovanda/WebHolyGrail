@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import { formatRub, INVOICE_STATUS_LABELS, ORDER_STATUS_LABELS } from 'contracts';
+import { formatMoney, INVOICE_STATUS_LABELS, ORDER_STATUS_LABELS } from 'contracts';
 
 import { OrderActions } from '@/blocks/primitives/Shop/OrderActions';
 import { getOrderView, getSiteSettings } from '@/lib/api-client.engine';
@@ -53,12 +53,12 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
               <span>
                 {l.title} × {l.quantity}
               </span>
-              <span className="tabular-nums">{formatRub(l.sum)}</span>
+              <span className="tabular-nums">{formatMoney(l.sum)}</span>
             </li>
           ))}
         </ul>
         <p data-part="total" className="mt-4 text-right text-lg font-semibold text-ink">
-          Итого: {formatRub(order.total)}
+          Итого: {formatMoney(order.total)}
         </p>
 
         {order.status === 'new' && (
@@ -94,12 +94,12 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
                   <span>
                     {l.title} × {l.quantity}
                   </span>
-                  <span className="tabular-nums">{formatRub(l.sum)}</span>
+                  <span className="tabular-nums">{formatMoney(l.sum)}</span>
                 </li>
               ))}
             </ul>
             <p className="mt-3 text-right font-semibold text-ink">
-              К оплате: {formatRub(inv.total)}
+              К оплате: {formatMoney(inv.total)}
             </p>
             {inv.status === 'issued' && (
               <div className="mt-4 grid gap-3">
@@ -138,7 +138,7 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
 
         {refunds.map((r) => (
           <p key={r.id} data-part="refund" className="mt-6 text-muted">
-            Возвращено {formatRub(r.total)}.
+            Возвращено {formatMoney(r.total)}.
           </p>
         ))}
       </div>
