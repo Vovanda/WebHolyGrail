@@ -31,6 +31,15 @@ export type OrderAction = 'accept' | 'complete' | 'cancel';
  */
 export type InvoiceKind = 'invoice' | 'refund';
 export type InvoiceStatus = 'draft' | 'issued' | 'reported' | 'paid' | 'voided';
+
+/**
+ * Зачем выставлен счёт на оплату: бронь (задаток) или оплата позиций.
+ *
+ * @remarks
+ * Счёт на бронь доступа к видео не выдаёт: бронь закрепляет позицию, а не
+ * продаёт её. Основной счёт после брони берёт за позицию цену минус бронь.
+ */
+export type InvoicePurpose = 'payment' | 'deposit';
 export type InvoiceAction = 'issue' | 'report' | 'confirm' | 'reject' | 'void';
 
 export interface Transition<S extends string> {
@@ -214,6 +223,8 @@ export interface OfferSnapshot {
   /** Доступ к видео, который продаёт позиция. */
   readonly access: number | null;
   readonly howToBuy: HowToBuy;
+  /** Бронь за единицу: часть цены, которую платят вперёд; пусто - без брони. */
+  readonly deposit: Micros | null;
 }
 
 export interface OrderLine {
@@ -224,6 +235,8 @@ export interface OrderLine {
   readonly sum: Micros;
   readonly access: number | null;
   readonly mode: HowToBuy;
+  /** Бронь за единицу на момент заказа: меньше цены и больше нуля, иначе пусто. */
+  readonly deposit: Micros | null;
 }
 
 export type BuildOrderResult =
@@ -285,12 +298,32 @@ export function buildOrder(
       sum: o.price * quantity,
       access: o.access,
       mode: o.howToBuy,
+      deposit: o.deposit !== null && o.deposit > 0 && o.deposit < o.price ? o.deposit : null,
     });
   }
   if (shortage.length > 0 || lines.length === 0) {
     return { ok: false, empty: lines.length === 0 && shortage.length === 0, shortage };
   }
   return { ok: true, lines, total: lines.reduce((t, l) => t + l.sum, 0) };
+}
+
+/** Строки счёта на бронь: по строке на каждую позицию заказа с бронью. */
+export function depositLines(
+  lines: readonly OrderLine[],
+): { offer: null; title: string; quantity: number; price: Micros }[] {
+  return lines
+    .filter((l) => l.deposit !== null)
+    .map((l) => ({
+      offer: null,
+      title: `Бронь: ${l.title}`,
+      quantity: l.quantity,
+      price: l.deposit!,
+    }));
+}
+
+/** Цена позиции в основном счёте: после взятой брони - цена минус бронь. */
+export function paymentPrice(line: OrderLine, depositTaken: boolean): Micros {
+  return depositTaken && line.deposit !== null ? line.price - line.deposit : line.price;
 }
 
 /* ───────────────────────── Анкета покупателя ───────────────────────── */
@@ -356,6 +389,8 @@ export interface OfferView {
   readonly summary: string | null;
   readonly image: unknown;
   readonly howToBuy: HowToBuy;
+  /** Бронь за единицу; пусто - позиция без брони. */
+  readonly deposit: Money | null;
 }
 
 export interface BuyerLineView {
@@ -368,6 +403,7 @@ export interface BuyerLineView {
 export interface BuyerInvoiceView {
   readonly id: string;
   readonly kind: InvoiceKind;
+  readonly purpose: InvoicePurpose;
   readonly status: InvoiceStatus;
   readonly overdue: boolean;
   readonly dueAt: string | null;

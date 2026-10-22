@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildOrder, checkBuyer, cleanCart, MAX_QUANTITY, type OfferSnapshot } from './shop';
+import {
+  buildOrder,
+  checkBuyer,
+  cleanCart,
+  depositLines,
+  MAX_QUANTITY,
+  type OfferSnapshot,
+  paymentPrice,
+} from './shop';
 
 const offer = (o: Partial<OfferSnapshot> & { id: number }): OfferSnapshot => ({
   title: `Позиция ${o.id}`,
@@ -8,6 +16,7 @@ const offer = (o: Partial<OfferSnapshot> & { id: number }): OfferSnapshot => ({
   stock: null,
   access: null,
   howToBuy: 'cart',
+  deposit: null,
   ...o,
 });
 
@@ -50,6 +59,7 @@ describe('сборка заказа', () => {
           sum: 37_650,
           access: null,
           mode: 'cart',
+          deposit: null,
         },
       ],
     });
@@ -126,5 +136,28 @@ describe('анкета покупателя', () => {
   it('неверная почта и длинное имя', () => {
     const r = checkBuyer({ ...good, email: 'нет', name: 'а'.repeat(101) });
     expect(!r.ok && Object.keys(r.errors).sort()).toEqual(['email', 'name']);
+  });
+});
+
+describe('бронь', () => {
+  const lines = (deposit: number | null) => {
+    const r = buildOrder([{ offer: 1, quantity: 2 }], [offer({ id: 1, price: 60_000, deposit })]);
+    if (!r.ok) throw new Error('заказ не собран');
+    return r.lines;
+  };
+
+  it('бронь меньше цены идёт в строку; ноль и бронь не меньше цены - без брони', () => {
+    expect(lines(10_000)[0]?.deposit).toBe(10_000);
+    expect(lines(0)[0]?.deposit).toBeNull();
+    expect(lines(60_000)[0]?.deposit).toBeNull();
+  });
+
+  it('счёт на бронь - своя строка на позицию, основной после брони - цена минус бронь', () => {
+    const [line] = lines(10_000);
+    expect(depositLines([line!])).toEqual([
+      { offer: null, title: 'Бронь: Позиция 1', quantity: 2, price: 10_000 },
+    ]);
+    expect(paymentPrice(line!, true)).toBe(50_000);
+    expect(paymentPrice(line!, false)).toBe(60_000);
   });
 });

@@ -622,6 +622,8 @@ overlay	src/cms/migrations/20261022_224847_shop.json
 overlay	src/cms/migrations/20261022_224847_shop.ts
 overlay	src/cms/migrations/20261022_231116_shop_how_to_buy.json
 overlay	src/cms/migrations/20261022_231116_shop_how_to_buy.ts
+overlay	src/cms/migrations/20261022_231834_shop_deposit.json
+overlay	src/cms/migrations/20261022_231834_shop_deposit.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts
