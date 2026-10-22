@@ -14,7 +14,13 @@ import type { InvoiceAction, OrderAction } from 'contracts';
 
 import { isEditor } from '../lib/access/editors';
 import { checkRequestOrigin } from '../lib/video/request-origin';
-import { changeInvoice, createInvoice, createRefund, reportBySecret } from '../lib/shop/invoices';
+import {
+  changeInvoice,
+  createInvoice,
+  createRefund,
+  deleteDraft,
+  reportBySecret,
+} from '../lib/shop/invoices';
 import { cancelBySecret, changeOrder, placeOrder } from '../lib/shop/orders';
 import { payloadAccess } from '../lib/shop/payload-access';
 import { payloadPorts } from '../lib/shop/payload-store';
@@ -248,6 +254,7 @@ const adminActionsEndpoint: Endpoint = {
         status: invoice.status,
         kind: invoice.kind,
         actions,
+        canDelete: invoice.status === 'draft',
         canRefund,
         refundable: p.money.at(Math.max(left, 0), new Date()),
       });
@@ -274,6 +281,10 @@ const adminActionEndpoint: Endpoint = {
       return answer(await changeOrder(p, id, action as OrderAction, 'manager'), (o) => ({
         status: o.status,
       }));
+    }
+    if (kind === 'invoices' && action === 'delete') {
+      const invoice = await p.invoices.get(id);
+      return answer(await deleteDraft(p, id), () => ({ order: invoice?.order ?? null }));
     }
     if (kind === 'invoices' && action === 'refund') {
       const data = await body(req);

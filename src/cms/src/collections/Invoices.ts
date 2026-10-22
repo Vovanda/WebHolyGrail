@@ -15,6 +15,8 @@ import { shopLineFields } from './Orders';
  * contracts. Менеджер правит только черновик: строки, цены, доставку, срок.
  * Хук сверяет строки черновика с заказом той же функцией, что и сценарий
  * (`draftLines`): количество позиции из заказа не меняется, суммы считает сервер.
+ * Вне черновика итог и срок держатся прежними при любой записи: это части
+ * выставленного документа, и правка через REST их не трогает.
  */
 const ro = { readOnly: true } as const;
 const locked = { create: nobodyField, update: nobodyField };
@@ -33,8 +35,14 @@ export const Invoices: CollectionConfig = {
   hooks: {
     beforeChange: [
       async ({ data, originalDoc, operation, req }) => {
-        if (operation !== 'update' || !isDraft(originalDoc) || originalDoc?.['kind'] !== 'invoice')
-          return data;
+        if (operation !== 'update' || !originalDoc) return data;
+        if (!isDraft(originalDoc) || originalDoc['kind'] !== 'invoice') {
+          return {
+            ...data,
+            totalMicros: originalDoc['totalMicros'],
+            dueAt: originalDoc['dueAt'] ?? null,
+          };
+        }
         const orderId = originalDoc['order'];
         const orderDoc = await req.payload.findByID({
           collection: 'orders',

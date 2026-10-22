@@ -53,6 +53,8 @@ const MAX_LINES = 100;
  * У строки с позицией каталога количество берётся из заказа: остаток списан по
  * заказу, и счёт на другое количество развёл бы их. Цену менеджер правит -
  * доставку и курс сайт не знает. Свободная строка (доставка) пишется как угодно.
+ * Позиция заказа встречается в счёте один раз: повтор удвоил бы сумму и коды
+ * доступа за одну покупку.
  */
 export function draftLines(
   order: StoredOrder,
@@ -70,6 +72,7 @@ export function draftLines(
   if (source.length === 0 || source.length > MAX_LINES) return fail('invalid');
 
   const lines: InvoiceLine[] = [];
+  const seen = new Set<number>();
   for (const l of source) {
     const price = Math.round(Number(l.price));
     const quantity = Math.floor(Number(l.quantity));
@@ -85,7 +88,8 @@ export function draftLines(
     }
     if (l.offer !== null) {
       const ordered = fromOrder.get(l.offer);
-      if (!ordered) return fail('invalid');
+      if (!ordered || seen.has(l.offer)) return fail('invalid');
+      seen.add(l.offer);
       if (quantity !== ordered.quantity) return fail('quantity_locked', { offer: l.offer });
       lines.push({
         offer: l.offer,

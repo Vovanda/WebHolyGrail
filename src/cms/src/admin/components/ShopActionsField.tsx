@@ -24,6 +24,7 @@ const LABELS: Record<string, string> = {
   reject: 'Денег нет',
   void: 'Аннулировать',
   refund: 'Вернуть деньги',
+  delete: 'Удалить черновик',
 };
 
 const ERRORS: Record<string, string> = {
@@ -35,6 +36,7 @@ const ERRORS: Record<string, string> = {
 interface State {
   actions: string[];
   canInvoice?: boolean;
+  canDelete?: boolean;
   canRefund?: boolean;
   /** Сколько ещё можно вернуть по счёту. */
   refundable?: Money;
@@ -60,11 +62,12 @@ export function ShopActionsField() {
     ...state.actions,
     ...(state.canInvoice ? ['invoice'] : []),
     ...(state.canRefund ? ['refund'] : []),
+    ...(state.canDelete ? ['delete'] : []),
   ];
   if (buttons.length === 0) return null;
 
   const run = async (action: string) => {
-    if (action === 'cancel' || action === 'void') {
+    if (action === 'cancel' || action === 'void' || action === 'delete') {
       if (!window.confirm(`${LABELS[action]}? Отменить это нельзя.`)) return;
     }
     let body: Record<string, unknown> = {};
@@ -90,13 +93,22 @@ export function ShopActionsField() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      const data = (await r.json().catch(() => ({}))) as { error?: string; id?: string | number };
+      const data = (await r.json().catch(() => ({}))) as {
+        error?: string;
+        id?: string | number;
+        order?: string | number | null;
+      };
       if (!r.ok)
         return setError(
           ERRORS[data.error ?? ''] ?? 'Не получилось. Обновите страницу и попробуйте снова.',
         );
       // Новый счёт или возврат открываем сразу: дальше менеджер правит черновик.
       if (data.id !== undefined) window.location.assign(`/admin/collections/invoices/${data.id}`);
+      // Удалённый черновик открыть нельзя - возвращаемся к его заказу.
+      else if (action === 'delete')
+        window.location.assign(
+          data.order ? `/admin/collections/orders/${data.order}` : '/admin/collections/invoices',
+        );
       else window.location.reload();
     } finally {
       setBusy(false);

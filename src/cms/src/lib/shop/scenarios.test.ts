@@ -189,6 +189,16 @@ describe('счёт', () => {
     expect(r).toEqual({ ok: false, error: 'invalid' });
   });
 
+  it('одна позиция дважды в счёте - отказ: иначе двойная сумма и два кода за одну покупку', async () => {
+    const o = await order([{ offer: 3, quantity: 1 }]);
+    await changeOrder(ports, o.id, 'accept', 'manager');
+    const line = { offer: 3, title: 'Курс', quantity: 1, price: 990_000 };
+    expect(await createInvoice(ports, o.id, { lines: [line, line] })).toEqual({
+      ok: false,
+      error: 'invalid',
+    });
+  });
+
   it('черновик правится и удаляется, выставленный - нет', async () => {
     const o = await order([{ offer: 2, quantity: 1 }]);
     await changeOrder(ports, o.id, 'accept', 'manager');
