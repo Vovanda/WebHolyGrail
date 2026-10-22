@@ -1,13 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  buildOrder,
-  checkBuyer,
-  cleanCart,
-  formatRub,
-  MAX_QUANTITY,
-  type OfferSnapshot,
-} from './shop';
+import { buildOrder, checkBuyer, cleanCart, MAX_QUANTITY, type OfferSnapshot } from './shop';
 
 const offer = (o: Partial<OfferSnapshot> & { id: number }): OfferSnapshot => ({
   title: `Позиция ${o.id}`,
@@ -124,12 +117,5 @@ describe('анкета покупателя', () => {
   it('неверная почта и длинное имя', () => {
     const r = checkBuyer({ ...good, email: 'нет', name: 'а'.repeat(101) });
     expect(!r.ok && Object.keys(r.errors).sort()).toEqual(['email', 'name']);
-  });
-});
-
-describe('цена словами', () => {
-  it('целые рубли без копеек, дробные - с двумя знаками', () => {
-    expect(formatRub(1_255_000).replace(/\s/g, ' ')).toBe('12 550 ₽');
-    expect(formatRub(1_255_050).replace(/\s/g, ' ')).toBe('12 550,50 ₽');
   });
 });

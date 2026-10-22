@@ -9,7 +9,12 @@
  * Участник - роль, а не человек: покупатель узнаётся по секретной ссылке
  * заказа, менеджер - редактор, система - плановая задача или уведомление
  * платёжного сервиса.
+ *
+ * Деньги внутри - целые микроединицы основной валюты учёта (`Micros`); наружу,
+ * в то, что видит сайт, они выходят только объектом `Money` (docs/adr/002-money.md).
  */
+
+import type { Micros, Money } from './money';
 
 export type Actor = 'buyer' | 'manager' | 'system';
 
@@ -113,8 +118,8 @@ export function isOverdue(
  * возвращается счётом-возвратом.
  */
 export function heldAmount(
-  invoices: readonly { kind: InvoiceKind; status: InvoiceStatus; total: number }[],
-): number {
+  invoices: readonly { kind: InvoiceKind; status: InvoiceStatus; total: Micros }[],
+): Micros {
   return invoices.reduce(
     (sum, i) => (i.status === 'paid' ? sum + (i.kind === 'refund' ? -i.total : i.total) : sum),
     0,
@@ -129,9 +134,9 @@ export function heldAmount(
  * возврат не считается: его не было.
  */
 export function refundable(
-  invoiceTotal: Kopecks,
-  refunds: readonly { status: InvoiceStatus; total: Kopecks }[],
-): Kopecks {
+  invoiceTotal: Micros,
+  refunds: readonly { status: InvoiceStatus; total: Micros }[],
+): Micros {
   return (
     invoiceTotal - refunds.filter((r) => r.status !== 'voided').reduce((t, r) => t + r.total, 0)
   );
@@ -145,8 +150,8 @@ export function refundable(
  * курс остаётся у покупателя.
  */
 export function fullyRefunded(
-  invoiceTotal: Kopecks,
-  refunds: readonly { status: InvoiceStatus; total: Kopecks }[],
+  invoiceTotal: Micros,
+  refunds: readonly { status: InvoiceStatus; total: Micros }[],
 ): boolean {
   return (
     refunds.filter((r) => r.status === 'paid').reduce((t, r) => t + r.total, 0) >= invoiceTotal
@@ -154,9 +159,6 @@ export function fullyRefunded(
 }
 
 /* ───────────────────────── Корзина и сборка заказа ───────────────────────── */
-
-/** Деньги - целые копейки: дробные рубли копят ошибку округления в итоге. */
-export type Kopecks = number;
 
 export interface CartLine {
   readonly offer: number;
@@ -168,7 +170,7 @@ export interface OfferSnapshot {
   readonly id: number;
   readonly title: string;
   /** Пусто - «цена по запросу», в заказ не идёт. */
-  readonly price: Kopecks | null;
+  readonly price: Micros | null;
   /** Пусто - без ограничений. */
   readonly stock: number | null;
   /** Доступ к видео, который продаёт позиция. */
@@ -179,13 +181,13 @@ export interface OrderLine {
   readonly offer: number;
   readonly title: string;
   readonly quantity: number;
-  readonly price: Kopecks;
-  readonly sum: Kopecks;
+  readonly price: Micros;
+  readonly sum: Micros;
   readonly access: number | null;
 }
 
 export type BuildOrderResult =
-  | { readonly ok: true; readonly lines: readonly OrderLine[]; readonly total: Kopecks }
+  | { readonly ok: true; readonly lines: readonly OrderLine[]; readonly total: Micros }
   | {
       readonly ok: false;
       /** Нечего заказывать: корзина пуста или все позиции без цены и удалены. */
@@ -298,14 +300,27 @@ export function checkBuyer(
 
 /* ───────────────────────── Что видит сайт ───────────────────────── */
 
-/** Позиция витрины, как её отдаёт CMS (`/api/offers`); цена в рублях - её вводит владелец. */
-export interface OfferDoc {
+/**
+ * Позиция витрины глазами сайта (`/api/shop/offers`).
+ *
+ * @remarks
+ * Цена - `Money` в валюте магазина; пусто - «цена по запросу», в корзину не
+ * кладётся. Сырые микроединицы из базы наружу не выходят.
+ */
+export interface OfferView {
   readonly id: number;
   readonly title: string;
-  readonly price?: number | null;
-  readonly stock?: number | null;
-  readonly summary?: string | null;
-  readonly image?: unknown;
+  readonly price: Money | null;
+  readonly stock: number | null;
+  readonly summary: string | null;
+  readonly image: unknown;
+}
+
+export interface BuyerLineView {
+  readonly title: string;
+  readonly quantity: number;
+  readonly price: Money;
+  readonly sum: Money;
 }
 
 export interface BuyerInvoiceView {
@@ -314,8 +329,8 @@ export interface BuyerInvoiceView {
   readonly status: InvoiceStatus;
   readonly overdue: boolean;
   readonly dueAt: string | null;
-  readonly total: Kopecks;
-  readonly lines: readonly { title: string; quantity: number; price: Kopecks; sum: Kopecks }[];
+  readonly total: Money;
+  readonly lines: readonly BuyerLineView[];
   readonly codes: readonly string[];
 }
 
@@ -324,25 +339,10 @@ export interface BuyerOrderView {
   readonly id: string;
   readonly status: OrderStatus;
   readonly createdAt: string;
-  readonly total: Kopecks;
-  readonly lines: readonly {
-    offer: number;
-    title: string;
-    quantity: number;
-    price: Kopecks;
-    sum: Kopecks;
-  }[];
+  readonly total: Money;
+  readonly lines: readonly (BuyerLineView & { readonly offer: number })[];
   readonly buyer: BuyerInput;
   readonly invoices: readonly BuyerInvoiceView[];
-}
-
-/** «12 550,50 ₽» из копеек; целые рубли без копеек. */
-export function formatRub(kopecks: Kopecks): string {
-  const rub = kopecks / 100;
-  return `${rub.toLocaleString('ru-RU', {
-    minimumFractionDigits: Number.isInteger(rub) ? 0 : 2,
-    maximumFractionDigits: 2,
-  })} ₽`;
 }
 
 export const ORDER_STATUS_LABELS: Readonly<Record<OrderStatus, string>> = {

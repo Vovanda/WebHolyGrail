@@ -618,10 +618,8 @@ overlay	src/cms/migrations/20260927_151802_page_background_veil.json
 overlay	src/cms/migrations/20260927_151802_page_background_veil.ts
 overlay	src/cms/migrations/20260927_160018_hero_photo.json
 overlay	src/cms/migrations/20260927_160018_hero_photo.ts
-overlay	src/cms/migrations/20261022_190657_shop.json
-overlay	src/cms/migrations/20261022_190657_shop.ts
-overlay	src/cms/migrations/20261022_192207_shop_blocks.json
-overlay	src/cms/migrations/20261022_192207_shop_blocks.ts
+overlay	src/cms/migrations/20261022_224847_shop.json
+overlay	src/cms/migrations/20261022_224847_shop.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts
@@ -649,6 +647,8 @@ mirror	src/cms/src/admin/components/ColorField.tsx
 mirror	src/cms/src/admin/components/ComplianceNotice.tsx
 mirror	src/cms/src/admin/components/LayoutJsonField.tsx
 mirror	src/cms/src/admin/components/MediaCopiesField.tsx
+mirror	src/cms/src/admin/components/MoneyCell.tsx
+mirror	src/cms/src/admin/components/MoneyField.tsx
 mirror	src/cms/src/admin/components/PalettePresetField.tsx
 mirror	src/cms/src/admin/components/PlaylistCoverCell.tsx
 mirror	src/cms/src/admin/components/PlaylistItemRowLabel.tsx
@@ -726,6 +726,7 @@ mirror	src/cms/src/collections/MediaAccessCodes.ts
 mirror	src/cms/src/collections/MediaAccesses.ts
 mirror	src/cms/src/collections/MediaAccessLinks.ts
 mirror	src/cms/src/collections/MediaAccessRights.ts
+mirror	src/cms/src/collections/money-field.ts
 mirror	src/cms/src/collections/Offers.ts
 mirror	src/cms/src/collections/Orders.ts
 mirror	src/cms/src/collections/Pages.ts
@@ -822,6 +823,7 @@ mirror	src/cms/src/lib/preview.test.ts
 mirror	src/cms/src/lib/preview.ts
 mirror	src/cms/src/lib/shop/invoices.ts
 mirror	src/cms/src/lib/shop/memory-store.ts
+mirror	src/cms/src/lib/shop/money.ts
 mirror	src/cms/src/lib/shop/order-link.ts
 mirror	src/cms/src/lib/shop/orders.ts
 mirror	src/cms/src/lib/shop/payload-access.ts
