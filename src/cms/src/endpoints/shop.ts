@@ -4,6 +4,8 @@ import {
   canInvoice,
   canOrder,
   cleanCart,
+  MAX_CART_LINES,
+  parseMoney,
   INVOICE_TRANSITIONS,
   ORDER_TRANSITIONS,
   refundable,
@@ -16,10 +18,10 @@ import { changeInvoice, createInvoice, createRefund, reportBySecret } from '../l
 import { cancelBySecret, changeOrder, placeOrder } from '../lib/shop/orders';
 import { payloadAccess } from '../lib/shop/payload-access';
 import { payloadPorts } from '../lib/shop/payload-store';
-import type { Failure, Outcome, ShopPorts } from '../lib/shop/ports';
+import type { Failure, OfferQuery, Outcome, ShopPorts } from '../lib/shop/ports';
 import { hashOrderSecret, isOrderSecret, newOrderSecret } from '../lib/shop/order-link';
 import { take, type RuleName } from '../lib/shop/throttle';
-import { toBuyerView } from '../lib/shop/view';
+import { toBuyerView, toOfferView } from '../lib/shop/view';
 import { allowedOrigins, clientKey, json } from './video/shared';
 
 /**
@@ -107,6 +109,44 @@ async function editor(req: PayloadRequest): Promise<boolean> {
   return isEditor(user);
 }
 
+/** `?ids=3,7` - позиции корзины; иначе `?limit=` первых по названию, для витрины. */
+function offerQuery(req: PayloadRequest): OfferQuery {
+  const url = new URL(req.url ?? 'http://local/');
+  const ids = url.searchParams.get('ids');
+  if (ids !== null) {
+    return {
+      ids: ids
+        .split(',')
+        .map(Number)
+        .filter((id) => Number.isInteger(id) && id > 0)
+        .slice(0, MAX_CART_LINES),
+    };
+  }
+  const limit = Math.floor(Number(url.searchParams.get('limit') ?? 60));
+  return { limit: Number.isFinite(limit) ? Math.min(Math.max(limit, 1), 100) : 60 };
+}
+
+/**
+ * Позиции для витрины и корзины - цены в `Money`.
+ *
+ * @remarks
+ * Своя ручка вместо REST коллекции: в базе цена - микроединицы учёта, наружу
+ * она выходит только в валюте магазина. Частоту не считаем: витрину запрашивает
+ * сервер сайта за всех посетителей сразу, и лимит запер бы страницу.
+ */
+const offersEndpoint: Endpoint = {
+  path: '/shop/offers',
+  method: 'get',
+  handler: async (req) => {
+    const refused = guard(req, null);
+    if (refused) return refused;
+    const p = ports(req);
+    const now = new Date();
+    const cards = await p.offers.cards(offerQuery(req));
+    return json({ docs: cards.map((c) => toOfferView(c, p.money, now)) });
+  },
+};
+
 const placeOrderEndpoint: Endpoint = {
   path: '/shop/orders',
   method: 'post',
@@ -115,13 +155,14 @@ const placeOrderEndpoint: Endpoint = {
     if (refused) return refused;
     const data = await body(req);
     const secret = newOrderSecret();
-    const result = await placeOrder(ports(req), {
+    const p = ports(req);
+    const result = await placeOrder(p, {
       cart: cleanCart(Array.isArray(data['cart']) ? data['cart'] : []),
       buyer: (data['buyer'] ?? {}) as Record<string, unknown>,
       secretHash: secret.hash,
     });
     return answer(result, (order) => ({
-      order: toBuyerView(order, [], new Date()),
+      order: toBuyerView(order, [], new Date(), p.money),
       secret: secret.token,
     }));
   },
@@ -137,7 +178,7 @@ const orderViewEndpoint: Endpoint = {
     const p = ports(req);
     const order = hash ? await p.orders.bySecretHash(hash) : null;
     if (!order) return json({ error: 'not_found' }, 404);
-    return json(toBuyerView(order, await p.invoices.forOrder(order.id), new Date()));
+    return json(toBuyerView(order, await p.invoices.forOrder(order.id), new Date(), p.money));
   },
 };
 
@@ -208,7 +249,7 @@ const adminActionsEndpoint: Endpoint = {
         kind: invoice.kind,
         actions,
         canRefund,
-        refundable: left,
+        refundable: p.money.at(Math.max(left, 0), new Date()),
       });
     }
     return json({ error: 'not_found' }, 404);
@@ -236,7 +277,14 @@ const adminActionEndpoint: Endpoint = {
     }
     if (kind === 'invoices' && action === 'refund') {
       const data = await body(req);
-      const amount = typeof data['amount'] === 'number' ? data['amount'] : undefined;
+      let amount: number | undefined;
+      if (data['amount'] !== undefined) {
+        const parsed = parseMoney(data['amount']);
+        if (!parsed.ok) return json({ error: 'invalid', detail: parsed.error }, 400);
+        const back = p.money.back(parsed.money, new Date());
+        if (back === null) return json({ error: 'invalid', detail: 'currency' }, 400);
+        amount = back;
+      }
       return answer(await createRefund(p, id, { amount }), (i) => ({ id: i.id }));
     }
     if (kind === 'invoices' && Object.hasOwn(INVOICE_TRANSITIONS, action)) {
@@ -249,6 +297,7 @@ const adminActionEndpoint: Endpoint = {
 };
 
 export const shopEndpoints: Endpoint[] = [
+  offersEndpoint,
   placeOrderEndpoint,
   orderViewEndpoint,
   buyerCancelEndpoint,

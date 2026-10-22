@@ -4,7 +4,7 @@ import {
   fullyRefunded,
   type InvoiceAction,
   INVOICE_TRANSITIONS,
-  type Kopecks,
+  type Micros,
   refundable,
 } from 'contracts';
 
@@ -35,7 +35,7 @@ export interface LineInput {
   readonly offer: number | null;
   readonly title: string;
   readonly quantity: number;
-  readonly price: Kopecks;
+  readonly price: Micros;
 }
 
 export interface DraftInput {
@@ -109,7 +109,7 @@ export function draftLines(
   return ok(lines);
 }
 
-const totalOf = (lines: readonly InvoiceLine[]): Kopecks => lines.reduce((t, l) => t + l.sum, 0);
+const totalOf = (lines: readonly InvoiceLine[]): Micros => lines.reduce((t, l) => t + l.sum, 0);
 
 /** Черновик счёта к принятому заказу. */
 export async function createInvoice(
@@ -184,7 +184,7 @@ export async function deleteDraft(ports: ShopPorts, id: Id): Promise<Outcome<nul
 export async function createRefund(
   ports: ShopPorts,
   invoiceId: Id,
-  input: { amount?: Kopecks | undefined } = {},
+  input: { amount?: Micros | undefined } = {},
 ): Promise<Outcome<StoredInvoice>> {
   return ports.transaction(async (tx) => {
     const source = await tx.invoices.get(invoiceId);

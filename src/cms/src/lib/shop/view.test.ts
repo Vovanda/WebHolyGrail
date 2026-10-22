@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { moneyPort } from './money';
 import type { StoredInvoice, StoredOrder } from './ports';
 import { hashOrderSecret, isOrderSecret, newOrderSecret } from './order-link';
 import { toBuyerView } from './view';
@@ -7,8 +8,10 @@ import { toBuyerView } from './view';
 const order: StoredOrder = {
   id: 7,
   status: 'accepted',
-  lines: [{ offer: 3, title: 'Курс', quantity: 1, price: 100, sum: 100, access: 9 }],
-  total: 100,
+  lines: [
+    { offer: 3, title: 'Курс', quantity: 1, price: 4_500_500_000, sum: 4_500_500_000, access: 9 },
+  ],
+  total: 4_500_500_000,
   buyer: { name: 'Анна', phone: '+7', email: '', comment: '' },
   secretHash: 'секретный хэш',
   createdAt: '2026-10-23T00:00:00Z',
@@ -20,15 +23,17 @@ const invoice = (o: Partial<StoredInvoice>): StoredInvoice => ({
   status: 'issued',
   refundOf: null,
   lines: order.lines,
-  total: 100,
+  total: 4_500_500_000,
   dueAt: null,
   codes: [{ line: 0, codeId: 55, code: 'ABCD1234' }],
   ...o,
 });
 
+const rub = moneyPort();
+
 describe('заказ глазами покупателя', () => {
   it('без хэша секрета, номеров кодов и доступа в строках', () => {
-    const v = toBuyerView(order, [], new Date());
+    const v = toBuyerView(order, [], new Date(), rub);
     expect(JSON.stringify(v)).not.toContain('секретный хэш');
     expect(Object.keys(v.lines[0]!)).toEqual(['offer', 'title', 'quantity', 'price', 'sum']);
   });
@@ -42,6 +47,7 @@ describe('заказ глазами покупателя', () => {
         invoice({ id: 3, status: 'paid' }),
       ],
       new Date(),
+      rub,
     );
     expect(v.invoices.map((i) => [i.id, i.codes])).toEqual([
       ['2', []],
@@ -55,8 +61,31 @@ describe('заказ глазами покупателя', () => {
       order,
       [invoice({ dueAt: '2026-10-01T00:00:00Z' })],
       new Date('2026-10-23T00:00:00Z'),
+      rub,
     );
     expect(v.invoices[0]?.overdue).toBe(true);
+  });
+
+  it('суммы выходят Money в валюте магазина', () => {
+    const v = toBuyerView(order, [invoice({})], new Date(), rub);
+    expect(v.total).toEqual({ units: 4500, micros: 500_000, currency: 'RUB' });
+    expect(v.lines[0]?.sum).toEqual(v.total);
+    expect(v.invoices[0]?.total).toEqual(v.total);
+  });
+
+  it('курс берётся на дату оформления: смена курса после заказа сумм не меняет', () => {
+    const usd = (from: string, to: string | null, rub: number) => ({
+      currency: 'USD' as const,
+      microsPerUnit: rub * 1_000_000,
+      from,
+      to,
+    });
+    const rates = [
+      usd('2026-01-01T00:00:00Z', '2026-11-01T00:00:00Z', 90),
+      usd('2026-11-01T00:00:00Z', null, 100),
+    ];
+    const v = toBuyerView(order, [], new Date('2026-12-01T00:00:00Z'), moneyPort('USD', rates));
+    expect(v.total).toEqual({ units: 50, micros: 5_555, currency: 'USD' });
   });
 });
 

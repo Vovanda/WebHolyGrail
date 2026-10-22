@@ -2,6 +2,8 @@ import type { CollectionConfig, Field } from 'payload';
 
 import { editorsOnly, nobody, nobodyField } from '../lib/access/editors';
 
+import { moneyField } from './money-field';
+
 /**
  * Заказы магазина.
  *
@@ -23,7 +25,7 @@ export const ORDER_STATUS_OPTIONS = [
   { value: 'cancelled', label: 'Отменён' },
 ];
 
-/** Строка заказа или счёта; деньги в копейках, как в сценариях. */
+/** Строка заказа или счёта; деньги - целые микроединицы учёта. */
 export const shopLineFields: Field[] = [
   { name: 'offer', label: 'Позиция', type: 'relationship', relationTo: 'offers' },
   { name: 'title', label: 'Название', type: 'text', required: true },
@@ -31,8 +33,8 @@ export const shopLineFields: Field[] = [
     type: 'row',
     fields: [
       { name: 'quantity', label: 'Кол-во', type: 'number', required: true, min: 1 },
-      { name: 'price', label: 'Цена, коп.', type: 'number', required: true, min: 0 },
-      { name: 'sum', label: 'Сумма, коп.', type: 'number', admin: ro },
+      moneyField('priceMicros', 'Цена', { required: true }),
+      moneyField('sumMicros', 'Сумма', { admin: ro }),
     ],
   },
   {
@@ -49,7 +51,7 @@ export const Orders: CollectionConfig = {
   labels: { singular: 'Заказ', plural: 'Заказы' },
   admin: {
     useAsTitle: 'id',
-    defaultColumns: ['id', 'status', 'total', 'buyer.name', 'createdAt'],
+    defaultColumns: ['id', 'status', 'totalMicros', 'buyer.name', 'createdAt'],
     group: 'Магазин',
   },
   access: { read: editorsOnly, create: nobody, update: editorsOnly, delete: nobody },
@@ -69,14 +71,11 @@ export const Orders: CollectionConfig = {
       access: locked,
       admin: { ...ro, position: 'sidebar' },
     },
-    {
-      name: 'total',
-      label: 'Итог, коп.',
-      type: 'number',
+    moneyField('totalMicros', 'Итог', {
       required: true,
       access: locked,
       admin: { ...ro, position: 'sidebar' },
-    },
+    }),
     {
       name: 'buyer',
       label: 'Покупатель',

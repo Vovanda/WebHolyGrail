@@ -2,7 +2,8 @@ import { APIError, type CollectionConfig } from 'payload';
 
 import { editorsOnly, isEditor, nobody, nobodyField } from '../lib/access/editors';
 import { draftLines } from '../lib/shop/invoices';
-import { orderFromDoc } from '../lib/shop/payload-store';
+import { lineToDoc, orderFromDoc } from '../lib/shop/payload-store';
+import { moneyField } from './money-field';
 import { shopLineFields } from './Orders';
 
 /**
@@ -25,7 +26,7 @@ export const Invoices: CollectionConfig = {
   labels: { singular: 'Счёт', plural: 'Счета' },
   admin: {
     useAsTitle: 'id',
-    defaultColumns: ['id', 'kind', 'status', 'total', 'order', 'dueAt'],
+    defaultColumns: ['id', 'kind', 'status', 'totalMicros', 'order', 'dueAt'],
     group: 'Магазин',
   },
   access: { read: editorsOnly, create: nobody, update: editorsOnly, delete: nobody },
@@ -51,7 +52,7 @@ export const Invoices: CollectionConfig = {
             offer: l['offer'] === null || l['offer'] === undefined ? null : Number(l['offer']),
             title: String(l['title'] ?? ''),
             quantity: Number(l['quantity']),
-            price: Number(l['price']),
+            price: Number(l['priceMicros']),
           })),
         );
         if (!lines.ok) {
@@ -67,8 +68,8 @@ export const Invoices: CollectionConfig = {
         }
         return {
           ...data,
-          lines: lines.value,
-          total: lines.value.reduce((t, l) => t + l.sum, 0),
+          lines: lines.value.map(lineToDoc),
+          totalMicros: lines.value.reduce((t, l) => t + l.sum, 0),
         };
       },
     ],
@@ -136,14 +137,11 @@ export const Invoices: CollectionConfig = {
         date: { pickerAppearance: 'dayOnly', displayFormat: 'dd.MM.yyyy' },
       },
     },
-    {
-      name: 'total',
-      label: 'Итог, коп.',
-      type: 'number',
+    moneyField('totalMicros', 'Итог', {
       required: true,
       access: { create: nobodyField },
       admin: { ...ro, position: 'sidebar' },
-    },
+    }),
     {
       name: 'lines',
       label: 'Строки',

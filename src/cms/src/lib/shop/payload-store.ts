@@ -9,16 +9,25 @@ import {
 
 import type { OfferSnapshot, OrderLine, OrderStatus } from 'contracts';
 
+import { moneyPort } from './money';
 import { type Execute, returnStock, takeStock } from './stock';
-import type { Id, InvoiceLine, IssuedCode, ShopPorts, StoredInvoice, StoredOrder } from './ports';
+import type {
+  Id,
+  InvoiceLine,
+  IssuedCode,
+  OfferCard,
+  ShopPorts,
+  StoredInvoice,
+  StoredOrder,
+} from './ports';
 
 /**
  * Порты магазина на Payload - единственное место модуля, которое знает о CMS.
  *
  * @remarks
- * Цена позиции хранится в рублях (её вводит владелец), сценарии считают в
- * копейках - перевод здесь. Связи приходят то номером, то документом; здесь
- * же они сводятся к номеру.
+ * Суммы в базе - целые микроединицы учёта в полях с единицей в имени
+ * (`priceMicros`, `totalMicros`), сценарии получают их под предметными именами.
+ * Связи приходят то номером, то документом; здесь они сводятся к номеру.
  *
  * Остаток списывается условной записью в базе (`stock.ts`): двойной продажи нет
  * и между процессами. Транзакции Payload в движке сейчас пустые (#155), поэтому
@@ -32,16 +41,27 @@ const idOf = (v: unknown): number | null => {
   return Number(v);
 };
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
-const kopecks = (rub: unknown): number | null =>
-  typeof rub === 'number' && Number.isFinite(rub) ? Math.round(rub * 100) : null;
+const micros = (v: unknown): number | null =>
+  typeof v === 'number' && Number.isSafeInteger(v) ? v : null;
 
 export function offerFromDoc(doc: Record<string, unknown>): OfferSnapshot {
   return {
     id: Number(doc['id']),
     title: str(doc['title']),
-    price: kopecks(doc['price']),
+    price: micros(doc['priceMicros']),
     stock: typeof doc['stock'] === 'number' ? doc['stock'] : null,
     access: idOf(doc['access']),
+  };
+}
+
+export function cardFromDoc(doc: Record<string, unknown>): OfferCard {
+  return {
+    id: Number(doc['id']),
+    title: str(doc['title']),
+    price: micros(doc['priceMicros']),
+    stock: typeof doc['stock'] === 'number' ? doc['stock'] : null,
+    summary: typeof doc['summary'] === 'string' ? doc['summary'] : null,
+    image: doc['image'] ?? null,
   };
 }
 
@@ -49,8 +69,8 @@ const lineFromDoc = (l: Record<string, unknown>): InvoiceLine => ({
   offer: idOf(l['offer']),
   title: str(l['title']),
   quantity: Number(l['quantity']),
-  price: Number(l['price']),
-  sum: Number(l['sum']),
+  price: Number(l['priceMicros']),
+  sum: Number(l['sumMicros']),
   access: idOf(l['access']),
 });
 
@@ -62,7 +82,7 @@ export function orderFromDoc(doc: Record<string, unknown>): StoredOrder {
     lines: ((doc['lines'] ?? []) as Record<string, unknown>[]).map(
       (l) => ({ ...lineFromDoc(l), offer: Number(idOf(l['offer'])) }) as OrderLine,
     ),
-    total: Number(doc['total']),
+    total: Number(doc['totalMicros']),
     buyer: {
       name: str(buyer['name']),
       phone: str(buyer['phone']),
@@ -82,7 +102,7 @@ export function invoiceFromDoc(doc: Record<string, unknown>): StoredInvoice {
     status: doc['status'] as StoredInvoice['status'],
     refundOf: idOf(doc['refundOf']),
     lines: ((doc['lines'] ?? []) as Record<string, unknown>[]).map(lineFromDoc),
-    total: Number(doc['total']),
+    total: Number(doc['totalMicros']),
     dueAt: typeof doc['dueAt'] === 'string' ? doc['dueAt'] : null,
     codes: ((doc['codes'] ?? []) as Record<string, unknown>[]).map(
       (c): IssuedCode => ({
@@ -94,14 +114,22 @@ export function invoiceFromDoc(doc: Record<string, unknown>): StoredInvoice {
   };
 }
 
-const lineToDoc = (l: InvoiceLine | OrderLine) => ({
+export const lineToDoc = (l: InvoiceLine | OrderLine) => ({
   offer: l.offer,
   title: l.title,
   quantity: l.quantity,
-  price: l.price,
-  sum: l.sum,
+  priceMicros: l.price,
+  sumMicros: l.sum,
   access: l.access,
 });
+
+/** Документ под запись: суммы - в поля с единицей в имени. */
+function withTotal<T extends { total?: number }>(
+  doc: T,
+): Omit<T, 'total'> & { totalMicros?: number } {
+  const { total, ...rest } = doc;
+  return total === undefined ? rest : { ...rest, totalMicros: total };
+}
 
 /**
  * Прямая запись в базу для условного списания остатка: через Payload её не
@@ -155,6 +183,23 @@ export function payloadPorts(
         });
         return found.docs.map((d) => offerFromDoc(d as unknown as Record<string, unknown>));
       },
+      cards: async (query) => {
+        const ids =
+          'ids' in query
+            ? [...new Set(query.ids.filter((id) => Number.isInteger(id) && id > 0))]
+            : null;
+        if (ids?.length === 0) return [];
+        const found = await payload.find({
+          collection: 'offers',
+          ...(ids ? { where: { id: { in: ids } } } : {}),
+          limit: ids ? ids.length : Math.min(Math.max(1, 'limit' in query ? query.limit : 1), 100),
+          sort: 'title',
+          pagination: false,
+          ...opts,
+          depth: 1,
+        });
+        return found.docs.map((d) => cardFromDoc(d as unknown as Record<string, unknown>));
+      },
       take: (lines) => takeStock(execute(payload), lines),
       giveBack: (lines) => returnStock(execute(payload), lines),
     },
@@ -162,7 +207,7 @@ export function payloadPorts(
       create: async (o) => {
         const doc = await payload.create({
           collection: 'orders',
-          data: { ...o, lines: o.lines.map(lineToDoc) } as never,
+          data: { ...withTotal(o), lines: o.lines.map(lineToDoc) } as never,
           ...opts,
         });
         return orderFromDoc(doc as unknown as Record<string, unknown>);
@@ -220,13 +265,13 @@ export function payloadPorts(
       create: async (i) => {
         const doc = await payload.create({
           collection: 'invoices',
-          data: { ...i, lines: i.lines.map(lineToDoc), codes: [...i.codes] } as never,
+          data: { ...withTotal(i), lines: i.lines.map(lineToDoc), codes: [...i.codes] } as never,
           ...opts,
         });
         return invoiceFromDoc(doc as unknown as Record<string, unknown>);
       },
       update: async (id, patch) => {
-        const data: Record<string, unknown> = { ...patch };
+        const data: Record<string, unknown> = { ...withTotal(patch) };
         if (patch.lines) data['lines'] = patch.lines.map(lineToDoc);
         if (patch.codes)
           data['codes'] = patch.codes.map((c) => ({ ...c, codeId: String(c.codeId) }));
@@ -237,6 +282,7 @@ export function payloadPorts(
       },
     },
     access: access(req),
+    money: moneyPort(),
     now: () => new Date(),
     transaction: (work) => {
       // Внутри открытой транзакции вложенный сценарий идёт в ней же: второй

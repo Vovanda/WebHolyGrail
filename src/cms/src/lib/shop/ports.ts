@@ -1,7 +1,8 @@
 import type {
   InvoiceKind,
   InvoiceStatus,
-  Kopecks,
+  Micros,
+  Money,
   OfferSnapshot,
   OrderLine,
   OrderStatus,
@@ -30,7 +31,7 @@ export interface StoredOrder {
   readonly id: Id;
   readonly status: OrderStatus;
   readonly lines: readonly OrderLine[];
-  readonly total: Kopecks;
+  readonly total: Micros;
   readonly buyer: Buyer;
   /** Хэш секрета ссылки заказа; сам секрет знает только покупатель. */
   readonly secretHash: string;
@@ -42,8 +43,8 @@ export interface InvoiceLine {
   readonly offer: number | null;
   readonly title: string;
   readonly quantity: number;
-  readonly price: Kopecks;
-  readonly sum: Kopecks;
+  readonly price: Micros;
+  readonly sum: Micros;
   readonly access: number | null;
 }
 
@@ -62,13 +63,28 @@ export interface StoredInvoice {
   /** Счёт, который возвращает возврат. */
   readonly refundOf: Id | null;
   readonly lines: readonly InvoiceLine[];
-  readonly total: Kopecks;
+  readonly total: Micros;
   readonly dueAt: string | null;
   readonly codes: readonly IssuedCode[];
 }
 
+/** Позиция для витрины и корзины: то, что показывают покупателю, цена - в учёте. */
+export interface OfferCard {
+  readonly id: number;
+  readonly title: string;
+  readonly price: Micros | null;
+  readonly stock: number | null;
+  readonly summary: string | null;
+  /** Картинка как её отдаёт хранилище - сайт показывает её своим примитивом. */
+  readonly image: unknown;
+}
+
+/** Какие позиции показать: выбранные по номерам либо первые `limit` по названию. */
+export type OfferQuery = { readonly ids: readonly number[] } | { readonly limit: number };
+
 export interface OfferPort {
   snapshots(ids: readonly number[]): Promise<OfferSnapshot[]>;
+  cards(query: OfferQuery): Promise<OfferCard[]>;
   /**
    * Списывает остаток условной записью; не хватило на строке - возвращает
    * уже списанное и называет её (lib/shop/stock.ts).
@@ -104,11 +120,22 @@ export interface AccessPort {
   revoke(code: { codeId: Id; code: string }): Promise<void>;
 }
 
+/**
+ * Деньги наружу: сумма учёта → `Money` в валюте магазина по курсу на дату
+ * документа (docs/adr/003-currencies.md). Внутри модуля сумм в `Money` нет.
+ */
+export interface MoneyPort {
+  at(amount: Micros, date: Date): Money;
+  /** Обратно в учёт; сумма не в валюте магазина - null. */
+  back(money: Money, date: Date): Micros | null;
+}
+
 export interface ShopPorts {
   readonly offers: OfferPort;
   readonly orders: OrderPort;
   readonly invoices: InvoicePort;
   readonly access: AccessPort;
+  readonly money: MoneyPort;
   readonly now: () => Date;
   /** Всё внутри - одна транзакция: либо целиком, либо ничего. */
   transaction<T>(work: (ports: ShopPorts) => Promise<T>): Promise<T>;

@@ -1,5 +1,6 @@
 import type { OfferSnapshot, OrderStatus } from 'contracts';
 
+import { moneyPort } from './money';
 import type { Id, ShopPorts, StoredInvoice, StoredOrder } from './ports';
 
 /**
@@ -44,6 +45,19 @@ export function memoryPorts(state: MemoryState): ShopPorts {
     offers: {
       snapshots: async (ids) =>
         ids.map((id) => state.offers.get(id)).filter((o): o is OfferSnapshot => !!o),
+      cards: async (query) => {
+        const all = [...state.offers.values()].sort((a, b) => a.title.localeCompare(b.title));
+        const picked =
+          'ids' in query ? all.filter((o) => query.ids.includes(o.id)) : all.slice(0, query.limit);
+        return picked.map((o) => ({
+          id: o.id,
+          title: o.title,
+          price: o.price,
+          stock: o.stock,
+          summary: null,
+          image: null,
+        }));
+      },
       take: async (lines) => {
         const taken: { offer: number; quantity: number }[] = [];
         for (const l of lines) {
@@ -115,6 +129,7 @@ export function memoryPorts(state: MemoryState): ShopPorts {
         if (c) c.revoked = true;
       },
     },
+    money: moneyPort(),
     now: () => state.now,
     transaction: async (work) => {
       const saved = clone(state);

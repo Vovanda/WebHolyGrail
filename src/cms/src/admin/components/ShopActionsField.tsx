@@ -3,6 +3,8 @@
 import { useDocumentInfo } from '@payloadcms/ui';
 import { useEffect, useState } from 'react';
 
+import { formatMoney, type Money, toMoney, unitsToMicros } from 'contracts';
+
 /**
  * Кнопки переходов заказа и счёта в админке.
  *
@@ -34,8 +36,8 @@ interface State {
   actions: string[];
   canInvoice?: boolean;
   canRefund?: boolean;
-  /** Сколько ещё можно вернуть по счёту, в копейках. */
-  refundable?: number;
+  /** Сколько ещё можно вернуть по счёту. */
+  refundable?: Money;
 }
 
 export function ShopActionsField() {
@@ -67,13 +69,17 @@ export function ShopActionsField() {
     }
     let body: Record<string, unknown> = {};
     if (action === 'refund') {
-      const left = ((state.refundable ?? 0) / 100).toLocaleString('ru-RU');
-      const raw = window.prompt(`Сколько вернуть, ₽? Пусто - всё, что осталось: ${left} ₽.`, '');
+      const left = state.refundable;
+      if (!left) return;
+      const raw = window.prompt(
+        `Сколько вернуть? Пусто - всё, что осталось: ${formatMoney(left)}.`,
+        '',
+      );
       if (raw === null) return;
-      const rub = Number(raw.replace(',', '.'));
-      if (raw.trim() && (!Number.isFinite(rub) || rub <= 0))
+      const units = Number(raw.replace(/\s/g, '').replace(',', '.'));
+      if (raw.trim() && (!Number.isFinite(units) || units <= 0))
         return setError('Сумма - число больше нуля.');
-      if (raw.trim()) body = { amount: Math.round(rub * 100) };
+      if (raw.trim()) body = { amount: toMoney(unitsToMicros(units), left.currency) };
     }
     setBusy(true);
     setError(null);
