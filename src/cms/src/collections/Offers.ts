@@ -45,6 +45,12 @@ export const Offers: CollectionConfig = {
         },
       ],
     },
+    moneyField('depositMicros', 'Бронь', {
+      admin: {
+        description:
+          'Часть цены вперёд. Сначала выставляется счёт на бронь, потом основной - на цену минус бронь.',
+      },
+    }),
     {
       name: 'howToBuy',
       label: 'Как купить',

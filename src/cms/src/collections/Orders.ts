@@ -102,6 +102,7 @@ export const Orders: CollectionConfig = {
       admin: ro,
       fields: [
         ...shopLineFields,
+        moneyField('depositMicros', 'Бронь', { admin: ro }),
         {
           name: 'mode',
           label: 'Как купить',

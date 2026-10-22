@@ -53,6 +53,7 @@ export function offerFromDoc(doc: Record<string, unknown>): OfferSnapshot {
     stock: typeof doc['stock'] === 'number' ? doc['stock'] : null,
     access: idOf(doc['access']),
     howToBuy: howToBuy(doc['howToBuy']),
+    deposit: micros(doc['depositMicros']),
   };
 }
 
@@ -65,6 +66,7 @@ export function cardFromDoc(doc: Record<string, unknown>): OfferCard {
     summary: typeof doc['summary'] === 'string' ? doc['summary'] : null,
     image: doc['image'] ?? null,
     howToBuy: howToBuy(doc['howToBuy']),
+    deposit: micros(doc['depositMicros']),
   };
 }
 
@@ -88,6 +90,7 @@ export function orderFromDoc(doc: Record<string, unknown>): StoredOrder {
           ...lineFromDoc(l),
           offer: Number(idOf(l['offer'])),
           mode: howToBuy(l['mode']),
+          deposit: micros(l['depositMicros']),
         }) as OrderLine,
     ),
     total: Number(doc['totalMicros']),
@@ -107,6 +110,7 @@ export function invoiceFromDoc(doc: Record<string, unknown>): StoredInvoice {
     id: doc['id'] as Id,
     order: idOf(doc['order']),
     kind: doc['kind'] as StoredInvoice['kind'],
+    purpose: doc['purpose'] === 'deposit' ? 'deposit' : 'payment',
     status: doc['status'] as StoredInvoice['status'],
     refundOf: idOf(doc['refundOf']),
     lines: ((doc['lines'] ?? []) as Record<string, unknown>[]).map(lineFromDoc),
@@ -129,7 +133,7 @@ export const lineToDoc = (l: InvoiceLine | OrderLine) => ({
   priceMicros: l.price,
   sumMicros: l.sum,
   access: l.access,
-  ...('mode' in l ? { mode: l.mode } : {}),
+  ...('mode' in l ? { mode: l.mode, depositMicros: l.deposit } : {}),
 });
 
 /** Документ под запись: суммы - в поля с единицей в имени. */

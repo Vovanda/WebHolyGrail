@@ -102,6 +102,19 @@ export const Invoices: CollectionConfig = {
       admin: { ...ro, position: 'sidebar' },
     },
     {
+      name: 'purpose',
+      label: 'Назначение',
+      type: 'select',
+      required: true,
+      defaultValue: 'payment',
+      options: [
+        { value: 'payment', label: 'Оплата позиций' },
+        { value: 'deposit', label: 'Бронь' },
+      ],
+      access: locked,
+      admin: { ...ro, position: 'sidebar', condition: (data) => data?.['kind'] === 'invoice' },
+    },
+    {
       name: 'status',
       label: 'Состояние',
       type: 'select',

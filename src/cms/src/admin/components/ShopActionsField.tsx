@@ -19,6 +19,7 @@ const LABELS: Record<string, string> = {
   complete: 'Выполнен',
   cancel: 'Отменить заказ',
   invoice: 'Выставить счёт',
+  deposit: 'Счёт на бронь',
   issue: 'Выставить',
   confirm: 'Оплата получена',
   reject: 'Денег нет',
@@ -36,6 +37,7 @@ const ERRORS: Record<string, string> = {
 interface State {
   actions: string[];
   canInvoice?: boolean;
+  canDeposit?: boolean;
   canDelete?: boolean;
   canRefund?: boolean;
   /** Сколько ещё можно вернуть по счёту. */
@@ -60,6 +62,7 @@ export function ShopActionsField() {
   if (!id || !state) return null;
   const buttons = [
     ...state.actions,
+    ...(state.canDeposit ? ['deposit'] : []),
     ...(state.canInvoice ? ['invoice'] : []),
     ...(state.canRefund ? ['refund'] : []),
     ...(state.canDelete ? ['delete'] : []),

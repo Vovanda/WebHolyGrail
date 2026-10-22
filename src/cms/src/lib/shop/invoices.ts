@@ -1,10 +1,13 @@
 import {
   type Actor,
   canInvoice,
+  depositLines,
   fullyRefunded,
   type InvoiceAction,
+  type InvoicePurpose,
   INVOICE_TRANSITIONS,
   type Micros,
+  paymentPrice,
   refundable,
 } from 'contracts';
 
@@ -39,6 +42,8 @@ export interface LineInput {
 }
 
 export interface DraftInput {
+  /** Бронь или оплата позиций; по умолчанию оплата. */
+  readonly purpose?: InvoicePurpose | undefined;
   /** Пусто - строки копируются из заказа. */
   readonly lines?: readonly LineInput[] | undefined;
   readonly dueAt?: string | null | undefined;
@@ -115,7 +120,14 @@ export function draftLines(
 
 const totalOf = (lines: readonly InvoiceLine[]): Micros => lines.reduce((t, l) => t + l.sum, 0);
 
-/** Черновик счёта к принятому заказу. */
+/**
+ * Черновик счёта к принятому заказу.
+ *
+ * @remarks
+ * Счёт на бронь собирается из позиций с бронью, и у заказа он один, пока не
+ * аннулирован. Основной счёт после живой брони берёт за такие позиции цену
+ * минус бронь (`paymentPrice`); без брони - полную цену.
+ */
 export async function createInvoice(
   ports: ShopPorts,
   orderId: Id,
@@ -125,12 +137,30 @@ export async function createInvoice(
     const order = await tx.orders.get(orderId);
     if (!order) return fail('not_found');
     if (order.status !== 'accepted') return fail('forbidden');
-    const lines = draftLines(order, input.lines);
+    const purpose = input.purpose ?? 'payment';
+    const live = (await tx.invoices.forOrder(order.id)).filter(
+      (i) => i.kind === 'invoice' && i.status !== 'voided',
+    );
+    const depositTaken = live.some((i) => i.purpose === 'deposit');
+    let source: readonly LineInput[] | undefined = input.lines;
+    if (purpose === 'deposit') {
+      if (depositTaken) return fail('forbidden');
+      source = depositLines(order.lines);
+      if (source.length === 0) return fail('invalid');
+    }
+    source ??= order.lines.map((l) => ({
+      offer: l.offer,
+      title: l.title,
+      quantity: l.quantity,
+      price: paymentPrice(l, depositTaken),
+    }));
+    const lines = draftLines(order, source);
     if (!lines.ok) return lines;
     return ok(
       await tx.invoices.create({
         order: order.id,
         kind: 'invoice',
+        purpose,
         status: 'draft',
         refundOf: null,
         lines: lines.value,
@@ -203,6 +233,7 @@ export async function createRefund(
       await tx.invoices.create({
         order: source.order,
         kind: 'refund',
+        purpose: 'payment',
         status: 'draft',
         refundOf: source.id,
         lines: [

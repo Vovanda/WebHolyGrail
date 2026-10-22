@@ -1,5 +1,6 @@
 import type {
   InvoiceKind,
+  InvoicePurpose,
   InvoiceStatus,
   HowToBuy,
   Micros,
@@ -60,6 +61,8 @@ export interface StoredInvoice {
   readonly id: Id;
   readonly order: Id | null;
   readonly kind: InvoiceKind;
+  /** У счёта на оплату - бронь или оплата позиций; у возврата всегда «оплата». */
+  readonly purpose: InvoicePurpose;
   readonly status: InvoiceStatus;
   /** Счёт, который возвращает возврат. */
   readonly refundOf: Id | null;
@@ -79,6 +82,7 @@ export interface OfferCard {
   /** Картинка как её отдаёт хранилище - сайт показывает её своим примитивом. */
   readonly image: unknown;
   readonly howToBuy: HowToBuy;
+  readonly deposit: Micros | null;
 }
 
 /** Какие позиции показать: выбранные по номерам либо первые `limit` по названию. */

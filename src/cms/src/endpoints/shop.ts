@@ -4,6 +4,7 @@ import {
   canInvoice,
   canOrder,
   cleanCart,
+  depositLines,
   MAX_CART_LINES,
   parseMoney,
   INVOICE_TRANSITIONS,
@@ -236,7 +237,18 @@ const adminActionsEndpoint: Endpoint = {
       const actions = (Object.keys(ORDER_TRANSITIONS) as OrderAction[]).filter((a) =>
         canOrder(order.status, a, 'manager'),
       );
-      return json({ status: order.status, actions, canInvoice: order.status === 'accepted' });
+      const live = (await p.invoices.forOrder(order.id)).filter(
+        (i) => i.kind === 'invoice' && i.status !== 'voided',
+      );
+      return json({
+        status: order.status,
+        actions,
+        canInvoice: order.status === 'accepted',
+        canDeposit:
+          order.status === 'accepted' &&
+          depositLines(order.lines).length > 0 &&
+          !live.some((i) => i.purpose === 'deposit'),
+      });
     }
     if (kind === 'invoices') {
       const invoice = await p.invoices.get(id);
@@ -274,6 +286,9 @@ const adminActionEndpoint: Endpoint = {
     if (!route) return json({ error: 'not_found' }, 404);
     const { kind, id, action } = route;
     const p = ports(req);
+    if (kind === 'orders' && action === 'deposit') {
+      return answer(await createInvoice(p, id, { purpose: 'deposit' }), (i) => ({ id: i.id }));
+    }
     if (kind === 'orders' && action === 'invoice') {
       return answer(await createInvoice(p, id), (i) => ({ id: i.id }));
     }

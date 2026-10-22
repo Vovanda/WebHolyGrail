@@ -57,6 +57,7 @@ export function memoryPorts(state: MemoryState): ShopPorts {
           summary: null,
           image: null,
           howToBuy: o.howToBuy,
+          deposit: o.deposit,
         }));
       },
       take: async (lines) => {

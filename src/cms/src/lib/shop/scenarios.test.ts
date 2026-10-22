@@ -26,6 +26,7 @@ const PUPPY: OfferSnapshot = {
   stock: 1,
   access: null,
   howToBuy: 'cart',
+  deposit: null,
 };
 const FOOD: OfferSnapshot = {
   id: 2,
@@ -34,6 +35,7 @@ const FOOD: OfferSnapshot = {
   stock: null,
   access: null,
   howToBuy: 'cart',
+  deposit: null,
 };
 const COURSE: OfferSnapshot = {
   id: 3,
@@ -42,6 +44,16 @@ const COURSE: OfferSnapshot = {
   stock: null,
   access: 77,
   howToBuy: 'cart',
+  deposit: null,
+};
+const COURSE_WITH_DEPOSIT: OfferSnapshot = {
+  id: 5,
+  title: 'Курс с бронью',
+  price: 60_000,
+  stock: null,
+  access: 78,
+  howToBuy: 'cart',
+  deposit: 10_000,
 };
 const PUPPY_BY_REQUEST: OfferSnapshot = {
   id: 4,
@@ -50,6 +62,7 @@ const PUPPY_BY_REQUEST: OfferSnapshot = {
   stock: 1,
   access: null,
   howToBuy: 'request',
+  deposit: null,
 };
 const buyer = { name: 'Анна', phone: '+7 900 000-00-00', email: '', comment: '', consent: true };
 
@@ -57,7 +70,7 @@ let state: MemoryState;
 let ports: ShopPorts;
 
 beforeEach(() => {
-  state = memoryState([PUPPY, FOOD, COURSE, PUPPY_BY_REQUEST]);
+  state = memoryState([PUPPY, FOOD, COURSE, PUPPY_BY_REQUEST, COURSE_WITH_DEPOSIT]);
   ports = memoryPorts(state);
 });
 
@@ -275,6 +288,55 @@ describe('счёт', () => {
       error: 'not_found',
     });
     expect((await reportBySecret(ports, 'other', inv.value.id)).ok).toBe(true);
+  });
+});
+
+describe('бронь', () => {
+  async function pay(id: string | number) {
+    await changeInvoice(ports, id, 'issue', 'manager');
+    const paid = await changeInvoice(ports, id, 'confirm', 'manager');
+    if (!paid.ok) throw new Error(paid.error);
+    return paid.value;
+  }
+
+  it('счёт на бронь, затем основной - цена минус бронь; коды только по основному', async () => {
+    const o = await order([{ offer: 5, quantity: 1 }], 'd1');
+    await changeOrder(ports, o.id, 'accept', 'manager');
+    const deposit = await createInvoice(ports, o.id, { purpose: 'deposit' });
+    if (!deposit.ok) throw new Error(deposit.error);
+    expect(deposit.value.total).toBe(10_000);
+    expect(deposit.value.lines[0]?.title).toBe('Бронь: Курс с бронью');
+    expect((await pay(deposit.value.id)).codes).toEqual([]);
+
+    const rest = await createInvoice(ports, o.id);
+    if (!rest.ok) throw new Error(rest.error);
+    expect(rest.value.purpose).toBe('payment');
+    expect(rest.value.total).toBe(50_000);
+    expect((await pay(rest.value.id)).codes).toHaveLength(1);
+  });
+
+  it('второй счёт на бронь - отказ; бронь без позиций с бронью - отказ', async () => {
+    const o = await order([{ offer: 5, quantity: 1 }], 'd2');
+    await changeOrder(ports, o.id, 'accept', 'manager');
+    expect((await createInvoice(ports, o.id, { purpose: 'deposit' })).ok).toBe(true);
+    expect(await createInvoice(ports, o.id, { purpose: 'deposit' })).toEqual({
+      ok: false,
+      error: 'forbidden',
+    });
+
+    const plain = await order([{ offer: 2, quantity: 1 }], 'd3');
+    await changeOrder(ports, plain.id, 'accept', 'manager');
+    expect(await createInvoice(ports, plain.id, { purpose: 'deposit' })).toEqual({
+      ok: false,
+      error: 'invalid',
+    });
+  });
+
+  it('без счёта на бронь основной счёт - полная цена', async () => {
+    const o = await order([{ offer: 5, quantity: 1 }], 'd4');
+    await changeOrder(ports, o.id, 'accept', 'manager');
+    const inv = await createInvoice(ports, o.id);
+    expect(inv.ok && inv.value.total).toBe(60_000);
   });
 });
 

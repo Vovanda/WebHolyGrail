@@ -17,6 +17,7 @@ const order: StoredOrder = {
       sum: 4_500_500_000,
       access: 9,
       mode: 'cart',
+      deposit: null,
     },
   ],
   total: 4_500_500_000,
@@ -28,6 +29,7 @@ const invoice = (o: Partial<StoredInvoice>): StoredInvoice => ({
   id: 1,
   order: 7,
   kind: 'invoice',
+  purpose: 'payment',
   status: 'issued',
   refundOf: null,
   lines: order.lines,
@@ -86,6 +88,7 @@ describe('заказ глазами покупателя', () => {
     expect(v.total).toEqual({ units: 4500, micros: 500_000, currency: 'RUB' });
     expect(v.lines[0]?.sum).toEqual(v.total);
     expect(v.invoices[0]?.total).toEqual(v.total);
+    expect(v.invoices[0]?.purpose).toBe('payment');
   });
 
   it('курс берётся на дату оформления: смена курса после заказа сумм не меняет', () => {

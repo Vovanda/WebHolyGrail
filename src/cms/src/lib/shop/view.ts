@@ -45,6 +45,7 @@ export function toBuyerView(
       .map((i) => ({
         id: String(i.id),
         kind: i.kind,
+        purpose: i.purpose,
         status: i.status,
         overdue: isOverdue(i, now),
         dueAt: i.dueAt,
@@ -70,5 +71,6 @@ export function toOfferView(card: OfferCard, money: MoneyPort, now: Date): Offer
     summary: card.summary,
     image: card.image,
     howToBuy: card.howToBuy,
+    deposit: card.deposit === null ? null : money.at(card.deposit, now),
   };
 }
