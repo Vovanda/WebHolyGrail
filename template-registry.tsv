@@ -94,6 +94,8 @@ mirror	contracts/src/grid-rows.ts
 mirror	contracts/src/layout.ts
 mirror	contracts/src/media.test.ts
 mirror	contracts/src/media.ts
+mirror	contracts/src/money.test.ts
+mirror	contracts/src/money.ts
 mirror	contracts/src/notices.ts
 mirror	contracts/src/pages.ts
 mirror	contracts/src/preview-scroll.test.ts

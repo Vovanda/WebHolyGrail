@@ -176,3 +176,30 @@ export type {
   OrderStatus,
   Transition,
 } from './shop';
+export {
+  CURRENCIES,
+  DEFAULT_RATES,
+  MAX_UNITS,
+  MICROS_PER_UNIT,
+  cancelScheduled,
+  convertAt,
+  formatMoney,
+  fromBaseMicros,
+  fromMoney,
+  microsToUnits,
+  parseMoney,
+  rateAt,
+  scheduleRate,
+  toBaseMicros,
+  toMoney,
+  unitsToMicros,
+} from './money';
+export type {
+  Currency,
+  ExchangeRate,
+  Micros,
+  Money,
+  MoneyError,
+  RateResult,
+  ScheduleResult,
+} from './money';
