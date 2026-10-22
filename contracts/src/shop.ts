@@ -53,6 +53,44 @@ export const ORDER_TRANSITIONS: Readonly<Record<OrderAction, Transition<OrderSta
  * который не приняли за {@link STALE_ORDER_HOURS} часов: иначе оформленный
  * ради шутки заказ держит штучную позицию (щенка) вне витрины без срока.
  */
+/**
+ * Как позицию покупают: корзиной - остаток списывается при оформлении; заявкой -
+ * при принятии заказа менеджером.
+ *
+ * @remarks
+ * Заявка нужна там, где продавец сначала решает, кому продать: щенок, место на
+ * курсе. Пока заявку не приняли, позиция остаётся на витрине для других, и
+ * шуточный заказ не снимает её с продажи (#156).
+ */
+export type HowToBuy = 'cart' | 'request';
+export const HOW_TO_BUY: readonly HowToBuy[] = ['cart', 'request'];
+
+/** Держит ли строка заказа остаток позиции в этом состоянии заказа. */
+export function holdsStock(mode: HowToBuy, status: OrderStatus): boolean {
+  if (status === 'cancelled') return false;
+  return mode === 'cart' || status !== 'new';
+}
+
+/**
+ * Что сделать с остатком при переходе заказа: какие строки списать, какие вернуть.
+ *
+ * @remarks
+ * Оформление - переход из «ничего не держит» (`null`) в «новый». Сценарии
+ * берут списание и возврат только отсюда: правило, кто держит остаток, живёт
+ * в одном месте - {@link holdsStock}.
+ */
+export function stockMoves<L extends { readonly mode: HowToBuy }>(
+  lines: readonly L[],
+  from: OrderStatus | null,
+  to: OrderStatus,
+): { readonly take: L[]; readonly giveBack: L[] } {
+  const held = (l: L, s: OrderStatus | null) => s !== null && holdsStock(l.mode, s);
+  return {
+    take: lines.filter((l) => !held(l, from) && held(l, to)),
+    giveBack: lines.filter((l) => held(l, from) && !held(l, to)),
+  };
+}
+
 export const CANCEL_FROM_NEW_ONLY: readonly Actor[] = ['buyer', 'system'];
 export const STALE_ORDER_HOURS = 72;
 
@@ -175,6 +213,7 @@ export interface OfferSnapshot {
   readonly stock: number | null;
   /** Доступ к видео, который продаёт позиция. */
   readonly access: number | null;
+  readonly howToBuy: HowToBuy;
 }
 
 export interface OrderLine {
@@ -184,6 +223,7 @@ export interface OrderLine {
   readonly price: Micros;
   readonly sum: Micros;
   readonly access: number | null;
+  readonly mode: HowToBuy;
 }
 
 export type BuildOrderResult =
@@ -244,6 +284,7 @@ export function buildOrder(
       price: o.price,
       sum: o.price * quantity,
       access: o.access,
+      mode: o.howToBuy,
     });
   }
   if (shortage.length > 0 || lines.length === 0) {
@@ -314,6 +355,7 @@ export interface OfferView {
   readonly stock: number | null;
   readonly summary: string | null;
   readonly image: unknown;
+  readonly howToBuy: HowToBuy;
 }
 
 export interface BuyerLineView {
@@ -340,7 +382,11 @@ export interface BuyerOrderView {
   readonly status: OrderStatus;
   readonly createdAt: string;
   readonly total: Money;
-  readonly lines: readonly (BuyerLineView & { readonly offer: number })[];
+  readonly lines: readonly (BuyerLineView & {
+    readonly offer: number;
+    /** Заявка: позицию подтвердит менеджер, остаток за покупателем ещё не закреплён. */
+    readonly mode: HowToBuy;
+  })[];
   readonly buyer: BuyerInput;
   readonly invoices: readonly BuyerInvoiceView[];
 }

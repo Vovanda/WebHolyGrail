@@ -7,6 +7,7 @@ const offer = (o: Partial<OfferSnapshot> & { id: number }): OfferSnapshot => ({
   price: 10_000,
   stock: null,
   access: null,
+  howToBuy: 'cart',
   ...o,
 });
 
@@ -41,7 +42,15 @@ describe('сборка заказа', () => {
       ok: true,
       total: 37_650,
       lines: [
-        { offer: 1, title: 'Позиция 1', quantity: 3, price: 12_550, sum: 37_650, access: null },
+        {
+          offer: 1,
+          title: 'Позиция 1',
+          quantity: 3,
+          price: 12_550,
+          sum: 37_650,
+          access: null,
+          mode: 'cart',
+        },
       ],
     });
   });

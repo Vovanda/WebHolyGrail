@@ -6,6 +6,8 @@ import {
   canOrder,
   fullyRefunded,
   heldAmount,
+  type HowToBuy,
+  HOW_TO_BUY,
   INVOICE_FINAL,
   INVOICE_OPEN,
   INVOICE_TRANSITIONS,
@@ -14,6 +16,7 @@ import {
   type InvoiceStatus,
   isOverdue,
   refundable,
+  stockMoves,
   ORDER_FINAL,
   ORDER_TRANSITIONS,
   type OrderAction,
@@ -24,8 +27,8 @@ import {
  * Проверка дизайна магазина перебором всего пространства (docs/whg/43-shop.md,
  * «Как проверяется дизайн»).
  *
- * Модель - один заказ на штучную позицию (остаток 1), до двух счетов на оплату
- * и возвраты к ним. Обходом в ширину берутся все состояния, достижимые при всех
+ * Модель - один заказ на штучную позицию (остаток 1), купленную корзиной или
+ * заявкой, до двух счетов на оплату и возвраты к ним. Обходом в ширину берутся все состояния, достижимые при всех
  * действиях всех участников; на каждом проверяются инварианты, из каждого - что
  * путь к развязке и к отмене есть. Проверка проверена мутациями таблицы: каждая
  * сломанная строка роняет хотя бы одно свойство.
@@ -61,12 +64,23 @@ interface Invoice {
 }
 
 interface World {
+  readonly mode: HowToBuy;
   readonly order: OrderStatus;
   readonly stock: number;
   readonly invoices: readonly Invoice[];
 }
 
-const START: World = { order: 'new', stock: STOCK - 1, invoices: [] };
+/** Оформление: корзина списывает остаток сразу, заявка - нет. */
+const STARTS: readonly World[] = HOW_TO_BUY.map((mode) => {
+  const { take } = stockMoves([{ mode }], null, 'new');
+  return { mode, order: 'new', stock: STOCK - take.length, invoices: [] };
+});
+
+/** Остаток после перехода заказа - по правилу, кто держит остаток. */
+const restock = (w: World, to: OrderStatus): number => {
+  const moves = stockMoves([{ mode: w.mode }], w.order, to);
+  return w.stock - moves.take.length + moves.giveBack.length;
+};
 
 const INVOICE_IDS = ['a', 'b'] as const;
 
@@ -79,13 +93,19 @@ const refundsOf = (invoices: readonly Invoice[], id: string | null) =>
 function applyOrder(w: World, action: OrderAction, actor: Actor): World | null {
   if (!canOrder(w.order, action, actor)) return null;
   const to = ORDER_TRANSITIONS[action].to;
-  if (to !== 'cancelled') return { ...w, order: to };
+  if (to !== 'cancelled') {
+    const stock = restock(w, to);
+    // Принять заявку на позицию, которой нет, нельзя: списание откажет.
+    if (stock < 0) return null;
+    return { ...w, order: to, stock };
+  }
   // И-6: полученное по заказу сначала возвращается.
   if (heldAmount(w.invoices) !== 0) return null;
   // Черновики удаляются, открытые счета аннулируются.
   return {
+    mode: w.mode,
     order: to,
-    stock: w.stock + 1,
+    stock: restock(w, to),
     invoices: w.invoices
       .filter((i) => i.status !== 'draft')
       .map((i) => (INVOICE_OPEN.includes(i.status) ? { ...i, status: 'voided' as const } : i)),
@@ -177,8 +197,8 @@ function steps(w: World): World[] {
 const key = (w: World): string => JSON.stringify(w);
 
 function explore(): World[] {
-  const seen = new Map<string, World>([[key(START), START]]);
-  const queue: World[] = [START];
+  const seen = new Map<string, World>(STARTS.map((s) => [key(s), s]));
+  const queue: World[] = [...STARTS];
   while (queue.length > 0) {
     for (const next of steps(queue.shift()!)) {
       const k = key(next);
@@ -281,7 +301,9 @@ describe('перебор достижимых состояний', () => {
   });
 
   it('И-2: остаток не ниже нуля и возвращается ровно при отмене', () => {
-    for (const w of worlds) expect(w.stock).toBe(w.order === 'cancelled' ? STOCK : STOCK - 1);
+    // Остаток за покупателем: корзина - с оформления, заявка - с принятия; отмена возвращает.
+    const held = (w: World) => w.order !== 'cancelled' && (w.mode === 'cart' || w.order !== 'new');
+    for (const w of worlds) expect(w.stock).toBe(held(w) ? STOCK - 1 : STOCK);
   });
 
   it('И-5: коды действуют ровно у оплаченного и не возвращённого счёта, выданы не больше раза', () => {

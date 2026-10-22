@@ -153,8 +153,11 @@ export {
   cleanCart,
   fullyRefunded,
   heldAmount,
+  holdsStock,
+  HOW_TO_BUY,
   isOverdue,
   refundable,
+  stockMoves,
 } from './shop';
 export type {
   Actor,
@@ -165,6 +168,7 @@ export type {
   BuyerOrderView,
   BuyerInput,
   CartLine,
+  HowToBuy,
   InvoiceAction,
   InvoiceKind,
   InvoiceStatus,
