@@ -19,9 +19,20 @@ const windows = new Map<string, { count: number; startedAt: number }>();
 
 export type Decision = { allowed: true } | { allowed: false; retryAfterSeconds: number };
 
+const MAX_WINDOWS = 10_000;
+
+/** Убирает окна, срок которых вышел: иначе таблица растёт с каждым новым адресом. */
+function sweep(now: number): void {
+  for (const [id, w] of windows) {
+    const rule = RULES[id.slice(0, id.indexOf(':')) as RuleName];
+    if (!rule || now - w.startedAt >= rule.windowMs) windows.delete(id);
+  }
+}
+
 /** Засчитывает обращение и говорит, можно ли его обслужить. */
 export function take(rule: RuleName, key: string, now = Date.now()): Decision {
   const { limit, windowMs } = RULES[rule];
+  if (windows.size >= MAX_WINDOWS) sweep(now);
   const id = `${rule}:${key}`;
   const current = windows.get(id);
   if (!current || now - current.startedAt >= windowMs) {
@@ -41,4 +52,9 @@ export function take(rule: RuleName, key: string, now = Date.now()): Decision {
 /** Только для тестов. */
 export function resetThrottle(): void {
   windows.clear();
+}
+
+/** Только для тестов: сколько окон сейчас в таблице. */
+export function throttleSize(): number {
+  return windows.size;
 }

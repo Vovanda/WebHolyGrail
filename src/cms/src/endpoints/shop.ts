@@ -154,6 +154,18 @@ const offersEndpoint: Endpoint = {
   },
 };
 
+/**
+ * Дата документа для перевода сумм заказа - момент его оформления (ADR-007).
+ *
+ * @remarks
+ * Покупатель видел суммы по курсу этой даты; возврат по сегодняшнему курсу
+ * разошёлся бы с тем, что он платил.
+ */
+async function documentDate(p: ShopPorts, order: string | number | null): Promise<Date> {
+  const found = order === null ? null : await p.orders.get(order);
+  return found ? new Date(found.createdAt) : new Date();
+}
+
 const placeOrderEndpoint: Endpoint = {
   path: '/shop/orders',
   method: 'post',
@@ -243,7 +255,8 @@ const adminActionsEndpoint: Endpoint = {
       return json({
         status: order.status,
         actions,
-        canInvoice: order.status === 'accepted',
+        // Второй живой основной счёт сценарий отклонит (И-5) - кнопку не показываем.
+        canInvoice: order.status === 'accepted' && !live.some((i) => i.purpose === 'payment'),
         canDeposit:
           order.status === 'accepted' &&
           depositLines(order.lines).length > 0 &&
@@ -268,7 +281,7 @@ const adminActionsEndpoint: Endpoint = {
         actions,
         canDelete: invoice.status === 'draft',
         canRefund,
-        refundable: p.money.at(Math.max(left, 0), new Date()),
+        refundable: p.money.at(Math.max(left, 0), await documentDate(p, invoice.order)),
       });
     }
     return json({ error: 'not_found' }, 404);
@@ -307,7 +320,8 @@ const adminActionEndpoint: Endpoint = {
       if (data['amount'] !== undefined) {
         const parsed = parseMoney(data['amount']);
         if (!parsed.ok) return json({ error: 'invalid', detail: parsed.error }, 400);
-        const back = p.money.back(parsed.money, new Date());
+        const source = await p.invoices.get(id);
+        const back = p.money.back(parsed.money, await documentDate(p, source?.order ?? null));
         if (back === null) return json({ error: 'invalid', detail: 'currency' }, 400);
         amount = back;
       }

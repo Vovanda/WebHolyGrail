@@ -196,6 +196,17 @@ describe('отмена заказа', () => {
     expect(state.offers.get(1)?.stock).toBe(1);
   });
 
+  it('заказ, отменённый другим процессом, второй раз остаток не возвращает', async () => {
+    const o = await order([{ offer: 1, quantity: 1 }], 'race');
+    // Другой процесс уже отменил заказ, а этот прочитал его ещё новым.
+    const stale = { ...ports, orders: { ...ports.orders, get: async () => o } };
+    state.orders.set(String(o.id), { ...o, status: 'cancelled' });
+    state.offers.set(1, { ...PUPPY, stock: 1 });
+    const r = await changeOrder(stale, o.id, 'cancel', 'system');
+    expect(r).toEqual({ ok: false, error: 'forbidden' });
+    expect(state.offers.get(1)?.stock).toBe(1);
+  });
+
   it('срок брони заказа - из настроек магазина', async () => {
     state.settings = shopSettings({ orderHoldHours: 24 });
     const o = await order([{ offer: 1, quantity: 1 }], 's24');
@@ -220,10 +231,10 @@ describe('отмена заказа', () => {
   });
 
   it('открытые счета аннулируются, черновики удаляются', async () => {
-    const o = await order();
+    const o = await order([{ offer: 5, quantity: 1 }], 'c1');
     await changeOrder(ports, o.id, 'accept', 'manager');
     const a = await createInvoice(ports, o.id);
-    const b = await createInvoice(ports, o.id);
+    const b = await createInvoice(ports, o.id, { purpose: 'deposit' });
     if (!a.ok || !b.ok) throw new Error('счёт');
     await changeInvoice(ports, a.value.id, 'issue', 'manager');
     await changeOrder(ports, o.id, 'cancel', 'manager');
@@ -247,8 +258,16 @@ describe('счёт', () => {
     ];
     const inv = await createInvoice(ports, o.id, { lines, dueAt: '2026-10-30T00:00:00Z' });
     expect(inv.ok && inv.value.total).toBe(3 * 470_000 + 150_000);
-    const more = await createInvoice(ports, o.id, { lines: [{ ...lines[0]!, quantity: 4 }] });
+    if (!inv.ok) throw new Error(inv.error);
+    const more = await updateDraft(ports, inv.value.id, { lines: [{ ...lines[0]!, quantity: 4 }] });
     expect(more).toEqual({ ok: false, error: 'quantity_locked', detail: { offer: 2 } });
+  });
+
+  it('второй живой основной счёт - отказ: иначе вторые коды за ту же покупку', async () => {
+    const o = await order([{ offer: 3, quantity: 1 }], 'p2');
+    await changeOrder(ports, o.id, 'accept', 'manager');
+    expect((await createInvoice(ports, o.id)).ok).toBe(true);
+    expect(await createInvoice(ports, o.id)).toEqual({ ok: false, error: 'forbidden' });
   });
 
   it('позиция не из заказа в счёт не попадает', async () => {
@@ -307,6 +326,8 @@ describe('настройки магазина', () => {
     const inv = await createInvoice(ports, o.id);
     expect(inv.ok && inv.value.dueAt).toBe('2026-10-28T12:00:00.000Z');
 
+    if (!inv.ok) throw new Error(inv.error);
+    await deleteDraft(ports, inv.value.id);
     state.settings = shopSettings({ invoiceDueDays: 0 });
     const next = await createInvoice(ports, o.id);
     expect(next.ok && next.value.dueAt).toBeNull();
@@ -363,6 +384,25 @@ describe('бронь', () => {
       ok: false,
       error: 'invalid',
     });
+  });
+
+  it('неоплаченная бронь цену не уменьшает: её ещё можно удалить или аннулировать', async () => {
+    const o = await order([{ offer: 5, quantity: 1 }], 'd5');
+    await changeOrder(ports, o.id, 'accept', 'manager');
+    expect((await createInvoice(ports, o.id, { purpose: 'deposit' })).ok).toBe(true);
+    const inv = await createInvoice(ports, o.id);
+    expect(inv.ok && inv.value.total).toBe(60_000);
+  });
+
+  it('строка позиции в счёте на бронь доступа не выдаёт', async () => {
+    const o = await order([{ offer: 5, quantity: 1 }], 'd6');
+    await changeOrder(ports, o.id, 'accept', 'manager');
+    const dep = await createInvoice(ports, o.id, { purpose: 'deposit' });
+    if (!dep.ok) throw new Error(dep.error);
+    const edited = await updateDraft(ports, dep.value.id, {
+      lines: [{ offer: 5, title: 'Курс с бронью', quantity: 1, price: 10_000 }],
+    });
+    expect(edited.ok && edited.value.lines[0]?.access).toBeNull();
   });
 
   it('без счёта на бронь основной счёт - полная цена', async () => {

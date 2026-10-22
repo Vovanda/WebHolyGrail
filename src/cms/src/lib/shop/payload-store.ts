@@ -159,7 +159,9 @@ const execute =
   async (sql, args) => {
     const client = (
       payload.db as unknown as {
-        client: { execute(q: { sql: string; args: number[] }): Promise<{ rowsAffected: number }> };
+        client: {
+          execute(q: { sql: string; args: (number | string)[] }): Promise<{ rowsAffected: number }>;
+        };
       }
     ).client;
     const result = await client.execute({ sql, args: [...args] });
@@ -246,8 +248,12 @@ export function payloadPorts(
         const doc = found.docs[0];
         return doc ? orderFromDoc(doc as unknown as Record<string, unknown>) : null;
       },
-      setStatus: async (id, status) => {
-        await payload.update({ collection: 'orders', id, data: { status }, ...opts });
+      switchStatus: async (id, from, to) => {
+        const changed = await execute(payload)(
+          'UPDATE orders SET status = ?, updated_at = ? WHERE id = ? AND status = ?',
+          [to, new Date().toISOString(), Number(id), from],
+        );
+        return changed === 1;
       },
       newBefore: async (before) => {
         const found = await payload.find({

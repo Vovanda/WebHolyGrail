@@ -46,7 +46,10 @@ export async function placeOrder(
   return ports.transaction(async (tx) => {
     const offers = await tx.offers.snapshots(input.cart.map((l) => l.offer));
     const built = buildOrder(input.cart, offers);
-    if (!built.ok) return built.empty ? fail('empty') : fail('shortage', built.shortage);
+    if (!built.ok) {
+      if (built.tooLarge) return fail('invalid', { total: 'too_large' });
+      return built.empty ? fail('empty') : fail('shortage', built.shortage);
+    }
 
     // Проверка выше - для ответа покупателю; решает условная запись: остаток мог
     // уйти между чтением и списанием.
@@ -110,14 +113,20 @@ export async function changeOrder(
           await tx.invoices.update(invoice.id, { status: 'voided' });
       }
     }
-    if (moves.giveBack.length > 0) await tx.offers.giveBack(moves.giveBack);
+    let switched: boolean;
     try {
-      await tx.orders.setStatus(order.id, to);
+      switched = await tx.orders.switchStatus(order.id, order.status, to);
     } catch (error) {
       // Транзакций в движке нет (#155): списанное при принятии возвращаем сами.
       if (moves.take.length > 0) await tx.offers.giveBack(moves.take);
       throw error;
     }
+    if (!switched) {
+      // Заказ уже перевёл другой процесс: остаток вернул он, наше списание - назад.
+      if (moves.take.length > 0) await tx.offers.giveBack(moves.take);
+      return fail('forbidden');
+    }
+    if (moves.giveBack.length > 0) await tx.offers.giveBack(moves.giveBack);
     return ok({ ...order, status: to });
   });
 }

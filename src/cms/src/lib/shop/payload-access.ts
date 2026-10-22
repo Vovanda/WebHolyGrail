@@ -39,6 +39,9 @@ export function payloadAccess(payload: Payload) {
               maxUses: 1,
               usedCount: 0,
               label: 'Оплата заказа',
+              // Купленное открыто, пока жив сам доступ: срок промокодов из настроек
+              // видео к покупке не относится.
+              grantDays: null,
               expiresAt: new Date(Date.now() + PURCHASED_CODE_DAYS * 86_400_000).toISOString(),
             } as never,
             ...opts,

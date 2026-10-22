@@ -10,7 +10,7 @@
  *
  * Пустой остаток - без ограничений: запись проходит и ничего не меняет.
  */
-export type Execute = (sql: string, args: readonly number[]) => Promise<number>;
+export type Execute = (sql: string, args: readonly (number | string)[]) => Promise<number>;
 
 export const TAKE_SQL =
   'UPDATE offers SET stock = CASE WHEN stock IS NULL THEN NULL ELSE stock - ? END WHERE id = ? AND (stock IS NULL OR stock >= ?)';

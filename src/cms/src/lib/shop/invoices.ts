@@ -64,6 +64,7 @@ const MAX_LINES = 100;
 export function draftLines(
   order: StoredOrder,
   input: readonly LineInput[] | undefined,
+  purpose: InvoicePurpose = 'payment',
 ): Outcome<InvoiceLine[]> {
   const fromOrder = new Map(order.lines.map((l) => [l.offer, l]));
   const source: readonly LineInput[] =
@@ -102,7 +103,8 @@ export function draftLines(
         quantity,
         price,
         sum: price * quantity,
-        access: ordered.access,
+        // Бронь закрепляет позицию, а не продаёт её: доступа к видео не выдаёт.
+        access: purpose === 'deposit' ? null : ordered.access,
       });
     } else {
       lines.push({
@@ -141,10 +143,16 @@ export async function createInvoice(
     const live = (await tx.invoices.forOrder(order.id)).filter(
       (i) => i.kind === 'invoice' && i.status !== 'voided',
     );
-    const depositTaken = live.some((i) => i.purpose === 'deposit');
+    // Цена минус бронь - только после оплаченной брони: неоплаченную можно удалить
+    // или аннулировать, и покупатель не заплатил бы её вовсе.
+    const depositPaid = live.some((i) => i.purpose === 'deposit' && i.status === 'paid');
     let source: readonly LineInput[] | undefined = input.lines;
+    if (purpose === 'payment' && live.some((i) => i.purpose === 'payment')) {
+      // Второй живой основной счёт выдал бы вторые коды за ту же покупку (И-5).
+      return fail('forbidden');
+    }
     if (purpose === 'deposit') {
-      if (depositTaken) return fail('forbidden');
+      if (live.some((i) => i.purpose === 'deposit')) return fail('forbidden');
       source = depositLines(order.lines);
       if (source.length === 0) return fail('invalid');
     }
@@ -152,9 +160,9 @@ export async function createInvoice(
       offer: l.offer,
       title: l.title,
       quantity: l.quantity,
-      price: paymentPrice(l, depositTaken),
+      price: paymentPrice(l, depositPaid),
     }));
-    const lines = draftLines(order, source);
+    const lines = draftLines(order, source, purpose);
     if (!lines.ok) return lines;
     const { invoiceDueDays } = await tx.settings();
     const dueAt =
@@ -191,7 +199,7 @@ export async function updateDraft(
     if (invoice.status !== 'draft' || invoice.kind !== 'invoice') return fail('forbidden');
     const order = await tx.orders.get(invoice.order);
     if (!order) return fail('not_found');
-    const lines = draftLines(order, input.lines);
+    const lines = draftLines(order, input.lines, invoice.purpose);
     if (!lines.ok) return lines;
     const patch = {
       lines: lines.value,

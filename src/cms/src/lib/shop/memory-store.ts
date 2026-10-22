@@ -96,9 +96,11 @@ export function memoryPorts(state: MemoryState): ShopPorts {
       get: async (id) => state.orders.get(String(id)) ?? null,
       bySecretHash: async (hash) =>
         [...state.orders.values()].find((o) => o.secretHash === hash) ?? null,
-      setStatus: async (id: Id, status: OrderStatus) => {
+      switchStatus: async (id: Id, from: OrderStatus, to: OrderStatus) => {
         const o = state.orders.get(String(id));
-        if (o) state.orders.set(String(id), { ...o, status });
+        if (!o || o.status !== from) return false;
+        state.orders.set(String(id), { ...o, status: to });
+        return true;
       },
       newBefore: async (before) =>
         [...state.orders.values()]

@@ -62,6 +62,7 @@ export const Invoices: CollectionConfig = {
             quantity: Number(l['quantity']),
             price: Number(l['priceMicros']),
           })),
+          originalDoc['purpose'] === 'deposit' ? 'deposit' : 'payment',
         );
         if (!lines.ok) {
           // APIError со статусом: менеджер видит причину, а не «внутреннюю ошибку».

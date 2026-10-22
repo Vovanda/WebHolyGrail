@@ -107,7 +107,14 @@ export interface OrderPort {
   create(order: Omit<StoredOrder, 'id' | 'createdAt'>): Promise<StoredOrder>;
   get(id: Id): Promise<StoredOrder | null>;
   bySecretHash(hash: string): Promise<StoredOrder | null>;
-  setStatus(id: Id, status: OrderStatus): Promise<void>;
+  /**
+   * Переводит заказ из `from` в `to`, только если он всё ещё в `from`.
+   *
+   * @remarks
+   * Условная запись, как у остатка: два процесса, отменяющие один заказ, не
+   * вернут остаток дважды - второй получит `false`.
+   */
+  switchStatus(id: Id, from: OrderStatus, to: OrderStatus): Promise<boolean>;
   /** Новые заказы, оформленные раньше `before`. */
   newBefore(before: Date): Promise<Id[]>;
 }
