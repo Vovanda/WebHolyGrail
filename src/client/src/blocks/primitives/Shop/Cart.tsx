@@ -1,7 +1,7 @@
 'use client';
 
-import type { BlockNode, BuyerErrors, Money, OfferView } from 'contracts';
-import { checkBuyer, formatMoney, fromMoney, toMoney } from 'contracts';
+import type { BlockNode, BuyerErrors, CheckoutRules, Money, OfferView } from 'contracts';
+import { checkBuyer, DEFAULT_CHECKOUT, formatMoney, fromMoney, toMoney } from 'contracts';
 import { useEffect, useMemo, useState } from 'react';
 
 import { cart, rememberOrder, useCart } from '@/lib/shop/cart';
@@ -15,7 +15,8 @@ import { field, primaryButton } from './ui';
  * Знает своё: строки корзины, что введено в форму, идёт ли отправка. Названия,
  * цены и остатки берёт с сервера по номерам позиций - сумма здесь только для
  * показа, заказ всё равно считает сервер (И-1). Анкета проверяется той же
- * функцией, что и на сервере (`checkBuyer`), поэтому ошибки встают у полей до
+ * функцией и по тем же правилам владельца, что на сервере (`checkBuyer`,
+ * «Что спрашивать при оформлении» в настройках), поэтому ошибки встают у полей до
  * отправки. После заказа корзина очищается, браузер запоминает ссылку заказа и
  * открывает его страницу.
  */
@@ -32,8 +33,17 @@ const MESSAGES: Record<string, string> = {
   too_many: 'Слишком много заказов с вашего адреса. Попробуйте через час.',
 };
 
-export function Cart({ node }: { readonly node: BlockNode & { data?: CartData } }) {
+export function Cart({
+  node,
+  checkout: rules = DEFAULT_CHECKOUT,
+}: {
+  readonly node: BlockNode & { data?: CartData };
+  /** Что спрашивать при оформлении - из настроек магазина. */
+  readonly checkout?: CheckoutRules;
+}) {
   const data = node.data ?? {};
+  const mark = (base: string, ask: 'required' | 'optional' | 'hidden') =>
+    ask === 'required' ? `${base} *` : base;
   const lines = useCart();
   const [offers, setOffers] = useState<Map<number, OfferView>>(new Map());
   const [errors, setErrors] = useState<BuyerErrors>({});
@@ -75,7 +85,7 @@ export function Cart({ node }: { readonly node: BlockNode & { data?: CartData } 
       comment: form.get('comment'),
       consent: form.get('consent') === 'on',
     };
-    const checked = checkBuyer(raw);
+    const checked = checkBuyer(raw, rules);
     if (!checked.ok) return setErrors(checked.errors);
     setErrors({});
     setMessage(null);
@@ -204,29 +214,35 @@ export function Cart({ node }: { readonly node: BlockNode & { data?: CartData } 
                 autoComplete="name"
               />
               {hint('name')}
-              <input
-                name="phone"
-                placeholder="Телефон"
-                className={field}
-                autoComplete="tel"
-                inputMode="tel"
-              />
+              {rules.phone !== 'hidden' && (
+                <input
+                  name="phone"
+                  placeholder={mark('Телефон', rules.phone)}
+                  className={field}
+                  autoComplete="tel"
+                  inputMode="tel"
+                />
+              )}
               {hint('phone')}
-              <input
-                name="email"
-                placeholder="Почта"
-                className={field}
-                autoComplete="email"
-                inputMode="email"
-              />
+              {rules.email !== 'hidden' && (
+                <input
+                  name="email"
+                  placeholder={mark('Почта', rules.email)}
+                  className={field}
+                  autoComplete="email"
+                  inputMode="email"
+                />
+              )}
               {hint('email')}
               {hint('contact')}
-              <textarea
-                name="comment"
-                placeholder="Комментарий к заказу"
-                rows={3}
-                className={field}
-              />
+              {rules.comment && (
+                <textarea
+                  name="comment"
+                  placeholder="Комментарий к заказу"
+                  rows={3}
+                  className={field}
+                />
+              )}
               <label className="flex items-start gap-2.5 text-sm text-muted">
                 <input
                   type="checkbox"

@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import { formatMoney, INVOICE_STATUS_LABELS, ORDER_STATUS_LABELS } from 'contracts';
+import { formatMoney, INVOICE_STATUS_LABELS, ORDER_STATUS_LABELS, shopSettings } from 'contracts';
 
 import { OrderActions } from '@/blocks/primitives/Shop/OrderActions';
+import { PaymentDetails } from '@/blocks/primitives/Shop/PaymentDetails';
 import { getOrderView, getSiteSettings } from '@/lib/api-client.engine';
 
 /**
@@ -110,14 +111,7 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
             </p>
             {inv.status === 'issued' && (
               <div className="mt-4 grid gap-3">
-                {settings?.paymentNote && (
-                  <p
-                    data-part="payment-note"
-                    className="whitespace-pre-line rounded-md bg-accent-soft p-3 text-sm text-ink"
-                  >
-                    {settings.paymentNote}
-                  </p>
-                )}
+                <PaymentDetails shop={shopSettings(settings?.shop)} note={settings?.paymentNote} />
                 <div>
                   <OrderActions token={token} action="report" invoiceId={inv.id} />
                 </div>
