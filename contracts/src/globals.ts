@@ -38,6 +38,8 @@ export interface SiteSettings {
   readonly logo?: MediaRef;
   /** Контакты для footer и блока Contacts. */
   readonly contacts: ContactsInfo;
+  /** Как оплатить счёт: реквизиты, показываются у неоплаченного счёта. */
+  readonly paymentNote?: string | null;
   /** Основная навигация в header. */
   readonly mainNav: readonly NavItem[];
   /** Дополнительная навигация в footer (если отличается от main). */

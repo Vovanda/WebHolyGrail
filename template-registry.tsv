@@ -99,6 +99,7 @@ mirror	contracts/src/pages.ts
 mirror	contracts/src/preview-scroll.test.ts
 mirror	contracts/src/preview-scroll.ts
 mirror	contracts/src/reusable.ts
+mirror	contracts/src/shop-order.test.ts
 mirror	contracts/src/shop.test.ts
 mirror	contracts/src/shop.ts
 mirror	contracts/src/social.ts
@@ -203,9 +204,11 @@ mirror	src/client/src/app/(site)/channel/[channel]/p/[code]/page.tsx
 mirror	src/client/src/app/(site)/channel/[channel]/page.tsx
 mirror	src/client/src/app/(site)/channel/[channel]/v/[code]/page.tsx
 mirror	src/client/src/app/(site)/i/[token]/page.tsx
+mirror	src/client/src/app/(site)/order/[token]/page.tsx
 mirror	src/client/src/app/api/health/route.ts
 mirror	src/client/src/app/internal/geo/route.ts
 mirror	src/client/src/app/internal/preview/draft/route.ts
+mirror	src/client/src/app/internal/shop/[...path]/route.ts
 mirror	src/client/src/app/internal/video/key/[id]/route.ts
 mirror	src/client/src/app/internal/video/manifest/[...path]/route.ts
 mirror	src/client/src/app/internal/video/redeem-link/route.ts
@@ -309,6 +312,11 @@ mirror	src/client/src/blocks/primitives/SectionEyebrow.test.tsx
 mirror	src/client/src/blocks/primitives/SectionEyebrow.tsx
 mirror	src/client/src/blocks/primitives/Separator/index.ts
 mirror	src/client/src/blocks/primitives/Separator/WaveDivider.tsx
+mirror	src/client/src/blocks/primitives/Shop/AddToCart.tsx
+mirror	src/client/src/blocks/primitives/Shop/Cart.tsx
+mirror	src/client/src/blocks/primitives/Shop/OrderActions.tsx
+mirror	src/client/src/blocks/primitives/Shop/Showcase.tsx
+mirror	src/client/src/blocks/primitives/Shop/ui.ts
 mirror	src/client/src/blocks/primitives/SidePanel.test.ts
 mirror	src/client/src/blocks/primitives/SidePanel.tsx
 mirror	src/client/src/blocks/primitives/SocialIcon.tsx
@@ -439,6 +447,8 @@ overlay	src/client/src/lib/seo/json-ld.test.ts
 overlay	src/client/src/lib/seo/json-ld.ts
 overlay	src/client/src/lib/share-image.test.ts
 overlay	src/client/src/lib/share-image.ts
+overlay	src/client/src/lib/shop/cart.test.ts
+overlay	src/client/src/lib/shop/cart.ts
 overlay	src/client/src/lib/theme-bootstrap.tsx
 overlay	src/client/src/lib/theme-recover.tsx
 overlay	src/client/src/lib/timeline.test.ts
@@ -676,6 +686,8 @@ mirror	src/cms/src/blocks/QuoteCycle.ts
 mirror	src/cms/src/blocks/RequestForm.ts
 mirror	src/cms/src/blocks/ReusableRef.ts
 mirror	src/cms/src/blocks/RichText.ts
+mirror	src/cms/src/blocks/ShopCart.ts
+mirror	src/cms/src/blocks/ShopShowcase.ts
 mirror	src/cms/src/blocks/SocialFeed.ts
 mirror	src/cms/src/blocks/StackTransparency.ts
 mirror	src/cms/src/blocks/ThreadsSection.ts
@@ -787,6 +799,11 @@ mirror	src/cms/src/lib/migrations/columns.ts
 mirror	src/cms/src/lib/pdf-preview.ts
 mirror	src/cms/src/lib/preview.test.ts
 mirror	src/cms/src/lib/preview.ts
+mirror	src/cms/src/lib/shop/invoices.ts
+mirror	src/cms/src/lib/shop/memory-store.ts
+mirror	src/cms/src/lib/shop/orders.ts
+mirror	src/cms/src/lib/shop/ports.ts
+mirror	src/cms/src/lib/shop/scenarios.test.ts
 mirror	src/cms/src/lib/slug.test.ts
 mirror	src/cms/src/lib/slug.ts
 mirror	src/cms/src/lib/toggles/adopt.ts
