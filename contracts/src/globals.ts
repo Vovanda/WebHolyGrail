@@ -2,6 +2,7 @@ import type { MediaRef } from './media';
 import type { LinkRef } from './blocks';
 import type { ThemeConfig } from './theme';
 import type { SiteLayoutConfig } from './layout';
+import type { ShopSettingsInput } from './shop';
 
 /**
  * Пункт меню — ссылка, у которой может быть один уровень вложенности.
@@ -40,6 +41,8 @@ export interface SiteSettings {
   readonly contacts: ContactsInfo;
   /** Как оплатить счёт: реквизиты, показываются у неоплаченного счёта. */
   readonly paymentNote?: string | null;
+  /** Магазин: реквизиты, сроки, анкета; как есть из CMS - читается через `shopSettings`. */
+  readonly shop?: ShopSettingsInput | null;
   /** Основная навигация в header. */
   readonly mainNav: readonly NavItem[];
   /** Дополнительная навигация в footer (если отличается от main). */

@@ -326,6 +326,88 @@ export function paymentPrice(line: OrderLine, depositTaken: boolean): Micros {
   return depositTaken && line.deposit !== null ? line.price - line.deposit : line.price;
 }
 
+/* ───────────────────────── Настройки магазина ───────────────────────── */
+
+/** Спрашивать ли поле анкеты: обязательно, по желанию или не спрашивать. */
+export type AskField = 'required' | 'optional' | 'hidden';
+
+export interface CheckoutRules {
+  readonly phone: AskField;
+  readonly email: AskField;
+  readonly comment: boolean;
+}
+
+export const DEFAULT_CHECKOUT: CheckoutRules = {
+  phone: 'optional',
+  email: 'optional',
+  comment: true,
+};
+
+export interface ShopSettings {
+  readonly payee: {
+    readonly name: string;
+    readonly inn: string;
+    readonly account: string;
+    readonly bank: string;
+    readonly bik: string;
+    readonly corrAccount: string;
+  };
+  readonly sbp: { readonly phone: string; readonly bank: string };
+  readonly card: string;
+  /** Сколько часов непринятый заказ ждёт менеджера, потом отменяется. */
+  readonly orderHoldHours: number;
+  /** Срок оплаты нового счёта по умолчанию, в днях; 0 - без срока. */
+  readonly invoiceDueDays: number;
+  readonly checkout: CheckoutRules;
+}
+
+/** Настройки магазина как они лежат в CMS: любое поле может быть пустым. */
+export type ShopSettingsInput = {
+  readonly [K in keyof ShopSettings]?: unknown;
+};
+
+export const DEFAULT_INVOICE_DUE_DAYS = 3;
+
+const text = (v: unknown, max = 200): string =>
+  typeof v === 'string' ? v.trim().slice(0, max) : '';
+const whole = (v: unknown, min: number, max: number, fallback: number): number =>
+  typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max ? v : fallback;
+const ask = (v: unknown, fallback: AskField): AskField =>
+  v === 'required' || v === 'optional' || v === 'hidden' ? v : fallback;
+
+/**
+ * Настройки магазина с умолчаниями: пустое и негодное поле - значение по умолчанию.
+ *
+ * @remarks
+ * Одна точка разбора для сценариев и сайта: срок брони заказа, срок счёта и
+ * анкета читаются одинаково везде. Спрятать оба способа связи нельзя -
+ * менеджеру будет некуда позвонить, - тогда телефон спрашивается по желанию.
+ */
+export function shopSettings(raw: ShopSettingsInput | null | undefined): ShopSettings {
+  const r = (raw ?? {}) as Record<string, unknown>;
+  const payee = (r['payee'] ?? {}) as Record<string, unknown>;
+  const sbp = (r['sbp'] ?? {}) as Record<string, unknown>;
+  const co = (r['checkout'] ?? {}) as Record<string, unknown>;
+  let phone = ask(co['phone'], DEFAULT_CHECKOUT.phone);
+  const email = ask(co['email'], DEFAULT_CHECKOUT.email);
+  if (phone === 'hidden' && email === 'hidden') phone = 'optional';
+  return {
+    payee: {
+      name: text(payee['name']),
+      inn: text(payee['inn'], 12),
+      account: text(payee['account'], 20),
+      bank: text(payee['bank']),
+      bik: text(payee['bik'], 9),
+      corrAccount: text(payee['corrAccount'], 20),
+    },
+    sbp: { phone: text(sbp['phone'], 32), bank: text(sbp['bank']) },
+    card: text(r['card'], 32),
+    orderHoldHours: whole(r['orderHoldHours'], 1, 720, STALE_ORDER_HOURS),
+    invoiceDueDays: whole(r['invoiceDueDays'], 0, 90, DEFAULT_INVOICE_DUE_DAYS),
+    checkout: { phone, email, comment: co['comment'] !== false },
+  };
+}
+
 /* ───────────────────────── Анкета покупателя ───────────────────────── */
 
 export interface BuyerInput {
@@ -343,28 +425,41 @@ export type BuyerErrors = Partial<Record<keyof BuyerInput | 'contact' | 'consent
  * Проверка анкеты: одна для формы на сайте и для сервера.
  *
  * @remarks
- * Ошибки - по полям, чтобы форма показала их рядом с полем. Нужен хотя бы один
- * способ связи: телефон или почта. Согласие на обработку данных обязательно
+ * Ошибки - по полям, чтобы форма показала их рядом с полем. Что спрашивать,
+ * решает владелец (`CheckoutRules`): обязательное поле не пустое, скрытое не
+ * принимается вовсе. Когда ни одно поле связи не обязательно, нужно хотя бы
+ * одно из спрошенных. Согласие на обработку данных обязательно
  * (152-ФЗ). Текст обрезается по краям и больше никак не меняется: экранирует
  * его тот, кто выводит, а не тот, кто принимает.
  */
 export function checkBuyer(
   raw: Record<string, unknown>,
+  rules: CheckoutRules = DEFAULT_CHECKOUT,
 ): { ok: true; buyer: BuyerInput } | { ok: false; errors: BuyerErrors } {
-  const text = (k: keyof BuyerInput): string =>
+  const read = (k: keyof BuyerInput): string =>
     typeof raw[k] === 'string' ? (raw[k] as string).trim() : '';
   const buyer: BuyerInput = {
-    name: text('name'),
-    phone: text('phone'),
-    email: text('email'),
-    comment: text('comment'),
+    name: read('name'),
+    phone: rules.phone === 'hidden' ? '' : read('phone'),
+    email: rules.email === 'hidden' ? '' : read('email'),
+    comment: rules.comment ? read('comment') : '',
   };
   const errors: BuyerErrors = {};
   if (!buyer.name) errors.name = 'Как к вам обращаться';
   for (const k of Object.keys(BUYER_LIMITS) as (keyof BuyerInput)[]) {
     if (buyer[k].length > BUYER_LIMITS[k]) errors[k] = `Не длиннее ${BUYER_LIMITS[k]} знаков`;
   }
-  if (!buyer.phone && !buyer.email) errors.contact = 'Телефон или почта - чтобы с вами связаться';
+  if (rules.phone === 'required' && !buyer.phone) errors.phone = 'Нужен телефон';
+  if (rules.email === 'required' && !buyer.email) errors.email = 'Нужна почта';
+  const anyRequired = rules.phone === 'required' || rules.email === 'required';
+  if (!anyRequired && !buyer.phone && !buyer.email) {
+    errors.contact =
+      rules.phone === 'hidden'
+        ? 'Почта - чтобы с вами связаться'
+        : rules.email === 'hidden'
+          ? 'Телефон - чтобы с вами связаться'
+          : 'Телефон или почта - чтобы с вами связаться';
+  }
   if (buyer.phone && !/^\+?[\d\s()-]{5,}$/.test(buyer.phone)) errors.phone = 'Телефон цифрами';
   if (buyer.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyer.email))
     errors.email = 'Почта в виде name@example.ru';

@@ -150,6 +150,8 @@ export {
   canInvoice,
   canOrder,
   checkBuyer,
+  DEFAULT_CHECKOUT,
+  DEFAULT_INVOICE_DUE_DAYS,
   cleanCart,
   depositLines,
   fullyRefunded,
@@ -159,10 +161,12 @@ export {
   isOverdue,
   paymentPrice,
   refundable,
+  shopSettings,
   stockMoves,
 } from './shop';
 export type {
   Actor,
+  AskField,
   BuildOrderResult,
   BuyerErrors,
   BuyerInvoiceView,
@@ -170,6 +174,7 @@ export type {
   BuyerOrderView,
   BuyerInput,
   CartLine,
+  CheckoutRules,
   HowToBuy,
   InvoiceAction,
   InvoiceKind,
@@ -180,6 +185,8 @@ export type {
   OrderAction,
   OrderLine,
   OrderStatus,
+  ShopSettings,
+  ShopSettingsInput,
   Transition,
 } from './shop';
 export {

@@ -8,6 +8,8 @@ import {
   MAX_QUANTITY,
   type OfferSnapshot,
   paymentPrice,
+  shopSettings,
+  STALE_ORDER_HOURS,
 } from './shop';
 
 const offer = (o: Partial<OfferSnapshot> & { id: number }): OfferSnapshot => ({
@@ -159,5 +161,43 @@ describe('бронь', () => {
     ]);
     expect(paymentPrice(line!, true)).toBe(50_000);
     expect(paymentPrice(line!, false)).toBe(60_000);
+  });
+});
+
+describe('настройки магазина', () => {
+  it('пусто - умолчания: 72 часа, 3 дня, телефон и почта по желанию', () => {
+    const s = shopSettings(null);
+    expect([s.orderHoldHours, s.invoiceDueDays]).toEqual([STALE_ORDER_HOURS, 3]);
+    expect(s.checkout).toEqual({ phone: 'optional', email: 'optional', comment: true });
+  });
+
+  it('негодные сроки - умолчания; оба способа связи спрятать нельзя', () => {
+    const s = shopSettings({
+      orderHoldHours: -5,
+      invoiceDueDays: 1.5,
+      checkout: { phone: 'hidden', email: 'hidden' },
+    });
+    expect([s.orderHoldHours, s.invoiceDueDays]).toEqual([STALE_ORDER_HOURS, 3]);
+    expect(s.checkout.phone).toBe('optional');
+  });
+});
+
+describe('анкета по правилам владельца', () => {
+  const base = { name: 'Анна', consent: true };
+
+  it('обязательная почта: без неё отказ у поля почты', () => {
+    const r = checkBuyer(
+      { ...base, phone: '+7 900 000-00-00' },
+      { phone: 'optional', email: 'required', comment: true },
+    );
+    expect(!r.ok && Object.keys(r.errors)).toEqual(['email']);
+  });
+
+  it('скрытый телефон не принимается и не требуется, нужна почта', () => {
+    const rules = { phone: 'hidden', email: 'optional', comment: false } as const;
+    const r = checkBuyer({ ...base, phone: '+7 900', comment: 'привет' }, rules);
+    expect(!r.ok && r.errors.contact).toBe('Почта - чтобы с вами связаться');
+    const ok = checkBuyer({ ...base, phone: '+7 900', email: 'a@b.ru', comment: 'привет' }, rules);
+    expect(ok.ok && [ok.buyer.phone, ok.buyer.comment]).toEqual(['', '']);
   });
 });

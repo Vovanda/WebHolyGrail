@@ -326,6 +326,7 @@ mirror	src/client/src/blocks/primitives/Separator/WaveDivider.tsx
 mirror	src/client/src/blocks/primitives/Shop/AddToCart.tsx
 mirror	src/client/src/blocks/primitives/Shop/Cart.tsx
 mirror	src/client/src/blocks/primitives/Shop/OrderActions.tsx
+mirror	src/client/src/blocks/primitives/Shop/PaymentDetails.tsx
 mirror	src/client/src/blocks/primitives/Shop/Showcase.tsx
 mirror	src/client/src/blocks/primitives/Shop/ui.ts
 mirror	src/client/src/blocks/primitives/SidePanel.test.ts
@@ -624,6 +625,8 @@ overlay	src/cms/migrations/20261022_231116_shop_how_to_buy.json
 overlay	src/cms/migrations/20261022_231116_shop_how_to_buy.ts
 overlay	src/cms/migrations/20261022_231834_shop_deposit.json
 overlay	src/cms/migrations/20261022_231834_shop_deposit.ts
+overlay	src/cms/migrations/20261022_232708_shop_settings.json
+overlay	src/cms/migrations/20261022_232708_shop_settings.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts
