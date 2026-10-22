@@ -10,6 +10,7 @@ import { CATALOG_RENAMED, catalogPath } from '@/lib/catalog-path';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { MediaImage } from '@/blocks/primitives/Media';
 import { RatingStars } from '@/blocks/primitives/RatingStars';
+import { jsonLd } from '@/lib/seo/json-ld';
 
 /**
  * /specialists/[slug] — личная страница специалиста. SSR (R14).
@@ -65,7 +66,7 @@ function personJsonLd(doc: SpecialistDoc, slug: string): string {
   );
   const disciplines = (doc.disciplines ?? []).map((d) => d.title).filter(Boolean);
 
-  return JSON.stringify({
+  return jsonLd({
     '@context': 'https://schema.org',
     '@type': 'Person',
     name: doc.fullName,
