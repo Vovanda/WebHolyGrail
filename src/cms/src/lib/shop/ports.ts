@@ -1,6 +1,7 @@
 import type {
   InvoiceKind,
   InvoiceStatus,
+  HowToBuy,
   Micros,
   Money,
   OfferSnapshot,
@@ -77,6 +78,7 @@ export interface OfferCard {
   readonly summary: string | null;
   /** Картинка как её отдаёт хранилище - сайт показывает её своим примитивом. */
   readonly image: unknown;
+  readonly howToBuy: HowToBuy;
 }
 
 /** Какие позиции показать: выбранные по номерам либо первые `limit` по названию. */

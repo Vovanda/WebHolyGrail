@@ -70,6 +70,7 @@ import * as migration_20260927_135202_page_background from './20260927_135202_pa
 import * as migration_20260927_151802_page_background_veil from './20260927_151802_page_background_veil';
 import * as migration_20260927_160018_hero_photo from './20260927_160018_hero_photo';
 import * as migration_20261022_224847_shop from './20261022_224847_shop';
+import * as migration_20261022_231116_shop_how_to_buy from './20261022_231116_shop_how_to_buy';
 
 export const migrations = [
   {
@@ -431,5 +432,10 @@ export const migrations = [
     up: migration_20261022_224847_shop.up,
     down: migration_20261022_224847_shop.down,
     name: '20261022_224847_shop',
+  },
+  {
+    up: migration_20261022_231116_shop_how_to_buy.up,
+    down: migration_20261022_231116_shop_how_to_buy.down,
+    name: '20261022_231116_shop_how_to_buy',
   },
 ];

@@ -9,6 +9,7 @@ import {
   type OrderAction,
   ORDER_TRANSITIONS,
   STALE_ORDER_HOURS,
+  stockMoves,
 } from 'contracts';
 
 import { fail, type Id, ok, type Outcome, type ShopPorts, type StoredOrder } from './ports';
@@ -29,7 +30,13 @@ export interface PlaceOrderInput {
   readonly secretHash: string;
 }
 
-/** Оформить заказ: цены из базы, остаток списан, заказ «новый» (И-1, И-2). */
+/**
+ * Оформить заказ: цены из базы, заказ «новый» (И-1, И-2).
+ *
+ * @remarks
+ * Остаток списывается у строк корзины; строки заявки остаток не держат, пока
+ * заказ не приняли (`stockMoves`).
+ */
 export async function placeOrder(
   ports: ShopPorts,
   input: PlaceOrderInput,
@@ -44,7 +51,8 @@ export async function placeOrder(
 
     // Проверка выше - для ответа покупателю; решает условная запись: остаток мог
     // уйти между чтением и списанием.
-    const taken = await tx.offers.take(built.lines);
+    const { take } = stockMoves(built.lines, null, 'new');
+    const taken = await tx.offers.take(take);
     if (!taken.ok) {
       const [now] = await tx.offers.snapshots([taken.offer]);
       return fail('shortage', [{ offer: taken.offer, available: Math.max(now?.stock ?? 0, 0) }]);
@@ -60,13 +68,19 @@ export async function placeOrder(
       return ok(order);
     } catch (error) {
       // Транзакций в движке нет (#155): списанное без заказа возвращаем сами.
-      await tx.offers.giveBack(built.lines);
+      await tx.offers.giveBack(take);
       throw error;
     }
   });
 }
 
-/** Перевести заказ действием участника; отмена возвращает остаток и закрывает счета. */
+/**
+ * Перевести заказ действием участника.
+ *
+ * @remarks
+ * Принятие списывает остаток строк заявки - не хватило, заказ остаётся новым.
+ * Отмена возвращает то, что заказ держал, и закрывает счета.
+ */
 export async function changeOrder(
   ports: ShopPorts,
   id: Id,
@@ -79,6 +93,14 @@ export async function changeOrder(
     if (!canOrder(order.status, action, actor)) return fail('forbidden');
 
     const to = ORDER_TRANSITIONS[action].to;
+    const moves = stockMoves(order.lines, order.status, to);
+    if (moves.take.length > 0) {
+      const taken = await tx.offers.take(moves.take);
+      if (!taken.ok) {
+        const [now] = await tx.offers.snapshots([taken.offer]);
+        return fail('shortage', [{ offer: taken.offer, available: Math.max(now?.stock ?? 0, 0) }]);
+      }
+    }
     if (to === 'cancelled') {
       const invoices = await tx.invoices.forOrder(order.id);
       // И-6: полученное по заказу сначала возвращается счётом-возвратом.
@@ -88,9 +110,15 @@ export async function changeOrder(
         else if (INVOICE_OPEN.includes(invoice.status))
           await tx.invoices.update(invoice.id, { status: 'voided' });
       }
-      await tx.offers.giveBack(order.lines);
     }
-    await tx.orders.setStatus(order.id, to);
+    if (moves.giveBack.length > 0) await tx.offers.giveBack(moves.giveBack);
+    try {
+      await tx.orders.setStatus(order.id, to);
+    } catch (error) {
+      // Транзакций в движке нет (#155): списанное при принятии возвращаем сами.
+      if (moves.take.length > 0) await tx.offers.giveBack(moves.take);
+      throw error;
+    }
     return ok({ ...order, status: to });
   });
 }

@@ -32,6 +32,7 @@ export function toBuyerView(
       quantity: l.quantity,
       price: out(l.price),
       sum: out(l.sum),
+      mode: l.mode,
     })),
     buyer: {
       name: order.buyer.name,
@@ -68,5 +69,6 @@ export function toOfferView(card: OfferCard, money: MoneyPort, now: Date): Offer
     stock: card.stock,
     summary: card.summary,
     image: card.image,
+    howToBuy: card.howToBuy,
   };
 }

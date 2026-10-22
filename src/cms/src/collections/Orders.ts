@@ -100,7 +100,19 @@ export const Orders: CollectionConfig = {
       type: 'array',
       access: locked,
       admin: ro,
-      fields: shopLineFields,
+      fields: [
+        ...shopLineFields,
+        {
+          name: 'mode',
+          label: 'Как купить',
+          type: 'select',
+          options: [
+            { value: 'cart', label: 'В корзину' },
+            { value: 'request', label: 'По заявке' },
+          ],
+          admin: ro,
+        },
+      ],
     },
     {
       name: 'managerNote',

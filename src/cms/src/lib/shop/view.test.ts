@@ -9,7 +9,15 @@ const order: StoredOrder = {
   id: 7,
   status: 'accepted',
   lines: [
-    { offer: 3, title: 'Курс', quantity: 1, price: 4_500_500_000, sum: 4_500_500_000, access: 9 },
+    {
+      offer: 3,
+      title: 'Курс',
+      quantity: 1,
+      price: 4_500_500_000,
+      sum: 4_500_500_000,
+      access: 9,
+      mode: 'cart',
+    },
   ],
   total: 4_500_500_000,
   buyer: { name: 'Анна', phone: '+7', email: '', comment: '' },
@@ -35,7 +43,14 @@ describe('заказ глазами покупателя', () => {
   it('без хэша секрета, номеров кодов и доступа в строках', () => {
     const v = toBuyerView(order, [], new Date(), rub);
     expect(JSON.stringify(v)).not.toContain('секретный хэш');
-    expect(Object.keys(v.lines[0]!)).toEqual(['offer', 'title', 'quantity', 'price', 'sum']);
+    expect(Object.keys(v.lines[0]!)).toEqual([
+      'offer',
+      'title',
+      'quantity',
+      'price',
+      'sum',
+      'mode',
+    ]);
   });
 
   it('черновик не виден, коды - только у оплаченного счёта', () => {

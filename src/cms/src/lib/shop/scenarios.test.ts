@@ -25,6 +25,7 @@ const PUPPY: OfferSnapshot = {
   price: 5_000_000,
   stock: 1,
   access: null,
+  howToBuy: 'cart',
 };
 const FOOD: OfferSnapshot = {
   id: 2,
@@ -32,6 +33,7 @@ const FOOD: OfferSnapshot = {
   price: 450_000,
   stock: null,
   access: null,
+  howToBuy: 'cart',
 };
 const COURSE: OfferSnapshot = {
   id: 3,
@@ -39,6 +41,15 @@ const COURSE: OfferSnapshot = {
   price: 990_000,
   stock: null,
   access: 77,
+  howToBuy: 'cart',
+};
+const PUPPY_BY_REQUEST: OfferSnapshot = {
+  id: 4,
+  title: 'Щенок Рада',
+  price: 6_000_000,
+  stock: 1,
+  access: null,
+  howToBuy: 'request',
 };
 const buyer = { name: 'Анна', phone: '+7 900 000-00-00', email: '', comment: '', consent: true };
 
@@ -46,7 +57,7 @@ let state: MemoryState;
 let ports: ShopPorts;
 
 beforeEach(() => {
-  state = memoryState([PUPPY, FOOD, COURSE]);
+  state = memoryState([PUPPY, FOOD, COURSE, PUPPY_BY_REQUEST]);
   ports = memoryPorts(state);
 });
 
@@ -101,6 +112,45 @@ describe('оформление', () => {
       ok: false,
       error: 'empty',
     });
+  });
+});
+
+describe('заявка', () => {
+  it('не держит остаток: щенка по заявке оформляют двое, принимается один', async () => {
+    const first = await order([{ offer: 4, quantity: 1 }], 'r1');
+    const second = await order([{ offer: 4, quantity: 1 }], 'r2');
+    expect(state.offers.get(4)?.stock).toBe(1);
+
+    expect((await changeOrder(ports, first.id, 'accept', 'manager')).ok).toBe(true);
+    expect(state.offers.get(4)?.stock).toBe(0);
+
+    const refused = await changeOrder(ports, second.id, 'accept', 'manager');
+    expect(refused).toEqual({ ok: false, error: 'shortage', detail: [{ offer: 4, available: 0 }] });
+    expect((await ports.orders.get(second.id))?.status).toBe('new');
+  });
+
+  it('отмена новой заявки остатка не трогает, принятой - возвращает', async () => {
+    const o = await order([{ offer: 4, quantity: 1 }], 'r3');
+    await changeOrder(ports, o.id, 'cancel', 'manager');
+    expect(state.offers.get(4)?.stock).toBe(1);
+
+    const p = await order([{ offer: 4, quantity: 1 }], 'r4');
+    await changeOrder(ports, p.id, 'accept', 'manager');
+    await changeOrder(ports, p.id, 'cancel', 'manager');
+    expect(state.offers.get(4)?.stock).toBe(1);
+  });
+
+  it('заказ из корзины и заявки: корзина списана сразу, заявка - при принятии', async () => {
+    const o = await order(
+      [
+        { offer: 1, quantity: 1 },
+        { offer: 4, quantity: 1 },
+      ],
+      'r5',
+    );
+    expect([state.offers.get(1)?.stock, state.offers.get(4)?.stock]).toEqual([0, 1]);
+    await changeOrder(ports, o.id, 'accept', 'manager');
+    expect([state.offers.get(1)?.stock, state.offers.get(4)?.stock]).toEqual([0, 0]);
   });
 });
 

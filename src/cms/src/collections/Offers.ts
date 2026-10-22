@@ -45,6 +45,21 @@ export const Offers: CollectionConfig = {
         },
       ],
     },
+    {
+      name: 'howToBuy',
+      label: 'Как купить',
+      type: 'select',
+      required: true,
+      defaultValue: 'cart',
+      options: [
+        { value: 'cart', label: 'В корзину' },
+        { value: 'request', label: 'По заявке' },
+      ],
+      admin: {
+        description:
+          'По заявке - остаток списывается, когда вы примете заказ; до этого позиция остаётся на витрине.',
+      },
+    },
     { name: 'image', label: 'Картинка', type: 'upload', relationTo: 'media' },
     { name: 'summary', label: 'Коротко', type: 'textarea', maxLength: 500 },
     {

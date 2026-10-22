@@ -7,7 +7,7 @@ import {
   type PayloadRequest,
 } from 'payload';
 
-import type { OfferSnapshot, OrderLine, OrderStatus } from 'contracts';
+import type { HowToBuy, OfferSnapshot, OrderLine, OrderStatus } from 'contracts';
 
 import { moneyPort } from './money';
 import { type Execute, returnStock, takeStock } from './stock';
@@ -41,6 +41,7 @@ const idOf = (v: unknown): number | null => {
   return Number(v);
 };
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+const howToBuy = (v: unknown): HowToBuy => (v === 'request' ? 'request' : 'cart');
 const micros = (v: unknown): number | null =>
   typeof v === 'number' && Number.isSafeInteger(v) ? v : null;
 
@@ -51,6 +52,7 @@ export function offerFromDoc(doc: Record<string, unknown>): OfferSnapshot {
     price: micros(doc['priceMicros']),
     stock: typeof doc['stock'] === 'number' ? doc['stock'] : null,
     access: idOf(doc['access']),
+    howToBuy: howToBuy(doc['howToBuy']),
   };
 }
 
@@ -62,6 +64,7 @@ export function cardFromDoc(doc: Record<string, unknown>): OfferCard {
     stock: typeof doc['stock'] === 'number' ? doc['stock'] : null,
     summary: typeof doc['summary'] === 'string' ? doc['summary'] : null,
     image: doc['image'] ?? null,
+    howToBuy: howToBuy(doc['howToBuy']),
   };
 }
 
@@ -80,7 +83,12 @@ export function orderFromDoc(doc: Record<string, unknown>): StoredOrder {
     id: doc['id'] as Id,
     status: doc['status'] as OrderStatus,
     lines: ((doc['lines'] ?? []) as Record<string, unknown>[]).map(
-      (l) => ({ ...lineFromDoc(l), offer: Number(idOf(l['offer'])) }) as OrderLine,
+      (l) =>
+        ({
+          ...lineFromDoc(l),
+          offer: Number(idOf(l['offer'])),
+          mode: howToBuy(l['mode']),
+        }) as OrderLine,
     ),
     total: Number(doc['totalMicros']),
     buyer: {
@@ -121,6 +129,7 @@ export const lineToDoc = (l: InvoiceLine | OrderLine) => ({
   priceMicros: l.price,
   sumMicros: l.sum,
   access: l.access,
+  ...('mode' in l ? { mode: l.mode } : {}),
 });
 
 /** Документ под запись: суммы - в поля с единицей в имени. */
