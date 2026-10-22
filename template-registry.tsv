@@ -130,6 +130,15 @@ mirror	deploy/proxy-stack/README.md
 mirror	deploy/README.md
 mirror	dev-setup.sh
 mirror	dev.sh
+overlay	docs/adr/001-databases.md
+overlay	docs/adr/002-money.md
+overlay	docs/adr/003-currencies.md
+overlay	docs/adr/004-multitenancy.md
+overlay	docs/adr/005-path-cascades.md
+overlay	docs/adr/006-business-rules.md
+overlay	docs/adr/007-pricing-layers.md
+overlay	docs/adr/README.md
+overlay	docs/adr/TEMPLATE.md
 overlay	docs/README.en.md
 overlay	docs/README.ru.md
 overlay	docs/stack/infisical.md
