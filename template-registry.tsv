@@ -99,6 +99,8 @@ mirror	contracts/src/pages.ts
 mirror	contracts/src/preview-scroll.test.ts
 mirror	contracts/src/preview-scroll.ts
 mirror	contracts/src/reusable.ts
+mirror	contracts/src/shop.test.ts
+mirror	contracts/src/shop.ts
 mirror	contracts/src/social.ts
 mirror	contracts/src/theme.ts
 mirror	contracts/tsconfig.json
@@ -156,8 +158,11 @@ overlay	docs/whg/39-video.md
 overlay	docs/whg/40-versions.md
 overlay	docs/whg/41-access.md
 overlay	docs/whg/42-access-flows.md
+overlay	docs/whg/43-shop.md
+overlay	docs/whg/44-catalog-search.md
 overlay	docs/whg/45-data-location.md
 overlay	docs/whg/46-admin-ui.md
+overlay	docs/whg/47-forms-records.md
 overlay	docs/whg/55-faq.md
 mirror	pnpm-workspace.yaml
 mirror	scripts/bootstrap-site-on-vps.sh

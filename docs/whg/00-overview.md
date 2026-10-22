@@ -109,4 +109,7 @@ Self-hosted, MIT. Конструктор будет частью того же �
 - [`35-frontend-stack.md`](35-frontend-stack.md) — фронт-стек и блочная модель.
 - [`36-block-coverage.md`](36-block-coverage.md) — что покрывает Payload-блочная модель, что нет.
 - [`37-scaffolding.md`](37-scaffolding.md) — workflow создания нового сайта.
+- [`43-shop.md`](43-shop.md) — магазин: позиции, корзина, заказ, расширения флагами.
+- [`44-catalog-search.md`](44-catalog-search.md) — проект: фильтр и поиск по каталогу.
 - [`45-data-location.md`](45-data-location.md) — где живут значения: Payload / Infisical / код.
+- [`47-forms-records.md`](47-forms-records.md) — проект: формы и записи из админки.
