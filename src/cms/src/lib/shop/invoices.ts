@@ -156,6 +156,13 @@ export async function createInvoice(
     }));
     const lines = draftLines(order, source);
     if (!lines.ok) return lines;
+    const { invoiceDueDays } = await tx.settings();
+    const dueAt =
+      input.dueAt !== undefined
+        ? input.dueAt
+        : invoiceDueDays > 0
+          ? new Date(tx.now().getTime() + invoiceDueDays * 86_400_000).toISOString()
+          : null;
     return ok(
       await tx.invoices.create({
         order: order.id,
@@ -165,7 +172,7 @@ export async function createInvoice(
         refundOf: null,
         lines: lines.value,
         total: totalOf(lines.value),
-        dueAt: input.dueAt ?? null,
+        dueAt,
         codes: [],
       }),
     );

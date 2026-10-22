@@ -8,7 +8,6 @@ import {
   INVOICE_OPEN,
   type OrderAction,
   ORDER_TRANSITIONS,
-  STALE_ORDER_HOURS,
   stockMoves,
 } from 'contracts';
 
@@ -41,7 +40,7 @@ export async function placeOrder(
   ports: ShopPorts,
   input: PlaceOrderInput,
 ): Promise<Outcome<StoredOrder>> {
-  const checked = checkBuyer(input.buyer);
+  const checked = checkBuyer(input.buyer, (await ports.settings()).checkout);
   if (!checked.ok) return fail('invalid', checked.errors);
 
   return ports.transaction(async (tx) => {
@@ -134,7 +133,7 @@ export async function cancelBySecret(
 }
 
 /**
- * Отменяет новые заказы, которые не приняли за {@link STALE_ORDER_HOURS} часов.
+ * Отменяет новые заказы, которые не приняли за срок из настроек магазина.
  *
  * @remarks
  * Иначе оформленный ради шутки заказ держит штучную позицию вне витрины без
@@ -142,7 +141,8 @@ export async function cancelBySecret(
  * остальные - он попадёт в следующий проход.
  */
 export async function cancelStaleOrders(ports: ShopPorts): Promise<number> {
-  const before = new Date(ports.now().getTime() - STALE_ORDER_HOURS * 3_600_000);
+  const { orderHoldHours } = await ports.settings();
+  const before = new Date(ports.now().getTime() - orderHoldHours * 3_600_000);
   let cancelled = 0;
   for (const id of await ports.orders.newBefore(before)) {
     const result = await changeOrder(ports, id, 'cancel', 'system').catch(() => null);

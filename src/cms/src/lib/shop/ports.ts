@@ -8,6 +8,7 @@ import type {
   OfferSnapshot,
   OrderLine,
   OrderStatus,
+  ShopSettings,
 } from 'contracts';
 
 /**
@@ -142,6 +143,8 @@ export interface ShopPorts {
   readonly invoices: InvoicePort;
   readonly access: AccessPort;
   readonly money: MoneyPort;
+  /** Настройки магазина владельца: сроки и анкета (`shopSettings` с умолчаниями). */
+  settings(): Promise<ShopSettings>;
   readonly now: () => Date;
   /** Всё внутри - одна транзакция: либо целиком, либо ничего. */
   transaction<T>(work: (ports: ShopPorts) => Promise<T>): Promise<T>;

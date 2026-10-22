@@ -166,6 +166,7 @@ export const Invoices: CollectionConfig = {
     {
       name: 'lines',
       label: 'Строки',
+      labels: { singular: 'Строка', plural: 'Строки' },
       type: 'array',
       // Правится только черновик счёта на оплату; выставленный не меняется (И-3).
       access: {
@@ -182,6 +183,7 @@ export const Invoices: CollectionConfig = {
     {
       name: 'codes',
       label: 'Выданные коды',
+      labels: { singular: 'Код', plural: 'Коды' },
       type: 'array',
       access: locked,
       admin: {

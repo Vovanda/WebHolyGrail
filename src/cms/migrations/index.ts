@@ -72,6 +72,7 @@ import * as migration_20260927_160018_hero_photo from './20260927_160018_hero_ph
 import * as migration_20261022_224847_shop from './20261022_224847_shop';
 import * as migration_20261022_231116_shop_how_to_buy from './20261022_231116_shop_how_to_buy';
 import * as migration_20261022_231834_shop_deposit from './20261022_231834_shop_deposit';
+import * as migration_20261022_232708_shop_settings from './20261022_232708_shop_settings';
 
 export const migrations = [
   {
@@ -443,5 +444,10 @@ export const migrations = [
     up: migration_20261022_231834_shop_deposit.up,
     down: migration_20261022_231834_shop_deposit.down,
     name: '20261022_231834_shop_deposit',
+  },
+  {
+    up: migration_20261022_232708_shop_settings.up,
+    down: migration_20261022_232708_shop_settings.down,
+    name: '20261022_232708_shop_settings',
   },
 ];

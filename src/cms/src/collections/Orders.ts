@@ -97,6 +97,7 @@ export const Orders: CollectionConfig = {
     {
       name: 'lines',
       label: 'Строки',
+      labels: { singular: 'Строка', plural: 'Строки' },
       type: 'array',
       access: locked,
       admin: ro,

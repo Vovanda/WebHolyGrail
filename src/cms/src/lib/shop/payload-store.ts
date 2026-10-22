@@ -7,7 +7,13 @@ import {
   type PayloadRequest,
 } from 'payload';
 
-import type { HowToBuy, OfferSnapshot, OrderLine, OrderStatus } from 'contracts';
+import {
+  type HowToBuy,
+  type OfferSnapshot,
+  type OrderLine,
+  type OrderStatus,
+  shopSettings,
+} from 'contracts';
 
 import { moneyPort } from './money';
 import { type Execute, returnStock, takeStock } from './stock';
@@ -296,6 +302,10 @@ export function payloadPorts(
     },
     access: access(req),
     money: moneyPort(),
+    settings: async () => {
+      const doc = await payload.findGlobal({ slug: 'site-settings', ...opts });
+      return shopSettings((doc as unknown as { shop?: Record<string, unknown> | null }).shop);
+    },
     now: () => new Date(),
     transaction: (work) => {
       // Внутри открытой транзакции вложенный сценарий идёт в ней же: второй

@@ -1,4 +1,4 @@
-import type { OfferSnapshot } from 'contracts';
+import { type OfferSnapshot, shopSettings } from 'contracts';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
@@ -196,6 +196,14 @@ describe('отмена заказа', () => {
     expect(state.offers.get(1)?.stock).toBe(1);
   });
 
+  it('срок брони заказа - из настроек магазина', async () => {
+    state.settings = shopSettings({ orderHoldHours: 24 });
+    const o = await order([{ offer: 1, quantity: 1 }], 's24');
+    state.now = new Date(state.now.getTime() + 25 * 3_600_000);
+    expect(await cancelStaleOrders(ports)).toBe(1);
+    expect(state.orders.get(String(o.id))?.status).toBe('cancelled');
+  });
+
   it('с оплаченным счётом отмена отказывает, пока деньги не вернули', async () => {
     const o = await order();
     const paid = await paidInvoice(o);
@@ -288,6 +296,31 @@ describe('счёт', () => {
       error: 'not_found',
     });
     expect((await reportBySecret(ports, 'other', inv.value.id)).ok).toBe(true);
+  });
+});
+
+describe('настройки магазина', () => {
+  it('срок оплаты нового счёта - через дни из настроек; 0 - без срока', async () => {
+    state.settings = shopSettings({ invoiceDueDays: 5 });
+    const o = await order([{ offer: 2, quantity: 1 }], 'n1');
+    await changeOrder(ports, o.id, 'accept', 'manager');
+    const inv = await createInvoice(ports, o.id);
+    expect(inv.ok && inv.value.dueAt).toBe('2026-10-28T12:00:00.000Z');
+
+    state.settings = shopSettings({ invoiceDueDays: 0 });
+    const next = await createInvoice(ports, o.id);
+    expect(next.ok && next.value.dueAt).toBeNull();
+  });
+
+  it('обязательная почта: заказ без почты не оформляется, остаток не тронут', async () => {
+    state.settings = shopSettings({ checkout: { email: 'required' } });
+    const r = await placeOrder(ports, {
+      cart: [{ offer: 1, quantity: 1 }],
+      buyer,
+      secretHash: 'n2',
+    });
+    expect(r.ok ? null : r.error).toBe('invalid');
+    expect(state.offers.get(1)?.stock).toBe(1);
   });
 });
 

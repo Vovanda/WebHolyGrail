@@ -1,4 +1,4 @@
-import type { OfferSnapshot, OrderStatus } from 'contracts';
+import { type OfferSnapshot, type OrderStatus, type ShopSettings, shopSettings } from 'contracts';
 
 import { moneyPort } from './money';
 import type { Id, ShopPorts, StoredInvoice, StoredOrder } from './ports';
@@ -18,6 +18,7 @@ export interface MemoryState {
   codes: Map<string, { access: number; revoked: boolean }>;
   seq: number;
   now: Date;
+  settings: ShopSettings;
 }
 
 export function memoryState(offers: OfferSnapshot[] = []): MemoryState {
@@ -28,6 +29,7 @@ export function memoryState(offers: OfferSnapshot[] = []): MemoryState {
     codes: new Map(),
     seq: 0,
     now: new Date('2026-10-23T12:00:00Z'),
+    settings: shopSettings(null),
   };
 }
 
@@ -132,6 +134,7 @@ export function memoryPorts(state: MemoryState): ShopPorts {
       },
     },
     money: moneyPort(),
+    settings: async () => state.settings,
     now: () => state.now,
     transaction: async (work) => {
       const saved = clone(state);

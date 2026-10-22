@@ -114,6 +114,117 @@ export const SiteSettings: GlobalConfig = {
                   'Реквизиты для перевода или номер карты, куда платить. Покупатель видит это у счёта на странице заказа.',
               },
             },
+            {
+              // Разбирается одной функцией shopSettings (contracts): пустое поле -
+              // значение по умолчанию, сценарии и сайт читают одинаково.
+              name: 'shop',
+              label: false,
+              type: 'group',
+              fields: [
+                {
+                  name: 'payee',
+                  label: 'Получатель',
+                  type: 'group',
+                  admin: { description: 'Покупатель видит это у выставленного счёта.' },
+                  fields: [
+                    { name: 'name', label: 'Название или ФИО', type: 'text' },
+                    {
+                      type: 'row',
+                      fields: [
+                        { name: 'inn', label: 'ИНН', type: 'text', maxLength: 12 },
+                        { name: 'bik', label: 'БИК', type: 'text', maxLength: 9 },
+                      ],
+                    },
+                    {
+                      type: 'row',
+                      fields: [
+                        { name: 'account', label: 'Расчётный счёт', type: 'text', maxLength: 20 },
+                        { name: 'corrAccount', label: 'Корр. счёт', type: 'text', maxLength: 20 },
+                      ],
+                    },
+                    { name: 'bank', label: 'Банк', type: 'text' },
+                  ],
+                },
+                {
+                  name: 'sbp',
+                  label: 'СБП',
+                  type: 'group',
+                  fields: [
+                    {
+                      type: 'row',
+                      fields: [
+                        { name: 'phone', label: 'Телефон для перевода', type: 'text' },
+                        { name: 'bank', label: 'Банк получателя', type: 'text' },
+                      ],
+                    },
+                  ],
+                },
+                { name: 'card', label: 'Номер карты для перевода', type: 'text', maxLength: 32 },
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'orderHoldHours',
+                      label: 'Ждать принятия заказа, часов',
+                      type: 'number',
+                      min: 1,
+                      max: 720,
+                      defaultValue: 72,
+                      admin: { description: 'Непринятый заказ отменяется, остаток возвращается.' },
+                    },
+                    {
+                      name: 'invoiceDueDays',
+                      label: 'Срок оплаты счёта, дней',
+                      type: 'number',
+                      min: 0,
+                      max: 90,
+                      defaultValue: 3,
+                      admin: { description: '0 - без срока.' },
+                    },
+                  ],
+                },
+                {
+                  name: 'checkout',
+                  label: 'Что спрашивать при оформлении',
+                  type: 'group',
+                  fields: [
+                    {
+                      type: 'row',
+                      fields: [
+                        {
+                          name: 'phone',
+                          label: 'Телефон',
+                          type: 'select',
+                          defaultValue: 'optional',
+                          options: [
+                            { value: 'required', label: 'Обязательно' },
+                            { value: 'optional', label: 'По желанию' },
+                            { value: 'hidden', label: 'Не спрашивать' },
+                          ],
+                        },
+                        {
+                          name: 'email',
+                          label: 'Почта',
+                          type: 'select',
+                          defaultValue: 'optional',
+                          options: [
+                            { value: 'required', label: 'Обязательно' },
+                            { value: 'optional', label: 'По желанию' },
+                            { value: 'hidden', label: 'Не спрашивать' },
+                          ],
+                        },
+                      ],
+                    },
+                    {
+                      name: 'comment',
+                      label: 'Комментарий к заказу',
+                      type: 'checkbox',
+                      defaultValue: true,
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
         {
