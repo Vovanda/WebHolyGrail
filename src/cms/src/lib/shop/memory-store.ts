@@ -75,6 +75,7 @@ export function memoryPorts(state: MemoryState): ShopPorts {
           title: o.title,
           price: o.price,
           listPrice: o.listPrice ?? null,
+          sku: null,
           stock: o.stock,
           summary: null,
           image: null,

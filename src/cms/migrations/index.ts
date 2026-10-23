@@ -82,6 +82,7 @@ import * as migration_20261023_152014_shop_order_lines_invoice_extra from './202
 import * as migration_20261023_153305_shop_offer_promo from './20261023_153305_shop_offer_promo';
 import * as migration_20261023_155955_shop_invoice_line_discount from './20261023_155955_shop_invoice_line_discount';
 import * as migration_20261023_161622_shop_menu_title from './20261023_161622_shop_menu_title';
+import * as migration_20261023_175436_shop_offer_sku from './20261023_175436_shop_offer_sku';
 
 export const migrations = [
   {
@@ -503,5 +504,10 @@ export const migrations = [
     up: migration_20261023_161622_shop_menu_title.up,
     down: migration_20261023_161622_shop_menu_title.down,
     name: '20261023_161622_shop_menu_title',
+  },
+  {
+    up: migration_20261023_175436_shop_offer_sku.up,
+    down: migration_20261023_175436_shop_offer_sku.down,
+    name: '20261023_175436_shop_offer_sku',
   },
 ];

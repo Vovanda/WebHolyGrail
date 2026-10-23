@@ -102,6 +102,7 @@ export function toOfferView(card: OfferCard, money: MoneyPort, now: Date): Offer
     title: card.title,
     price: card.price === null || card.price <= 0 ? null : money.at(card.price, now),
     listPrice: card.listPrice === null ? null : money.at(card.listPrice, now),
+    sku: card.sku,
     stock: card.stock,
     summary: card.summary,
     image: card.image,

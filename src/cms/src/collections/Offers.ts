@@ -44,6 +44,17 @@ export const Offers: CollectionConfig = {
       },
     },
     {
+      name: 'sku',
+      label: 'Артикул',
+      type: 'text',
+      index: true,
+      maxLength: 64,
+      admin: {
+        position: 'sidebar',
+        description: 'Код позиции у продавца; покупатель видит его на карточке и копирует.',
+      },
+    },
+    {
       name: 'section',
       label: 'Раздел каталога',
       type: 'relationship',

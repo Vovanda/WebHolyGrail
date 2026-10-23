@@ -131,6 +131,7 @@ describe('позиция глазами покупателя', () => {
     section: null,
     specs: {},
     listPrice: null,
+    sku: null,
   });
 
   it('нулевая и пустая цена - по запросу, иначе Money', () => {

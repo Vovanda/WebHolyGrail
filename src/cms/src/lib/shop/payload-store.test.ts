@@ -32,6 +32,12 @@ describe('позиция из документа Payload', () => {
     expect(card.section).toBe('courses');
   });
 
+  it('артикул без пробелов по краям, пустой - нет артикула', () => {
+    expect(cardFromDoc({ ...doc, sku: ' A-17 ' }).sku).toBe('A-17');
+    expect(cardFromDoc({ ...doc, sku: '  ' }).sku).toBeNull();
+    expect(cardFromDoc(doc).sku).toBeNull();
+  });
+
   it('без прочитанного раздела характеристик наружу нет', () => {
     expect(cardFromDoc({ ...doc, section: 1 }).specs).toEqual({});
     expect(cardFromDoc({ ...doc, section: 1 }).section).toBeNull();

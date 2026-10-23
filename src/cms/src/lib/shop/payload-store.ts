@@ -91,6 +91,7 @@ export function cardFromDoc(doc: Record<string, unknown>, now = new Date()): Off
     title: str(doc['title']),
     price,
     listPrice,
+    sku: typeof doc['sku'] === 'string' && doc['sku'].trim() ? doc['sku'].trim() : null,
     stock: typeof doc['stock'] === 'number' ? doc['stock'] : null,
     summary: typeof doc['summary'] === 'string' ? doc['summary'] : null,
     image: doc['image'] ?? null,

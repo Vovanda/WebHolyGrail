@@ -85,6 +85,8 @@ export interface OfferCard {
   readonly price: Micros | null;
   /** Цена по прайсу, пока идёт акция; без акции пусто. */
   readonly listPrice: Micros | null;
+  /** Артикул продавца. */
+  readonly sku: string | null;
   readonly stock: number | null;
   readonly summary: string | null;
   /** Картинка как её отдаёт хранилище - сайт показывает её своим примитивом. */
