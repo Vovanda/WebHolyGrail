@@ -33,16 +33,23 @@ export function OfferSpecsField({ path, field }: { path: string; field?: { label
   useEffect(() => {
     if (!sectionId) return setChars([]);
     setChars(null);
+    // Раздел сменили, пока шёл ответ по прежнему: опоздавший ответ не должен подменить поля.
+    let stale = false;
     const url = formatAdminURL({
       apiRoute: config.routes.api,
       path: `/catalog-sections/${sectionId}?depth=0`,
     });
     void fetch(url, { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
-      .then((doc: { characteristics?: unknown } | null) =>
-        setChars(cleanCharacteristics(doc?.characteristics)),
-      )
-      .catch(() => setChars([]));
+      .then((doc: { characteristics?: unknown } | null) => {
+        if (!stale) setChars(cleanCharacteristics(doc?.characteristics));
+      })
+      .catch(() => {
+        if (!stale) setChars([]);
+      });
+    return () => {
+      stale = true;
+    };
   }, [sectionId, config.routes.api]);
 
   const specs: Specs = value && typeof value === 'object' ? value : {};
@@ -98,7 +105,8 @@ export function OfferSpecsField({ path, field }: { path: string; field?: { label
                     onChange={(e) => {
                       const raw = e.target.value;
                       if (c.kind !== 'number') return put(c.key, raw.trim() ? raw : null);
-                      const n = Number(raw.replace(',', '.'));
+                      // type=number отдаёт строку с точкой или пустую, если введено не число
+                      const n = Number(raw);
                       put(c.key, raw.trim() && Number.isFinite(n) ? n : null);
                     }}
                     style={inputStyle}

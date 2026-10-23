@@ -95,12 +95,15 @@ export interface OfferDetailCard extends OfferCard {
 }
 
 /**
- * Какие позиции показать: выбранные по номерам, раздел каталога либо первые
- * `limit` по названию.
+ * Какие позиции показать: выбранные по номерам, раздел каталога целиком
+ * (до `SECTION_CAP`) либо первые `limit` по названию.
  */
+/** Потолок позиций в разделе: раздел читается целиком, но не бесконечно. */
+export const SECTION_CAP = 2000;
+
 export type OfferQuery =
   | { readonly ids: readonly number[] }
-  | { readonly section: string; readonly limit: number }
+  | { readonly section: string }
   | { readonly limit: number };
 
 export interface OfferPort {

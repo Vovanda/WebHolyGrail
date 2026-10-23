@@ -1,4 +1,10 @@
-import { type BuyerOrderView, isOverdue, type OfferDetailView, type OfferView } from 'contracts';
+import {
+  type BuyerOrderSummary,
+  type BuyerOrderView,
+  isOverdue,
+  type OfferDetailView,
+  type OfferView,
+} from 'contracts';
 
 import type { MoneyPort, OfferCard, OfferDetailCard, StoredInvoice, StoredOrder } from './ports';
 
@@ -12,6 +18,16 @@ import type { MoneyPort, OfferCard, OfferDetailCard, StoredInvoice, StoredOrder 
  * Суммы выходят `Money` по курсу на дату оформления заказа - она же дата
  * документа для его счетов (docs/adr/007-pricing-layers.md).
  */
+/** Строка «Моих заказов»: итог по курсу на дату заказа, как и на его странице. */
+export function toBuyerSummary(order: StoredOrder, money: MoneyPort): BuyerOrderSummary {
+  return {
+    id: String(order.id),
+    status: order.status,
+    createdAt: order.createdAt,
+    total: money.at(order.total, new Date(order.createdAt)),
+  };
+}
+
 export function toBuyerView(
   order: StoredOrder,
   invoices: readonly StoredInvoice[],

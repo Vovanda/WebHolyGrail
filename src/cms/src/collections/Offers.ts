@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload';
+import { isSlug } from 'contracts';
 
 import { editorsOnly } from '../lib/access/editors';
 import { moneyField } from './money-field';
@@ -32,6 +33,10 @@ export const Offers: CollectionConfig = {
       type: 'text',
       unique: true,
       index: true,
+      validate: (value: unknown) =>
+        value === null || value === undefined || value === '' || isSlug(value)
+          ? true
+          : 'Только латиница в нижнем регистре, цифры и дефис, до 120 знаков.',
       admin: {
         position: 'sidebar',
         description:

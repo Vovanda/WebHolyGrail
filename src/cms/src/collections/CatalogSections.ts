@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload';
+import { isSlug } from 'contracts';
 
 import { editorsOnly } from '../lib/access/editors';
 
@@ -25,6 +26,21 @@ export const CatalogSections: CollectionConfig = {
       'Разделы витрины и их характеристики. Раздел открывается на сайте по адресу /shop/<адрес>.',
   },
   access: { read: () => true, create: editorsOnly, update: editorsOnly, delete: editorsOnly },
+  hooks: {
+    // Позиции раздела остаются вне разделов: без этого внешний ключ offers.section_id
+    // не даёт удалить раздел, в котором есть хоть одна позиция.
+    beforeDelete: [
+      async ({ id, req }) => {
+        await req.payload.update({
+          collection: 'offers',
+          where: { section: { equals: id } },
+          data: { section: null },
+          overrideAccess: true,
+          req,
+        });
+      },
+    ],
+  },
   fields: [
     { name: 'title', label: 'Название', type: 'text', required: true, maxLength: 120 },
     {
@@ -33,6 +49,10 @@ export const CatalogSections: CollectionConfig = {
       type: 'text',
       unique: true,
       index: true,
+      validate: (value: unknown) =>
+        value === null || value === undefined || value === '' || isSlug(value)
+          ? true
+          : 'Только латиница в нижнем регистре, цифры и дефис, до 120 знаков.',
       admin: {
         position: 'sidebar',
         description:

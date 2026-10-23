@@ -14,6 +14,7 @@ import {
   type OrderStatus,
   shopSettings,
   cleanCharacteristics,
+  publicSpecs,
   type SpecValue,
 } from 'contracts';
 
@@ -28,6 +29,7 @@ import type {
   StoredInvoice,
   StoredOrder,
 } from './ports';
+import { SECTION_CAP } from './ports';
 
 /**
  * Порты магазина на Payload - единственное место модуля, которое знает о CMS.
@@ -76,7 +78,10 @@ export function cardFromDoc(doc: Record<string, unknown>): OfferCard {
     deposit: micros(doc['depositMicros']),
     slug: typeof doc['slug'] === 'string' && doc['slug'] ? doc['slug'] : null,
     section: sectionOf(doc['section'])?.slug ?? null,
-    specs: specsOf(doc['specs']),
+    specs: publicSpecs(
+      cleanCharacteristics(sectionOf(doc['section'])?.characteristics),
+      specsOf(doc['specs']),
+    ),
   };
 }
 
@@ -234,7 +239,11 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
         const found = await payload.find({
           collection: 'offers',
           ...(where ? { where } : {}),
-          limit: ids ? ids.length : Math.min(Math.max(1, 'limit' in query ? query.limit : 1), 100),
+          limit: ids
+            ? ids.length
+            : 'section' in query
+              ? SECTION_CAP
+              : Math.min(Math.max(1, 'limit' in query ? query.limit : 1), 100),
           sort: 'title',
           pagination: false,
           ...opts,

@@ -1,6 +1,7 @@
 'use client';
 
-import { useDocumentInfo } from '@payloadcms/ui';
+import { Button, useConfig, useDocumentInfo } from '@payloadcms/ui';
+import { formatAdminURL } from 'payload/shared';
 import { useEffect, useState } from 'react';
 
 import { formatMoney, type Money, toMoney, unitsToMicros } from 'contracts';
@@ -28,6 +29,9 @@ const LABELS: Record<string, string> = {
   delete: 'Удалить черновик',
 };
 
+/** Необратимые действия - красной кнопкой, чтобы их не нажимали походя. */
+const DANGER = new Set(['cancel', 'void', 'delete', 'reject']);
+
 const ERRORS: Record<string, string> = {
   money_held: 'По заказу получены деньги: сначала верните их счётом-возвратом.',
   quantity_locked: 'Количество позиции берётся из заказа.',
@@ -47,10 +51,17 @@ interface State {
 
 export function ShopActionsField() {
   const { id, collectionSlug } = useDocumentInfo();
+  const { config } = useConfig();
   const [state, setState] = useState<State | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const base = `/api/shop/admin/${collectionSlug}/${id}`;
+  // Пути через formatAdminURL: под путём сайта (/shop/admin) голый /api ушёл бы мимо CMS.
+  const base = formatAdminURL({
+    apiRoute: config.routes.api,
+    path: `/shop/admin/${collectionSlug}/${id}`,
+  });
+  const adminURL = (path: `/${string}`) =>
+    formatAdminURL({ adminRoute: config.routes.admin, path });
 
   useEffect(() => {
     if (!id) return;
@@ -117,11 +128,12 @@ export function ShopActionsField() {
           ERRORS[data.error ?? ''] ?? 'Не получилось. Обновите страницу и попробуйте снова.',
         );
       // Новый счёт или возврат открываем сразу: дальше менеджер правит черновик.
-      if (data.id !== undefined) window.location.assign(`/admin/collections/invoices/${data.id}`);
+      if (data.id !== undefined)
+        window.location.assign(adminURL(`/collections/invoices/${data.id}`));
       // Удалённый черновик открыть нельзя - возвращаемся к его заказу.
       else if (action === 'delete')
         window.location.assign(
-          data.order ? `/admin/collections/orders/${data.order}` : '/admin/collections/invoices',
+          adminURL(data.order ? `/collections/orders/${data.order}` : '/collections/invoices'),
         );
       else window.location.reload();
     } finally {
@@ -132,9 +144,18 @@ export function ShopActionsField() {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
       {buttons.map((action) => (
-        <button key={action} type="button" disabled={busy} onClick={() => void run(action)}>
+        <Button
+          key={action}
+          buttonStyle={
+            DANGER.has(action) ? 'error' : action === buttons[0] ? 'primary' : 'secondary'
+          }
+          size="small"
+          margin={false}
+          disabled={busy}
+          onClick={() => void run(action)}
+        >
           {LABELS[action] ?? action}
-        </button>
+        </Button>
       ))}
       {error && (
         <p style={{ flexBasis: '100%', margin: 0, color: 'var(--theme-error-500)' }}>{error}</p>

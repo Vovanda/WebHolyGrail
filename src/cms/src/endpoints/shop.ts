@@ -5,6 +5,7 @@ import {
   canOrder,
   cleanCart,
   depositLines,
+  isSlug,
   MAX_CART_LINES,
   parseMoney,
   INVOICE_TRANSITIONS,
@@ -25,6 +26,7 @@ import {
 import { cancelBySecret, changeOrder, placeOrder } from '../lib/shop/orders';
 import { payloadPorts } from '../lib/shop/payload-store';
 import type { Failure, OfferQuery, Outcome, ShopPorts } from '../lib/shop/ports';
+import { myOrders } from '../lib/shop/my-orders';
 import { hashOrderSecret, isOrderSecret, newOrderSecret } from '../lib/shop/order-link';
 import { take, type RuleName } from '../lib/shop/throttle';
 import { toBuyerView, toOfferDetailView, toOfferView } from '../lib/shop/view';
@@ -116,7 +118,7 @@ async function editor(req: PayloadRequest): Promise<boolean> {
 }
 
 /**
- * `?ids=3,7` - позиции корзины; `?section=<слаг>` - раздел каталога; иначе
+ * `?ids=3,7` - позиции корзины; `?section=<слаг>` - раздел каталога целиком; иначе
  * `?limit=` первых по названию, для витрины.
  */
 function offerQuery(req: PayloadRequest): OfferQuery {
@@ -134,10 +136,8 @@ function offerQuery(req: PayloadRequest): OfferQuery {
   const raw = Math.floor(Number(url.searchParams.get('limit') ?? 60));
   const limit = Number.isFinite(raw) ? Math.min(Math.max(raw, 1), 100) : 60;
   const section = url.searchParams.get('section');
-  return section && SLUG.test(section) ? { section, limit } : { limit };
+  return isSlug(section) ? { section } : { limit };
 }
-
-const SLUG = /^[a-z0-9-]{1,120}$/;
 
 /**
  * Страница позиции `/shop/item/<слаг>` и раздел каталога `/shop/<слаг>`.
@@ -153,7 +153,7 @@ const offerDetailEndpoint: Endpoint = {
     const refused = guard(req, null);
     if (refused) return refused;
     const slug = String(req.routeParams?.['slug'] ?? '');
-    if (!SLUG.test(slug)) return json({ error: 'not_found' }, 404);
+    if (!isSlug(slug)) return json({ error: 'not_found' }, 404);
     const p = ports(req);
     const card = await p.offers.detail(slug);
     if (!card) return json({ error: 'not_found' }, 404);
@@ -168,7 +168,7 @@ const sectionEndpoint: Endpoint = {
     const refused = guard(req, null);
     if (refused) return refused;
     const slug = String(req.routeParams?.['slug'] ?? '');
-    if (!SLUG.test(slug)) return json({ error: 'not_found' }, 404);
+    if (!isSlug(slug)) return json({ error: 'not_found' }, 404);
     const section = await ports(req).offers.section(slug);
     return section ? json(section) : json({ error: 'not_found' }, 404);
   },
@@ -242,16 +242,12 @@ const orderViewEndpoint: Endpoint = {
   },
 };
 
-/** Сколько заказов «Мои заказы» спрашивают одним запросом - страница списка. */
-const VIEWS_PAGE = 10;
-
 /**
- * Несколько заказов покупателя одним запросом - страница «Моих заказов».
+ * Страница «Моих заказов» одним запросом (`myOrders`).
  *
  * @remarks
  * Лимит частоты считается один раз на запрос, а не на заказ: иначе список из
- * двадцати заказов отнимал бы у покупателя «Я оплатил» и отмену. Секрет без
- * заказа отвечает `null` на своём месте - браузер его забудет.
+ * двадцати заказов отнимал бы у покупателя «Я оплатил» и отмену.
  */
 const buyerViewsEndpoint: Endpoint = {
   path: '/shop/orders/views',
@@ -260,17 +256,7 @@ const buyerViewsEndpoint: Endpoint = {
     const refused = guard(req, 'buyerAction');
     if (refused) return refused;
     const raw = (await body(req))['secrets'];
-    const secrets = (Array.isArray(raw) ? raw : []).slice(0, VIEWS_PAGE);
-    const p = ports(req);
-    const now = new Date();
-    const views = await Promise.all(
-      secrets.map(async (secret) => {
-        if (!isOrderSecret(secret)) return null;
-        const order = await p.orders.bySecretHash(hashOrderSecret(secret));
-        return order ? toBuyerView(order, await p.invoices.forOrder(order.id), now, p.money) : null;
-      }),
-    );
-    return json({ views });
+    return json({ views: await myOrders(ports(req), Array.isArray(raw) ? raw : []) });
   },
 };
 

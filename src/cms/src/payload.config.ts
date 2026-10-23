@@ -95,6 +95,8 @@ function parseOrigins(csv: string | undefined, fallback: string): string[] {
 export default buildConfig({
   admin: {
     user: Users.slug,
+    // Умолчание Payload «MMMM do yyyy, h:mm a» по-русски читается «октября 23-е 2026, 5:54 ПП».
+    dateFormat: 'd MMMM yyyy, HH:mm',
     meta: {
       titleSuffix: process.env.SITE_NAME ? ` — ${process.env.SITE_NAME}` : ' — Holy Grail',
     },
