@@ -3,6 +3,7 @@ import type { TaskConfig } from 'payload';
 import { cancelStaleOrders } from '../lib/shop/orders';
 import { payloadAccess } from '../lib/shop/payload-access';
 import { payloadPorts } from '../lib/shop/payload-store';
+import { moduleOn } from '../lib/modules/enabled';
 
 /**
  * Отмена новых заказов, которые менеджер не принял за 72 часа.
@@ -22,6 +23,8 @@ export const CancelStaleOrdersTask: TaskConfig<'cancel-stale-orders'> = {
   outputSchema: [{ name: 'cancelled', type: 'number' }],
   schedule: [{ cron: '23 * * * *', queue: 'default' }],
   handler: async ({ req }) => {
+    // Магазин выключен - заказов на сайте нет, и отменять их некому.
+    if (!moduleOn('shop')) return { output: { cancelled: 0 } };
     const cancelled = await cancelStaleOrders(
       payloadPorts(req.payload, payloadAccess(req.payload)),
     );

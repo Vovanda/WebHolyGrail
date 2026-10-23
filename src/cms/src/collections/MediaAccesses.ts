@@ -21,7 +21,7 @@ export const MediaAccesses: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'cutoff'],
-    group: 'Медиа',
+    group: 'Доступы',
     description: 'Что продаётся одним куском: курс, сезон, подписка. Права выдаются на доступ.',
   },
   access: {

@@ -23,7 +23,7 @@ export const MediaAccessRights: CollectionConfig = {
   admin: {
     useAsTitle: 'id',
     defaultColumns: ['viewer', 'visitorMarker', 'access', 'source', 'expiresAt'],
-    group: 'Медиа',
+    group: 'Доступы',
     description: 'Кому открыт доступ. Выдаётся оплатой, кодом или решением владельца.',
   },
   fields: [

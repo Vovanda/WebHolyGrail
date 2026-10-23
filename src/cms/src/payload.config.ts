@@ -20,6 +20,8 @@ import { engineCollections } from './collections/engine';
 import { engineTasks } from './jobs/engine';
 import { previewPath, siteUrl } from './lib/preview';
 import { withAutoSlug } from './lib/slug';
+import { withModule } from './lib/modules/collection';
+import { watchModules } from './lib/modules/enabled';
 import { engineEndpoints } from './endpoints/engine';
 // Своё этого сайта - коллекции, ручки, задания, глобалы. Файл принадлежит
 // сайту и обновлением не трогается; сам конфиг общий и приезжает целиком.
@@ -148,7 +150,7 @@ export default buildConfig({
 
     Порядок разделов админки задаёт сам набор движка; своё дописывается следом.
   */
-  collections: [...engineCollections, ...site.collections].map(withAutoSlug),
+  collections: [...engineCollections, ...site.collections].map(withAutoSlug).map(withModule),
   globals: [SiteSettings, ...site.globals],
   /*
     Ручки движка приходят набором целиком, своё дописывается следом. Тот же
@@ -175,6 +177,10 @@ export default buildConfig({
     */
     const own = await adoptSystemToggles(payload).catch(() => 0);
     if (own > 0) payload.logger.info(`Заведено переключателей движка: ${own}`);
+
+    // Снимок модулей - после заведения переключателей, чтобы первый же снимок
+    // видел записи модулей.
+    watchModules(payload);
   },
   /**
    * Jobs Queue — admin UI на /admin/collections/payload-jobs. Template поставляет
@@ -183,7 +189,7 @@ export default buildConfig({
    * `pnpm payload jobs:run` или встроенный autoRun (см. whg-payload-jobs skill).
    *
    * jobsCollectionOverrides — кастомизация admin UI коллекции payload-jobs:
-   * русские labels + group 'Администрирование', чтобы downstream видел "Задачи"
+   * русские labels + group 'Настройки', чтобы downstream видел "Задачи"
    * рядом с "Редакторы" вместо скрытой технической collection.
    */
   jobs: {
@@ -199,7 +205,7 @@ export default buildConfig({
       admin: {
         ...defaultJobsCollection.admin,
         hidden: false,
-        group: 'Администрирование',
+        group: 'Настройки',
         description:
           'Фоновые задачи. Template не поставляет tasks из коробки — downstream добавляет свои в payload.config.jobs.tasks. См. whg-payload-jobs skill.',
       },

@@ -29,7 +29,7 @@ export const MediaAccessLinks: CollectionConfig = {
   admin: {
     useAsTitle: 'label',
     defaultColumns: ['label', 'access', 'expiresAt', 'revoked', 'usedCount'],
-    group: 'Медиа',
+    group: 'Доступы',
     description:
       'Открывают подборку или запись всякому, у кого есть адрес. В отличие от кодов доступа их не диктуют, а присылают.',
   },

@@ -41,7 +41,7 @@ export const MediaAccessCodes: CollectionConfig = {
   admin: {
     useAsTitle: 'code',
     defaultColumns: ['code', 'access', 'usedCount', 'expiresAt'],
-    group: 'Медиа',
+    group: 'Доступы',
     description:
       'Короткий код, который диктуют и переписывают. Превращается в обычное право доступа. Ссылки-приглашения живут отдельно — их присылают целиком.',
   },

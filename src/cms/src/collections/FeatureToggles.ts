@@ -1,5 +1,6 @@
 import type { CollectionConfig } from 'payload';
 
+import { refreshModules } from '../lib/modules/enabled';
 import { forgetToggles } from '../lib/toggles/source';
 import { editorsOnly, adminsOnly } from '../lib/access/editors';
 
@@ -132,16 +133,19 @@ export const FeatureToggles: CollectionConfig = {
   ],
   hooks: {
     afterChange: [
-      ({ doc }) => {
+      async ({ doc, req }) => {
         // Свод в памяти забываем сразу: владелец нажал переключатель и ждёт,
-        // что сайт изменится теперь, а не через полминуты.
+        // что сайт изменится теперь, а не через полминуты. Снимок модулей
+        // обновляется тут же - по нему админка прячет разделы.
         forgetToggles();
+        await refreshModules(req.payload).catch(() => undefined);
         return doc;
       },
     ],
     afterDelete: [
-      ({ doc }) => {
+      async ({ doc, req }) => {
         forgetToggles();
+        await refreshModules(req.payload).catch(() => undefined);
         return doc;
       },
     ],

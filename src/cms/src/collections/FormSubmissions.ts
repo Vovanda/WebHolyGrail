@@ -15,11 +15,11 @@ import { editorsOnly, adminsOnly } from '../lib/access/editors';
  */
 export const FormSubmissions: CollectionConfig = {
   slug: 'form-submissions',
-  labels: { singular: 'Заявка', plural: 'Заявки' },
+  labels: { singular: 'Ответ формы', plural: 'Ответы форм' },
   admin: {
     useAsTitle: 'formType',
     defaultColumns: ['formType', 'status', 'createdAt', 'source'],
-    group: 'Обращения',
+    group: 'Формы',
   },
   hooks: {
     afterChange: [

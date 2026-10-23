@@ -14,7 +14,7 @@ export const Cities: CollectionConfig = {
   admin: {
     useAsTitle: 'name',
     defaultColumns: ['name', 'slug', 'updatedAt'],
-    group: 'Каталог',
+    group: 'Специалисты',
   },
   access: {
     read: () => true,

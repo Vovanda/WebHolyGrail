@@ -29,7 +29,7 @@ export const Specialists: CollectionConfig = {
   admin: {
     useAsTitle: 'fullName',
     defaultColumns: ['fullName', 'city', 'acceptingClients', 'updatedAt'],
-    group: 'Каталог',
+    group: 'Специалисты',
   },
   access: {
     read: () => true,

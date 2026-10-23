@@ -27,7 +27,7 @@ export const Users: CollectionConfig = {
   admin: {
     useAsTitle: 'email',
     defaultColumns: ['email', 'name', 'role'],
-    group: 'Администрирование',
+    group: 'Настройки',
   },
   /*
     Ключ рядом с паролем: пароль открывает админку человеку, ключ - наполнение

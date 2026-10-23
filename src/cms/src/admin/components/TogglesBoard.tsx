@@ -56,7 +56,7 @@ export function TogglesBoard() {
   const groups = useMemo(() => {
     const map = new Map<string, Toggle[]>();
     for (const item of items ?? []) {
-      const key = item.group?.trim() || 'Без фичи';
+      const key = item.group?.trim() || 'Прочее';
       map.set(key, [...(map.get(key) ?? []), item]);
     }
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b, 'ru'));
