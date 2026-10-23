@@ -230,6 +230,7 @@ mirror	src/client/src/app/(site)/shop/[section]/page.tsx
 mirror	src/client/src/app/(site)/shop/[section]/ranges-from-form.test.ts
 mirror	src/client/src/app/(site)/shop/item/[slug]/page.tsx
 mirror	src/client/src/app/(site)/shop/layout.tsx
+mirror	src/client/src/app/(site)/shop/page.tsx
 mirror	src/client/src/app/api/health/route.ts
 mirror	src/client/src/app/internal/geo/route.ts
 mirror	src/client/src/app/internal/preview/draft/route.ts
@@ -668,6 +669,8 @@ overlay	src/cms/migrations/20261023_153305_shop_offer_promo.json
 overlay	src/cms/migrations/20261023_153305_shop_offer_promo.ts
 overlay	src/cms/migrations/20261023_155955_shop_invoice_line_discount.json
 overlay	src/cms/migrations/20261023_155955_shop_invoice_line_discount.ts
+overlay	src/cms/migrations/20261023_161622_shop_menu_title.json
+overlay	src/cms/migrations/20261023_161622_shop_menu_title.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts

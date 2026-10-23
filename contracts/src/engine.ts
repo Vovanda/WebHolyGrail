@@ -54,6 +54,7 @@ export type {
   VideoSettings,
   VideoDeniedSettings,
 } from './globals';
+export { siteNav } from './globals';
 
 export type { ThemeConfig, ThemeName } from './theme';
 
@@ -136,7 +137,9 @@ export {
   BUYER_LIMITS,
   BUYER_STEP_TEXT,
   CANCEL_FROM_NEW_ONLY,
+  CATALOG_HREF,
   DEFAULT_CART_HREF,
+  DEFAULT_SHOP_MENU_TITLE,
   INVOICE_FINAL,
   INVOICE_STATUS_LABELS,
   INVOICE_OPEN,
@@ -191,6 +194,7 @@ export type {
   BuyerInput,
   BuyerStep,
   CartLine,
+  CatalogSectionSummary,
   DiscountBase,
   ExtraKind,
   ExtraLine,

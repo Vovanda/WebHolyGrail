@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { siteNav } from './globals';
+
 import {
   buildOrder,
   buyerStep,
@@ -274,5 +276,23 @@ describe('страница корзины', () => {
     expect(shopSettings({ cartHref: 'https://evil.example' }).cartHref).toBe('/cart');
     expect(shopSettings({ cartHref: '//evil.example' }).cartHref).toBe('/cart');
     expect(shopSettings({ cartHref: '/\\evil.example' }).cartHref).toBe('/cart');
+  });
+});
+
+describe('пункт каталога в меню', () => {
+  const nav = [{ href: '/about', label: 'О нас' }];
+  it('магазин включён - «Магазин» в конце меню; подпись владелец меняет в настройках', () => {
+    expect(siteNav({ mainNav: nav, toggles: {}, shop: null }).at(-1)).toEqual({
+      href: '/shop',
+      label: 'Магазин',
+    });
+    expect(
+      siteNav({ mainNav: nav, toggles: {}, shop: { menuTitle: 'Товары' } }).at(-1)?.label,
+    ).toBe('Товары');
+  });
+  it('выключен или владелец уже поставил пункт на /shop - не добавляется', () => {
+    expect(siteNav({ mainNav: nav, toggles: { 'module.shop': false }, shop: null })).toEqual(nav);
+    const own = [{ href: '/shop/', label: 'Товары' }];
+    expect(siteNav({ mainNav: own, toggles: {}, shop: null })).toEqual(own);
   });
 });

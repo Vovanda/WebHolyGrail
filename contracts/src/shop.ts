@@ -596,6 +596,8 @@ export interface ShopSettings {
   readonly checkout: CheckoutRules;
   /** Адрес страницы, где стоит корзина: на него ведут шапка и витрина. */
   readonly cartHref: string;
+  /** Подпись пункта меню, ведущего в каталог `/shop`. */
+  readonly menuTitle: string;
 }
 
 /** Настройки магазина как они лежат в CMS: любое поле может быть пустым. */
@@ -605,6 +607,9 @@ export type ShopSettingsInput = {
 
 export const DEFAULT_INVOICE_DUE_DAYS = 3;
 export const DEFAULT_CART_HREF = '/cart';
+export const DEFAULT_SHOP_MENU_TITLE = 'Магазин';
+/** Адрес каталога: индекс разделов магазина. */
+export const CATALOG_HREF = '/shop';
 
 const text = (v: unknown, max = 200): string =>
   typeof v === 'string' ? v.trim().slice(0, max) : '';
@@ -649,6 +654,7 @@ export function shopSettings(raw: ShopSettingsInput | null | undefined): ShopSet
       phoneFormat: isPhoneFormat(co['phoneFormat']) ? co['phoneFormat'] : DEFAULT_PHONE_FORMAT,
     },
     cartHref: localPath(r['cartHref']) ?? DEFAULT_CART_HREF,
+    menuTitle: text(r['menuTitle'], 40) || DEFAULT_SHOP_MENU_TITLE,
   };
 }
 
@@ -789,6 +795,14 @@ export const offerViewOf = (o: OfferView): OfferView => ({
   section: o.section,
   specs: o.specs,
 });
+
+/** Раздел на странице каталога `/shop`: куда вести и сколько там позиций. */
+export interface CatalogSectionSummary {
+  readonly slug: string;
+  readonly title: string;
+  readonly description: string | null;
+  readonly count: number;
+}
 
 /** Раздел каталога: название, описание и набор характеристик для фильтра. */
 export interface CatalogSectionView {
