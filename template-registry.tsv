@@ -362,8 +362,10 @@ mirror	src/client/src/blocks/primitives/Shop/HeaderCart.tsx
 mirror	src/client/src/blocks/primitives/Shop/MyOrders.tsx
 mirror	src/client/src/blocks/primitives/Shop/OfferCard.tsx
 mirror	src/client/src/blocks/primitives/Shop/OfferGallery.tsx
+mirror	src/client/src/blocks/primitives/Shop/OfferLane.tsx
 mirror	src/client/src/blocks/primitives/Shop/OfferSearch.tsx
 mirror	src/client/src/blocks/primitives/Shop/OfferSuggestions.tsx
+mirror	src/client/src/blocks/primitives/Shop/OfferTile.tsx
 mirror	src/client/src/blocks/primitives/Shop/OrderActions.tsx
 mirror	src/client/src/blocks/primitives/Shop/PaymentDetails.tsx
 mirror	src/client/src/blocks/primitives/Shop/QuantityStepper.tsx

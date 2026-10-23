@@ -12,7 +12,6 @@ import {
   shopSettings,
 } from 'contracts';
 
-import { CardRows } from '@/blocks/arrangements/CardRows';
 import { Breadcrumbs, type Crumb } from '@/blocks/primitives/Breadcrumbs';
 import { Collapsible } from '@/blocks/primitives/Collapsible';
 import { CopyCode } from '@/blocks/primitives/CopyCode';
@@ -21,7 +20,7 @@ import { SpecTable } from '@/blocks/primitives/Shop/SpecTable';
 
 import { hasLexicalContent, LexicalRenderer } from '@/blocks/primitives/RichText';
 import { AddToCart } from '@/blocks/primitives/Shop/AddToCart';
-import { OfferCard } from '@/blocks/primitives/Shop/OfferCard';
+import { OfferLane } from '@/blocks/primitives/Shop/OfferLane';
 import { ShopTopBar } from '@/blocks/primitives/Shop/ShopTopBar';
 import { getCatalog, getOffer, getSiteSettings } from '@/lib/api-client.engine';
 import { jsonLd } from '@/lib/seo/json-ld';
@@ -205,21 +204,15 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
         ).map(
           ([part, title, items]) =>
             items.length > 0 && (
-              <section key={part} data-part={`offer-${part}`} className="mt-12">
+              <section key={part} data-part={`offer-${part}`} className="mt-12 min-w-0">
                 <h2 className="mb-4 font-display text-xl font-semibold text-ink">{title}</h2>
-                <CardRows
-                  as="ul"
-                  items={[...items]}
-                  columns={5}
-                  columnsMd={3}
-                  columnsSm={2}
-                  gap="sm"
-                  keepColumns
-                  evenRows={false}
-                  fullRows
-                >
-                  {(item) => <OfferCard offer={item} cartHref={cartHref} />}
-                </CardRows>
+                <OfferLane
+                  head={items}
+                  cartHref={cartHref}
+                  reverse={part === 'together'}
+                  delay={part === 'together' ? 4600 : 3800}
+                  label={title}
+                />
               </section>
             ),
         )}

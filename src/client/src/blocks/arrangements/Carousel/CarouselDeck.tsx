@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import AutoScroll from 'embla-carousel-auto-scroll';
@@ -91,6 +91,22 @@ export interface CarouselDeckProps {
    * не предлагает выбирать, остановка ни к чему.
    */
   readonly pauseOnHover?: boolean;
+  /**
+   * Лента идёт в обратную сторону: справа налево.
+   *
+   * @remarks
+   * Соседние ленты на одной странице, идущие навстречу друг другу, не сливаются
+   * в один поток. Порядок карточек тоже зеркальный - первая стоит справа.
+   */
+  readonly reverse?: boolean;
+  /**
+   * Лента встала на карточку: её номер и сколько всего.
+   *
+   * @remarks
+   * Сигнал для того, кто ставит ленту: по нему догружают продолжение, когда
+   * до края загруженного осталось несколько карточек. Нет обработчика - ничего.
+   */
+  readonly onIndexChange?: ((index: number, count: number) => void) | undefined;
   /** Зазор между карточками. */
   readonly gap?: 'sm' | 'md' | 'lg';
   /**
@@ -168,6 +184,8 @@ export function CarouselDeck({
   marquee = false,
   speed = 1,
   pauseOnHover = true,
+  reverse = false,
+  onIndexChange,
   gap = 'md',
   transition = 'slide',
   height,
@@ -207,8 +225,10 @@ export function CarouselDeck({
       loop,
       align: mode === 'single' ? ('center' as const) : ('start' as const),
       containScroll: 'trimSnaps' as const,
+      // Обратный ход - зеркальная лента: шаг «вперёд» у движка идёт справа налево.
+      direction: reverse ? ('rtl' as const) : ('ltr' as const),
     }),
-    [loop, mode],
+    [loop, mode, reverse],
   );
 
   const [viewportRef, embla] = useEmblaCarousel(options, plugins);
@@ -218,14 +238,21 @@ export function CarouselDeck({
   const [canPrev, setCanPrev] = useState(false);
   const [canNext, setCanNext] = useState(false);
 
+  // Обработчик держится в ссылке: новый на каждой перерисовке не перезаводит подписку.
+  const onIndex = useRef(onIndexChange);
+  onIndex.current = onIndexChange;
+
   useEffect(() => {
     if (!embla) return;
+    // Число карточек - на каждом перезаводе: лента с догрузкой растёт на ходу.
     const sync = () => {
+      const snaps = embla.scrollSnapList().length;
+      setCount(snaps);
       setCurrent(embla.selectedScrollSnap());
       setCanPrev(embla.canScrollPrev());
       setCanNext(embla.canScrollNext());
+      onIndex.current?.(embla.selectedScrollSnap(), embla.slideNodes().length);
     };
-    setCount(embla.scrollSnapList().length);
     sync();
     embla.on('select', sync);
     embla.on('reInit', sync);
@@ -312,6 +339,7 @@ export function CarouselDeck({
         data-part="carousel-viewport"
         className={cn('overflow-hidden', edge === 'gap' ? 'px-[var(--carousel-gap)]' : EDGE[edge])}
         ref={viewportRef}
+        dir={reverse ? 'rtl' : undefined}
       >
         <div
           /* Карточки тянутся до общей высоты: иначе соседи разной длины дают
@@ -321,7 +349,8 @@ export function CarouselDeck({
             'flex items-stretch',
             // Зазор берётся из переменной, а не из класса: так его переопределяют
             // видом блока - той же строкой «свойство: значение», что и отступы.
-            '-ml-[var(--carousel-gap)] [&>*]:pl-[var(--carousel-gap)]',
+            // Логические отступы: у зеркальной ленты зазор с той же стороны хода.
+            '-ms-[var(--carousel-gap)] [&>*]:ps-[var(--carousel-gap)]',
           )}
           style={{ ...(height ? { height } : {}), ...(aspect ? { aspectRatio: aspect } : {}) }}
           role="group"
@@ -336,14 +365,14 @@ export function CarouselDeck({
         <>
           <CarouselArrow
             side="left"
-            onClick={prev}
-            disabled={!loop && !canPrev}
+            onClick={reverse ? next : prev}
+            disabled={!loop && !(reverse ? canNext : canPrev)}
             controls={controls}
           />
           <CarouselArrow
             side="right"
-            onClick={next}
-            disabled={!loop && !canNext}
+            onClick={reverse ? prev : next}
+            disabled={!loop && !(reverse ? canPrev : canNext)}
             controls={controls}
           />
         </>
@@ -420,6 +449,8 @@ export function CarouselItem({
   return (
     <div
       data-part="carousel-item"
+      // Текст карточки слева направо и в зеркальной ленте.
+      dir="ltr"
       className={cn(
         // Карточка занимает всю высоту ленты, а содержимое внутри тянется до
         // её низа: так у ряда ровный край независимо от длины подписей.
