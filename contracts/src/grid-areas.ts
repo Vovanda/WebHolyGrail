@@ -463,6 +463,8 @@ export interface Layouts {
  * @remarks
  * Каждая ширина считается отдельно и своей вместимостью: на широком в ряд
  * помещается столько, сколько задал блок, на планшете двое, на телефоне один.
+ * Мелкие карточки, вроде позиций магазина, просят на узких экранах больше:
+ * вместимость планшета и телефона тогда приходит в `narrow`.
  *
  * Незаполненная запись не наследуется от соседней: фигура, придуманная для
  * четырёх колонок, на телефоне раздавила бы карточки. Пусто означает «посчитай
@@ -477,10 +479,11 @@ export function layouts(
   count: number,
   perRow: number,
   options: LayoutOptions = {},
+  narrow: { readonly md?: number | undefined; readonly sm?: number | undefined } = {},
 ): Layouts {
   return {
     lg: layout(raw.lg, count, perRow, options),
-    md: layout(raw.md, count, 2, options),
-    sm: layout(raw.sm, count, 1, options),
+    md: layout(raw.md, count, narrow.md ?? 2, options),
+    sm: layout(raw.sm, count, narrow.sm ?? 1, options),
   };
 }

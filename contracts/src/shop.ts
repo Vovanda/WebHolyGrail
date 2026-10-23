@@ -22,7 +22,7 @@ import {
   type PhoneFormatKey,
 } from './phone';
 import type { Characteristic, SpecValue } from './catalog';
-import type { Micros, Money } from './money';
+import { fromMoney, type Micros, type Money } from './money';
 
 export type Actor = 'buyer' | 'manager' | 'system';
 
@@ -759,6 +759,24 @@ export interface OfferView {
   readonly section: string | null;
   /** Значения характеристик раздела по их ключам. */
   readonly specs: Readonly<Record<string, SpecValue>>;
+}
+
+/**
+ * Скидка акции в процентах для пометки «−15%» у цены.
+ *
+ * @returns целый процент от цены по прайсу; `null` без акции, при разных валютах
+ * и когда выгода меньше процента - пометка «−0%» покупателю ничего не говорит.
+ */
+export function discountPercent(
+  price: Money | null | undefined,
+  listPrice: Money | null | undefined,
+): number | null {
+  if (!price || !listPrice || price.currency !== listPrice.currency) return null;
+  const list = fromMoney(listPrice);
+  const now = fromMoney(price);
+  if (list <= 0 || now >= list) return null;
+  const percent = Math.round(((list - now) / list) * 100);
+  return percent >= 1 ? percent : null;
 }
 
 /** Страница позиции: всё из витрины плюс галерея, описание и характеристики раздела. */

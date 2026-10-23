@@ -8,6 +8,7 @@ import {
   boughtTogether,
   buildOrder,
   currentPrice,
+  discountPercent,
   extraLines,
   spreadDiscount,
   type ExtraLineInput,
@@ -506,5 +507,24 @@ describe('с этим часто берут', () => {
     ];
     expect(boughtTogether(baskets, 1, 2)).toEqual([2, 3]);
     expect(boughtTogether(baskets, 9, 4)).toEqual([]);
+  });
+});
+
+describe('скидка акции в процентах', () => {
+  const rub = (units: number) => ({ units, micros: 0, currency: 'RUB' as const });
+
+  it('считается от цены по прайсу и округляется', () => {
+    expect(discountPercent(rub(850), rub(1000))).toBe(15);
+    expect(discountPercent(rub(666), rub(1000))).toBe(33);
+  });
+
+  it('без акции, при росте цены и меньше процента - пометки нет', () => {
+    expect(discountPercent(rub(1000), null)).toBeNull();
+    expect(discountPercent(rub(1200), rub(1000))).toBeNull();
+    expect(discountPercent(rub(996), rub(1000))).toBeNull();
+  });
+
+  it('разные валюты не сравниваются', () => {
+    expect(discountPercent(rub(1), { units: 2, micros: 0, currency: 'USD' })).toBeNull();
   });
 });

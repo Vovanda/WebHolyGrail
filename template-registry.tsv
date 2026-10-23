@@ -287,6 +287,7 @@ mirror	src/client/src/blocks/primitives/CertifiedNotice.test.tsx
 mirror	src/client/src/blocks/primitives/CertifiedNotice.tsx
 mirror	src/client/src/blocks/primitives/CollapsibleSection.tsx
 mirror	src/client/src/blocks/primitives/ComparisonTable.tsx
+mirror	src/client/src/blocks/primitives/CopyCode.tsx
 mirror	src/client/src/blocks/primitives/CopyLinkButton.tsx
 mirror	src/client/src/blocks/primitives/CtaBanner.tsx
 mirror	src/client/src/blocks/primitives/CustomMarkup.tsx

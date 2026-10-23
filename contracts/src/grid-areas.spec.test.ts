@@ -167,6 +167,13 @@ describe('три ширины', () => {
     expect(grid.sm?.columns).toBe(2);
   });
 
+  it('мелким карточкам узкие экраны дают свою вместимость', () => {
+    const grid = layouts({}, 8, 4, {}, { md: 3, sm: 2 });
+    expect(grid.lg?.columns).toBe(8);
+    expect(grid.md?.columns).toBe(6);
+    expect(grid.sm?.columns).toBe(4);
+  });
+
   it('незаполненная не наследует фигуру соседней', () => {
     const grid = layouts({ lg: 'a a b : c d e', md: '', sm: '' }, 5, 3);
     expect(grid.lg?.cells.find((cell) => cell.name === 'a')).toMatchObject({ width: 4 });

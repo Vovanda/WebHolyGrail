@@ -164,6 +164,7 @@ export {
   DEFAULT_INVOICE_DUE_DAYS,
   cleanCart,
   currentPrice,
+  discountPercent,
   depositLines,
   EXTRA_KINDS,
   extraLines,
