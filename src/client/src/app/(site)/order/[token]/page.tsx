@@ -72,6 +72,9 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
             оплата открываются только по ней.
           </p>
           <CopyLinkButton label="Скопировать ссылку на заказ" caption="Скопировать ссылку" />
+          <a href="/orders" className="text-sm text-accent underline-offset-2 hover:underline">
+            Все мои заказы
+          </a>
         </div>
 
         <ul data-part="lines" className="mt-6 divide-y divide-border border-y border-border">

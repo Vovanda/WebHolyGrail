@@ -211,6 +211,12 @@ export function Cart({
                     </li>
                   ))}
                 </ul>
+                <a
+                  href="/orders"
+                  className="mt-2 inline-block text-sm text-accent underline-offset-2 hover:underline"
+                >
+                  Все мои заказы
+                </a>
               </div>
             )}
           </div>

@@ -119,3 +119,13 @@ export function rememberedOrders(raw?: string | null): string[] {
     return [];
   }
 }
+
+/** Забыть ссылку, по которой заказа больше нет: иначе каждый заход тратит на неё запрос. */
+export function forgetOrder(token: string): void {
+  try {
+    const next = rememberedOrders().filter((t) => t !== token);
+    window.localStorage.setItem(ORDERS_KEY, JSON.stringify(next));
+  } catch {
+    // Не забыли - ссылка останется в списке с пометкой.
+  }
+}

@@ -222,6 +222,8 @@ mirror	src/client/src/app/(site)/channel/[channel]/v/[code]/page.tsx
 mirror	src/client/src/app/(site)/i/[token]/page.tsx
 mirror	src/client/src/app/(site)/order/[token]/page.tsx
 mirror	src/client/src/app/(site)/order/layout.tsx
+mirror	src/client/src/app/(site)/orders/layout.tsx
+mirror	src/client/src/app/(site)/orders/page.tsx
 mirror	src/client/src/app/api/health/route.ts
 mirror	src/client/src/app/internal/geo/route.ts
 mirror	src/client/src/app/internal/preview/draft/route.ts
@@ -331,6 +333,7 @@ mirror	src/client/src/blocks/primitives/Separator/index.ts
 mirror	src/client/src/blocks/primitives/Separator/WaveDivider.tsx
 mirror	src/client/src/blocks/primitives/Shop/AddToCart.tsx
 mirror	src/client/src/blocks/primitives/Shop/Cart.tsx
+mirror	src/client/src/blocks/primitives/Shop/MyOrders.tsx
 mirror	src/client/src/blocks/primitives/Shop/OrderActions.tsx
 mirror	src/client/src/blocks/primitives/Shop/PaymentDetails.tsx
 mirror	src/client/src/blocks/primitives/Shop/Showcase.tsx
