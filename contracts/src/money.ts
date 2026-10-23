@@ -56,6 +56,12 @@ export function fromMoney(money: Money): Micros {
   return money.units * MICROS_PER_UNIT + money.micros;
 }
 
+/** Сумма десятичной строкой для машин (разметка schema.org): `4500.5`, без пробелов и валюты. */
+export function moneyDecimal(money: Money): string {
+  const fraction = String(money.micros).padStart(6, '0').replace(/0+$/, '');
+  return fraction ? `${money.units}.${fraction}` : String(money.units);
+}
+
 /** Из единиц валюты, которые ввёл человек (4500.5), - в микроединицы, с одним округлением. */
 export function unitsToMicros(units: number): Micros {
   return Math.round(units * MICROS_PER_UNIT);

@@ -563,6 +563,14 @@ export interface BuyerOrderView {
   readonly cancelReason: string | null;
 }
 
+/** Заказ строкой списка «Мои заказы»; строки, анкета и счета - только на странице заказа по ссылке. */
+export interface BuyerOrderSummary {
+  readonly id: string;
+  readonly status: OrderStatus;
+  readonly createdAt: string;
+  readonly total: Money;
+}
+
 export const ORDER_STATUS_LABELS: Readonly<Record<OrderStatus, string>> = {
   new: 'Новый',
   accepted: 'Принят',

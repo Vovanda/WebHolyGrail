@@ -8,6 +8,7 @@ import {
   type Characteristic,
   editDistance,
   facetsOf,
+  publicSpecs,
   readFilter,
   searchItems,
   switchLayout,
@@ -175,5 +176,17 @@ describe('характеристики раздела из админки', () =
       { key: 'material', title: 'Материал', value: 'ПВХ' },
       { key: 'reinforced', title: 'Армирование', value: 'нет' },
     ]);
+  });
+
+  it('наружу - ключи своего раздела, видимые в карточке или фильтре', () => {
+    const chars = cleanCharacteristics([
+      { key: 'thickness', title: 'Толщина', kind: 'number', inCard: false },
+      { key: 'note', title: 'Заметка', kind: 'text', inCard: false },
+      { key: 'material', title: 'Материал', kind: 'enum' },
+    ]);
+    expect(
+      publicSpecs(chars, { thickness: 1.5, note: 'закупка 90 ₽', material: 'ПВХ', old: 'x' }),
+    ).toEqual({ thickness: 1.5, material: 'ПВХ' });
+    expect(publicSpecs([], { material: 'ПВХ' })).toEqual({});
   });
 });

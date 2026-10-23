@@ -227,6 +227,7 @@ mirror	src/client/src/app/(site)/order/layout.tsx
 mirror	src/client/src/app/(site)/orders/layout.tsx
 mirror	src/client/src/app/(site)/orders/page.tsx
 mirror	src/client/src/app/(site)/shop/[section]/page.tsx
+mirror	src/client/src/app/(site)/shop/[section]/ranges-from-form.test.ts
 mirror	src/client/src/app/(site)/shop/item/[slug]/page.tsx
 mirror	src/client/src/app/(site)/shop/layout.tsx
 mirror	src/client/src/app/api/health/route.ts
@@ -328,6 +329,7 @@ mirror	src/client/src/blocks/primitives/RatingStars.tsx
 mirror	src/client/src/blocks/primitives/RefreshOnSave.tsx
 mirror	src/client/src/blocks/primitives/RequestForm.tsx
 mirror	src/client/src/blocks/primitives/ReusableRef.tsx
+mirror	src/client/src/blocks/primitives/RichText/hasLexicalContent.test.ts
 mirror	src/client/src/blocks/primitives/RichText/index.ts
 mirror	src/client/src/blocks/primitives/RichText/LexicalRenderer.tsx
 mirror	src/client/src/blocks/primitives/RichText/RichTextBlock.tsx
@@ -480,6 +482,7 @@ overlay	src/client/src/lib/share-image.test.ts
 overlay	src/client/src/lib/share-image.ts
 overlay	src/client/src/lib/shop/cart.test.ts
 overlay	src/client/src/lib/shop/cart.ts
+overlay	src/client/src/lib/shop/snapshots.test.ts
 overlay	src/client/src/lib/shop/snapshots.ts
 overlay	src/client/src/lib/theme-bootstrap.tsx
 overlay	src/client/src/lib/theme-recover.tsx
@@ -878,8 +881,11 @@ mirror	src/cms/src/lib/preview.ts
 mirror	src/cms/src/lib/shop/invoices.ts
 mirror	src/cms/src/lib/shop/memory-store.ts
 mirror	src/cms/src/lib/shop/money.ts
+mirror	src/cms/src/lib/shop/my-orders.test.ts
+mirror	src/cms/src/lib/shop/my-orders.ts
 mirror	src/cms/src/lib/shop/order-link.ts
 mirror	src/cms/src/lib/shop/orders.ts
+mirror	src/cms/src/lib/shop/payload-store.test.ts
 mirror	src/cms/src/lib/shop/payload-store.ts
 mirror	src/cms/src/lib/shop/ports.ts
 mirror	src/cms/src/lib/shop/scenarios.test.ts

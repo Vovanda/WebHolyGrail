@@ -48,6 +48,11 @@ export interface Selection {
 export type FilterState = Readonly<Record<string, Selection>>;
 
 const KEY = /^[a-z0-9-]{1,32}$/;
+
+/** Адрес позиции или раздела в ссылке: латиница в нижнем регистре, цифры и дефис, до 120 знаков. */
+export function isSlug(value: unknown): value is string {
+  return typeof value === 'string' && /^[a-z0-9-]{1,120}$/.test(value);
+}
 const MAX_VALUES = 20;
 
 const KINDS: readonly SpecKind[] = ['enum', 'number', 'bool', 'text'];
@@ -103,6 +108,21 @@ export function cardSpecs(
       ? []
       : [{ key: c.key, title: c.title, value: c.unit ? `${text} ${c.unit}` : text }];
   });
+}
+
+/**
+ * Характеристики, которые позиция отдаёт наружу: ключи своего раздела, видимые в карточке или
+ * в фильтре. Значения от прежнего раздела и скрытые везде владельцем на сайт не уходят.
+ */
+export function publicSpecs(
+  characteristics: readonly Characteristic[],
+  specs: Readonly<Record<string, SpecValue>>,
+): Record<string, SpecValue> {
+  return Object.fromEntries(
+    characteristics
+      .filter((c) => (c.inCard !== false || c.filter !== 'hidden') && c.key in specs)
+      .map((c) => [c.key, specs[c.key]!]),
+  );
 }
 
 /** Значение характеристики позиции строкой - так оно стоит в адресе и в фасете. */

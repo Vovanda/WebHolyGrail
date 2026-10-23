@@ -9,6 +9,7 @@ import {
   DEFAULT_RATES,
   type ExchangeRate,
   formatMoney,
+  moneyDecimal,
   fromBaseMicros,
   fromMoney,
   MAX_UNITS,
@@ -84,6 +85,12 @@ describe('показ', () => {
     expect(norm(formatMoney({ units: 12_550, micros: 500_000, currency: 'RUB' }))).toBe(
       '12 550,50 ₽',
     );
+  });
+
+  it('для разметки - десятичной строкой с дробной частью', () => {
+    expect(moneyDecimal({ units: 4500, micros: 0, currency: 'RUB' })).toBe('4500');
+    expect(moneyDecimal({ units: 4500, micros: 500_000, currency: 'RUB' })).toBe('4500.5');
+    expect(moneyDecimal({ units: 0, micros: 1, currency: 'RUB' })).toBe('0.000001');
   });
 });
 
