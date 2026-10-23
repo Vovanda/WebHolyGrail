@@ -807,6 +807,8 @@ mirror	src/cms/src/lib/access/api-key-access.test.ts
 mirror	src/cms/src/lib/access/api-key-access.ts
 mirror	src/cms/src/lib/access/editors.test.ts
 mirror	src/cms/src/lib/access/editors.ts
+mirror	src/cms/src/lib/access/from-admin.test.ts
+mirror	src/cms/src/lib/access/from-admin.ts
 mirror	src/cms/src/lib/admin-nav/arrange.test.ts
 mirror	src/cms/src/lib/admin-nav/arrange.ts
 mirror	src/cms/src/lib/block-parts.ts
