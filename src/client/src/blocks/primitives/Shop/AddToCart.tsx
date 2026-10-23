@@ -48,14 +48,20 @@ export function AddToCart({
 
   if (ready && inCart > 0) {
     return (
-      <div data-part="card-action" className="flex min-h-11 items-center justify-between gap-3">
+      <div
+        data-part="card-action"
+        className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-1"
+      >
         <QuantityStepper
           value={inCart}
           max={available ?? MAX_QUANTITY}
           title={title ?? snapshot?.title ?? 'позиция'}
           onChange={(next) => cart.set(offer, next)}
         />
-        <a href={cartHref} className="text-sm text-accent underline-offset-2 hover:underline">
+        <a
+          href={cartHref}
+          className="whitespace-nowrap text-sm text-accent underline-offset-2 hover:underline"
+        >
           В корзине
         </a>
       </div>

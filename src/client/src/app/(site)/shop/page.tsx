@@ -87,7 +87,16 @@ export default async function CatalogPage({
               </p>
             )}
             {shown.length > 0 && (
-              <CardRows as="ul" items={shown} columns={3} gap="md" keepColumns>
+              <CardRows
+                as="ul"
+                items={shown}
+                columns={4}
+                columnsMd={3}
+                columnsSm={2}
+                gap="sm"
+                keepColumns
+                evenRows={false}
+              >
                 {(offer) => <OfferCard offer={offer} cartHref={shop.cartHref} />}
               </CardRows>
             )}

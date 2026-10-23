@@ -1088,6 +1088,10 @@
     grid-auto-rows: 1fr;
   }
 
+  [data-part='tiles'][data-rows='fit'] {
+    grid-auto-rows: auto;
+  }
+
   [data-part='tile'] {
     grid-column: var(--sm-col) / span var(--sm-span);
     grid-row: var(--sm-row) / span var(--sm-rows);

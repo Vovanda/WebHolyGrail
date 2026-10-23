@@ -176,7 +176,16 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
             items.length > 0 && (
               <section key={part} data-part={`offer-${part}`} className="mt-12">
                 <h2 className="mb-4 font-display text-xl font-semibold text-ink">{title}</h2>
-                <CardRows as="ul" items={[...items]} columns={4} gap="md" keepColumns>
+                <CardRows
+                  as="ul"
+                  items={[...items]}
+                  columns={4}
+                  columnsMd={3}
+                  columnsSm={2}
+                  gap="sm"
+                  keepColumns
+                  evenRows={false}
+                >
                   {(item) => <OfferCard offer={item} cartHref={cartHref} />}
                 </CardRows>
               </section>

@@ -62,8 +62,11 @@ export async function Showcase({
         <CardRows
           as="ul"
           items={offers}
-          columns={3}
-          gap="md"
+          columns={4}
+          columnsMd={3}
+          columnsSm={2}
+          evenRows={false}
+          gap="sm"
           tileLayout={data.tileLayout}
           tileLayoutMd={data.tileLayoutMd}
           tileLayoutSm={data.tileLayoutSm}
