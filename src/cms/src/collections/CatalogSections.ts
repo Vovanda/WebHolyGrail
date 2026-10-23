@@ -1,5 +1,5 @@
 import type { CollectionConfig } from 'payload';
-import { isSlug } from 'contracts';
+import { isSlug, SHOP_CHARACTERISTICS } from 'contracts';
 
 import { editorsOnly } from '../lib/access/editors';
 
@@ -82,9 +82,11 @@ export const CatalogSections: CollectionConfig = {
               maxLength: 32,
               admin: { description: 'Латиница, цифры, дефис - так характеристика стоит в адресе.' },
               validate: (value: unknown) =>
-                typeof value === 'string' && /^[a-z0-9-]{1,32}$/.test(value)
-                  ? true
-                  : 'Только строчная латиница, цифры и дефис.',
+                typeof value !== 'string' || !/^[a-z0-9-]{1,32}$/.test(value)
+                  ? 'Только строчная латиница, цифры и дефис.'
+                  : SHOP_CHARACTERISTICS.some((c) => c.key === value)
+                    ? 'Ключ занят общей характеристикой магазина: наличие, скидка, цена.'
+                    : true,
             },
             { name: 'unit', label: 'Единица', type: 'text', maxLength: 16 },
           ],
@@ -123,6 +125,13 @@ export const CatalogSections: CollectionConfig = {
               label: 'В карточке',
               type: 'checkbox',
               defaultValue: true,
+            },
+            {
+              name: 'quick',
+              label: 'В быстрых фильтрах',
+              type: 'checkbox',
+              defaultValue: false,
+              admin: { description: 'Значения строкой над плиткой раздела.' },
             },
           ],
         },
