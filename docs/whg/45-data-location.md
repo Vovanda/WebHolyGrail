@@ -102,7 +102,10 @@ collection. What differs from an ordinary toggle:
 
 - **A missing record means on.** Startup creates module toggles switched on, so a site built
   before modules keeps every section it uses after an update (R10). Optional modules arrive
-  switched off only on a new instance, through its starting content.
+  switched off only on a new instance: the `minimal` seed turns off every module whose
+  `onNewSite` is false (today all but the blog). The seed runs on every deploy, so it acts
+  only when the database had no users and no pages before seeding and the module has no
+  records; a live site keeps the owner's choice.
 - **The owner switches it on the «Modules» tab of site settings**, as tiles in menu order. A
   tile writes all three environments at once: a site either has the module or it does not.
   Per-environment testing stays on the toggles board.
