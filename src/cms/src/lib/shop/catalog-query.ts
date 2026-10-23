@@ -5,6 +5,8 @@ import {
   facetsOf,
   findNode,
   type Facet,
+  LANE_HEAD,
+  LANE_TAIL,
   type FilterState,
   pageOf,
   PAGE_SIZE,
@@ -26,9 +28,6 @@ import type { CatalogEntry, CatalogSnapshot } from './catalog-index';
 /** Сколько страниц «Показать ещё» отдаёт разом. */
 const MAX_UPTO = 20;
 
-/** Сколько позиций раздела в превью на `/shop`. */
-export const PREVIEW_SIZE = 5;
-
 type Params = Readonly<Record<string, string | readonly string[] | undefined>>;
 
 /** Выдача по индексу: страница позиций, фасеты и превью разделов. */
@@ -45,6 +44,8 @@ export interface CatalogAnswer {
   readonly previews: readonly {
     readonly section: CatalogSectionSummary;
     readonly entries: readonly CatalogEntry[];
+    /** Последние позиции раздела для кольца ленты; пусто, если весь раздел в начале. */
+    readonly tail: readonly CatalogEntry[];
   }[];
   readonly tree: readonly SectionNode[];
   readonly path: readonly { readonly slug: string; readonly title: string }[];
@@ -150,7 +151,7 @@ function computeCatalog(
           count: node.count,
           ...(node.image ? { image: node.image } : {}),
         },
-        entries: (snapshot.bySection.get(node.slug) ?? []).slice(0, PREVIEW_SIZE),
+        ...laneOf(snapshot.bySection.get(node.slug) ?? []),
       }))
     : [];
 
@@ -169,6 +170,14 @@ function computeCatalog(
     path: section ? sectionPath(snapshot.sections, section.slug) : [],
     children: section ? (findNode(snapshot.tree, section.slug)?.children ?? []) : [],
   };
+}
+
+/** Начало и хвост раздела для ленты: в кольце перед первой позицией стоят последние. */
+function laneOf(pool: readonly CatalogEntry[]) {
+  const entries = pool.slice(0, LANE_HEAD);
+  const tail =
+    pool.length > LANE_HEAD ? pool.slice(Math.max(LANE_HEAD, pool.length - LANE_TAIL)) : [];
+  return { entries, tail };
 }
 
 /** Позиции набора и их номера - один раз на набор: на них держится кеш индекса поиска. */

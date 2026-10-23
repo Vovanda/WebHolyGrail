@@ -64,12 +64,17 @@ describe('выдача каталога по индексу', () => {
     expect(r.previews).toEqual([]);
   });
 
-  it('/shop без условий - превью разделов по пять', () => {
+  it('/shop без условий - начало раздела и хвост для кольца ленты', () => {
     const r = queryCatalog(snapshot, null, {})!;
-    expect(r.previews.map((p) => [p.section.slug, p.section.count, p.entries.length])).toEqual([
-      ['tools', 40, 5],
-      ['paint', 1, 1],
+    expect(
+      r.previews.map((p) => [p.section.slug, p.section.count, p.entries.length, p.tail.length]),
+    ).toEqual([
+      ['tools', 40, 12, 4],
+      ['paint', 1, 1, 0],
     ]);
+    const tools = r.previews[0]!;
+    const pool = snapshot.bySection.get('tools')!;
+    expect(tools.tail.map((e) => e.card.id)).toEqual(pool.slice(-4).map((e) => e.card.id));
   });
 
   it('поиск по названию раздела и другим названиям', () => {

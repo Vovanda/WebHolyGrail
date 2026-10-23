@@ -267,7 +267,11 @@ const catalogEndpoint: Endpoint = {
       pages: answer.pages,
       total: answer.total,
       sort: answer.sort,
-      previews: answer.previews.map((pv) => ({ section: pv.section, items: pv.entries.map(view) })),
+      previews: answer.previews.map((pv) => ({
+        section: pv.section,
+        items: pv.entries.map(view),
+        tail: pv.tail.map(view),
+      })),
       tree: answer.tree,
       path: answer.path,
       children: answer.children,
