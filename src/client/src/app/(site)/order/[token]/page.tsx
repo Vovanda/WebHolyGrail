@@ -1,8 +1,15 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import type { BuyerOrderView } from 'contracts';
-import { formatMoney, INVOICE_STATUS_LABELS, ORDER_STATUS_LABELS, shopSettings } from 'contracts';
+import {
+  BUYER_STEP_TEXT,
+  buyerStep,
+  formatMoney,
+  INVOICE_STATUS_LABELS,
+  INVOICE_TOTAL_LABELS,
+  ORDER_STATUS_LABELS,
+  shopSettings,
+} from 'contracts';
 
 import { CopyLinkButton } from '@/blocks/primitives/CopyLinkButton';
 import { OrderActions } from '@/blocks/primitives/Shop/OrderActions';
@@ -10,7 +17,7 @@ import { PaymentDetails } from '@/blocks/primitives/Shop/PaymentDetails';
 import { getOrderView, getSiteSettings } from '@/lib/api-client.engine';
 
 /**
- * Страница заказа по секретной ссылке: состав, состояние, счета, коды доступа.
+ * Страница заказа по секретной ссылке: состав, состояние, счета.
  *
  * @remarks
  * Ссылка - единственный ключ покупателя без входа, поэтому страница не
@@ -24,18 +31,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
   referrer: 'no-referrer',
 };
-
-/** Что сейчас с заказом и что делать покупателю - одной фразой на состояние. */
-function nextStep(order: BuyerOrderView, openInvoices: number): string {
-  if (order.status === 'new')
-    return 'Заказ получен. Продавец свяжется с вами, подтвердит наличие и выставит счёт.';
-  if (order.status === 'accepted')
-    return openInvoices > 0
-      ? 'Заказ подтверждён. Оплатите счёт ниже и нажмите «Я оплатил».'
-      : 'Заказ подтверждён. Счёт появится на этой странице, как только продавец его выставит.';
-  if (order.status === 'done') return 'Заказ выполнен.';
-  return 'Заказ отменён.';
-}
 
 export default async function OrderPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -59,7 +54,7 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
           })}
         </p>
         <p data-part="next-step" className="mt-4 text-ink">
-          {nextStep(order, invoices.filter((i) => i.status === 'issued').length)}
+          {BUYER_STEP_TEXT[buyerStep(order.status, invoices)]}
         </p>
         {order.cancelReason && (
           <p data-part="cancel-reason" className="mt-1 text-ink">
@@ -137,7 +132,7 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
               ))}
             </ul>
             <p className="mt-3 text-right font-semibold text-ink">
-              К оплате: {formatMoney(inv.total)}
+              {INVOICE_TOTAL_LABELS[inv.status]}: {formatMoney(inv.total)}
             </p>
             {inv.status === 'issued' && (
               <div className="mt-4 grid gap-3">
@@ -145,23 +140,6 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
                 <div>
                   <OrderActions token={token} action="report" invoiceId={inv.id} />
                 </div>
-              </div>
-            )}
-            {inv.codes.length > 0 && (
-              <div data-part="codes" className="mt-4">
-                <p className="text-sm text-muted">
-                  Коды доступа к видео - введите на странице видео:
-                </p>
-                <ul className="mt-2 flex flex-wrap gap-2">
-                  {inv.codes.map((c) => (
-                    <li
-                      key={c}
-                      className="rounded-md border border-accent px-3 py-1.5 font-mono text-ink"
-                    >
-                      {c}
-                    </li>
-                  ))}
-                </ul>
               </div>
             )}
           </article>
