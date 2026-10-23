@@ -738,6 +738,10 @@ export interface OfferDetailView extends OfferView {
   readonly sectionTitle: string | null;
   /** Характеристики раздела по порядку - для таблицы в карточке. */
   readonly characteristics: readonly Characteristic[];
+  /** Похожие позиции раздела; пусто - ряда нет. */
+  readonly similar: readonly OfferView[];
+  /** Позиции, которые берут вместе с этой; пусто - ряда нет. */
+  readonly together: readonly OfferView[];
 }
 
 /**
@@ -812,6 +816,29 @@ export interface BuyerOrderView {
   readonly invoices: readonly BuyerInvoiceView[];
   /** Почему заказ отменён - покупатель видит её по своей ссылке; у неотменённого null. */
   readonly cancelReason: string | null;
+}
+
+/**
+ * «С этим часто берут»: позиции из тех же заказов, по числу совместных покупок.
+ *
+ * @param baskets - позиции заказов, в которых была эта позиция.
+ */
+export function boughtTogether(
+  baskets: readonly (readonly number[])[],
+  offer: number,
+  limit: number,
+): number[] {
+  const counts = new Map<number, number>();
+  for (const basket of baskets) {
+    if (!basket.includes(offer)) continue;
+    for (const other of new Set(basket)) {
+      if (other !== offer) counts.set(other, (counts.get(other) ?? 0) + 1);
+    }
+  }
+  return [...counts]
+    .sort((a, b) => b[1] - a[1] || a[0] - b[0])
+    .slice(0, limit)
+    .map(([id]) => id);
 }
 
 /** Сколько заказов на странице «Моих заказов»: столько сайт спрашивает, столько сервер отдаёт. */

@@ -9,6 +9,7 @@ import {
   editDistance,
   facetsOf,
   publicSpecs,
+  similarItems,
   readFilter,
   searchItems,
   switchLayout,
@@ -188,5 +189,41 @@ describe('характеристики раздела из админки', () =
       publicSpecs(chars, { thickness: 1.5, note: 'закупка 90 ₽', material: 'ПВХ', old: 'x' }),
     ).toEqual({ thickness: 1.5, material: 'ПВХ' });
     expect(publicSpecs([], { material: 'ПВХ' })).toEqual({});
+  });
+});
+
+describe('похожие позиции', () => {
+  const item = (
+    id: number,
+    section: string,
+    price: number | null,
+    specs: Record<string, string | number>,
+  ) => ({
+    id,
+    title: `п${id}`,
+    section,
+    price,
+    specs,
+  });
+  const target = item(1, 'membr', 1000, { material: 'ПВХ', thickness: 1.5 });
+
+  it('тот же раздел, больше совпадений выше, при равенстве - ближе цена', () => {
+    const rows = similarItems(target, [
+      target,
+      item(2, 'membr', 5000, { material: 'ПВХ', thickness: 1.5 }),
+      item(3, 'membr', 1100, { material: 'ПВХ', thickness: 2 }),
+      item(4, 'membr', 900, { material: 'ТПО', thickness: 2 }),
+      item(5, 'other', 1000, { material: 'ПВХ', thickness: 1.5 }),
+      item(6, 'membr', null, { material: 'ПВХ', thickness: 1.5 }),
+    ]);
+    expect(rows.map((r) => r.id)).toEqual([2, 3, 4]);
+  });
+
+  it('закончившиеся - в конце ряда', () => {
+    const rows = similarItems({ ...target, stock: null }, [
+      { ...item(2, 'membr', 1000, { material: 'ПВХ', thickness: 1.5 }), stock: 0 },
+      { ...item(3, 'membr', 1000, { material: 'ТПО' }), stock: 5 },
+    ]);
+    expect(rows.map((r) => r.id)).toEqual([3, 2]);
   });
 });

@@ -5,6 +5,7 @@ import {
   canInvoice,
   canOrder,
   removeOrderLine,
+  boughtTogether,
   buildOrder,
   currentPrice,
   extraLines,
@@ -488,5 +489,19 @@ describe('акция на позиции', () => {
       ],
     );
     expect(r.ok && [r.lines[0]!.price, r.lines[0]!.listPrice, r.total]).toEqual([800, 1000, 1600]);
+  });
+});
+
+describe('с этим часто берут', () => {
+  it('по числу совместных покупок, без самой позиции и чужих корзин', () => {
+    const baskets = [
+      [1, 2, 3],
+      [1, 2],
+      [1, 4],
+      [5, 6],
+      [1, 1, 3],
+    ];
+    expect(boughtTogether(baskets, 1, 2)).toEqual([2, 3]);
+    expect(boughtTogether(baskets, 9, 4)).toEqual([]);
   });
 });

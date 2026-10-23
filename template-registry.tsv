@@ -893,6 +893,8 @@ mirror	src/cms/src/lib/shop/orders.ts
 mirror	src/cms/src/lib/shop/payload-store.test.ts
 mirror	src/cms/src/lib/shop/payload-store.ts
 mirror	src/cms/src/lib/shop/ports.ts
+mirror	src/cms/src/lib/shop/related.test.ts
+mirror	src/cms/src/lib/shop/related.ts
 mirror	src/cms/src/lib/shop/scenarios.test.ts
 mirror	src/cms/src/lib/shop/stock.test.ts
 mirror	src/cms/src/lib/shop/stock.ts

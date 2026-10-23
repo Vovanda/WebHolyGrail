@@ -125,6 +125,39 @@ export function publicSpecs(
   );
 }
 
+/** Сколько позиций в ряду «Похожие» и «С этим часто берут» на странице позиции. */
+export const RELATED_LIMIT = 4;
+
+/**
+ * Похожие позиции: тот же раздел, сначала те, что есть в наличии, затем больше совпавших
+ * значений характеристик и ближе цена.
+ *
+ * @remarks
+ * Ряд нужен, чтобы купить, поэтому закончившиеся идут в конец. Сама позиция и позиции
+ * без цены в ряд не попадают. Близость цены - разница в долях от цены позиции.
+ */
+export function similarItems<
+  T extends CatalogItem & { readonly price: number | null; readonly stock?: number | null },
+>(target: T, candidates: readonly T[], limit = RELATED_LIMIT): T[] {
+  const same = (a: SpecValue | undefined, b: SpecValue | undefined) =>
+    a !== undefined && a !== null && a !== '' && a === b;
+  const gap = (p: number | null) =>
+    p === null || target.price === null || target.price <= 0
+      ? Number.POSITIVE_INFINITY
+      : Math.abs(p - target.price) / target.price;
+  return candidates
+    .filter((c) => c.id !== target.id && c.section === target.section && c.price !== null)
+    .map((c) => ({
+      c,
+      gone: typeof c.stock === 'number' && c.stock <= 0 ? 1 : 0,
+      matches: Object.keys(target.specs).filter((k) => same(target.specs[k], c.specs[k])).length,
+      gap: gap(c.price),
+    }))
+    .sort((a, b) => a.gone - b.gone || b.matches - a.matches || a.gap - b.gap || a.c.id - b.c.id)
+    .slice(0, limit)
+    .map((x) => x.c);
+}
+
 /** Характеристики, которые видны хоть где-то: скрытые везде наружу не отдаются даже названием. */
 export const visibleCharacteristics = (chars: readonly Characteristic[]): Characteristic[] =>
   chars.filter((c) => c.inCard !== false || c.filter !== 'hidden');
