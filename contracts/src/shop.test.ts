@@ -9,6 +9,7 @@ import {
   buildOrder,
   currentPrice,
   discountPercent,
+  fitCartToStock,
   extraLines,
   spreadDiscount,
   type ExtraLineInput,
@@ -526,5 +527,38 @@ describe('скидка акции в процентах', () => {
 
   it('разные валюты не сравниваются', () => {
     expect(discountPercent(rub(1), { units: 2, micros: 0, currency: 'USD' })).toBeNull();
+  });
+});
+
+describe('корзина по остатку', () => {
+  const offers = [
+    { id: 1, stock: 1 },
+    { id: 2, stock: 0 },
+    { id: 3, stock: null },
+    { id: 4, stock: 5 },
+  ];
+
+  it('больше остатка - урезается до остатка, с тем, сколько было', () => {
+    const fit = fitCartToStock([{ offer: 1, quantity: 3 }], offers);
+    expect(fit.lines).toEqual([{ offer: 1, quantity: 1 }]);
+    expect(fit.trimmed).toEqual([{ offer: 1, from: 3, to: 1 }]);
+  });
+
+  it('нулевой остаток - в заказ не идёт, помечается проданным', () => {
+    const fit = fitCartToStock([{ offer: 2, quantity: 1 }], offers);
+    expect(fit.lines).toEqual([]);
+    expect(fit.soldOut).toEqual([2]);
+  });
+
+  it('без остатка в данных, в пределах остатка и незнакомая - как есть', () => {
+    const cart = [
+      { offer: 3, quantity: 40 },
+      { offer: 4, quantity: 5 },
+      { offer: 9, quantity: 2 },
+    ];
+    const fit = fitCartToStock(cart, offers);
+    expect(fit.lines).toEqual(cart);
+    expect(fit.trimmed).toEqual([]);
+    expect(fit.soldOut).toEqual([]);
   });
 });

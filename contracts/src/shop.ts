@@ -341,6 +341,52 @@ export function cleanCart(
   return [...byOffer].slice(0, MAX_CART_LINES).map(([offer, quantity]) => ({ offer, quantity }));
 }
 
+/** Что корзина поменяла, сверив количество с остатком. */
+export interface StockFit {
+  /** Строки, которые идут в заказ: количество не больше остатка, проданных нет. */
+  readonly lines: readonly CartLine[];
+  /** Урезанные строки: сколько было и сколько осталось. */
+  readonly trimmed: readonly {
+    readonly offer: number;
+    readonly from: number;
+    readonly to: number;
+  }[];
+  /** Позиции с нулевым остатком: остаются в корзине с пометкой, в заказ не идут. */
+  readonly soldOut: readonly number[];
+}
+
+/**
+ * Корзина по остатку: то же правило, что у `buildOrder`, но до «Оформить».
+ *
+ * @remarks
+ * Сервер отклоняет заказ целиком при нехватке. Корзина сверяет раньше: урезает
+ * количество до остатка, а проданную позицию оставляет на виду с пометкой -
+ * покупатель видит, что пропало, а не находит корзину короче без объяснений.
+ * Позиция без остатка в данных (`stock` пусто) не ограничена; незнакомая
+ * позиция пропускается как есть - её судьбу решает сверка цен.
+ */
+export function fitCartToStock(
+  cart: ReadonlyArray<CartLine>,
+  offers: ReadonlyArray<{ readonly id: number; readonly stock: number | null }>,
+): StockFit {
+  const stock = new Map(offers.map((o) => [o.id, o.stock]));
+  const lines: CartLine[] = [];
+  const trimmed: { offer: number; from: number; to: number }[] = [];
+  const soldOut: number[] = [];
+  for (const line of cart) {
+    const left = stock.get(line.offer);
+    if (left === undefined || left === null || line.quantity <= left) {
+      lines.push(line);
+    } else if (left <= 0) {
+      soldOut.push(line.offer);
+    } else {
+      trimmed.push({ offer: line.offer, from: line.quantity, to: left });
+      lines.push({ offer: line.offer, quantity: left });
+    }
+  }
+  return { lines, trimmed, soldOut };
+}
+
 /**
  * Заказ из корзины и позиций из базы (И-1, И-2).
  *

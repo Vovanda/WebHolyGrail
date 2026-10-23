@@ -165,6 +165,7 @@ export {
   cleanCart,
   currentPrice,
   discountPercent,
+  fitCartToStock,
   depositLines,
   EXTRA_KINDS,
   extraLines,
@@ -215,6 +216,7 @@ export type {
   OrderStatus,
   ShopSettings,
   ShopSettingsInput,
+  StockFit,
   Transition,
 } from './shop';
 export {
