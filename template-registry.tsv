@@ -633,6 +633,8 @@ overlay	src/cms/migrations/20261022_231834_shop_deposit.json
 overlay	src/cms/migrations/20261022_231834_shop_deposit.ts
 overlay	src/cms/migrations/20261022_232708_shop_settings.json
 overlay	src/cms/migrations/20261022_232708_shop_settings.ts
+overlay	src/cms/migrations/20261023_110340_order_cancel_reason.json
+overlay	src/cms/migrations/20261023_110340_order_cancel_reason.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts

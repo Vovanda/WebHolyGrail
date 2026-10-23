@@ -527,6 +527,8 @@ export interface BuyerOrderView {
   })[];
   readonly buyer: BuyerInput;
   readonly invoices: readonly BuyerInvoiceView[];
+  /** Почему заказ отменён - покупатель видит её по своей ссылке; у неотменённого null. */
+  readonly cancelReason: string | null;
 }
 
 export const ORDER_STATUS_LABELS: Readonly<Record<OrderStatus, string>> = {
