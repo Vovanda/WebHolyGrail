@@ -89,6 +89,12 @@ describe('выдача каталога по индексу', () => {
     expect(b!.total).toBe(a!.total);
   });
 
+  it('«Показать ещё» - страницы с первой по N одним списком', () => {
+    const r = queryCatalog(snapshot, 'tools', { upto: '2' })!;
+    expect(r.entries).toHaveLength(40);
+    expect(r).toMatchObject({ page: 2, pages: 2, total: 40 });
+  });
+
   it('чужой раздел - нет выдачи', () => {
     expect(queryCatalog(snapshot, 'nope', {})).toBeNull();
   });

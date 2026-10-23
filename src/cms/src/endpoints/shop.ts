@@ -29,9 +29,10 @@ import {
 } from '../lib/shop/invoices';
 import { cancelBySecret, changeOrder, placeOrder, removeLine } from '../lib/shop/orders';
 import { catalogFor } from '../lib/shop/catalog-shared';
-import { queryCatalog } from '../lib/shop/catalog-query';
+import { queryCatalog, searchEntries } from '../lib/shop/catalog-query';
 import { payloadPorts } from '../lib/shop/payload-store';
 import type { Failure, OfferQuery, Outcome, ShopPorts } from '../lib/shop/ports';
+import { SEARCH_LIMIT } from '../lib/shop/ports';
 import { myOrders } from '../lib/shop/my-orders';
 import { relatedOffers } from '../lib/shop/related';
 import { hashOrderSecret, isOrderSecret, newOrderSecret } from '../lib/shop/order-link';
@@ -215,7 +216,16 @@ const offersEndpoint: Endpoint = {
     if (refused) return refused;
     const p = ports(req);
     const now = new Date();
-    const cards = await p.offers.cards(offerQuery(req));
+    const query = offerQuery(req);
+    if ('search' in query) {
+      // Подсказки ищут по индексу каталога - тем же поиском, что выдача.
+      const snapshot = await catalogFor(req.payload).get();
+      const found = searchEntries(snapshot.entries, query.search)
+        .filter((e) => e.card.price !== null && e.card.price > 0)
+        .slice(0, SEARCH_LIMIT);
+      return json({ docs: found.map((e) => toOfferView(e.card, p.money, now)) });
+    }
+    const cards = await p.offers.cards(query);
     return json({ docs: cards.map((c) => toOfferView(c, p.money, now)) });
   },
 };

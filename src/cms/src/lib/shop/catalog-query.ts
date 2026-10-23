@@ -6,6 +6,7 @@ import {
   type Facet,
   type FilterState,
   pageOf,
+  PAGE_SIZE,
   readFilter,
   readPage,
   readSort,
@@ -18,6 +19,9 @@ import {
 } from 'contracts';
 
 import type { CatalogEntry, CatalogSnapshot } from './catalog-index';
+
+/** Сколько страниц «Показать ещё» отдаёт разом. */
+const MAX_UPTO = 20;
 
 /** Сколько позиций раздела в превью на `/shop`. */
 export const PREVIEW_SIZE = 5;
@@ -119,7 +123,15 @@ function computeCatalog(
     discount: (e) => e.discount,
     created: (e) => e.created,
   });
-  const page = pageOf(sorted, readPage(params['page']));
+  // `upto` - «Показать ещё»: страницы с первой по N одним списком, не больше 20.
+  const upto = Math.min(readPage(params['upto']), MAX_UPTO);
+  const page =
+    upto > 1
+      ? (() => {
+          const all = pageOf(sorted, 1, PAGE_SIZE * upto);
+          return { ...all, page: upto, pages: Math.max(1, Math.ceil(sorted.length / PAGE_SIZE)) };
+        })()
+      : pageOf(sorted, readPage(params['page']));
 
   const bare = !section && !query && Object.keys(state).length === 0;
   const previews = bare
