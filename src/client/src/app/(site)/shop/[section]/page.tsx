@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 
 import {
   applyFilter,
+  CATALOG_HREF,
   type Characteristic,
   facetsOf,
   readFilter,
@@ -15,7 +16,12 @@ import { CardRows } from '@/blocks/arrangements/CardRows';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { FacetPanel } from '@/blocks/primitives/Shop/FacetPanel';
 import { OfferCard } from '@/blocks/primitives/Shop/OfferCard';
-import { getCatalogSection, getSiteSettings, listOffers } from '@/lib/api-client.engine';
+import {
+  getCatalogSection,
+  listCatalogSections,
+  getSiteSettings,
+  listOffers,
+} from '@/lib/api-client.engine';
 
 /**
  * Раздел каталога `/shop/<слаг>`: поиск, фильтр по характеристикам и плитка позиций.
@@ -49,7 +55,7 @@ export default async function SectionPage({
   searchParams: Promise<Search>;
 }) {
   const [{ section: slug }, search] = await Promise.all([params, searchParams]);
-  const section = await getCatalogSection(slug);
+  const [section, sections] = await Promise.all([getCatalogSection(slug), listCatalogSections()]);
   if (!section) notFound();
   const basePath = `/shop/${section.slug}`;
 
@@ -71,7 +77,16 @@ export default async function SectionPage({
   return (
     <section className="block-space bg-bg">
       <div className="mx-auto max-w-wide px-4 md:px-6">
-        <Breadcrumbs items={[{ label: 'Главная', href: '/' }, { label: section.title }]} />
+        <Breadcrumbs
+          items={[
+            { label: 'Главная', href: '/' },
+            // При одном разделе /shop сразу ведёт сюда же - ступень была бы петлёй.
+            ...(sections.length > 1
+              ? [{ label: shopSettings(settings?.shop).menuTitle, href: CATALOG_HREF }]
+              : []),
+            { label: section.title },
+          ]}
+        />
         <h1 className="font-display text-2xl font-semibold text-ink md:text-3xl">
           {section.title}
         </h1>

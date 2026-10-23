@@ -10,6 +10,7 @@ import type {
   OfferView,
 } from 'contracts';
 import {
+  CATALOG_HREF,
   checkBuyer,
   DEFAULT_CHECKOUT,
   formatMoney,
@@ -248,6 +249,11 @@ export function Cart({
             <p className="text-muted">
               {loading ? 'Загружаем корзину…' : (data.emptyText ?? 'В корзине пока пусто.')}
             </p>
+            {!loading && (
+              <a href={CATALOG_HREF} className={`${primaryButton} mt-4`}>
+                В каталог
+              </a>
+            )}
             {!loading && orders.length > 0 && (
               <div data-part="orders" className="mt-6">
                 <p className="text-sm font-medium text-ink">Ваши заказы</p>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import type { BlockNode, SiteSettings } from 'contracts';
+import { type BlockNode, siteNav, type SiteSettings } from 'contracts';
 
 import { BrandMark } from '@/blocks/primitives/BrandMark';
 
@@ -33,7 +33,8 @@ export function NavDrawer({
 }) {
   const side = node.data?.side ?? 'right';
   const width = node.data?.width ?? 280;
-  const nav = settings.mainNav ?? [];
+  // Пункт каталога появляется сам, пока магазин включён (siteNav).
+  const nav = siteNav(settings);
   const phone = settings.contacts?.phone;
   const email = settings.contacts?.email;
   const hours = settings.contacts?.hours;

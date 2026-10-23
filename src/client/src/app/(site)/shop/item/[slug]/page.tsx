@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import {
+  CATALOG_HREF,
   cardSpecs,
   formatMoney,
   type MediaRef,
@@ -17,7 +18,7 @@ import { MediaImage } from '@/blocks/primitives/Media';
 import { hasLexicalContent, LexicalRenderer } from '@/blocks/primitives/RichText';
 import { AddToCart } from '@/blocks/primitives/Shop/AddToCart';
 import { OfferCard } from '@/blocks/primitives/Shop/OfferCard';
-import { getOffer, getSiteSettings } from '@/lib/api-client.engine';
+import { getOffer, getSiteSettings, listCatalogSections } from '@/lib/api-client.engine';
 import { jsonLd } from '@/lib/seo/json-ld';
 
 /**
@@ -47,7 +48,11 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 }
 
 export default async function OfferPage({ params }: { params: Promise<Params> }) {
-  const [offer, settings] = await Promise.all([getOffer((await params).slug), getSiteSettings()]);
+  const [offer, settings, sections] = await Promise.all([
+    getOffer((await params).slug),
+    getSiteSettings(),
+    listCatalogSections(),
+  ]);
   if (!offer) notFound();
 
   const files = [offer.image, ...offer.gallery].filter(Boolean) as MediaRef[];
@@ -55,6 +60,10 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
   const sold = offer.stock !== null && offer.stock <= 0;
   const crumbs: Crumb[] = [
     { label: 'Главная', href: '/' },
+    // При одном разделе /shop ведёт в него же: ступень «Каталог» не нужна.
+    ...(sections.length > 1
+      ? [{ label: shopSettings(settings?.shop).menuTitle, href: CATALOG_HREF }]
+      : []),
     ...(offer.section && offer.sectionTitle
       ? [{ label: offer.sectionTitle, href: `/shop/${offer.section}` }]
       : []),

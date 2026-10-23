@@ -12,6 +12,7 @@ import type {
   BuyerOrderView,
   OfferView,
   OfferDetailView,
+  CatalogSectionSummary,
   CatalogSectionView,
   VideoStream,
   FaqGroupDoc,
@@ -946,6 +947,14 @@ export async function getOffer(slug: string): Promise<OfferDetailView | null> {
 }
 
 /** Раздел каталога `/shop/<слаг>`; нет такого - null. */
+/** Разделы каталога со счётом позиций - страница `/shop`; пустые не приходят. */
+export async function listCatalogSections(): Promise<CatalogSectionSummary[]> {
+  const response = await fetch(`${CMS_URL}/api/shop/sections`, { cache: 'no-store' }).catch(
+    () => null,
+  );
+  return response?.ok ? ((await response.json()) as { docs: CatalogSectionSummary[] }).docs : [];
+}
+
 export async function getCatalogSection(slug: string): Promise<CatalogSectionView | null> {
   if (!isSlug(slug)) return null;
   const response = await fetch(`${CMS_URL}/api/shop/sections/${slug}`, {

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 
 import {
   BUYER_STEP_TEXT,
+  CATALOG_HREF,
   buyerStep,
   formatMoney,
   fromMoney,
@@ -78,6 +79,9 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
           <CopyLinkButton label="Скопировать ссылку на заказ" caption="Скопировать ссылку" />
           <a href="/orders" className="text-sm text-accent underline-offset-2 hover:underline">
             Все мои заказы
+          </a>
+          <a href={CATALOG_HREF} className="text-sm text-accent underline-offset-2 hover:underline">
+            В каталог
           </a>
         </div>
 

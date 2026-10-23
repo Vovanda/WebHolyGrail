@@ -1,6 +1,12 @@
 import Link from 'next/link';
 import { Github } from 'lucide-react';
-import { type BlockNode, isModuleEnabled, shopSettings, type SiteSettings } from 'contracts';
+import {
+  type BlockNode,
+  isModuleEnabled,
+  shopSettings,
+  siteNav,
+  type SiteSettings,
+} from 'contracts';
 
 import { ThemeToggle } from './ThemeToggle';
 import { BrandMark } from '@/blocks/primitives/BrandMark';
@@ -39,7 +45,8 @@ export function Header({
   readonly settings: SiteSettings;
 }) {
   const data = node.data ?? {};
-  const nav = settings.mainNav ?? [];
+  // Пункт каталога появляется сам, пока магазин включён (siteNav).
+  const nav = siteNav(settings);
   const showThemeToggle = settings.theme?.userToggle ?? true;
   const sticky = settings.header?.sticky ?? false;
   const githubUrl = data.githubUrl;
