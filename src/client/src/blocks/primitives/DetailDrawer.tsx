@@ -185,8 +185,10 @@ export function DetailDrawer({ slug, children, className, placement = 'left' }: 
       <div
         aria-hidden
         onClick={close}
+        data-part="detail-backdrop"
         className={cn(
-          'fixed inset-0 z-[60] bg-ink/55 backdrop-blur-[2px] transition-opacity duration-300',
+          // Цвет фона - правилом в globals.css: bg-ink/55 не собирается, ink задан переменной.
+          'fixed inset-0 z-[60] transition-opacity duration-300',
           open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
         )}
       />

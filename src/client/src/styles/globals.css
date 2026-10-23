@@ -236,17 +236,19 @@
   }
 
   /*
-    Фон под окном подтверждения затемняет страницу: в светлой теме чернилами
+    Фон под окнами (подтверждение, карточка DetailDrawer) затемняет страницу: в светлой теме чернилами
     палитры, в тёмной - её фоном, потому что чернила там светлые. Утилита
     bg-ink/55 здесь не годится - цвет задан переменной, и Tailwind не строит
     для него класс с прозрачностью.
   */
-  [data-part='confirm']::backdrop {
+  [data-part='confirm']::backdrop,
+  [data-part='detail-backdrop'] {
     background: color-mix(in oklab, var(--color-ink) 55%, transparent);
     backdrop-filter: blur(2px);
   }
 
-  :root[data-theme='dark'] [data-part='confirm']::backdrop {
+  :root[data-theme='dark'] [data-part='confirm']::backdrop,
+  :root[data-theme='dark'] [data-part='detail-backdrop'] {
     background: color-mix(in oklab, var(--color-bg) 70%, transparent);
   }
 
