@@ -640,6 +640,8 @@ overlay	src/cms/migrations/20261022_232708_shop_settings.json
 overlay	src/cms/migrations/20261022_232708_shop_settings.ts
 overlay	src/cms/migrations/20261023_110340_order_cancel_reason.json
 overlay	src/cms/migrations/20261023_110340_order_cancel_reason.ts
+overlay	src/cms/migrations/20261023_113302_checkout_phone_format.json
+overlay	src/cms/migrations/20261023_113302_checkout_phone_format.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts

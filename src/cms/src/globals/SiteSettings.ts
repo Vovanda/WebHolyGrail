@@ -1,5 +1,5 @@
 import type { GlobalConfig } from 'payload';
-import { BLOG_COLUMN_PX, BLOG_TEXT_PX } from 'contracts';
+import { BLOG_COLUMN_PX, BLOG_TEXT_PX, DEFAULT_PHONE_FORMAT, PHONE_FORMATS } from 'contracts';
 import { editorsOnly } from '../lib/access/editors';
 import { moduleOn } from '../lib/modules/enabled';
 
@@ -933,6 +933,17 @@ export const SiteSettings: GlobalConfig = {
                           ],
                         },
                       ],
+                    },
+                    {
+                      name: 'phoneFormat',
+                      label: 'Формат телефона',
+                      type: 'select',
+                      defaultValue: DEFAULT_PHONE_FORMAT,
+                      options: Object.entries(PHONE_FORMATS).map(([value, format]) => ({
+                        value,
+                        label: `${format.title}, например ${format.example}`,
+                      })),
+                      admin: { description: 'По нему анкета проверяет номер и показывает пример.' },
                     },
                     {
                       name: 'comment',
