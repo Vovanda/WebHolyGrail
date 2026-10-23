@@ -44,6 +44,16 @@ export const Offers: CollectionConfig = {
       },
     },
     {
+      name: 'hasPage',
+      label: 'Своя страница',
+      type: 'checkbox',
+      defaultValue: true,
+      admin: {
+        position: 'sidebar',
+        description: 'Выключено - карточка на витрине без ссылки, страницы позиции нет.',
+      },
+    },
+    {
       name: 'sku',
       label: 'Артикул',
       type: 'text',

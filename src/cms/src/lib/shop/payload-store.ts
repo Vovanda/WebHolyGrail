@@ -97,7 +97,11 @@ export function cardFromDoc(doc: Record<string, unknown>, now = new Date()): Off
     image: doc['image'] ?? null,
     howToBuy: howToBuy(doc['howToBuy']),
     deposit: micros(doc['depositMicros']),
-    slug: typeof doc['slug'] === 'string' && doc['slug'] ? doc['slug'] : null,
+    // Без своей страницы адрес наружу не выходит: карточка рисуется без ссылки.
+    slug:
+      doc['hasPage'] !== false && typeof doc['slug'] === 'string' && doc['slug']
+        ? doc['slug']
+        : null,
     section: sectionOf(doc['section'])?.slug ?? null,
     specs: publicSpecs(
       cleanCharacteristics(sectionOf(doc['section'])?.characteristics),
@@ -331,8 +335,9 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
           ...opts,
           depth: 1,
         });
-        const doc = found.docs[0];
-        return doc ? detailFromDoc(doc as unknown as Record<string, unknown>) : null;
+        const doc = found.docs[0] as unknown as Record<string, unknown> | undefined;
+        // Страница выключена флагом - адреса нет, как если бы позиции не было.
+        return doc && doc['hasPage'] !== false ? detailFromDoc(doc) : null;
       },
       section: async (slug) => {
         const found = await payload.find({
