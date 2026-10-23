@@ -356,6 +356,8 @@ export interface ShopSettings {
   /** Срок оплаты нового счёта по умолчанию, в днях; 0 - без срока. */
   readonly invoiceDueDays: number;
   readonly checkout: CheckoutRules;
+  /** Адрес страницы, где стоит корзина: на него ведут шапка и витрина. */
+  readonly cartHref: string;
 }
 
 /** Настройки магазина как они лежат в CMS: любое поле может быть пустым. */
@@ -364,6 +366,7 @@ export type ShopSettingsInput = {
 };
 
 export const DEFAULT_INVOICE_DUE_DAYS = 3;
+export const DEFAULT_CART_HREF = '/cart';
 
 const text = (v: unknown, max = 200): string =>
   typeof v === 'string' ? v.trim().slice(0, max) : '';
@@ -407,7 +410,14 @@ export function shopSettings(raw: ShopSettingsInput | null | undefined): ShopSet
       comment: co['comment'] !== false,
       phoneFormat: isPhoneFormat(co['phoneFormat']) ? co['phoneFormat'] : DEFAULT_PHONE_FORMAT,
     },
+    cartHref: localPath(r['cartHref']) ?? DEFAULT_CART_HREF,
   };
+}
+
+/** Путь своего сайта: с одной косой черты в начале; чужой адрес и мусор - null. */
+function localPath(v: unknown): string | null {
+  const path = text(v);
+  return /^\/(?!\/)[^\s]*$/.test(path) ? path : null;
 }
 
 /* ───────────────────────── Анкета покупателя ───────────────────────── */

@@ -336,9 +336,11 @@ mirror	src/client/src/blocks/primitives/Separator/WaveDivider.tsx
 mirror	src/client/src/blocks/primitives/Shop/AddToCart.tsx
 mirror	src/client/src/blocks/primitives/Shop/Cart.tsx
 mirror	src/client/src/blocks/primitives/Shop/ConfirmDialog.tsx
+mirror	src/client/src/blocks/primitives/Shop/HeaderCart.tsx
 mirror	src/client/src/blocks/primitives/Shop/MyOrders.tsx
 mirror	src/client/src/blocks/primitives/Shop/OrderActions.tsx
 mirror	src/client/src/blocks/primitives/Shop/PaymentDetails.tsx
+mirror	src/client/src/blocks/primitives/Shop/QuantityStepper.tsx
 mirror	src/client/src/blocks/primitives/Shop/Showcase.tsx
 mirror	src/client/src/blocks/primitives/Shop/ui.ts
 mirror	src/client/src/blocks/primitives/SidePanel.test.ts
@@ -473,6 +475,7 @@ overlay	src/client/src/lib/share-image.test.ts
 overlay	src/client/src/lib/share-image.ts
 overlay	src/client/src/lib/shop/cart.test.ts
 overlay	src/client/src/lib/shop/cart.ts
+overlay	src/client/src/lib/shop/snapshots.ts
 overlay	src/client/src/lib/theme-bootstrap.tsx
 overlay	src/client/src/lib/theme-recover.tsx
 overlay	src/client/src/lib/timeline.test.ts
@@ -645,6 +648,8 @@ overlay	src/cms/migrations/20261023_113302_checkout_phone_format.json
 overlay	src/cms/migrations/20261023_113302_checkout_phone_format.ts
 overlay	src/cms/migrations/20261023_120719_shop_drop_access.json
 overlay	src/cms/migrations/20261023_120719_shop_drop_access.ts
+overlay	src/cms/migrations/20261023_125752_shop_cart_href.json
+overlay	src/cms/migrations/20261023_125752_shop_cart_href.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts

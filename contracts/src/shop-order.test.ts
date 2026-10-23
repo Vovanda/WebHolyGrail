@@ -266,3 +266,12 @@ describe('шаг покупателя', () => {
     expect(buyerStep('accepted', [pay('paid'), refund('issued')])).toBe('paid');
   });
 });
+
+describe('страница корзины', () => {
+  it('по умолчанию /cart, свой путь берётся, чужой адрес - нет', () => {
+    expect(shopSettings(null).cartHref).toBe('/cart');
+    expect(shopSettings({ cartHref: '/shop/cart' }).cartHref).toBe('/shop/cart');
+    expect(shopSettings({ cartHref: 'https://evil.example' }).cartHref).toBe('/cart');
+    expect(shopSettings({ cartHref: '//evil.example' }).cartHref).toBe('/cart');
+  });
+});
