@@ -1,20 +1,22 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  applyFilter,
   cardSpecs,
   cleanCharacteristics,
-  applyFilter,
-  type CatalogItem,
-  type Characteristic,
   editDistance,
   facetsOf,
   publicSpecs,
-  similarItems,
+  quickFilters,
   readFilter,
   searchItems,
+  similarItems,
   switchLayout,
   toggleValue,
+  type CatalogItem,
+  type Characteristic,
   typoBudget,
+  withShopCharacteristics,
   writeFilter,
 } from './catalog';
 
@@ -140,6 +142,7 @@ describe('характеристики раздела из админки', () =
         group: null,
         filter: 'range',
         inCard: true,
+        quick: false,
       },
       {
         key: 'material',
@@ -149,6 +152,7 @@ describe('характеристики раздела из админки', () =
         group: null,
         filter: 'checks',
         inCard: false,
+        quick: false,
       },
       {
         key: 'note',
@@ -158,6 +162,7 @@ describe('характеристики раздела из админки', () =
         group: null,
         filter: 'hidden',
         inCard: true,
+        quick: false,
       },
     ]);
     expect(cleanCharacteristics(null)).toEqual([]);
@@ -227,5 +232,54 @@ describe('похожие позиции', () => {
       { ...item(3, 'membr', 1000, { material: 'ТПО' }), stock: 5 },
     ]);
     expect(rows.map((r) => r.id)).toEqual([3, 2]);
+  });
+});
+
+describe('общие характеристики магазина и быстрые фильтры', () => {
+  const section = cleanCharacteristics([
+    { key: 'brand', title: 'Бренд', kind: 'enum', filter: 'checks', quick: true },
+    { key: 'watts', title: 'Мощность', kind: 'number', filter: 'range' },
+    { key: 'price', title: 'Своя цена', kind: 'number' },
+  ]);
+  const chars = withShopCharacteristics(section);
+  const items = [
+    {
+      id: 1,
+      title: 'a',
+      specs: { brand: 'A', watts: 600, 'in-stock': true, sale: true, price: 100 },
+    },
+    {
+      id: 2,
+      title: 'b',
+      specs: { brand: 'B', watts: 900, 'in-stock': true, sale: false, price: 200 },
+    },
+    {
+      id: 3,
+      title: 'c',
+      specs: { brand: 'A', watts: 1200, 'in-stock': false, sale: false, price: 300 },
+    },
+  ];
+
+  it('ключ общей характеристики у раздела занят', () => {
+    expect(section.map((c) => c.key)).toEqual(['brand', 'watts']);
+  });
+
+  it('да/нет - один переключатель с названием, перечень - по значению', () => {
+    const quick = quickFilters(facetsOf(items, {}, chars), chars);
+    expect(quick.map((q) => q.label)).toEqual(['В наличии', 'Со скидкой', 'A', 'B']);
+    expect(quick.find((q) => q.label === 'В наличии')).toMatchObject({ value: 'да', count: 2 });
+  });
+
+  it('выбор в строке - тот же адрес, что галочка в панели', () => {
+    const state = readFilter({ 'in-stock': 'да', brand: 'A' }, chars);
+    expect(applyFilter(items, state, chars).map((i) => i.id)).toEqual([1]);
+    const quick = quickFilters(facetsOf(items, state, chars), chars);
+    expect(quick.filter((q) => q.selected).map((q) => q.label)).toEqual(['В наличии', 'A']);
+  });
+
+  it('значение, ведущее в пустую выдачу, в строку не идёт', () => {
+    const state = readFilter({ brand: 'B' }, chars);
+    const quick = quickFilters(facetsOf(items, state, chars), chars);
+    expect(quick.find((q) => q.label === 'Со скидкой')).toBeUndefined();
   });
 });

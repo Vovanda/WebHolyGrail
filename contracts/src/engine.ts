@@ -163,6 +163,7 @@ export {
   DEFAULT_CHECKOUT,
   DEFAULT_INVOICE_DUE_DAYS,
   cleanCart,
+  catalogItemOf,
   currentPrice,
   discountPercent,
   fitCartToStock,
@@ -262,7 +263,9 @@ export {
   isSlug,
   normalize,
   publicSpecs,
+  quickFilters,
   RELATED_LIMIT,
+  SHOP_CHARACTERISTICS,
   similarItems,
   visibleCharacteristics,
   readFilter,
@@ -271,6 +274,7 @@ export {
   switchLayout,
   toggleValue,
   typoBudget,
+  withShopCharacteristics,
   writeFilter,
 } from './catalog';
 export type {
@@ -280,6 +284,7 @@ export type {
   FacetOption,
   FilterState,
   FilterView,
+  QuickFilter,
   Selection,
   SpecKind,
   SpecValue,

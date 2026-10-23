@@ -7,6 +7,7 @@ import {
   removeOrderLine,
   boughtTogether,
   buildOrder,
+  catalogItemOf,
   currentPrice,
   discountPercent,
   fitCartToStock,
@@ -560,5 +561,39 @@ describe('корзина по остатку', () => {
     expect(fit.lines).toEqual(cart);
     expect(fit.trimmed).toEqual([]);
     expect(fit.soldOut).toEqual([]);
+  });
+});
+
+describe('позиция глазами каталога', () => {
+  const rub = (units: number) => ({ units, micros: 0, currency: 'RUB' as const });
+  const offer = {
+    id: 1,
+    title: 'x',
+    price: rub(850),
+    listPrice: rub(1000),
+    stock: 0,
+    summary: null,
+    image: null,
+    howToBuy: 'cart' as const,
+    deposit: null,
+    slug: null,
+    section: null,
+    specs: { brand: 'A' },
+  };
+
+  it('наличие, скидка и цена - рядом со своими характеристиками', () => {
+    expect(catalogItemOf(offer).specs).toEqual({
+      brand: 'A',
+      'in-stock': false,
+      sale: true,
+      price: 850,
+    });
+    expect(
+      catalogItemOf({ ...offer, stock: null, listPrice: null, price: null }).specs,
+    ).toMatchObject({
+      'in-stock': true,
+      sale: false,
+      price: null,
+    });
   });
 });

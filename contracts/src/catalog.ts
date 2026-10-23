@@ -24,6 +24,8 @@ export interface Characteristic {
   readonly filter: FilterView;
   /** Показывать ли в карточке позиции; пусто - показывать. */
   readonly inCard?: boolean | null | undefined;
+  /** Значения - строкой быстрых фильтров над плиткой; у да/нет - один переключатель. */
+  readonly quick?: boolean | null | undefined;
 }
 
 export type SpecValue = string | number | boolean | null;
@@ -49,6 +51,56 @@ export type FilterState = Readonly<Record<string, Selection>>;
 
 const KEY = /^[a-z0-9-]{1,32}$/;
 
+/**
+ * Характеристики магазина, общие для всех разделов: значения берутся из полей
+ * позиции, а не из набора раздела.
+ *
+ * @remarks
+ * Так наличие, скидка и цена фильтруются тем же движком, что и характеристики
+ * раздела: одна панель, один адрес, одни счётчики - и на `/shop`, где своих
+ * характеристик нет, и в любом разделе. Ключи заняты: характеристика раздела
+ * с таким ключом отбрасывается.
+ */
+export const SHOP_CHARACTERISTICS: readonly Characteristic[] = [
+  {
+    key: 'in-stock',
+    title: 'В наличии',
+    unit: null,
+    kind: 'bool',
+    group: null,
+    filter: 'checks',
+    quick: true,
+    inCard: false,
+  },
+  {
+    key: 'sale',
+    title: 'Со скидкой',
+    unit: null,
+    kind: 'bool',
+    group: null,
+    filter: 'checks',
+    quick: true,
+    inCard: false,
+  },
+  {
+    key: 'price',
+    title: 'Цена',
+    unit: null,
+    kind: 'number',
+    group: null,
+    filter: 'range',
+    inCard: false,
+  },
+];
+
+const RESERVED = new Set(SHOP_CHARACTERISTICS.map((c) => c.key));
+
+/** Характеристики выдачи: общие для магазина, затем раздела. */
+export const withShopCharacteristics = (section: readonly Characteristic[]): Characteristic[] => [
+  ...SHOP_CHARACTERISTICS,
+  ...section,
+];
+
 /** Адрес позиции или раздела в ссылке: латиница в нижнем регистре, цифры и дефис, до 120 знаков. */
 export function isSlug(value: unknown): value is string {
   return typeof value === 'string' && /^[a-z0-9-]{1,120}$/.test(value);
@@ -73,7 +125,7 @@ export function cleanCharacteristics(raw: unknown): Characteristic[] {
   for (const item of raw as Record<string, unknown>[]) {
     const key = typeof item?.['key'] === 'string' ? item['key'].trim() : '';
     const title = typeof item?.['title'] === 'string' ? item['title'].trim() : '';
-    if (!KEY.test(key) || !title || seen.has(key)) continue;
+    if (!KEY.test(key) || !title || seen.has(key) || RESERVED.has(key)) continue;
     seen.add(key);
     const kind = KINDS.includes(item['kind'] as SpecKind) ? (item['kind'] as SpecKind) : 'text';
     const filter = VIEWS.includes(item['filter'] as FilterView)
@@ -92,6 +144,7 @@ export function cleanCharacteristics(raw: unknown): Characteristic[] {
       group: text(item['group']),
       filter,
       inCard: item['inCard'] !== false,
+      quick: item['quick'] === true,
     });
   }
   return out;
@@ -281,6 +334,7 @@ export interface FacetOption {
 export type Facet =
   | {
       readonly key: string;
+      readonly kind: SpecKind;
       readonly title: string;
       readonly unit: string | null;
       readonly group: string | null;
@@ -289,6 +343,7 @@ export type Facet =
     }
   | {
       readonly key: string;
+      readonly kind: SpecKind;
       readonly title: string;
       readonly unit: string | null;
       readonly group: string | null;
@@ -318,6 +373,7 @@ export function facetsOf(
     if (c.filter === 'hidden') continue;
     const head = {
       key: c.key,
+      kind: c.kind,
       title: c.title,
       unit: c.unit ?? null,
       group: c.group ?? null,
@@ -360,6 +416,46 @@ export function facetsOf(
     });
   }
   return facets;
+}
+
+/** Переключатель строки быстрых фильтров. */
+export interface QuickFilter {
+  readonly key: string;
+  readonly value: string;
+  readonly label: string;
+  readonly count: number;
+  readonly selected: boolean;
+}
+
+/**
+ * Быстрые фильтры из фасетов: значения характеристик, отмеченных `quick`.
+ *
+ * @remarks
+ * У да/нет переключатель один, «да», с названием характеристики: «В наличии».
+ * У перечня - каждое значение. Значение, при котором позиций не останется,
+ * в строку не идёт, если оно не выбрано: переключатель, ведущий в пустую
+ * выдачу, только мешает. Счётчик и выбор - те же, что у галочки в панели.
+ */
+export function quickFilters(
+  facets: readonly Facet[],
+  characteristics: readonly Characteristic[],
+): QuickFilter[] {
+  const byKey = new Map(characteristics.map((c) => [c.key, c]));
+  return facets.flatMap((facet) => {
+    const c = byKey.get(facet.key);
+    if (!c?.quick || facet.view !== 'checks') return [];
+    const options =
+      c.kind === 'bool' ? facet.options.filter((o) => o.value === 'да') : facet.options;
+    return options
+      .filter((o) => o.selected || o.count > 0)
+      .map((o) => ({
+        key: facet.key,
+        value: o.value,
+        label: c.kind === 'bool' ? c.title : o.value,
+        count: o.count,
+        selected: o.selected,
+      }));
+  });
 }
 
 /* ───────────────────────── Поиск ───────────────────────── */

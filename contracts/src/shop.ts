@@ -21,7 +21,7 @@ import {
   PHONE_FORMATS,
   type PhoneFormatKey,
 } from './phone';
-import type { Characteristic, SpecValue } from './catalog';
+import type { CatalogItem, Characteristic, SpecValue } from './catalog';
 import { fromMoney, type Micros, type Money } from './money';
 
 export type Actor = 'buyer' | 'manager' | 'system';
@@ -805,6 +805,26 @@ export interface OfferView {
   readonly section: string | null;
   /** Значения характеристик раздела по их ключам. */
   readonly specs: Readonly<Record<string, SpecValue>>;
+}
+
+/**
+ * Позиция глазами каталога: значения характеристик раздела плюс общие для
+ * магазина - наличие, скидка и цена (`SHOP_CHARACTERISTICS`).
+ *
+ * @remarks
+ * Цена числом в единицах валюты: диапазон в фильтре вводят рублями, а не
+ * микроединицами. Позиция без цены в фильтр цены не попадает.
+ */
+export function catalogItemOf<T extends OfferView>(offer: T): T & CatalogItem {
+  return {
+    ...offer,
+    specs: {
+      ...offer.specs,
+      'in-stock': offer.stock === null || offer.stock > 0,
+      sale: Boolean(offer.price && offer.listPrice),
+      price: offer.price ? offer.price.units + offer.price.micros / 1_000_000 : null,
+    },
+  };
 }
 
 /**
