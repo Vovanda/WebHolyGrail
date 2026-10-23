@@ -21,7 +21,9 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { MediaImage } from '@/blocks/primitives/Media';
 import { cart, rememberedOrders, rememberOrder, useCart } from '@/lib/shop/cart';
+import { OFFER_SNAPSHOTS, readSnapshots, writeSnapshots } from '@/lib/shop/snapshots';
 
+import { QuantityStepper } from './QuantityStepper';
 import { field, primaryButton } from './ui';
 
 /**
@@ -57,9 +59,6 @@ const MESSAGES: Record<string, string> = {
 
 type Row = { offer: OfferView & { price: Money }; quantity: number };
 
-const stepper =
-  'flex h-11 w-11 items-center justify-center rounded-md border border-border text-lg text-ink transition-colors hover:bg-surface-hover disabled:opacity-40';
-
 const words = (n: number) =>
   n % 10 === 1 && n % 100 !== 11
     ? 'позиция'
@@ -90,10 +89,18 @@ export function Cart({
 
   useEffect(() => {
     if (!ids) return;
+    // Строки сразу из снимка, если все позиции уже встречались; сервер сверит.
+    const seen = readSnapshots<OfferView>(OFFER_SNAPSHOTS);
+    const known = ids.split(',').map((id) => seen[id]);
+    if (known.every(Boolean)) {
+      setOffers(new Map(known.map((o) => [o!.id, o!])));
+      setLoaded(ids);
+    }
     void fetch(`/internal/shop/offers?ids=${ids}`)
       .then((r) => (r.ok ? r.json() : { docs: [] }))
       .then((d: { docs: OfferView[] }) => {
         const found = new Map(d.docs.map((o) => [o.id, o]));
+        writeSnapshots(OFFER_SNAPSHOTS, Object.fromEntries(d.docs.map((o) => [String(o.id), o])));
         setOffers(found);
         setLoaded(ids);
         // Позиции больше нет или у неё нет цены - в заказ она не пойдёт: убираем сразу.
@@ -295,30 +302,12 @@ export function Cart({
                       )}
                     </div>
                     <div className="col-start-2 flex items-center gap-2 sm:col-start-auto">
-                      <button
-                        type="button"
-                        aria-label={`Меньше: ${offer.title}`}
-                        className={stepper}
-                        onClick={() => cart.set(offer.id, quantity - 1)}
-                      >
-                        −
-                      </button>
-                      <span
-                        data-part="line-quantity"
-                        aria-live="polite"
-                        className="w-8 text-center tabular-nums text-ink"
-                      >
-                        {quantity}
-                      </span>
-                      <button
-                        type="button"
-                        aria-label={`Больше: ${offer.title}`}
-                        disabled={quantity >= max}
-                        className={stepper}
-                        onClick={() => cart.set(offer.id, quantity + 1)}
-                      >
-                        +
-                      </button>
+                      <QuantityStepper
+                        value={quantity}
+                        max={max}
+                        title={offer.title}
+                        onChange={(next) => cart.set(offer.id, next)}
+                      />
                       <button
                         type="button"
                         data-part="line-remove"

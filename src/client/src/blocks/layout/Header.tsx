@@ -1,16 +1,17 @@
 import Link from 'next/link';
 import { Github } from 'lucide-react';
-import type { BlockNode, SiteSettings } from 'contracts';
+import { type BlockNode, isModuleEnabled, shopSettings, type SiteSettings } from 'contracts';
 
 import { ThemeToggle } from './ThemeToggle';
 import { BrandMark } from '@/blocks/primitives/BrandMark';
+import { HeaderCart } from '@/blocks/primitives/Shop/HeaderCart';
 
 /**
  * Header — шапка сайта: знак, меню и кнопки.
  *
  * @remarks
  * Композиция (desktop):
- *   [Wordmark (mark + siteName)] — [mainNav центр] — [GitHub · ThemeToggle · CTA]
+ *   [Wordmark (mark + siteName)] — [mainNav центр] — [GitHub · заказы · корзина · ThemeToggle · CTA]
  *
  * Композиция (mobile):
  *   [Wordmark] — [ThemeToggle · CTA] (nav уходит в NavDrawer если он сконфигурирован
@@ -22,6 +23,7 @@ import { BrandMark } from '@/blocks/primitives/BrandMark';
  *     справа от ThemeToggle (если нет — кнопки нет).
  *
  * SiteSettings.theme.userToggle контролирует видимость ThemeToggle (по умолчанию true).
+ * Заказы и корзина - когда включён модуль магазина (`HeaderCart`).
  */
 
 export interface HeaderData {
@@ -42,6 +44,7 @@ export function Header({
   const sticky = settings.header?.sticky ?? false;
   const githubUrl = data.githubUrl;
   const cta = data.primaryCta;
+  const shop = isModuleEnabled(settings.toggles ?? {}, 'shop');
 
   return (
     /*
@@ -105,6 +108,7 @@ export function Header({
               <Github size={18} />
             </a>
           )}
+          {shop && <HeaderCart cartHref={shopSettings(settings.shop).cartHref} />}
           {showThemeToggle && <ThemeToggle />}
           {cta && (
             <Link

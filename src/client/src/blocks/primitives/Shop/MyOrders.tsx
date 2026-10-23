@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { type BuyerOrderView, formatMoney, ORDER_STATUS_LABELS } from 'contracts';
 
 import { forgetOrder, rememberedOrders } from '@/lib/shop/cart';
+import { dropSnapshot, ORDER_SNAPSHOTS, readSnapshots, writeSnapshots } from '@/lib/shop/snapshots';
 
 /**
  * Заказы этого браузера: номер, состояние, дата и итог, у каждого ссылка.
@@ -17,8 +18,9 @@ import { forgetOrder, rememberedOrders } from '@/lib/shop/cart';
  *
  * Подробности - только у последних заказов: каждый запрос заказа CMS считает
  * в тот же лимит с адреса, что «Я оплатил» и отмену, и двадцать запросов на
- * каждый заход отняли бы у покупателя эти действия. Остальные - просто ссылки.
- * Ссылку, по которой заказа больше нет, браузер забывает.
+ * каждый заход отняли бы у покупателя эти действия. Остальные показываются по
+ * снимку, если браузер их уже видел, иначе - просто ссылками. Ссылку, по
+ * которой заказа больше нет, браузер забывает вместе со снимком.
  */
 const DETAILED = 5;
 
@@ -31,28 +33,39 @@ export function MyOrders() {
 
   useEffect(() => {
     let stopped = false;
-    void (async () => {
-      const tokens = rememberedOrders();
-      const found: Row[] = tokens.map((token) => ({ token, state: 'link' as const }));
-      if (!stopped) setRows([...found]);
-      for (const [i, token] of tokens.slice(0, DETAILED).entries()) {
+    const tokens = rememberedOrders();
+    // Сразу - то, что браузер уже видел; сервер обновит строки, когда ответит.
+    const seen = readSnapshots<BuyerOrderView>(ORDER_SNAPSHOTS);
+    const found: Row[] = tokens.map((token) =>
+      seen[token] ? { token, state: 'shown', order: seen[token] } : { token, state: 'link' },
+    );
+    setRows([...found]);
+    // Свежие заказы спрашиваются разом, а не по очереди: ответ приходит за один запрос.
+    void Promise.all(
+      tokens.slice(0, DETAILED).map(async (token, i) => {
         const response = await fetch('/internal/shop/orders/view', {
           headers: { 'x-order-secret': token },
           cache: 'no-store',
         }).catch(() => null);
-        if (response?.status === 404) forgetOrder(token);
-        found[i] = response?.ok
-          ? { token, state: 'shown', order: (await response.json()) as BuyerOrderView }
-          : {
-              token,
-              state:
-                response?.status === 429 ? 'busy' : response?.status === 404 ? 'gone' : 'failed',
-            };
-        if (!stopped) setRows([...found]);
-        // Лимит исчерпан - остальные ответят тем же, их не спрашиваем.
-        if (response?.status === 429) break;
-      }
-    })();
+        if (response?.status === 404) {
+          forgetOrder(token);
+          dropSnapshot(ORDER_SNAPSHOTS, token);
+        }
+        if (response?.ok) {
+          const order = (await response.json()) as BuyerOrderView;
+          writeSnapshots(ORDER_SNAPSHOTS, { [token]: order });
+          found[i] = { token, state: 'shown', order };
+        } else if (found[i]?.state !== 'shown' || response?.status === 404) {
+          // Снимок остаётся, если сервер просто не ответил: старое лучше пустого.
+          found[i] = {
+            token,
+            state: response?.status === 429 ? 'busy' : response?.status === 404 ? 'gone' : 'failed',
+          };
+        }
+      }),
+    ).then(() => {
+      if (!stopped) setRows([...found]);
+    });
     return () => {
       stopped = true;
     };

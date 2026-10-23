@@ -1,5 +1,5 @@
 import type { BlockNode, MediaRef, OfferView, SiteSettings } from 'contracts';
-import { formatMoney } from 'contracts';
+import { formatMoney, shopSettings } from 'contracts';
 
 import { CardRows } from '@/blocks/arrangements/CardRows';
 import { MediaImage } from '@/blocks/primitives/Media';
@@ -33,6 +33,7 @@ export interface ShowcaseData {
 
 export async function Showcase({
   node,
+  settings,
 }: {
   readonly node: BlockNode & { data?: ShowcaseData };
   readonly settings: SiteSettings;
@@ -41,7 +42,7 @@ export async function Showcase({
   const picked = (data.offers ?? []).map((o) => (typeof o === 'number' ? o : o.id));
   const offers: OfferView[] = await listOffers(picked.length > 0 ? { ids: picked } : { limit: 60 });
   if (offers.length === 0) return null;
-  const cartHref = data.cartHref?.trim() || '/cart';
+  const cartHref = data.cartHref?.trim() || shopSettings(settings.shop).cartHref;
 
   return (
     <section className="block-space bg-bg">
@@ -158,6 +159,8 @@ export async function Showcase({
                       <div className="mt-4">
                         <AddToCart
                           offer={offer.id}
+                          snapshot={offer}
+                          title={offer.title}
                           available={stock}
                           cartHref={cartHref}
                           label={offer.howToBuy === 'request' ? 'Оставить заявку' : 'В корзину'}

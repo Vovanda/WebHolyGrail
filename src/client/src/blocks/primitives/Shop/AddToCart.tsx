@@ -1,25 +1,39 @@
 'use client';
 
-import { useState } from 'react';
+import { MAX_QUANTITY, type OfferView } from 'contracts';
+import { useEffect, useState } from 'react';
 
 import { cart, useCart } from '@/lib/shop/cart';
+import { OFFER_SNAPSHOTS, writeSnapshots } from '@/lib/shop/snapshots';
 
-import { primaryButton, secondaryButton } from './ui';
+import { QuantityStepper } from './QuantityStepper';
+import { primaryButton } from './ui';
 
 /**
- * Кнопка «В корзину» на карточке позиции.
+ * Кнопка «В корзину» на карточке позиции, а после - счётчик количества.
  *
  * @remarks
- * Единственное состояние - лежит ли позиция в корзине. Штучную (остаток 1)
- * второй раз положить нельзя: кнопка становится ссылкой на корзину.
+ * Позиция уже в корзине - карточка показывает счётчик с числом из корзины,
+ * в том числе после обновления страницы, и ссылку в корзину. Минус до нуля
+ * убирает позицию, и карточка снова предлагает «В корзину». Плюс гаснет на
+ * остатке: штучную второй раз не взять.
+ *
+ * Корзина живёт в браузере, на сервере её нет. Пока она не прочитана, кнопка
+ * неактивна: иначе нажатие до чтения положило бы вторую штуку незаметно.
  */
 export function AddToCart({
   offer,
+  snapshot,
+  title,
   available,
   cartHref = '/cart',
   label = 'В корзину',
 }: {
   readonly offer: number;
+  /** Карточка как её видит покупатель: корзина покажет строку сразу, не дожидаясь сервера. */
+  readonly snapshot?: OfferView;
+  /** Название позиции - для подписи кнопок счётчика скринридеру. */
+  readonly title: string;
   /** Сколько можно взять; пусто - без ограничений. */
   readonly available: number | null;
   readonly cartHref?: string;
@@ -27,25 +41,35 @@ export function AddToCart({
   readonly label?: string;
 }) {
   const lines = useCart();
-  const [added, setAdded] = useState(false);
-  const inCart = lines.find((l) => l.offer === offer)?.quantity ?? 0;
-  const full = available !== null && inCart >= available;
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
 
-  if (inCart > 0 && (added || full)) {
+  const inCart = lines.find((l) => l.offer === offer)?.quantity ?? 0;
+
+  if (ready && inCart > 0) {
     return (
-      <a data-part="card-action" href={cartHref} className={`${secondaryButton} min-h-11 w-full`}>
-        В корзине{inCart > 1 ? ` · ${inCart}` : ''}
-      </a>
+      <div data-part="card-action" className="flex min-h-11 items-center justify-between gap-3">
+        <QuantityStepper
+          value={inCart}
+          max={available ?? MAX_QUANTITY}
+          title={title}
+          onChange={(next) => cart.set(offer, next)}
+        />
+        <a href={cartHref} className="text-sm text-accent underline-offset-2 hover:underline">
+          В корзине
+        </a>
+      </div>
     );
   }
   return (
     <button
       type="button"
       data-part="card-action"
+      disabled={!ready}
       className={`${primaryButton} min-h-11 w-full`}
       onClick={() => {
+        if (snapshot) writeSnapshots(OFFER_SNAPSHOTS, { [String(offer)]: snapshot });
         cart.add(offer);
-        setAdded(true);
       }}
     >
       {label}
