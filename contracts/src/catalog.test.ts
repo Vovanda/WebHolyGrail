@@ -120,6 +120,10 @@ describe('поиск', () => {
   it('расстояние считает перестановку соседних букв за одну правку', () => {
     expect(editDistance('мембарна', 'мембрана', 2)).toBe(1);
     expect(editDistance('абв', 'где', 1)).toBe(2);
+    expect(editDistance('дрель', 'дрель', 1)).toBe(0);
+    expect(editDistance('дрел', 'дрель', 1)).toBe(1);
+    const long = 'а'.repeat(80);
+    expect(editDistance(long, long + 'б', 2)).toBe(1);
   });
 
   it('пустой запрос - все позиции', () => {

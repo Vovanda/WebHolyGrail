@@ -372,9 +372,66 @@ export function facetsOf(
   state: FilterState,
   characteristics: readonly Characteristic[],
 ): Facet[] {
+  const shown = characteristics.filter((c) => c.filter !== 'hidden');
+  const active = characteristics.filter((c) => state[c.key]);
+
+  /*
+    Один проход по позициям. Счётчик характеристики считается при остальных
+    условиях, без её собственного: позиция, не прошедшая ни одного условия,
+    идёт в счёт всех характеристик, не прошедшая ровно одно - только в счёт
+    этого одного. Раньше пул фильтровался заново на каждую характеристику
+    и на каждое значение, и на десяти тысячах позиций это и было время ответа.
+  */
+  const counts = new Map(shown.map((c) => [c.key, new Map<string, number>()]));
+  const values = new Map(shown.map((c) => [c.key, new Set<string>()]));
+  const spans = new Map(
+    shown.map((c) => [
+      c.key,
+      {
+        all: { min: Infinity, max: -Infinity, n: 0 },
+        pool: { min: Infinity, max: -Infinity, n: 0 },
+        distinct: new Set<number>(),
+      },
+    ]),
+  );
+  for (const item of items) {
+    let fails = 0;
+    let failed = '';
+    for (const c of active) {
+      if (matchesOne(item, c, state[c.key]!)) continue;
+      fails += 1;
+      failed = c.key;
+      if (fails > 1) break;
+    }
+    for (const c of shown) {
+      const counted = fails === 0 || (fails === 1 && failed === c.key);
+      if (c.filter === 'range') {
+        const n = asNumber(item.specs[c.key]);
+        if (n === null) continue;
+        const span = spans.get(c.key)!;
+        if (span.distinct.size < 2) span.distinct.add(n);
+        span.all.min = Math.min(span.all.min, n);
+        span.all.max = Math.max(span.all.max, n);
+        span.all.n += 1;
+        if (counted) {
+          span.pool.min = Math.min(span.pool.min, n);
+          span.pool.max = Math.max(span.pool.max, n);
+          span.pool.n += 1;
+        }
+        continue;
+      }
+      const text = specText(item.specs[c.key]);
+      if (text === null) continue;
+      values.get(c.key)!.add(text);
+      if (counted) {
+        const map = counts.get(c.key)!;
+        map.set(text, (map.get(text) ?? 0) + 1);
+      }
+    }
+  }
+
   const facets: Facet[] = [];
-  for (const c of characteristics) {
-    if (c.filter === 'hidden') continue;
+  for (const c of shown) {
     const head = {
       key: c.key,
       kind: c.kind,
@@ -383,18 +440,14 @@ export function facetsOf(
       group: c.group ?? null,
     };
     if (c.filter === 'range') {
-      const numbers = items.map((i) => asNumber(i.specs[c.key])).filter((n) => n !== null);
-      const distinct = new Set(numbers);
-      if (distinct.size < 2) continue;
-      const pool = applyFilter(items, state, characteristics, c.key)
-        .map((i) => asNumber(i.specs[c.key]))
-        .filter((n) => n !== null);
-      const from = pool.length > 0 ? pool : numbers;
+      const span = spans.get(c.key)!;
+      if (span.distinct.size < 2) continue;
+      const from = span.pool.n > 0 ? span.pool : span.all;
       const s = state[c.key] ?? {};
       facets.push({
         ...head,
         view: 'range',
-        bounds: { min: Math.min(...from), max: Math.max(...from) },
+        bounds: { min: from.min, max: from.max },
         selected: {
           ...(s.min === undefined ? {} : { min: s.min }),
           ...(s.max === undefined ? {} : { max: s.max }),
@@ -402,21 +455,17 @@ export function facetsOf(
       });
       continue;
     }
-    const all = [...new Set(items.map((i) => specText(i.specs[c.key])).filter((v) => v !== null))];
+    const all = [...values.get(c.key)!];
     if (all.length < 2) continue;
-    const pool = applyFilter(items, state, characteristics, c.key);
     const chosen = state[c.key]?.values ?? [];
     const numeric = c.kind === 'number';
+    const map = counts.get(c.key)!;
     facets.push({
       ...head,
       view: 'checks',
       options: all
         .sort((a, b) => (numeric ? Number(a) - Number(b) : a.localeCompare(b, 'ru')))
-        .map((value) => ({
-          value,
-          count: pool.filter((i) => specText(i.specs[c.key]) === value).length,
-          selected: chosen.includes(value),
-        })),
+        .map((value) => ({ value, count: map.get(value) ?? 0, selected: chosen.includes(value) })),
     });
   }
   return facets;
@@ -577,23 +626,47 @@ export function typoBudget(word: string): number {
 /** Расстояние с перестановкой соседних букв, не дальше `limit` (дальше - `limit + 1`). */
 export function editDistance(a: string, b: string, limit: number): number {
   if (Math.abs(a.length - b.length) > limit) return limit + 1;
-  const d: number[][] = Array.from({ length: a.length + 1 }, (_, i) =>
-    Array.from({ length: b.length + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0)),
-  );
+  /*
+    Три ряда вместо матрицы и без выделения памяти на каждое сравнение: поиск
+    сверяет слово запроса с тысячами слов каталога, и выделение было дороже
+    самого счёта. Перестановка соседних букв считается одной правкой.
+  */
+  const width = b.length + 1;
+  if (rows[0]!.length < width) for (let r = 0; r < 3; r += 1) rows[r] = new Int32Array(width * 2);
+  let back = rows[0]!;
+  let prev = rows[1]!;
+  let cur = rows[2]!;
+  for (let j = 0; j < width; j += 1) prev[j] = j;
   for (let i = 1; i <= a.length; i += 1) {
-    let rowMin = Infinity;
-    for (let j = 1; j <= b.length; j += 1) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      let v = Math.min(d[i - 1]![j]! + 1, d[i]![j - 1]! + 1, d[i - 1]![j - 1]! + cost);
-      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1])
-        v = Math.min(v, d[i - 2]![j - 2]! + 1);
-      d[i]![j] = v;
-      rowMin = Math.min(rowMin, v);
+    cur[0] = i;
+    let rowMin = cur[0]!;
+    for (let j = 1; j < width; j += 1) {
+      const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+      let v = Math.min(prev[j]! + 1, cur[j - 1]! + 1, prev[j - 1]! + cost);
+      if (
+        i > 1 &&
+        j > 1 &&
+        a.charCodeAt(i - 1) === b.charCodeAt(j - 2) &&
+        a.charCodeAt(i - 2) === b.charCodeAt(j - 1)
+      )
+        v = Math.min(v, back[j - 2]! + 1);
+      cur[j] = v;
+      if (v < rowMin) rowMin = v;
     }
     if (rowMin > limit) return limit + 1;
+    const spare = back;
+    back = prev;
+    prev = cur;
+    cur = spare;
   }
-  return Math.min(d[a.length]![b.length]!, limit + 1);
+  return Math.min(prev[b.length]!, limit + 1);
 }
+
+/** Ряды для `editDistance`, общие на все вызовы: поиск однопоточный. */
+const rows: Int32Array[] = [new Int32Array(64), new Int32Array(64), new Int32Array(64)];
+
+/** Слово из одних цифр: с буквенным словом запроса совпасть может только по началу. */
+const DIGITS = /^\d+$/;
 
 /** Подходит ли слово запроса к слову текста: по началу или с допуском опечатки. */
 function wordMatches(word: string, token: string): boolean {
@@ -601,10 +674,11 @@ function wordMatches(word: string, token: string): boolean {
   // В артикуле и модели одна цифра - другой товар: слова с цифрами без допуска.
   if (/\d/.test(word)) return false;
   const budget = typoBudget(word);
-  if (budget === 0) return false;
+  if (budget === 0 || DIGITS.test(token)) return false;
   return (
     editDistance(word, token, budget) <= budget ||
-    editDistance(word, token.slice(0, word.length), budget) <= budget
+    (token.length > word.length &&
+      editDistance(word, token.slice(0, word.length), budget) <= budget)
   );
 }
 
@@ -629,27 +703,6 @@ const wordsOf = (s: string): string[] =>
   normalize(s)
     .split(/[^\p{L}\p{N}]+/u)
     .filter(Boolean);
-
-/**
- * Слова полей позиции, нарезанные один раз на позицию.
- *
- * @remarks
- * Индекс каталога держит одни и те же объекты позиций между запросами, и резать
- * их поля заново на каждый запрос значило бы делать одну работу тысячи раз.
- * У короткого поля (артикул «TT-1000») добавляется и слитное написание:
- * покупатель набирает его и как «tt1000».
- */
-const fieldWords = new WeakMap<CatalogItem, readonly (readonly string[])[]>();
-function tokensOf(item: CatalogItem): readonly (readonly string[])[] {
-  const cached = fieldWords.get(item);
-  if (cached) return cached;
-  const tokens = FIELDS.map(([field]) => {
-    const words = wordsOf(field(item));
-    return words.length > 1 && words.length <= 4 ? [...words, words.join('')] : words;
-  });
-  fieldWords.set(item, tokens);
-  return tokens;
-}
 
 /**
  * Падежные и числовые окончания, от длинных к коротким. Отсекаются у слова
@@ -712,23 +765,55 @@ function variantsOf(word: string): string[] {
   return stem === word ? [word] : [word, stem];
 }
 
-function score(item: CatalogItem, words: readonly (readonly string[])[]): number {
-  const fields = tokensOf(item);
-  let total = 0;
-  for (const variants of words) {
-    let best = 0;
-    FIELDS.forEach(([, weight], at) => {
-      if (weight > best && fields[at]!.some((t) => variants.some((word) => wordMatches(word, t))))
-        best = weight;
-    });
-    if (best === 0) return 0;
-    total += best;
-  }
-  return total;
+/** Поиск по набору позиций: индекс строится на набор один раз (`searchIndex`). */
+export function searchItems<T extends CatalogItem>(items: readonly T[], query: string): T[] {
+  return searchIn(searchIndex(items), query);
+}
+
+/** Сколько последних запросов помнит индекс: подсказки повторяют их при наборе. */
+const REMEMBERED = 200;
+
+/**
+ * Обратный индекс поиска: каждое слово каталога - позиции, где оно стоит,
+ * с весом самого важного поля.
+ *
+ * @remarks
+ * Запрос сверяется с уникальными словами каталога, а не со словами каждой
+ * позиции: слов в разы меньше, чем позиций с их словами, и проверка опечатки
+ * (самое дорогое) идёт по ним. У короткого поля (артикул «TT-1000») в индекс
+ * ложится и слитное написание. Индекс строится один раз на набор позиций -
+ * индекс каталога держит его, пока данные не изменились.
+ */
+export interface SearchIndex<T extends CatalogItem> {
+  readonly items: readonly T[];
+  readonly words: ReadonlyMap<string, ReadonlyMap<number, number>>;
+  readonly remembered: Map<string, readonly T[]>;
+}
+
+const indexes = new WeakMap<readonly CatalogItem[], SearchIndex<CatalogItem>>();
+
+export function searchIndex<T extends CatalogItem>(items: readonly T[]): SearchIndex<T> {
+  const cached = indexes.get(items);
+  if (cached) return cached as SearchIndex<T>;
+  const words = new Map<string, Map<number, number>>();
+  items.forEach((item, at) => {
+    for (const [field, weight] of FIELDS) {
+      const found = wordsOf(field(item));
+      const all = found.length > 1 && found.length <= 4 ? [...found, found.join('')] : found;
+      for (const word of all) {
+        let postings = words.get(word);
+        if (!postings) words.set(word, (postings = new Map()));
+        if ((postings.get(at) ?? 0) < weight) postings.set(at, weight);
+      }
+    }
+  });
+  const index: SearchIndex<T> = { items, words, remembered: new Map() };
+  indexes.set(items, index as SearchIndex<CatalogItem>);
+  return index;
 }
 
 /**
- * Поиск по позициям каталога.
+ * Поиск по индексу.
  *
  * @remarks
  * Каждое слово запроса должно найтись хоть где-то; выше те, у кого совпало в
@@ -738,17 +823,40 @@ function score(item: CatalogItem, words: readonly (readonly string[])[]): number
  * раздел, характеристики; другие названия товара («роутер» у «маршрутизатора»)
  * продавец может дописать в позиции, но без них поиск работает так же.
  */
-export function searchItems<T extends CatalogItem>(items: readonly T[], query: string): T[] {
+export function searchIn<T extends CatalogItem>(index: SearchIndex<T>, query: string): T[] {
+  const key = normalize(query);
+  const hit = index.remembered.get(key);
+  if (hit) return [...hit];
+
   const run = (q: string): T[] => {
     const words = wordsOf(q).slice(0, 8).map(variantsOf);
-    if (words.length === 0) return [...items];
-    return items
-      .map((item) => ({ item, s: score(item, words) }))
-      .filter((r) => r.s > 0)
-      .sort((a, b) => b.s - a.s)
-      .map((r) => r.item);
+    if (words.length === 0) return [...index.items];
+    let scores: Map<number, number> | null = null;
+    for (const variants of words) {
+      const best = new Map<number, number>();
+      for (const [token, postings] of index.words) {
+        if (!variants.some((word) => wordMatches(word, token))) continue;
+        for (const [at, weight] of postings) {
+          if ((best.get(at) ?? 0) < weight) best.set(at, weight);
+        }
+      }
+      const prev: Map<number, number> | null = scores;
+      const next = new Map<number, number>();
+      for (const [at, weight] of best) {
+        if (prev === null) next.set(at, weight);
+        else if (prev.has(at)) next.set(at, prev.get(at)! + weight);
+      }
+      scores = next;
+      if (scores.size === 0) return [];
+    }
+    return [...scores!].sort((a, b) => b[1] - a[1] || a[0] - b[0]).map(([at]) => index.items[at]!);
   };
+
   const direct = run(query);
-  if (direct.length > 0 || !normalize(query)) return direct;
-  return run(switchLayout(normalize(query)));
+  const found = direct.length > 0 || !key ? direct : run(switchLayout(key));
+  if (index.remembered.size >= REMEMBERED) {
+    index.remembered.delete(index.remembered.keys().next().value!);
+  }
+  index.remembered.set(key, found);
+  return [...found];
 }
