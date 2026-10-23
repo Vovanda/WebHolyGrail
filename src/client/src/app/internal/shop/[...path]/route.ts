@@ -20,6 +20,7 @@ export const dynamic = 'force-dynamic';
 const ROUTES: { re: RegExp; method: 'GET' | 'POST' }[] = [
   { re: /^orders$/, method: 'POST' },
   { re: /^orders\/view$/, method: 'GET' },
+  { re: /^orders\/views$/, method: 'POST' },
   { re: /^orders\/cancel$/, method: 'POST' },
   { re: /^invoices\/\d+\/report$/, method: 'POST' },
   { re: /^offers$/, method: 'GET' },

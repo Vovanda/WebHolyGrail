@@ -10,6 +10,8 @@ import type {
   BlogThreadSummary,
   BuyerOrderView,
   OfferView,
+  OfferDetailView,
+  CatalogSectionView,
   VideoStream,
   FaqGroupDoc,
   MediaRef,
@@ -917,13 +919,38 @@ export async function getPlaylistByCode(
  * показать «нет в наличии» сразу, а не после сборки.
  */
 export async function listOffers(
-  pick: { readonly ids: readonly number[] } | { readonly limit: number },
+  pick:
+    | { readonly ids: readonly number[] }
+    | { readonly section: string; readonly limit: number }
+    | { readonly limit: number },
 ): Promise<OfferView[]> {
   const query =
-    'ids' in pick ? `ids=${pick.ids.join(',')}` : `limit=${encodeURIComponent(pick.limit)}`;
+    'ids' in pick
+      ? `ids=${pick.ids.join(',')}`
+      : 'section' in pick
+        ? `section=${encodeURIComponent(pick.section)}&limit=${pick.limit}`
+        : `limit=${encodeURIComponent(pick.limit)}`;
   const response = await fetch(`${CMS_URL}/api/shop/offers?${query}`, { cache: 'no-store' });
   if (!response.ok) return [];
   return ((await response.json()) as { docs: OfferView[] }).docs;
+}
+
+/** Позиция для своей страницы `/shop/item/<слаг>`; нет такой - null. */
+export async function getOffer(slug: string): Promise<OfferDetailView | null> {
+  if (!/^[a-z0-9-]{1,120}$/.test(slug)) return null;
+  const response = await fetch(`${CMS_URL}/api/shop/offers/item/${slug}`, {
+    cache: 'no-store',
+  }).catch(() => null);
+  return response?.ok ? ((await response.json()) as OfferDetailView) : null;
+}
+
+/** Раздел каталога `/shop/<слаг>`; нет такого - null. */
+export async function getCatalogSection(slug: string): Promise<CatalogSectionView | null> {
+  if (!/^[a-z0-9-]{1,120}$/.test(slug)) return null;
+  const response = await fetch(`${CMS_URL}/api/shop/sections/${slug}`, {
+    cache: 'no-store',
+  }).catch(() => null);
+  return response?.ok ? ((await response.json()) as CatalogSectionView) : null;
 }
 
 /**
