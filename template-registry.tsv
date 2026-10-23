@@ -702,6 +702,8 @@ overlay	src/cms/migrations/20261023_190707_offer_search_words.json
 overlay	src/cms/migrations/20261023_190707_offer_search_words.ts
 overlay	src/cms/migrations/20261023_192508_search_misses.json
 overlay	src/cms/migrations/20261023_192508_search_misses.ts
+overlay	src/cms/migrations/20261023_200616_catalog_section_tree.json
+overlay	src/cms/migrations/20261023_200616_catalog_section_tree.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts

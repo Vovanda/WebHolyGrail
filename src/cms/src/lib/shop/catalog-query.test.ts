@@ -95,6 +95,26 @@ describe('выдача каталога по индексу', () => {
     expect(r).toMatchObject({ page: 2, pages: 2, total: 40 });
   });
 
+  it('иерархия: родитель видит позиции подраздела, путь, подразделы, /shop - верхние', () => {
+    const drills = { ...tools, slug: 'drills', title: 'Перфораторы', parent: 'tools' };
+    const snap = snapshotOf({
+      cards: [card(1), card(2, { section: 'drills' }), card(3, { section: 'drills' })],
+      sections: [tools, drills],
+    });
+    expect(queryCatalog(snap, 'tools', {})!.total).toBe(3);
+    expect(queryCatalog(snap, 'drills', {})!.total).toBe(2);
+    expect(queryCatalog(snap, 'drills', {})!.path.map((s) => s.title)).toEqual([
+      'Инструмент',
+      'Перфораторы',
+    ]);
+    expect(queryCatalog(snap, 'tools', {})!.children.map((n) => [n.slug, n.count])).toEqual([
+      ['drills', 2],
+    ]);
+    expect(
+      queryCatalog(snap, null, {})!.previews.map((p) => [p.section.slug, p.section.count]),
+    ).toEqual([['tools', 3]]);
+  });
+
   it('чужой раздел - нет выдачи', () => {
     expect(queryCatalog(snapshot, 'nope', {})).toBeNull();
   });

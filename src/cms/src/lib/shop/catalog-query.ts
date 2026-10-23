@@ -3,6 +3,7 @@ import {
   type CatalogSectionSummary,
   type Characteristic,
   facetsOf,
+  findNode,
   type Facet,
   type FilterState,
   pageOf,
@@ -12,6 +13,8 @@ import {
   readSort,
   SHOP_CHARACTERISTICS,
   searchIndex,
+  sectionPath,
+  type SectionNode,
   searchItems,
   type SortKey,
   sortItems,
@@ -43,6 +46,9 @@ export interface CatalogAnswer {
     readonly section: CatalogSectionSummary;
     readonly entries: readonly CatalogEntry[];
   }[];
+  readonly tree: readonly SectionNode[];
+  readonly path: readonly { readonly slug: string; readonly title: string }[];
+  readonly children: readonly SectionNode[];
 }
 
 /**
@@ -134,14 +140,18 @@ function computeCatalog(
       : pageOf(sorted, readPage(params['page']));
 
   const bare = !section && !query && Object.keys(state).length === 0;
+  // На /shop - только верхние разделы: счёт и превью вместе с подразделами.
   const previews = bare
-    ? snapshot.sections
-        .map((s) => ({ s, list: snapshot.bySection.get(s.slug) ?? [] }))
-        .filter(({ list }) => list.length > 0)
-        .map(({ s, list }) => ({
-          section: { slug: s.slug, title: s.title, description: s.description, count: list.length },
-          entries: list.slice(0, PREVIEW_SIZE),
-        }))
+    ? snapshot.tree.map((node) => ({
+        section: {
+          slug: node.slug,
+          title: node.title,
+          description: snapshot.sections.find((s) => s.slug === node.slug)?.description ?? null,
+          count: node.count,
+          ...(node.image ? { image: node.image } : {}),
+        },
+        entries: (snapshot.bySection.get(node.slug) ?? []).slice(0, PREVIEW_SIZE),
+      }))
     : [];
 
   return {
@@ -155,6 +165,9 @@ function computeCatalog(
     sort,
     state,
     previews,
+    tree: snapshot.tree,
+    path: section ? sectionPath(snapshot.sections, section.slug) : [],
+    children: section ? (findNode(snapshot.tree, section.slug)?.children ?? []) : [],
   };
 }
 

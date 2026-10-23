@@ -1,4 +1,4 @@
-import type { CollectionConfig } from 'payload';
+import type { CollectionConfig, PayloadRequest } from 'payload';
 import { isSlug, SHOP_CHARACTERISTICS } from 'contracts';
 
 import { editorsOnly } from '../lib/access/editors';
@@ -60,6 +60,47 @@ export const CatalogSections: CollectionConfig = {
       },
     },
     { name: 'description', label: 'Описание', type: 'textarea', maxLength: 1000 },
+    {
+      name: 'parent',
+      label: 'Родительский раздел',
+      type: 'relationship',
+      relationTo: 'catalog-sections',
+      filterOptions: ({ id }) => (id ? { id: { not_equals: id } } : true),
+      validate: async (
+        value: unknown,
+        { req, id }: { req: PayloadRequest; id?: string | number },
+      ) => {
+        // Вверх по родителям: встретили себя - раздел оказался бы внутри самого себя.
+        let at = relationId(value);
+        for (let step = 0; at !== null && step < 50; step += 1) {
+          if (id !== undefined && String(at) === String(id)) {
+            return 'Раздел не может лежать внутри самого себя или своего подраздела.';
+          }
+          const doc = await req.payload
+            .findByID({
+              collection: 'catalog-sections',
+              id: at,
+              depth: 0,
+              overrideAccess: true,
+              req,
+            })
+            .catch(() => null);
+          at = relationId((doc as { parent?: unknown } | null)?.parent);
+        }
+        return true;
+      },
+      admin: {
+        position: 'sidebar',
+        description: 'Пусто - верхний раздел. Позиции подраздела видны и в родительском.',
+      },
+    },
+    {
+      name: 'image',
+      label: 'Картинка',
+      type: 'upload',
+      relationTo: 'media',
+      admin: { position: 'sidebar', description: 'Для плитки раздела в каталоге.' },
+    },
     {
       name: 'characteristics',
       label: 'Характеристики',
@@ -139,3 +180,13 @@ export const CatalogSections: CollectionConfig = {
     },
   ],
 };
+
+/** Номер записи из значения связи: число, строка или прочитанный документ. */
+function relationId(value: unknown): string | number | null {
+  if (typeof value === 'number' || (typeof value === 'string' && value)) return value;
+  if (value && typeof value === 'object' && 'id' in value) {
+    const id = (value as { id: unknown }).id;
+    return typeof id === 'number' || typeof id === 'string' ? id : null;
+  }
+  return null;
+}

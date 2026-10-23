@@ -87,6 +87,7 @@ import * as migration_20261023_181415_shop_offer_has_page from './20261023_18141
 import * as migration_20261023_183057_catalog_quick_filter from './20261023_183057_catalog_quick_filter';
 import * as migration_20261023_190707_offer_search_words from './20261023_190707_offer_search_words';
 import * as migration_20261023_192508_search_misses from './20261023_192508_search_misses';
+import * as migration_20261023_200616_catalog_section_tree from './20261023_200616_catalog_section_tree';
 
 export const migrations = [
   {
@@ -533,5 +534,10 @@ export const migrations = [
     up: migration_20261023_192508_search_misses.up,
     down: migration_20261023_192508_search_misses.down,
     name: '20261023_192508_search_misses',
+  },
+  {
+    up: migration_20261023_200616_catalog_section_tree.up,
+    down: migration_20261023_200616_catalog_section_tree.down,
+    name: '20261023_200616_catalog_section_tree',
   },
 ];

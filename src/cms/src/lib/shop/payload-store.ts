@@ -403,7 +403,7 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
         );
         const imageIds = [
           ...new Set(
-            offers.docs
+            [...offers.docs, ...sections.docs]
               .map((d) => (d as { image?: unknown }).image)
               .filter((id): id is number => typeof id === 'number'),
           ),
@@ -447,7 +447,16 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
             };
           }),
           sections: sections.docs
-            .map((d) => sectionFromDoc(d as unknown as Record<string, unknown>))
+            .map((d) => {
+              const raw = d as unknown as Record<string, unknown>;
+              const parent =
+                typeof raw['parent'] === 'number' ? sectionById.get(raw['parent']) : null;
+              return {
+                ...sectionFromDoc(raw),
+                parent: parent ? str(parent['slug']) || null : null,
+                image: typeof raw['image'] === 'number' ? (images.get(raw['image']) ?? null) : null,
+              };
+            })
             .filter((s) => s.slug),
         };
       },

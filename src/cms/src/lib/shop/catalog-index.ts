@@ -1,4 +1,11 @@
-import { type CatalogItem, type CatalogSectionView, microsToUnits } from 'contracts';
+import {
+  ancestorsOf,
+  type CatalogItem,
+  type CatalogSectionView,
+  microsToUnits,
+  sectionTree,
+  type SectionNode,
+} from 'contracts';
 
 import type { CatalogCard, CatalogData } from './ports';
 
@@ -18,6 +25,8 @@ export interface CatalogSnapshot {
   readonly entries: readonly CatalogEntry[];
   readonly bySection: ReadonlyMap<string, readonly CatalogEntry[]>;
   readonly sections: readonly CatalogSectionView[];
+  /** Дерево разделов со счётом позиций вместе с подразделами. */
+  readonly tree: readonly SectionNode[];
 }
 
 export interface CatalogIndex {
@@ -65,15 +74,26 @@ export function snapshotOf(data: CatalogData): CatalogSnapshot {
   const entries = data.cards.map((card) =>
     entryOf(card, card.section ? (titles.get(card.section) ?? null) : null),
   );
+  // Позиция видна в своём разделе и во всех его предках: «Инструмент» показывает и перфораторы.
+  const ancestors = new Map(data.sections.map((s) => [s.slug, ancestorsOf(data.sections, s.slug)]));
   const bySection = new Map<string, CatalogEntry[]>();
+  const own = new Map<string, number>();
   for (const entry of entries) {
     const slug = entry.card.section;
     if (!slug) continue;
-    const list = bySection.get(slug);
-    if (list) list.push(entry);
-    else bySection.set(slug, [entry]);
+    own.set(slug, (own.get(slug) ?? 0) + 1);
+    for (const at of [slug, ...(ancestors.get(slug) ?? [])]) {
+      const list = bySection.get(at);
+      if (list) list.push(entry);
+      else bySection.set(at, [entry]);
+    }
   }
-  return { entries, bySection, sections: data.sections };
+  return {
+    entries,
+    bySection,
+    sections: data.sections,
+    tree: sectionTree(data.sections, own),
+  };
 }
 
 /** Ближайший конец акции после `now`; нет таких - бесконечность. */

@@ -268,6 +268,9 @@ const catalogEndpoint: Endpoint = {
       total: answer.total,
       sort: answer.sort,
       previews: answer.previews.map((pv) => ({ section: pv.section, items: pv.entries.map(view) })),
+      tree: answer.tree,
+      path: answer.path,
+      children: answer.children,
     } satisfies CatalogResultView);
   },
 };
