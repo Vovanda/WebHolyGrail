@@ -85,6 +85,7 @@ import * as migration_20261023_161622_shop_menu_title from './20261023_161622_sh
 import * as migration_20261023_175436_shop_offer_sku from './20261023_175436_shop_offer_sku';
 import * as migration_20261023_181415_shop_offer_has_page from './20261023_181415_shop_offer_has_page';
 import * as migration_20261023_183057_catalog_quick_filter from './20261023_183057_catalog_quick_filter';
+import * as migration_20261023_190707_offer_search_words from './20261023_190707_offer_search_words';
 
 export const migrations = [
   {
@@ -521,5 +522,10 @@ export const migrations = [
     up: migration_20261023_183057_catalog_quick_filter.up,
     down: migration_20261023_183057_catalog_quick_filter.down,
     name: '20261023_183057_catalog_quick_filter',
+  },
+  {
+    up: migration_20261023_190707_offer_search_words.up,
+    down: migration_20261023_190707_offer_search_words.down,
+    name: '20261023_190707_offer_search_words',
   },
 ];

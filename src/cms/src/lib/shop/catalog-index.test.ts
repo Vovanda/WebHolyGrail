@@ -18,6 +18,7 @@ const card = (id: number, over: Partial<CatalogCard> = {}): CatalogCard => ({
   section: 'tools',
   specs: {},
   createdAt: '2026-10-01T00:00:00.000Z',
+  keywords: '',
   promoUntil: null,
   ...over,
 });

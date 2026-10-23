@@ -102,6 +102,8 @@ export interface OfferCard {
 /** Позиция в индексе каталога: карточка и время создания - для сортировки «новинки». */
 export interface CatalogCard extends OfferCard {
   readonly createdAt: string;
+  /** Другие названия и теги одной строкой - для поиска. */
+  readonly keywords: string;
   /** Конец акции; после него цена другая, и индекс пересобирается. */
   readonly promoUntil: string | null;
 }

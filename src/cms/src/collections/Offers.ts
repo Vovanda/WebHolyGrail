@@ -81,6 +81,29 @@ export const Offers: CollectionConfig = {
       admin: { description: 'Ещё картинки для страницы позиции; первой идёт «Картинка».' },
     },
     { name: 'summary', label: 'Короткое описание', type: 'textarea', maxLength: 500 },
+    {
+      type: 'row',
+      fields: [
+        {
+          name: 'keywords',
+          label: 'Другие названия',
+          type: 'text',
+          maxLength: 300,
+          admin: {
+            description:
+              'Как ещё называют товар, через запятую: роутер, маршрутизатор. Необязательно.',
+          },
+        },
+        {
+          name: 'tags',
+          label: 'Теги',
+          type: 'text',
+          hasMany: true,
+          maxRows: 20,
+          admin: { description: 'Метки товара для поиска магазина. Необязательно.' },
+        },
+      ],
+    },
     { name: 'description', label: 'Описание', type: 'richText' },
     {
       name: 'specs',

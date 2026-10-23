@@ -20,6 +20,7 @@ const card = (id: number, over: Partial<CatalogCard> = {}): CatalogCard => ({
   section: 'tools',
   specs: { brand: id % 2 ? 'A' : 'B' },
   createdAt: `2026-10-${String(10 + id).padStart(2, '0')}T00:00:00.000Z`,
+  keywords: '',
   promoUntil: null,
   ...over,
 });
@@ -69,6 +70,15 @@ describe('выдача каталога по индексу', () => {
       ['tools', 40, 5],
       ['paint', 1, 1],
     ]);
+  });
+
+  it('поиск по названию раздела и другим названиям', () => {
+    const snap = snapshotOf({
+      cards: [card(1), card(2, { title: 'Модель X', keywords: 'роутер' })],
+      sections: [tools],
+    });
+    expect(queryCatalog(snap, null, { q: 'инструменты' })!.total).toBe(2);
+    expect(queryCatalog(snap, null, { q: 'роутеры' })!.entries.map((e) => e.card.id)).toEqual([2]);
   });
 
   it('чужой раздел - нет выдачи', () => {

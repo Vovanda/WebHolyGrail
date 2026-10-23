@@ -378,6 +378,12 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
             return {
               ...cardFromDoc(doc),
               createdAt: str(doc['createdAt']),
+              keywords: [
+                str(doc['keywords']),
+                ...(Array.isArray(doc['tags']) ? doc['tags'].map(str) : []),
+              ]
+                .filter(Boolean)
+                .join(' '),
               promoUntil: typeof doc['promoUntil'] === 'string' ? doc['promoUntil'] : null,
             };
           }),

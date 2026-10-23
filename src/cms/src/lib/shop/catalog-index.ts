@@ -26,7 +26,7 @@ export interface CatalogIndex {
 }
 
 /** Позиция индекса из карточки: значения общих характеристик - из её полей. */
-export function entryOf(card: CatalogCard): CatalogEntry {
+export function entryOf(card: CatalogCard, sectionTitle: string | null = null): CatalogEntry {
   const price = card.price !== null && card.price > 0 ? microsToUnits(card.price) : null;
   const list = card.listPrice !== null ? microsToUnits(card.listPrice) : null;
   const discount =
@@ -37,7 +37,9 @@ export function entryOf(card: CatalogCard): CatalogEntry {
       id: card.id,
       title: card.title,
       sku: card.sku,
+      keywords: card.keywords,
       section: card.section,
+      sectionTitle,
       summary: card.summary,
       specs: {
         ...card.specs,
@@ -54,7 +56,10 @@ export function entryOf(card: CatalogCard): CatalogEntry {
 
 /** Индекс из данных хранилища. */
 export function snapshotOf(data: CatalogData): CatalogSnapshot {
-  const entries = data.cards.map(entryOf);
+  const titles = new Map(data.sections.map((s) => [s.slug, s.title]));
+  const entries = data.cards.map((card) =>
+    entryOf(card, card.section ? (titles.get(card.section) ?? null) : null),
+  );
   const bySection = new Map<string, CatalogEntry[]>();
   for (const entry of entries) {
     const slug = entry.card.section;
