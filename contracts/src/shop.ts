@@ -469,13 +469,23 @@ export function spreadDiscount(sums: readonly Micros[], amount: Micros): Micros[
  * Позиция каталога идёт по цене каталога: цену из формы не берём. Скидка на строку
  * не больше её суммы, скидка на заказ - не больше того, что осталось от строк из
  * заказа после скидок на строки. Доставка и свои строки под скидку не попадают.
+ *
+ * `shares` - доля скидки на каждую строку из заказа: её скидки на строку плюс часть
+ * скидки на заказ, разложенной по остаткам строк (`spreadDiscount`). Доля хранится
+ * у строки счёта: при частичном возврате известно, какая часть скидки уходит с ней
+ * (ADR-007).
  */
 export function extraLines(
   base: readonly DiscountBase[],
   input: readonly ExtraLineInput[],
   catalog: (offer: number) => { readonly title: string; readonly price: Micros } | null,
 ):
-  | { readonly ok: true; readonly lines: ExtraLine[]; readonly sum: Micros }
+  | {
+      readonly ok: true;
+      readonly lines: ExtraLine[];
+      readonly sum: Micros;
+      readonly shares: Micros[];
+    }
   | { readonly ok: false; readonly error: 'invalid' | 'discount_too_large' } {
   if (input.length > MAX_EXTRA_LINES) return { ok: false, error: 'invalid' };
   const lines: ExtraLine[] = [];
@@ -531,7 +541,21 @@ export function extraLines(
   if (orderDiscount > left) return { ok: false, error: 'discount_too_large' };
   const sum = lines.reduce((t, l) => t + l.sum, 0);
   if (!Number.isSafeInteger(sum)) return { ok: false, error: 'invalid' };
-  return { ok: true, lines, sum };
+  // Скидка на строку делится между строками той же позиции по их сумме; остаток после
+  // скидок на строки - основа для раскладки скидки на заказ.
+  const own = base.map(() => 0);
+  for (const [offer, d] of lineDiscount) {
+    const idx = base.flatMap((b, i) => (b.offer === offer ? [i] : []));
+    spreadDiscount(
+      idx.map((i) => base[i]!.sum),
+      d,
+    ).forEach((share, k) => (own[idx[k]!]! += share));
+  }
+  const spread = spreadDiscount(
+    base.map((b, i) => b.sum - own[i]!),
+    orderDiscount,
+  );
+  return { ok: true, lines, sum, shares: own.map((x, i) => x + spread[i]!) };
 }
 
 /* ───────────────────────── Настройки магазина ───────────────────────── */

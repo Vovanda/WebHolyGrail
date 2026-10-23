@@ -665,6 +665,8 @@ overlay	src/cms/migrations/20261023_152014_shop_order_lines_invoice_extra.json
 overlay	src/cms/migrations/20261023_152014_shop_order_lines_invoice_extra.ts
 overlay	src/cms/migrations/20261023_153305_shop_offer_promo.json
 overlay	src/cms/migrations/20261023_153305_shop_offer_promo.ts
+overlay	src/cms/migrations/20261023_155955_shop_invoice_line_discount.json
+overlay	src/cms/migrations/20261023_155955_shop_invoice_line_discount.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts
