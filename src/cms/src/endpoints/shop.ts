@@ -23,7 +23,6 @@ import {
   reportBySecret,
 } from '../lib/shop/invoices';
 import { cancelBySecret, changeOrder, placeOrder } from '../lib/shop/orders';
-import { payloadAccess } from '../lib/shop/payload-access';
 import { payloadPorts } from '../lib/shop/payload-store';
 import type { Failure, OfferQuery, Outcome, ShopPorts } from '../lib/shop/ports';
 import { hashOrderSecret, isOrderSecret, newOrderSecret } from '../lib/shop/order-link';
@@ -55,8 +54,7 @@ const STATUS: Record<Failure, number> = {
   quantity_locked: 400,
 };
 
-const ports = (req: PayloadRequest): ShopPorts =>
-  payloadPorts(req.payload, payloadAccess(req.payload));
+const ports = (req: PayloadRequest): ShopPorts => payloadPorts(req.payload);
 
 function answer<T>(result: Outcome<T>, view: (value: T) => unknown): Response {
   if (result.ok) return json(view(result.value));

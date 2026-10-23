@@ -2,7 +2,6 @@ import {
   type Actor,
   canInvoice,
   depositLines,
-  fullyRefunded,
   type InvoiceAction,
   type InvoicePurpose,
   INVOICE_TRANSITIONS,
@@ -15,7 +14,6 @@ import {
   fail,
   type Id,
   type InvoiceLine,
-  type IssuedCode,
   ok,
   type Outcome,
   type ShopPorts,
@@ -30,8 +28,8 @@ import {
  * @remarks
  * Счёт всегда принадлежит заказу: покупатель видит его по секретной ссылке
  * заказа, другой ссылки у него нет. Переходы - таблица в contracts
- * (`canInvoice`); оплата выдаёт коды доступа по строкам, оплаченный возврат
- * их отзывает (docs/whg/43-shop.md, И-5).
+ * (`canInvoice`); оплата и возврат меняют только состояния счетов
+ * (docs/whg/43-shop.md, И-5).
  */
 
 export interface LineInput {
@@ -58,13 +56,12 @@ const MAX_LINES = 100;
  * У строки с позицией каталога количество берётся из заказа: остаток списан по
  * заказу, и счёт на другое количество развёл бы их. Цену менеджер правит -
  * доставку и курс сайт не знает. Свободная строка (доставка) пишется как угодно.
- * Позиция заказа встречается в счёте один раз: повтор удвоил бы сумму и коды
- * доступа за одну покупку.
+ * Позиция заказа встречается в счёте один раз: повтор удвоил бы сумму за одну
+ * покупку.
  */
 export function draftLines(
   order: StoredOrder,
   input: readonly LineInput[] | undefined,
-  purpose: InvoicePurpose = 'payment',
 ): Outcome<InvoiceLine[]> {
   const fromOrder = new Map(order.lines.map((l) => [l.offer, l]));
   const source: readonly LineInput[] =
@@ -103,8 +100,6 @@ export function draftLines(
         quantity,
         price,
         sum: price * quantity,
-        // Бронь закрепляет позицию, а не продаёт её: доступа к видео не выдаёт.
-        access: purpose === 'deposit' ? null : ordered.access,
       });
     } else {
       lines.push({
@@ -113,7 +108,6 @@ export function draftLines(
         quantity,
         price,
         sum: price * quantity,
-        access: null,
       });
     }
   }
@@ -162,7 +156,7 @@ export async function createInvoice(
       quantity: l.quantity,
       price: paymentPrice(l, depositPaid),
     }));
-    const lines = draftLines(order, source, purpose);
+    const lines = draftLines(order, source);
     if (!lines.ok) return lines;
     const { invoiceDueDays } = await tx.settings();
     const dueAt =
@@ -181,7 +175,6 @@ export async function createInvoice(
         lines: lines.value,
         total: totalOf(lines.value),
         dueAt,
-        codes: [],
       }),
     );
   });
@@ -199,7 +192,7 @@ export async function updateDraft(
     if (invoice.status !== 'draft' || invoice.kind !== 'invoice') return fail('forbidden');
     const order = await tx.orders.get(invoice.order);
     if (!order) return fail('not_found');
-    const lines = draftLines(order, input.lines, invoice.purpose);
+    const lines = draftLines(order, input.lines);
     if (!lines.ok) return lines;
     const patch = {
       lines: lines.value,
@@ -227,8 +220,7 @@ export async function deleteDraft(ports: ShopPorts, id: Id): Promise<Outcome<nul
  *
  * @remarks
  * Возврат - это сумма: деньги возвращают частями, пока сумма живых возвратов
- * не дойдёт до суммы счёта (`refundable`). Доступ к видео отзывает только
- * полный возврат (`fullyRefunded`), часть денег за курс курс не отнимает.
+ * не дойдёт до суммы счёта (`refundable`).
  */
 export async function createRefund(
   ports: ShopPorts,
@@ -258,12 +250,10 @@ export async function createRefund(
             quantity: 1,
             price: amount,
             sum: amount,
-            access: null,
           },
         ],
         total: amount,
         dueAt: null,
-        codes: [],
       }),
     );
   });
@@ -271,32 +261,6 @@ export async function createRefund(
 
 const refundsOf = (invoices: readonly StoredInvoice[], id: Id) =>
   invoices.filter((i) => i.kind === 'refund' && String(i.refundOf) === String(id));
-
-/** Коды доступа по строкам оплаченного счёта: по коду на каждую единицу строки с доступом. */
-async function issueCodes(ports: ShopPorts, invoice: StoredInvoice): Promise<IssuedCode[]> {
-  const codes: IssuedCode[] = [];
-  for (const [line, l] of invoice.lines.entries()) {
-    if (l.access === null) continue;
-    for (let n = 0; n < l.quantity; n += 1) {
-      const { codeId, code } = await ports.access.issue(l.access);
-      codes.push({ line, codeId, code });
-    }
-  }
-  return codes;
-}
-
-/** После оплаченного возврата: деньги за счёт вернули целиком - коды отзываются все. */
-async function revokeIfFullyRefunded(ports: ShopPorts, refund: StoredInvoice): Promise<void> {
-  if (refund.refundOf === null) return;
-  const source = await ports.invoices.get(refund.refundOf);
-  if (!source || source.order === null) return;
-  const refunds = refundsOf(await ports.invoices.forOrder(source.order), source.id).map((r) =>
-    String(r.id) === String(refund.id) ? { ...r, status: 'paid' as const } : r,
-  );
-  if (!fullyRefunded(source.total, refunds)) return;
-  for (const c of source.codes) await ports.access.revoke(c);
-  await ports.invoices.update(source.id, { codes: [] });
-}
 
 /** Перевести счёт действием участника. */
 export async function changeInvoice(
@@ -311,11 +275,8 @@ export async function changeInvoice(
     if (!canInvoice(invoice.status, action, actor, invoice.kind)) return fail('forbidden');
 
     const to = INVOICE_TRANSITIONS[action].to;
-    const patch: { status: typeof to; codes?: IssuedCode[] } = { status: to };
-    if (to === 'paid' && invoice.kind === 'invoice') patch.codes = await issueCodes(tx, invoice);
-    if (to === 'paid' && invoice.kind === 'refund') await revokeIfFullyRefunded(tx, invoice);
-    await tx.invoices.update(id, patch);
-    return ok({ ...invoice, ...patch });
+    await tx.invoices.update(id, { status: to });
+    return ok({ ...invoice, status: to });
   });
 }
 

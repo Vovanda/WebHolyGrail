@@ -17,15 +17,7 @@ import {
 
 import { moneyPort } from './money';
 import { type Execute, returnStock, takeStock } from './stock';
-import type {
-  Id,
-  InvoiceLine,
-  IssuedCode,
-  OfferCard,
-  ShopPorts,
-  StoredInvoice,
-  StoredOrder,
-} from './ports';
+import type { Id, InvoiceLine, OfferCard, ShopPorts, StoredInvoice, StoredOrder } from './ports';
 
 /**
  * Порты магазина на Payload - единственное место модуля, которое знает о CMS.
@@ -57,7 +49,6 @@ export function offerFromDoc(doc: Record<string, unknown>): OfferSnapshot {
     title: str(doc['title']),
     price: micros(doc['priceMicros']),
     stock: typeof doc['stock'] === 'number' ? doc['stock'] : null,
-    access: idOf(doc['access']),
     howToBuy: howToBuy(doc['howToBuy']),
     deposit: micros(doc['depositMicros']),
   };
@@ -82,7 +73,6 @@ const lineFromDoc = (l: Record<string, unknown>): InvoiceLine => ({
   quantity: Number(l['quantity']),
   price: Number(l['priceMicros']),
   sum: Number(l['sumMicros']),
-  access: idOf(l['access']),
 });
 
 export function orderFromDoc(doc: Record<string, unknown>): StoredOrder {
@@ -123,13 +113,6 @@ export function invoiceFromDoc(doc: Record<string, unknown>): StoredInvoice {
     lines: ((doc['lines'] ?? []) as Record<string, unknown>[]).map(lineFromDoc),
     total: Number(doc['totalMicros']),
     dueAt: typeof doc['dueAt'] === 'string' ? doc['dueAt'] : null,
-    codes: ((doc['codes'] ?? []) as Record<string, unknown>[]).map(
-      (c): IssuedCode => ({
-        line: Number(c['line']),
-        codeId: str(c['codeId']),
-        code: str(c['code']),
-      }),
-    ),
   };
 }
 
@@ -139,7 +122,6 @@ export const lineToDoc = (l: InvoiceLine | OrderLine) => ({
   quantity: l.quantity,
   priceMicros: l.price,
   sumMicros: l.sum,
-  access: l.access,
   ...('mode' in l ? { mode: l.mode, depositMicros: l.deposit } : {}),
 });
 
@@ -178,17 +160,8 @@ function serial<T>(work: () => Promise<T>): Promise<T> {
   return run;
 }
 
-/**
- * Порты на Payload.
- *
- * @param access - выдача кодов доступа к видео; строится от того же запроса,
- *   чтобы код писался в ту же транзакцию, что и счёт.
- */
-export function payloadPorts(
-  payload: Payload,
-  access: (req?: PayloadRequest) => ShopPorts['access'],
-  req?: PayloadRequest,
-): ShopPorts {
+/** Порты на Payload. */
+export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts {
   const opts = { overrideAccess: true, depth: 0, ...(req ? { req } : {}) } as const;
 
   const ports: ShopPorts = {
@@ -300,7 +273,7 @@ export function payloadPorts(
       create: async (i) => {
         const doc = await payload.create({
           collection: 'invoices',
-          data: { ...withTotal(i), lines: i.lines.map(lineToDoc), codes: [...i.codes] } as never,
+          data: { ...withTotal(i), lines: i.lines.map(lineToDoc) } as never,
           ...opts,
         });
         return invoiceFromDoc(doc as unknown as Record<string, unknown>);
@@ -308,15 +281,12 @@ export function payloadPorts(
       update: async (id, patch) => {
         const data: Record<string, unknown> = { ...withTotal(patch) };
         if (patch.lines) data['lines'] = patch.lines.map(lineToDoc);
-        if (patch.codes)
-          data['codes'] = patch.codes.map((c) => ({ ...c, codeId: String(c.codeId) }));
         await payload.update({ collection: 'invoices', id, data: data as never, ...opts });
       },
       remove: async (id) => {
         await payload.delete({ collection: 'invoices', id, ...opts });
       },
     },
-    access: access(req),
     money: moneyPort(),
     settings: async () => {
       const doc = await payload.findGlobal({ slug: 'site-settings', ...opts });
@@ -331,7 +301,7 @@ export function payloadPorts(
         const txReq = await createLocalReq({}, payload);
         const own = await initTransaction(txReq);
         try {
-          const result = await work(payloadPorts(payload, access, txReq));
+          const result = await work(payloadPorts(payload, txReq));
           const failed =
             result &&
             typeof result === 'object' &&

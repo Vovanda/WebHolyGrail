@@ -7,8 +7,7 @@ import type { MoneyPort, OfferCard, StoredInvoice, StoredOrder } from './ports';
  *
  * @remarks
  * Собирается по полям явно: новое служебное поле (заметка менеджера, хэш
- * секрета, номера кодов в базе) само в ответ не попадёт. Черновики счетов
- * покупатель не видит; коды - только у оплаченного счёта.
+ * секрета) само в ответ не попадёт. Черновики счетов покупатель не видит.
  *
  * Суммы выходят `Money` по курсу на дату оформления заказа - она же дата
  * документа для его счетов (docs/adr/007-pricing-layers.md).
@@ -56,7 +55,6 @@ export function toBuyerView(
           price: out(l.price),
           sum: out(l.sum),
         })),
-        codes: i.status === 'paid' && i.kind === 'invoice' ? i.codes.map((c) => c.code) : [],
       })),
     cancelReason: order.status === 'cancelled' ? order.cancelReason : null,
   };

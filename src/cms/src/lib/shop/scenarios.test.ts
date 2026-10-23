@@ -24,7 +24,6 @@ const PUPPY: OfferSnapshot = {
   title: 'Щенок Бим',
   price: 5_000_000,
   stock: 1,
-  access: null,
   howToBuy: 'cart',
   deposit: null,
 };
@@ -33,7 +32,6 @@ const FOOD: OfferSnapshot = {
   title: 'Корм 15 кг',
   price: 450_000,
   stock: null,
-  access: null,
   howToBuy: 'cart',
   deposit: null,
 };
@@ -42,7 +40,6 @@ const COURSE: OfferSnapshot = {
   title: 'Курс «Сила»',
   price: 990_000,
   stock: null,
-  access: 77,
   howToBuy: 'cart',
   deposit: null,
 };
@@ -51,7 +48,6 @@ const COURSE_WITH_DEPOSIT: OfferSnapshot = {
   title: 'Курс с бронью',
   price: 60_000,
   stock: null,
-  access: 78,
   howToBuy: 'cart',
   deposit: 10_000,
 };
@@ -60,7 +56,6 @@ const PUPPY_BY_REQUEST: OfferSnapshot = {
   title: 'Щенок Рада',
   price: 6_000_000,
   stock: 1,
-  access: null,
   howToBuy: 'request',
   deposit: null,
 };
@@ -373,20 +368,20 @@ describe('бронь', () => {
     return paid.value;
   }
 
-  it('счёт на бронь, затем основной - цена минус бронь; коды только по основному', async () => {
+  it('счёт на бронь, затем основной - цена минус бронь', async () => {
     const o = await order([{ offer: 5, quantity: 1 }], 'd1');
     await changeOrder(ports, o.id, 'accept', 'manager');
     const deposit = await createInvoice(ports, o.id, { purpose: 'deposit' });
     if (!deposit.ok) throw new Error(deposit.error);
     expect(deposit.value.total).toBe(10_000);
     expect(deposit.value.lines[0]?.title).toBe('Бронь: Курс с бронью');
-    expect((await pay(deposit.value.id)).codes).toEqual([]);
+    expect((await pay(deposit.value.id)).status).toBe('paid');
 
     const rest = await createInvoice(ports, o.id);
     if (!rest.ok) throw new Error(rest.error);
     expect(rest.value.purpose).toBe('payment');
     expect(rest.value.total).toBe(50_000);
-    expect((await pay(rest.value.id)).codes).toHaveLength(1);
+    expect((await pay(rest.value.id)).status).toBe('paid');
   });
 
   it('второй счёт на бронь - отказ; бронь без позиций с бронью - отказ', async () => {
@@ -414,17 +409,6 @@ describe('бронь', () => {
     expect(inv.ok && inv.value.total).toBe(60_000);
   });
 
-  it('строка позиции в счёте на бронь доступа не выдаёт', async () => {
-    const o = await order([{ offer: 5, quantity: 1 }], 'd6');
-    await changeOrder(ports, o.id, 'accept', 'manager');
-    const dep = await createInvoice(ports, o.id, { purpose: 'deposit' });
-    if (!dep.ok) throw new Error(dep.error);
-    const edited = await updateDraft(ports, dep.value.id, {
-      lines: [{ offer: 5, title: 'Курс с бронью', quantity: 1, price: 10_000 }],
-    });
-    expect(edited.ok && edited.value.lines[0]?.access).toBeNull();
-  });
-
   it('без счёта на бронь основной счёт - полная цена', async () => {
     const o = await order([{ offer: 5, quantity: 1 }], 'd4');
     await changeOrder(ports, o.id, 'accept', 'manager');
@@ -433,18 +417,8 @@ describe('бронь', () => {
   });
 });
 
-describe('доступ к видео', () => {
-  it('оплата выдаёт код на каждую единицу строки с доступом', async () => {
-    const o = await order([
-      { offer: 3, quantity: 2 },
-      { offer: 2, quantity: 1 },
-    ]);
-    const paid = await paidInvoice(o);
-    expect(paid.codes).toHaveLength(2);
-    expect([...state.codes.values()].every((c) => c.access === 77 && !c.revoked)).toBe(true);
-  });
-
-  it('частичный возврат оставляет доступ, полный - отзывает; счёт остаётся оплаченным', async () => {
+describe('возвраты', () => {
+  it('частичный и полный возврат; счёт остаётся оплаченным', async () => {
     const o = await order([{ offer: 3, quantity: 1 }]);
     const paid = await paidInvoice(o);
     const pay = async (amount: number) => {
@@ -458,11 +432,8 @@ describe('доступ к видео', () => {
       await changeInvoice(ports, r.value.id, 'confirm', 'manager');
     };
     await pay(500_000);
-    expect([...state.codes.values()].some((c) => c.revoked)).toBe(false);
     await pay(paid.total - 500_000);
-    expect([...state.codes.values()].every((c) => c.revoked)).toBe(true);
     expect(state.invoices.get(String(paid.id))?.status).toBe('paid');
-    expect(state.invoices.get(String(paid.id))?.codes).toEqual([]);
   });
 
   it('возвраты частями до суммы счёта, сверх неё - отказ', async () => {

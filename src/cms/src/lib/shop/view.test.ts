@@ -15,7 +15,6 @@ const order: StoredOrder = {
       quantity: 1,
       price: 4_500_500_000,
       sum: 4_500_500_000,
-      access: 9,
       mode: 'cart',
       deposit: null,
     },
@@ -36,7 +35,6 @@ const invoice = (o: Partial<StoredInvoice>): StoredInvoice => ({
   lines: order.lines,
   total: 4_500_500_000,
   dueAt: null,
-  codes: [{ line: 0, codeId: 55, code: 'ABCD1234' }],
   ...o,
 });
 
@@ -56,7 +54,7 @@ describe('заказ глазами покупателя', () => {
     ]);
   });
 
-  it('черновик не виден, коды - только у оплаченного счёта', () => {
+  it('черновик покупатель не видит', () => {
     const v = toBuyerView(
       order,
       [
@@ -67,11 +65,7 @@ describe('заказ глазами покупателя', () => {
       new Date(),
       rub,
     );
-    expect(v.invoices.map((i) => [i.id, i.codes])).toEqual([
-      ['2', []],
-      ['3', ['ABCD1234']],
-    ]);
-    expect(JSON.stringify(v)).not.toContain('"codeId"');
+    expect(v.invoices.map((i) => i.id)).toEqual(['2', '3']);
   });
 
   it('просрочка вычисляется на момент запроса', () => {

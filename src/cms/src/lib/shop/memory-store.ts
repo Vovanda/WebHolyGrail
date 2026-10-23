@@ -15,7 +15,6 @@ export interface MemoryState {
   offers: Map<number, OfferSnapshot>;
   orders: Map<string, StoredOrder>;
   invoices: Map<string, StoredInvoice>;
-  codes: Map<string, { access: number; revoked: boolean }>;
   seq: number;
   now: Date;
   settings: ShopSettings;
@@ -26,7 +25,6 @@ export function memoryState(offers: OfferSnapshot[] = []): MemoryState {
     offers: new Map(offers.map((o) => [o.id, o])),
     orders: new Map(),
     invoices: new Map(),
-    codes: new Map(),
     seq: 0,
     now: new Date('2026-10-23T12:00:00Z'),
     settings: shopSettings(null),
@@ -38,7 +36,6 @@ const clone = (s: MemoryState): MemoryState => ({
   offers: new Map(s.offers),
   orders: new Map(s.orders),
   invoices: new Map(s.invoices),
-  codes: new Map([...s.codes].map(([k, v]) => [k, { ...v }])),
 });
 
 export function memoryPorts(state: MemoryState): ShopPorts {
@@ -131,17 +128,6 @@ export function memoryPorts(state: MemoryState): ShopPorts {
       },
       remove: async (id) => {
         state.invoices.delete(String(id));
-      },
-    },
-    access: {
-      issue: async (access) => {
-        const codeId = next();
-        state.codes.set(codeId, { access, revoked: false });
-        return { codeId, code: `CODE${codeId}` };
-      },
-      revoke: async ({ codeId }) => {
-        const c = state.codes.get(String(codeId));
-        if (c) c.revoked = true;
       },
     },
     money: moneyPort(),

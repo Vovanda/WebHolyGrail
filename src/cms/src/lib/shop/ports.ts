@@ -50,14 +50,6 @@ export interface InvoiceLine {
   readonly quantity: number;
   readonly price: Micros;
   readonly sum: Micros;
-  readonly access: number | null;
-}
-
-/** Код доступа, выданный по строке оплаченного счёта. */
-export interface IssuedCode {
-  readonly line: number;
-  readonly codeId: Id;
-  readonly code: string;
 }
 
 export interface StoredInvoice {
@@ -72,7 +64,6 @@ export interface StoredInvoice {
   readonly lines: readonly InvoiceLine[];
   readonly total: Micros;
   readonly dueAt: string | null;
-  readonly codes: readonly IssuedCode[];
 }
 
 /** Позиция для витрины и корзины: то, что показывают покупателю, цена - в учёте. */
@@ -129,13 +120,6 @@ export interface InvoicePort {
   remove(id: Id): Promise<void>;
 }
 
-/** Выдача доступа к видео кодом - механизм движка (docs/whg/41-access.md). */
-export interface AccessPort {
-  issue(access: number): Promise<{ codeId: Id; code: string }>;
-  /** Отзывает код и права, открытые по нему (право хранит значение кода). */
-  revoke(code: { codeId: Id; code: string }): Promise<void>;
-}
-
 /**
  * Деньги наружу: сумма учёта → `Money` в валюте магазина по курсу на дату
  * документа (docs/adr/003-currencies.md). Внутри модуля сумм в `Money` нет.
@@ -150,7 +134,6 @@ export interface ShopPorts {
   readonly offers: OfferPort;
   readonly orders: OrderPort;
   readonly invoices: InvoicePort;
-  readonly access: AccessPort;
   readonly money: MoneyPort;
   /** Настройки магазина владельца: сроки и анкета (`shopSettings` с умолчаниями). */
   settings(): Promise<ShopSettings>;

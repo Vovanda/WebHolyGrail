@@ -37,13 +37,6 @@ export const shopLineFields: Field[] = [
       moneyField('sumMicros', 'Сумма', { admin: ro }),
     ],
   },
-  {
-    name: 'access',
-    label: 'Доступ к видео',
-    type: 'relationship',
-    relationTo: 'media-accesses',
-    admin: ro,
-  },
 ];
 
 export const Orders: CollectionConfig = {

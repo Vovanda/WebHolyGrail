@@ -62,7 +62,6 @@ export const Invoices: CollectionConfig = {
             quantity: Number(l['quantity']),
             price: Number(l['priceMicros']),
           })),
-          originalDoc['purpose'] === 'deposit' ? 'deposit' : 'payment',
         );
         if (!lines.ok) {
           // APIError со статусом: менеджер видит причину, а не «внутреннюю ошибку».
@@ -181,22 +180,6 @@ export const Invoices: CollectionConfig = {
         components: { RowLabel: '/admin/components/ShopLineRowLabel#ShopLineRowLabel' },
       },
       fields: shopLineFields,
-    },
-    {
-      name: 'codes',
-      label: 'Выданные коды',
-      labels: { singular: 'Код', plural: 'Коды' },
-      type: 'array',
-      access: locked,
-      admin: {
-        ...ro,
-        condition: (data) => Array.isArray(data?.['codes']) && data['codes'].length > 0,
-      },
-      fields: [
-        { name: 'line', type: 'number' },
-        { name: 'codeId', type: 'text' },
-        { name: 'code', label: 'Код', type: 'text' },
-      ],
     },
   ],
 };

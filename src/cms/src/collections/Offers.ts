@@ -68,15 +68,5 @@ export const Offers: CollectionConfig = {
     },
     { name: 'image', label: 'Картинка', type: 'upload', relationTo: 'media' },
     { name: 'summary', label: 'Коротко', type: 'textarea', maxLength: 500 },
-    {
-      name: 'access',
-      label: 'Доступ к видео',
-      type: 'relationship',
-      relationTo: 'media-accesses',
-      admin: {
-        description:
-          'Если позиция продаёт видео: после оплаты счёта покупатель получит код к этому доступу.',
-      },
-    },
   ],
 };
