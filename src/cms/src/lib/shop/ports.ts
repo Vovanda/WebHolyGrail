@@ -107,13 +107,18 @@ export interface OfferDetailCard extends OfferCard {
 /** Потолок позиций в разделе: раздел читается целиком, но не бесконечно. */
 export const SECTION_CAP = 2000;
 
+/** Сколько найденных позиций отдаёт поиск: столько видно в выпадающем списке. */
+export const SEARCH_LIMIT = 8;
+
 /**
  * Какие позиции показать: выбранные по номерам, раздел каталога целиком
- * (до `SECTION_CAP`) либо первые `limit` по названию.
+ * (до `SECTION_CAP`), найденные по запросу (лучшие `SEARCH_LIMIT`) либо первые
+ * `limit` по названию.
  */
 export type OfferQuery =
   | { readonly ids: readonly number[] }
   | { readonly section: string }
+  | { readonly search: string }
   | { readonly limit: number };
 
 export interface OfferPort {

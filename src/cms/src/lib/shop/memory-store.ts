@@ -1,7 +1,19 @@
-import { type OfferSnapshot, type OrderStatus, type ShopSettings, shopSettings } from 'contracts';
+import {
+  type OfferSnapshot,
+  type OrderStatus,
+  searchItems,
+  type ShopSettings,
+  shopSettings,
+} from 'contracts';
 
 import { moneyPort } from './money';
-import type { Id, ShopPorts, StoredInvoice, StoredOrder } from './ports';
+import {
+  type Id,
+  SEARCH_LIMIT,
+  type ShopPorts,
+  type StoredInvoice,
+  type StoredOrder,
+} from './ports';
 
 /**
  * Порты магазина в памяти - для тестов сценариев без базы.
@@ -52,7 +64,12 @@ export function memoryPorts(state: MemoryState): ShopPorts {
             ? all.filter((o) => query.ids.includes(o.id))
             : 'section' in query
               ? []
-              : all.slice(0, query.limit);
+              : 'search' in query
+                ? searchItems(
+                    all.map((o) => ({ ...o, specs: {} })),
+                    query.search,
+                  ).slice(0, SEARCH_LIMIT)
+                : all.slice(0, query.limit);
         return picked.map((o) => ({
           id: o.id,
           title: o.title,

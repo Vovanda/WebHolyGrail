@@ -26,7 +26,7 @@ export async function relatedOffers(
     similar: similarItems(card, section),
     together: ids.flatMap((id) => {
       const c = byId.get(id);
-      return c && c.price !== null ? [c] : [];
+      return c && c.price !== null && c.price > 0 ? [c] : [];
     }),
   };
 }

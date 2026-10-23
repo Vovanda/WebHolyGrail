@@ -126,7 +126,8 @@ async function editor(req: PayloadRequest): Promise<boolean> {
 }
 
 /**
- * `?ids=3,7` - позиции корзины; `?section=<слаг>` - раздел каталога целиком; иначе
+ * `?ids=3,7` - позиции корзины; `?q=<запрос>` - поиск для корзины;
+ * `?section=<слаг>` - раздел каталога целиком; иначе
  * `?limit=` первых по названию, для витрины.
  */
 function offerQuery(req: PayloadRequest): OfferQuery {
@@ -144,6 +145,8 @@ function offerQuery(req: PayloadRequest): OfferQuery {
   const raw = Math.floor(Number(url.searchParams.get('limit') ?? 60));
   const limit = Number.isFinite(raw) ? Math.min(Math.max(raw, 1), 100) : 60;
   const section = url.searchParams.get('section');
+  const search = (url.searchParams.get('q') ?? '').trim().slice(0, 100);
+  if (search) return { search };
   return isSlug(section) ? { section } : { limit };
 }
 

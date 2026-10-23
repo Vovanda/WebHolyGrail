@@ -20,6 +20,7 @@ import {
   type ExtraKind,
   type ExtraLine,
   publicSpecs,
+  searchItems,
   visibleCharacteristics,
   type SpecValue,
 } from 'contracts';
@@ -35,7 +36,7 @@ import type {
   StoredInvoice,
   StoredOrder,
 } from './ports';
-import { SECTION_CAP } from './ports';
+import { SEARCH_LIMIT, SECTION_CAP } from './ports';
 
 /**
  * Порты магазина на Payload - единственное место модуля, которое знает о CMS.
@@ -298,12 +299,13 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
           : 'section' in query
             ? { 'section.slug': { equals: query.section } }
             : null;
+        const searching = 'search' in query;
         const found = await payload.find({
           collection: 'offers',
           ...(where ? { where } : {}),
           limit: ids
             ? ids.length
-            : 'section' in query
+            : 'section' in query || searching
               ? SECTION_CAP
               : Math.min(Math.max(1, 'limit' in query ? query.limit : 1), 100),
           sort: 'title',
@@ -311,7 +313,13 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
           ...opts,
           depth: 1,
         });
-        return found.docs.map((d) => cardFromDoc(d as unknown as Record<string, unknown>));
+        const cards = found.docs.map((d) => cardFromDoc(d as unknown as Record<string, unknown>));
+        return searching
+          ? searchItems(
+              cards.filter((c) => c.price !== null && c.price > 0),
+              query.search,
+            ).slice(0, SEARCH_LIMIT)
+          : cards;
       },
       detail: async (slug) => {
         const found = await payload.find({
