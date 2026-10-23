@@ -1,3 +1,4 @@
+import { fromAdmin } from '../lib/access/from-admin';
 import type { CollectionConfig } from 'payload';
 import { editorsOnly, adminsOnly, isEditor } from '../lib/access/editors';
 
@@ -105,9 +106,10 @@ export const FormSubmissions: CollectionConfig = {
   ],
   access: {
     read: editorsOnly,
-    // Заявка приходит с сайта от посетителя, руками её не заводят: редактору
-    // создание закрыто, и Payload прячет кнопку «Создать».
-    create: ({ req: { user } }) => !isEditor(user),
+    // Заявка приходит с сайта, руками её не заводят: из админки редактору
+    // создание закрыто, и Payload прячет кнопку «Создать». С сайта заявку шлёт
+    // и вошедший редактор - кука у них общая, а форма сайта к админке не относится.
+    create: ({ req }) => !isEditor(req.user) || !fromAdmin(req),
     update: editorsOnly,
     delete: adminsOnly,
   },
