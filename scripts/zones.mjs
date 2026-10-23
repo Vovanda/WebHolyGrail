@@ -81,14 +81,17 @@ if (print) {
   process.exit(0);
 }
 
-const targets = all
+// Проверка идёт полным проходом, как --all: по одним изменённым файлам она
+// не видит закоммиченный файл без строки - а синк такой файл на сайты не довезёт.
+const full = all || check;
+const targets = full
   ? trackedFiles()
   : changedFiles().filter(
       (rel) => fs.existsSync(path.join(ROOT, rel)) && fs.statSync(path.join(ROOT, rel)).isFile(),
     );
 
 const before = new Map(registry);
-if (all) registry.clear();
+if (full) registry.clear();
 
 for (const rel of targets) {
   // Пометка в шапке файла главнее правил по пути: ею помечают то, чьё имя
@@ -108,7 +111,15 @@ const изменилось =
 
 if (check) {
   if (изменилось) {
-    console.error(`\n${REGISTRY} разошёлся с деревом. Обнови его: node scripts/zones.mjs\n`);
+    const расхождения = [...new Set([...before.keys(), ...registry.keys()])]
+      .filter((rel) => before.get(rel) !== registry.get(rel))
+      .map(
+        (rel) =>
+          `  ${rel}: в реестре ${before.get(rel) ?? 'нет'}, по дереву ${registry.get(rel) ?? 'нет'}`,
+      );
+    console.error(
+      `\n${REGISTRY} разошёлся с деревом. Обнови его: node scripts/zones.mjs --all\n\n${расхождения.slice(0, 20).join('\n')}\n`,
+    );
     process.exit(1);
   }
   console.log(`${REGISTRY} в порядке`);
