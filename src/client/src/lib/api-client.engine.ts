@@ -134,13 +134,16 @@ export async function getPageById(id: string | number): Promise<PageDoc | null> 
  * @returns глобальные настройки или `null` если глобал ещё не заполнен.
  */
 export async function getSiteSettings(): Promise<SiteSettings | null> {
-  const response = await fetch(`${CMS_URL}/api/globals/site-settings?depth=1`, {
-    cache: 'no-store',
-  });
+  const [response, toggles] = await Promise.all([
+    fetch(`${CMS_URL}/api/globals/site-settings?depth=1`, { cache: 'no-store' }),
+    getToggles(),
+  ]);
 
   if (!response.ok) return null;
 
-  return (await response.json()) as SiteSettings;
+  // Переключатели едут вместе с настройками: по ним отрисовка блоков знает,
+  // какие модули выключены, и рисует заглушку вместо их блоков.
+  return { ...((await response.json()) as SiteSettings), toggles };
 }
 
 /**

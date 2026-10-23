@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { BlockNode, SiteSettings } from 'contracts';
-import { scopedAppearance, shopSettings } from 'contracts';
+import { scopedAppearance, shopSettings, isModuleEnabled, moduleOfBlock } from 'contracts';
 
 import { Header } from '@/blocks/layout/Header';
 import { Footer } from '@/blocks/layout/Footer';
@@ -143,6 +143,21 @@ export function renderBlockNode(
   children?: ReactNode,
   registry: Record<string, BlockRenderer> = engineRegistry,
 ): ReactNode {
+  /*
+    Блок выключенного модуля не схлопывается: страница не должна прыгать, а
+    владелец - гадать, куда делся блок. На его месте нейтральная плашка, данные
+    блока в базе целы, и включённый модуль вернёт его как был.
+  */
+  if (!isModuleEnabled(settings.toggles ?? {}, moduleOfBlock(node.blockType))) {
+    return (
+      <section
+        data-part="block-unavailable"
+        className="mx-auto my-8 flex min-h-48 max-w-5xl items-center justify-center rounded-lg border border-border px-6 text-center text-muted"
+      >
+        Временно недоступно
+      </section>
+    );
+  }
   const renderer = registry[node.blockType];
   if (!renderer) {
     if (process.env.NODE_ENV === 'development') {
