@@ -8,7 +8,6 @@ import {
   facetsOf,
   pageOf,
   publicSpecs,
-  quickFilters,
   readFilter,
   readPage,
   readSort,
@@ -244,7 +243,7 @@ describe('похожие позиции', () => {
   });
 });
 
-describe('общие характеристики магазина и быстрые фильтры', () => {
+describe('общие характеристики магазина', () => {
   const section = cleanCharacteristics([
     { key: 'brand', title: 'Бренд', kind: 'enum', filter: 'checks', quick: true },
     { key: 'watts', title: 'Мощность', kind: 'number', filter: 'range' },
@@ -269,27 +268,16 @@ describe('общие характеристики магазина и быстр
     },
   ];
 
-  it('ключ общей характеристики у раздела занят', () => {
-    expect(section.map((c) => c.key)).toEqual(['brand', 'watts']);
-  });
-
-  it('да/нет - один переключатель с названием, перечень - по значению', () => {
-    const quick = quickFilters(facetsOf(items, {}, chars), chars);
-    expect(quick.map((q) => q.label)).toEqual(['В наличии', 'Со скидкой', 'A', 'B']);
-    expect(quick.find((q) => q.label === 'В наличии')).toMatchObject({ value: 'да', count: 2 });
-  });
-
-  it('выбор в строке - тот же адрес, что галочка в панели', () => {
+  it('наличие и бренд считаются одним движком, выбор сужает', () => {
     const state = readFilter({ 'in-stock': 'да', brand: 'A' }, chars);
     expect(applyFilter(items, state, chars).map((i) => i.id)).toEqual([1]);
-    const quick = quickFilters(facetsOf(items, state, chars), chars);
-    expect(quick.filter((q) => q.selected).map((q) => q.label)).toEqual(['В наличии', 'A']);
+    const stock = facetsOf(items, {}, chars).find((f) => f.key === 'in-stock');
+    expect(stock?.view === 'checks' && stock.options.find((o) => o.value === 'да')?.count).toBe(2);
+    expect(section.find((c) => c.key === 'brand')?.quick).toBe(true);
   });
 
-  it('значение, ведущее в пустую выдачу, в строку не идёт', () => {
-    const state = readFilter({ brand: 'B' }, chars);
-    const quick = quickFilters(facetsOf(items, state, chars), chars);
-    expect(quick.find((q) => q.label === 'Со скидкой')).toBeUndefined();
+  it('ключ общей характеристики у раздела занят', () => {
+    expect(section.map((c) => c.key)).toEqual(['brand', 'watts']);
   });
 });
 

@@ -471,46 +471,6 @@ export function facetsOf(
   return facets;
 }
 
-/** Переключатель строки быстрых фильтров. */
-export interface QuickFilter {
-  readonly key: string;
-  readonly value: string;
-  readonly label: string;
-  readonly count: number;
-  readonly selected: boolean;
-}
-
-/**
- * Быстрые фильтры из фасетов: значения характеристик, отмеченных `quick`.
- *
- * @remarks
- * У да/нет переключатель один, «да», с названием характеристики: «В наличии».
- * У перечня - каждое значение. Значение, при котором позиций не останется,
- * в строку не идёт, если оно не выбрано: переключатель, ведущий в пустую
- * выдачу, только мешает. Счётчик и выбор - те же, что у галочки в панели.
- */
-export function quickFilters(
-  facets: readonly Facet[],
-  characteristics: readonly Characteristic[],
-): QuickFilter[] {
-  const byKey = new Map(characteristics.map((c) => [c.key, c]));
-  return facets.flatMap((facet) => {
-    const c = byKey.get(facet.key);
-    if (!c?.quick || facet.view !== 'checks') return [];
-    const options =
-      c.kind === 'bool' ? facet.options.filter((o) => o.value === 'да') : facet.options;
-    return options
-      .filter((o) => o.selected || o.count > 0)
-      .map((o) => ({
-        key: facet.key,
-        value: o.value,
-        label: c.kind === 'bool' ? c.title : o.value,
-        count: o.count,
-        selected: o.selected,
-      }));
-  });
-}
-
 /* ──────────────────────── Сортировка и страницы ──────────────────────── */
 
 /** Порядок выдачи; ключ стоит в адресе `?sort=`. */

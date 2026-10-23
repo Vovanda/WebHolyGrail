@@ -293,6 +293,8 @@ mirror	src/client/src/blocks/primitives/CustomMarkup.tsx
 mirror	src/client/src/blocks/primitives/DetailDrawer.tsx
 mirror	src/client/src/blocks/primitives/Disclosure.tsx
 mirror	src/client/src/blocks/primitives/DocumentList.tsx
+mirror	src/client/src/blocks/primitives/Dropdown.tsx
+mirror	src/client/src/blocks/primitives/DropdownCloser.tsx
 mirror	src/client/src/blocks/primitives/FaqAccordion/FaqAccordion.tsx
 mirror	src/client/src/blocks/primitives/FaqAccordion/FaqToggleAllButtons.tsx
 mirror	src/client/src/blocks/primitives/FaqAccordion/index.ts
@@ -340,11 +342,15 @@ mirror	src/client/src/blocks/primitives/SectionEyebrow.test.tsx
 mirror	src/client/src/blocks/primitives/SectionEyebrow.tsx
 mirror	src/client/src/blocks/primitives/Separator/index.ts
 mirror	src/client/src/blocks/primitives/Separator/WaveDivider.tsx
+mirror	src/client/src/blocks/primitives/Shop/ActiveFilters.tsx
+mirror	src/client/src/blocks/primitives/Shop/AddFilter.tsx
 mirror	src/client/src/blocks/primitives/Shop/AddToCart.tsx
 mirror	src/client/src/blocks/primitives/Shop/Cart.tsx
 mirror	src/client/src/blocks/primitives/Shop/CatalogFilters.tsx
+mirror	src/client/src/blocks/primitives/Shop/CatalogPager.tsx
 mirror	src/client/src/blocks/primitives/Shop/CatalogView.tsx
 mirror	src/client/src/blocks/primitives/Shop/ConfirmDialog.tsx
+mirror	src/client/src/blocks/primitives/Shop/facet-parts.tsx
 mirror	src/client/src/blocks/primitives/Shop/FacetPanel.tsx
 mirror	src/client/src/blocks/primitives/Shop/HeaderCart.tsx
 mirror	src/client/src/blocks/primitives/Shop/MyOrders.tsx
@@ -355,7 +361,9 @@ mirror	src/client/src/blocks/primitives/Shop/OrderActions.tsx
 mirror	src/client/src/blocks/primitives/Shop/PaymentDetails.tsx
 mirror	src/client/src/blocks/primitives/Shop/QuantityStepper.tsx
 mirror	src/client/src/blocks/primitives/Shop/QuickFilters.tsx
+mirror	src/client/src/blocks/primitives/Shop/ShopSearchBar.tsx
 mirror	src/client/src/blocks/primitives/Shop/Showcase.tsx
+mirror	src/client/src/blocks/primitives/Shop/SortMenu.tsx
 mirror	src/client/src/blocks/primitives/Shop/ui.ts
 mirror	src/client/src/blocks/primitives/SidePanel.test.ts
 mirror	src/client/src/blocks/primitives/SidePanel.tsx
@@ -491,6 +499,9 @@ overlay	src/client/src/lib/shop/cart.test.ts
 overlay	src/client/src/lib/shop/cart.ts
 overlay	src/client/src/lib/shop/catalog-href.test.ts
 overlay	src/client/src/lib/shop/catalog-href.ts
+overlay	src/client/src/lib/shop/page-window.test.ts
+overlay	src/client/src/lib/shop/positions.test.ts
+overlay	src/client/src/lib/shop/positions.ts
 overlay	src/client/src/lib/shop/ranges-from-form.test.ts
 overlay	src/client/src/lib/shop/snapshots.test.ts
 overlay	src/client/src/lib/shop/snapshots.ts
