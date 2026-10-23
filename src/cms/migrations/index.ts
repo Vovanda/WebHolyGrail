@@ -78,6 +78,8 @@ import * as migration_20261023_113302_checkout_phone_format from './20261023_113
 import * as migration_20261023_120719_shop_drop_access from './20261023_120719_shop_drop_access';
 import * as migration_20261023_125752_shop_cart_href from './20261023_125752_shop_cart_href';
 import * as migration_20261023_131121_shop_catalog from './20261023_131121_shop_catalog';
+import * as migration_20261023_152014_shop_order_lines_invoice_extra from './20261023_152014_shop_order_lines_invoice_extra';
+import * as migration_20261023_153305_shop_offer_promo from './20261023_153305_shop_offer_promo';
 
 export const migrations = [
   {
@@ -479,5 +481,15 @@ export const migrations = [
     up: migration_20261023_131121_shop_catalog.up,
     down: migration_20261023_131121_shop_catalog.down,
     name: '20261023_131121_shop_catalog',
+  },
+  {
+    up: migration_20261023_152014_shop_order_lines_invoice_extra.up,
+    down: migration_20261023_152014_shop_order_lines_invoice_extra.down,
+    name: '20261023_152014_shop_order_lines_invoice_extra',
+  },
+  {
+    up: migration_20261023_153305_shop_offer_promo.up,
+    down: migration_20261023_153305_shop_offer_promo.down,
+    name: '20261023_153305_shop_offer_promo',
   },
 ];

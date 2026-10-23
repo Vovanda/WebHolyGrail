@@ -48,6 +48,8 @@ export function toBuyerView(
       price: out(l.price),
       sum: out(l.sum),
       mode: l.mode,
+      deposit: l.deposit === null ? null : out(l.deposit),
+      removed: l.removed ?? null,
     })),
     buyer: {
       name: order.buyer.name,
@@ -65,12 +67,23 @@ export function toBuyerView(
         overdue: isOverdue(i, now),
         dueAt: i.dueAt,
         total: out(i.total),
-        lines: i.lines.map((l) => ({
-          title: l.title,
-          quantity: l.quantity,
-          price: out(l.price),
-          sum: out(l.sum),
-        })),
+        lines: [
+          ...i.lines.map((l) => ({
+            title: l.title,
+            quantity: l.quantity,
+            price: out(l.price),
+            sum: out(l.sum),
+          })),
+          // Скидка в учёте - вычет; покупателю её размер показывается с пометкой.
+          ...i.extra.map((l) => ({
+            title: l.title,
+            quantity: l.quantity,
+            price: out(l.price),
+            sum: out(Math.abs(l.sum)),
+            ...(l.kind === 'discount' ? { discount: true } : {}),
+          })),
+        ],
+        voidReason: i.status === 'voided' ? i.voidReason : null,
       })),
     cancelReason: order.status === 'cancelled' ? order.cancelReason : null,
   };
@@ -88,6 +101,7 @@ export function toOfferView(card: OfferCard, money: MoneyPort, now: Date): Offer
     id: card.id,
     title: card.title,
     price: card.price === null || card.price <= 0 ? null : money.at(card.price, now),
+    listPrice: card.listPrice === null ? null : money.at(card.listPrice, now),
     stock: card.stock,
     summary: card.summary,
     image: card.image,

@@ -1,6 +1,7 @@
 import type {
   CatalogSectionView,
   Characteristic,
+  ExtraLine,
   InvoiceKind,
   InvoicePurpose,
   InvoiceStatus,
@@ -64,9 +65,14 @@ export interface StoredInvoice {
   readonly status: InvoiceStatus;
   /** Счёт, который возвращает возврат. */
   readonly refundOf: Id | null;
+  /** Строки из заказа: копия живых строк, не правится. */
   readonly lines: readonly InvoiceLine[];
+  /** Добавленные строки: доставка, позиция каталога, скидка. */
+  readonly extra: readonly ExtraLine[];
   readonly total: Micros;
   readonly dueAt: string | null;
+  /** Почему аннулирован: пишет менеджер или «покупатель отказался». */
+  readonly voidReason: string | null;
 }
 
 /** Позиция для витрины и корзины: то, что показывают покупателю, цена - в учёте. */
@@ -74,6 +80,8 @@ export interface OfferCard {
   readonly id: number;
   readonly title: string;
   readonly price: Micros | null;
+  /** Цена по прайсу, пока идёт акция; без акции пусто. */
+  readonly listPrice: Micros | null;
   readonly stock: number | null;
   readonly summary: string | null;
   /** Картинка как её отдаёт хранилище - сайт показывает её своим примитивом. */
@@ -136,6 +144,20 @@ export interface OrderPort {
    * вернут остаток дважды - второй получит `false`.
    */
   switchStatus(id: Id, from: OrderStatus, to: OrderStatus, cancelReason?: string): Promise<boolean>;
+  /**
+   * Помечает строку `index` снятой и пишет новый итог - только если заказ всё ещё
+   * в `status`, а строка ещё не снята.
+   *
+   * @remarks
+   * Условная запись: два снятия одной строки не вернут её остаток дважды.
+   */
+  removeLine(
+    id: Id,
+    index: number,
+    status: OrderStatus,
+    reason: string,
+    total: Micros,
+  ): Promise<boolean>;
   /** Новые заказы, оформленные раньше `before`. */
   newBefore(before: Date): Promise<Id[]>;
 }
@@ -178,7 +200,10 @@ export type Failure =
   | 'shortage'
   | 'money_held'
   | 'quantity_locked'
-  | 'reason_required';
+  | 'reason_required'
+  | 'discount_too_large'
+  | 'last_line'
+  | 'invoice_exists';
 
 export type Outcome<T> =
   | { readonly ok: true; readonly value: T }

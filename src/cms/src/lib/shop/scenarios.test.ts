@@ -5,12 +5,13 @@ import {
   changeInvoice,
   createInvoice,
   createRefund,
+  declineBySecret,
   deleteDraft,
   reportBySecret,
   updateDraft,
 } from './invoices';
 import { memoryPorts, memoryState, type MemoryState } from './memory-store';
-import { cancelBySecret, cancelStaleOrders, changeOrder, placeOrder } from './orders';
+import { cancelBySecret, cancelStaleOrders, changeOrder, placeOrder, removeLine } from './orders';
 import type { ShopPorts, StoredOrder } from './ports';
 
 /**
@@ -194,9 +195,10 @@ describe('отмена заказа', () => {
     expect(await cancelBySecret(ports, 'чужая')).toEqual({ ok: false, error: 'not_found' });
   });
 
-  it('принятый покупатель не отменяет', async () => {
+  it('выполненный покупатель не отменяет', async () => {
     const o = await order();
     await changeOrder(ports, o.id, 'accept', 'manager');
+    await changeOrder(ports, o.id, 'complete', 'manager');
     expect(await cancelBySecret(ports, 'h1')).toEqual({ ok: false, error: 'forbidden' });
   });
 
@@ -264,18 +266,38 @@ describe('счёт', () => {
     expect(await createInvoice(ports, o.id)).toEqual({ ok: false, error: 'forbidden' });
   });
 
-  it('мембраны: цена правится, доставка своей строкой, количество закреплено', async () => {
+  it('мембраны: строки из заказа как есть, доставка, позиция каталога и скидка - вторым списком', async () => {
     const o = await order([{ offer: 2, quantity: 3 }]);
     await changeOrder(ports, o.id, 'accept', 'manager');
-    const lines = [
-      { offer: 2, title: 'Корм 15 кг', quantity: 3, price: 470_000 },
-      { offer: null, title: 'Доставка', quantity: 1, price: 150_000 },
+    const extra = [
+      {
+        kind: 'charge' as const,
+        title: 'Доставка',
+        offer: null,
+        quantity: 1,
+        price: 150_000,
+        appliesTo: null,
+      },
+      // Цена из формы не берётся: позиция каталога идёт по цене каталога.
+      { kind: 'offer' as const, title: '', offer: 3, quantity: 1, price: 1, appliesTo: null },
+      {
+        kind: 'discount' as const,
+        title: 'Промокод',
+        offer: null,
+        quantity: 1,
+        price: 50_000,
+        appliesTo: 2,
+      },
     ];
-    const inv = await createInvoice(ports, o.id, { lines, dueAt: '2026-10-30T00:00:00Z' });
-    expect(inv.ok && inv.value.total).toBe(3 * 470_000 + 150_000);
+    const inv = await createInvoice(ports, o.id, { extra });
     if (!inv.ok) throw new Error(inv.error);
-    const more = await updateDraft(ports, inv.value.id, { lines: [{ ...lines[0]!, quantity: 4 }] });
-    expect(more).toEqual({ ok: false, error: 'quantity_locked', detail: { offer: 2 } });
+    expect(inv.value.lines.map((l) => [l.offer, l.quantity, l.price])).toEqual([[2, 3, 450_000]]);
+    expect(inv.value.extra.map((l) => l.sum)).toEqual([150_000, 990_000, -50_000]);
+    expect(inv.value.total).toBe(3 * 450_000 + 150_000 + 990_000 - 50_000);
+    const big = await updateDraft(ports, inv.value.id, {
+      extra: [{ ...extra[2]!, price: 3 * 450_000 + 1 }],
+    });
+    expect(big).toEqual({ ok: false, error: 'discount_too_large' });
   });
 
   it('второй живой основной счёт - отказ: иначе вторые коды за ту же покупку', async () => {
@@ -285,22 +307,43 @@ describe('счёт', () => {
     expect(await createInvoice(ports, o.id)).toEqual({ ok: false, error: 'forbidden' });
   });
 
-  it('позиция не из заказа в счёт не попадает', async () => {
+  it('позиция каталога без цены во втором списке - отказ', async () => {
     const o = await order([{ offer: 2, quantity: 1 }]);
     await changeOrder(ports, o.id, 'accept', 'manager');
     const r = await createInvoice(ports, o.id, {
-      lines: [{ offer: 1, title: 'Щенок', quantity: 1, price: 1 }],
+      extra: [{ kind: 'offer', title: '', offer: 99, quantity: 1, price: 1, appliesTo: null }],
     });
     expect(r).toEqual({ ok: false, error: 'invalid' });
   });
 
-  it('одна позиция дважды в счёте - отказ: иначе двойная сумма и два кода за одну покупку', async () => {
-    const o = await order([{ offer: 3, quantity: 1 }]);
+  it('срок оплаты встаёт при выставлении, а не при создании черновика', async () => {
+    const o = await order([{ offer: 2, quantity: 1 }]);
     await changeOrder(ports, o.id, 'accept', 'manager');
-    const line = { offer: 3, title: 'Курс', quantity: 1, price: 990_000 };
-    expect(await createInvoice(ports, o.id, { lines: [line, line] })).toEqual({
+    const inv = await createInvoice(ports, o.id);
+    if (!inv.ok) throw new Error(inv.error);
+    expect(inv.value.dueAt).toBeNull();
+    const issued = await changeInvoice(ports, inv.value.id, 'issue', 'manager');
+    expect(issued.ok && issued.value.dueAt).toBeTruthy();
+  });
+
+  it('аннулирование менеджером - с причиной, отказ покупателя - своей причиной', async () => {
+    const o = await order([{ offer: 2, quantity: 1 }], 'h-void');
+    await changeOrder(ports, o.id, 'accept', 'manager');
+    const inv = await createInvoice(ports, o.id);
+    if (!inv.ok) throw new Error(inv.error);
+    await changeInvoice(ports, inv.value.id, 'issue', 'manager');
+    expect(await changeInvoice(ports, inv.value.id, 'void', 'manager', '  ')).toEqual({
       ok: false,
-      error: 'invalid',
+      error: 'reason_required',
+    });
+    const declined = await declineBySecret(ports, 'h-void', inv.value.id);
+    expect(declined.ok && [declined.value.status, declined.value.voidReason]).toEqual([
+      'voided',
+      'Покупатель отказался',
+    ]);
+    expect(await declineBySecret(ports, 'чужой', inv.value.id)).toEqual({
+      ok: false,
+      error: 'not_found',
     });
   });
 
@@ -333,19 +376,66 @@ describe('счёт', () => {
   });
 });
 
+describe('снятие строки и отмена покупателем', () => {
+  it('строка снята с причиной: остаток вернулся один раз, итог без неё', async () => {
+    const o = await order([
+      { offer: 1, quantity: 1 },
+      { offer: 2, quantity: 2 },
+    ]);
+    const r = await removeLine(ports, o.id, 0, 'нет в наличии');
+    expect(r.ok && [r.value.total, r.value.lines[0]!.removed]).toEqual([900_000, 'нет в наличии']);
+    expect(state.offers.get(1)?.stock).toBe(1);
+    expect(await removeLine(ports, o.id, 0, 'ещё раз')).toEqual({ ok: false, error: 'forbidden' });
+    expect(state.offers.get(1)?.stock).toBe(1);
+    expect(await removeLine(ports, o.id, 1, 'последняя')).toEqual({
+      ok: false,
+      error: 'last_line',
+    });
+  });
+
+  it('пока есть живой счёт, строку не снимают; снятая в счёт не идёт', async () => {
+    const o = await order([
+      { offer: 2, quantity: 1 },
+      { offer: 3, quantity: 1 },
+    ]);
+    await changeOrder(ports, o.id, 'accept', 'manager');
+    expect((await removeLine(ports, o.id, 1, 'нет мест')).ok).toBe(true);
+    const inv = await createInvoice(ports, o.id);
+    expect(inv.ok && inv.value.lines.map((l) => l.offer)).toEqual([2]);
+    expect(await removeLine(ports, o.id, 0, 'нет')).toEqual({ ok: false, error: 'last_line' });
+  });
+
+  it('покупатель отменяет принятый заказ без оплат, но не с заявленной оплатой', async () => {
+    const a = await order([{ offer: 2, quantity: 1 }], 'ha');
+    await changeOrder(ports, a.id, 'accept', 'manager');
+    expect((await cancelBySecret(ports, 'ha')).ok).toBe(true);
+
+    const b = await order([{ offer: 2, quantity: 1 }], 'hb');
+    await changeOrder(ports, b.id, 'accept', 'manager');
+    const inv = await createInvoice(ports, b.id);
+    if (!inv.ok) throw new Error(inv.error);
+    await changeInvoice(ports, inv.value.id, 'issue', 'manager');
+    await reportBySecret(ports, 'hb', inv.value.id);
+    expect(await cancelBySecret(ports, 'hb')).toEqual({ ok: false, error: 'money_held' });
+  });
+});
+
 describe('настройки магазина', () => {
-  it('срок оплаты нового счёта - через дни из настроек; 0 - без срока', async () => {
+  it('срок оплаты - через дни из настроек от выставления; 0 - без срока', async () => {
     state.settings = shopSettings({ invoiceDueDays: 5 });
     const o = await order([{ offer: 2, quantity: 1 }], 'n1');
     await changeOrder(ports, o.id, 'accept', 'manager');
     const inv = await createInvoice(ports, o.id);
-    expect(inv.ok && inv.value.dueAt).toBe('2026-10-28T12:00:00.000Z');
-
     if (!inv.ok) throw new Error(inv.error);
-    await deleteDraft(ports, inv.value.id);
+    const issued = await changeInvoice(ports, inv.value.id, 'issue', 'manager');
+    expect(issued.ok && issued.value.dueAt).toBe('2026-10-28T12:00:00.000Z');
+
+    await changeInvoice(ports, inv.value.id, 'void', 'manager', 'пересчёт');
     state.settings = shopSettings({ invoiceDueDays: 0 });
     const next = await createInvoice(ports, o.id);
-    expect(next.ok && next.value.dueAt).toBeNull();
+    if (!next.ok) throw new Error(next.error);
+    const nextIssued = await changeInvoice(ports, next.value.id, 'issue', 'manager');
+    expect(nextIssued.ok && nextIssued.value.dueAt).toBeNull();
   });
 
   it('обязательная почта: заказ без почты не оформляется, остаток не тронут', async () => {

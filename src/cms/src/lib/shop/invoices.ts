@@ -2,9 +2,13 @@ import {
   type Actor,
   canInvoice,
   depositLines,
+  type ExtraLine,
+  type ExtraLineInput,
+  extraLines,
   type InvoiceAction,
   type InvoicePurpose,
   INVOICE_TRANSITIONS,
+  liveLines,
   type Micros,
   paymentPrice,
   refundable,
@@ -32,86 +36,50 @@ import {
  * (docs/whg/43-shop.md, И-5).
  */
 
-export interface LineInput {
-  readonly offer: number | null;
-  readonly title: string;
-  readonly quantity: number;
-  readonly price: Micros;
-}
-
 export interface DraftInput {
   /** Бронь или оплата позиций; по умолчанию оплата. */
   readonly purpose?: InvoicePurpose | undefined;
-  /** Пусто - строки копируются из заказа. */
-  readonly lines?: readonly LineInput[] | undefined;
+  /** Добавленные строки: доставка, позиция каталога, скидка. */
+  readonly extra?: readonly ExtraLineInput[] | undefined;
+  /** Пусто - срок встанет при выставлении по настройкам магазина. */
   readonly dueAt?: string | null | undefined;
 }
 
-const MAX_LINES = 100;
-
 /**
- * Строки счёта из ввода менеджера, сверенные с заказом (И-3).
+ * Строки счёта из заказа - копия живых строк, не правится (И-3).
  *
  * @remarks
- * У строки с позицией каталога количество берётся из заказа: остаток списан по
- * заказу, и счёт на другое количество развёл бы их. Цену менеджер правит -
- * доставку и курс сайт не знает. Свободная строка (доставка) пишется как угодно.
- * Позиция заказа встречается в счёте один раз: повтор удвоил бы сумму за одну
- * покупку.
+ * Остаток списан по заказу, и счёт на другое количество или по другой цене развёл
+ * бы заказ и деньги. Снятые строки в счёт не идут. Основной счёт после оплаченной
+ * брони берёт цену минус бронь (`paymentPrice`).
  */
-export function draftLines(
+export function orderLinesFor(
   order: StoredOrder,
-  input: readonly LineInput[] | undefined,
-): Outcome<InvoiceLine[]> {
-  const fromOrder = new Map(order.lines.map((l) => [l.offer, l]));
-  const source: readonly LineInput[] =
-    input ??
-    order.lines.map((l) => ({
-      offer: l.offer,
-      title: l.title,
-      quantity: l.quantity,
-      price: l.price,
-    }));
-  if (source.length === 0 || source.length > MAX_LINES) return fail('invalid');
+  purpose: InvoicePurpose,
+  depositPaid: boolean,
+): InvoiceLine[] {
+  const live = liveLines(order.lines);
+  if (purpose === 'deposit')
+    return depositLines(live).map((l) => ({ ...l, sum: l.price * l.quantity }));
+  return live.map((l) => {
+    const price = paymentPrice(l, depositPaid);
+    return { offer: l.offer, title: l.title, quantity: l.quantity, price, sum: price * l.quantity };
+  });
+}
 
-  const lines: InvoiceLine[] = [];
-  const seen = new Set<number>();
-  for (const l of source) {
-    const price = Math.round(Number(l.price));
-    const quantity = Math.floor(Number(l.quantity));
-    const title = String(l.title ?? '').trim();
-    if (
-      !Number.isFinite(price) ||
-      price < 0 ||
-      !Number.isFinite(quantity) ||
-      quantity < 1 ||
-      !title
-    ) {
-      return fail('invalid');
-    }
-    if (l.offer !== null) {
-      const ordered = fromOrder.get(l.offer);
-      if (!ordered || seen.has(l.offer)) return fail('invalid');
-      seen.add(l.offer);
-      if (quantity !== ordered.quantity) return fail('quantity_locked', { offer: l.offer });
-      lines.push({
-        offer: l.offer,
-        title,
-        quantity,
-        price,
-        sum: price * quantity,
-      });
-    } else {
-      lines.push({
-        offer: null,
-        title: title.slice(0, 200),
-        quantity,
-        price,
-        sum: price * quantity,
-      });
-    }
-  }
-  return ok(lines);
+/** Добавленные строки, сверенные со строками из заказа и ценами каталога. */
+export async function checkedExtra(
+  tx: ShopPorts,
+  lines: readonly InvoiceLine[],
+  input: readonly ExtraLineInput[],
+): Promise<Outcome<{ extra: ExtraLine[]; sum: Micros }>> {
+  const offers = input.flatMap((l) => (l.kind === 'offer' && l.offer !== null ? [l.offer] : []));
+  const catalog = new Map((await tx.offers.snapshots(offers)).map((o) => [o.id, o]));
+  const r = extraLines(lines, input, (id) => {
+    const o = catalog.get(id);
+    return o && o.price !== null ? { title: o.title, price: o.price } : null;
+  });
+  return r.ok ? ok({ extra: r.lines, sum: r.sum }) : fail(r.error);
 }
 
 const totalOf = (lines: readonly InvoiceLine[]): Micros => lines.reduce((t, l) => t + l.sum, 0);
@@ -121,8 +89,7 @@ const totalOf = (lines: readonly InvoiceLine[]): Micros => lines.reduce((t, l) =
  *
  * @remarks
  * Счёт на бронь собирается из позиций с бронью, и у заказа он один, пока не
- * аннулирован. Основной счёт после живой брони берёт за такие позиции цену
- * минус бронь (`paymentPrice`); без брони - полную цену.
+ * аннулирован; добавленных строк у него нет. Основной счёт - один живой на заказ (И-5).
  */
 export async function createInvoice(
   ports: ShopPorts,
@@ -137,34 +104,15 @@ export async function createInvoice(
     const live = (await tx.invoices.forOrder(order.id)).filter(
       (i) => i.kind === 'invoice' && i.status !== 'voided',
     );
+    if (live.some((i) => i.purpose === purpose)) return fail('forbidden');
     // Цена минус бронь - только после оплаченной брони: неоплаченную можно удалить
     // или аннулировать, и покупатель не заплатил бы её вовсе.
     const depositPaid = live.some((i) => i.purpose === 'deposit' && i.status === 'paid');
-    let source: readonly LineInput[] | undefined = input.lines;
-    if (purpose === 'payment' && live.some((i) => i.purpose === 'payment')) {
-      // Второй живой основной счёт выдал бы вторые коды за ту же покупку (И-5).
-      return fail('forbidden');
-    }
-    if (purpose === 'deposit') {
-      if (live.some((i) => i.purpose === 'deposit')) return fail('forbidden');
-      source = depositLines(order.lines);
-      if (source.length === 0) return fail('invalid');
-    }
-    source ??= order.lines.map((l) => ({
-      offer: l.offer,
-      title: l.title,
-      quantity: l.quantity,
-      price: paymentPrice(l, depositPaid),
-    }));
-    const lines = draftLines(order, source);
-    if (!lines.ok) return lines;
-    const { invoiceDueDays } = await tx.settings();
-    const dueAt =
-      input.dueAt !== undefined
-        ? input.dueAt
-        : invoiceDueDays > 0
-          ? new Date(tx.now().getTime() + invoiceDueDays * 86_400_000).toISOString()
-          : null;
+    const lines = orderLinesFor(order, purpose, depositPaid);
+    if (lines.length === 0) return fail('invalid');
+    if (purpose === 'deposit' && input.extra?.length) return fail('invalid');
+    const extra = await checkedExtra(tx, lines, input.extra ?? []);
+    if (!extra.ok) return extra;
     return ok(
       await tx.invoices.create({
         order: order.id,
@@ -172,15 +120,17 @@ export async function createInvoice(
         purpose,
         status: 'draft',
         refundOf: null,
-        lines: lines.value,
-        total: totalOf(lines.value),
-        dueAt,
+        lines,
+        extra: extra.value.extra,
+        total: totalOf(lines) + extra.value.sum,
+        dueAt: input.dueAt ?? null,
+        voidReason: null,
       }),
     );
   });
 }
 
-/** Правка черновика: строки и срок. Выставленный счёт не меняется (И-3). */
+/** Правка черновика: добавленные строки и срок. Строки из заказа не меняются (И-3). */
 export async function updateDraft(
   ports: ShopPorts,
   id: Id,
@@ -190,14 +140,13 @@ export async function updateDraft(
     const invoice = await tx.invoices.get(id);
     if (!invoice || invoice.order === null) return fail('not_found');
     if (invoice.status !== 'draft' || invoice.kind !== 'invoice') return fail('forbidden');
-    const order = await tx.orders.get(invoice.order);
-    if (!order) return fail('not_found');
-    const lines = draftLines(order, input.lines);
-    if (!lines.ok) return lines;
+    if (invoice.purpose === 'deposit' && input.extra?.length) return fail('invalid');
+    const extra = await checkedExtra(tx, invoice.lines, input.extra ?? invoice.extra);
+    if (!extra.ok) return extra;
     const patch = {
-      lines: lines.value,
-      total: totalOf(lines.value),
-      dueAt: input.dueAt ?? invoice.dueAt,
+      extra: extra.value.extra,
+      total: totalOf(invoice.lines) + extra.value.sum,
+      dueAt: input.dueAt === undefined ? invoice.dueAt : input.dueAt,
     };
     await tx.invoices.update(id, patch);
     return ok({ ...invoice, ...patch });
@@ -252,7 +201,9 @@ export async function createRefund(
             sum: amount,
           },
         ],
+        extra: [],
         total: amount,
+        voidReason: null,
         dueAt: null,
       }),
     );
@@ -268,26 +219,60 @@ export async function changeInvoice(
   id: Id,
   action: InvoiceAction,
   actor: Actor,
+  reason?: string,
 ): Promise<Outcome<StoredInvoice>> {
   return ports.transaction(async (tx) => {
     const invoice = await tx.invoices.get(id);
     if (!invoice) return fail('not_found');
     if (!canInvoice(invoice.status, action, actor, invoice.kind)) return fail('forbidden');
+    // Аннулирование - с причиной (И-9): у менеджера своя, отказ покупателя известен заранее.
+    const voidReason =
+      action === 'decline'
+        ? DECLINED
+        : action === 'void'
+          ? reason?.trim().slice(0, 200)
+          : undefined;
+    if (action === 'void' && !voidReason) return fail('reason_required');
 
     const to = INVOICE_TRANSITIONS[action].to;
-    await tx.invoices.update(id, { status: to });
-    return ok({ ...invoice, status: to });
+    const patch: { status: typeof to; voidReason?: string; dueAt?: string } = { status: to };
+    if (voidReason) patch.voidReason = voidReason;
+    // Срок оплаты считается от выставления: черновик мог пролежать несколько дней.
+    if (action === 'issue' && invoice.dueAt === null && invoice.kind === 'invoice') {
+      const { invoiceDueDays } = await tx.settings();
+      if (invoiceDueDays > 0)
+        patch.dueAt = new Date(tx.now().getTime() + invoiceDueDays * 86_400_000).toISOString();
+    }
+    await tx.invoices.update(id, patch);
+    return ok({ ...invoice, ...patch });
   });
 }
 
-/** «Я оплатил» от покупателя по секретной ссылке: только счёт своего заказа (И-7). */
-export async function reportBySecret(
+const DECLINED = 'Покупатель отказался';
+
+/** Действие покупателя со счётом своего заказа по секретной ссылке (И-7). */
+async function bySecret(
   ports: ShopPorts,
   secretHash: string,
   invoiceId: Id,
+  action: 'report' | 'decline',
 ): Promise<Outcome<StoredInvoice>> {
   const order = await ports.orders.bySecretHash(secretHash);
   const invoice = order ? await ports.invoices.get(invoiceId) : null;
   if (!order || !invoice || String(invoice.order) !== String(order.id)) return fail('not_found');
-  return changeInvoice(ports, invoiceId, 'report', 'buyer');
+  return changeInvoice(ports, invoiceId, action, 'buyer');
 }
+
+/** «Я оплатил» от покупателя. */
+export const reportBySecret = (
+  ports: ShopPorts,
+  secretHash: string,
+  invoiceId: Id,
+): Promise<Outcome<StoredInvoice>> => bySecret(ports, secretHash, invoiceId, 'report');
+
+/** Покупатель отказался от выставленного счёта: счёт аннулируется с причиной. */
+export const declineBySecret = (
+  ports: ShopPorts,
+  secretHash: string,
+  invoiceId: Id,
+): Promise<Outcome<StoredInvoice>> => bySecret(ports, secretHash, invoiceId, 'decline');

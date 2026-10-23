@@ -57,6 +57,7 @@ export function memoryPorts(state: MemoryState): ShopPorts {
           id: o.id,
           title: o.title,
           price: o.price,
+          listPrice: o.listPrice ?? null,
           stock: o.stock,
           summary: null,
           image: null,
@@ -106,6 +107,14 @@ export function memoryPorts(state: MemoryState): ShopPorts {
         return order;
       },
       get: async (id) => state.orders.get(String(id)) ?? null,
+      removeLine: async (id, index, status, reason, total) => {
+        const o = state.orders.get(String(id));
+        const line = o?.lines[index];
+        if (!o || o.status !== status || !line || line.removed) return false;
+        const lines = o.lines.map((l, i) => (i === index ? { ...l, removed: reason } : l));
+        state.orders.set(String(id), { ...o, lines, total });
+        return true;
+      },
       bySecretHash: async (hash) =>
         [...state.orders.values()].find((o) => o.secretHash === hash) ?? null,
       switchStatus: async (id: Id, from: OrderStatus, to: OrderStatus, cancelReason?: string) => {

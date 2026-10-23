@@ -76,6 +76,20 @@ export const Offers: CollectionConfig = {
         moneyField('priceMicros', 'Цена', {
           admin: { description: 'Пусто или 0 - «цена по запросу», в корзину не кладётся.' },
         }),
+        moneyField('promoPriceMicros', 'Цена по акции', {
+          admin: {
+            description: 'Ниже цены - покупатель видит её, а цену зачёркнутой. Пусто - акции нет.',
+          },
+        }),
+        {
+          name: 'promoUntil',
+          label: 'Акция до',
+          type: 'date',
+          admin: {
+            date: { pickerAppearance: 'dayAndTime' },
+            description: 'Пусто - пока цену по акции не уберут.',
+          },
+        },
         {
           name: 'stock',
           label: 'Остаток',

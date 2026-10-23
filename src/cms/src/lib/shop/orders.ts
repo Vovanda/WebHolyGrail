@@ -8,6 +8,7 @@ import {
   INVOICE_OPEN,
   type OrderAction,
   ORDER_TRANSITIONS,
+  removeOrderLine,
   stockMoves,
 } from 'contracts';
 
@@ -112,6 +113,9 @@ export async function changeOrder(
       const invoices = await tx.invoices.forOrder(order.id);
       // И-6: полученное по заказу сначала возвращается счётом-возвратом.
       if (heldAmount(invoices) !== 0) return fail('money_held');
+      // Покупатель отменяет принятый, пока нет и заявленной оплаты: её сверяет менеджер.
+      if (actor === 'buyer' && invoices.some((i) => i.status === 'reported'))
+        return fail('money_held');
       for (const invoice of invoices) {
         if (invoice.status === 'draft') await tx.invoices.remove(invoice.id);
         else if (INVOICE_OPEN.includes(invoice.status))
@@ -136,6 +140,37 @@ export async function changeOrder(
   });
 }
 
+/**
+ * Менеджер снимает строку заказа с причиной: нет в наличии, передумали.
+ *
+ * @remarks
+ * Строка остаётся в заказе помеченной, покупатель видит её зачёркнутой с причиной,
+ * её остаток возвращается один раз (условная запись в порте). Пока по заказу есть
+ * живой счёт, строку не снимают: счёт уже несёт её сумму - сначала его аннулируют
+ * или удаляют черновик, потом выставляют на остальное.
+ */
+export async function removeLine(
+  ports: ShopPorts,
+  id: Id,
+  index: number,
+  reason: string,
+): Promise<Outcome<StoredOrder>> {
+  return ports.transaction(async (tx) => {
+    const order = await tx.orders.get(id);
+    if (!order) return fail('not_found');
+    const r = removeOrderLine(order.status, order.lines, index, reason);
+    if (!r.ok) return fail(r.error);
+    const invoices = await tx.invoices.forOrder(order.id);
+    if (invoices.some((i) => i.kind === 'invoice' && i.status !== 'voided'))
+      return fail('invoice_exists');
+    const why = r.lines[index]!.removed!;
+    if (!(await tx.orders.removeLine(order.id, index, order.status, why, r.total)))
+      return fail('forbidden');
+    if (r.giveBack.length > 0) await tx.offers.giveBack(r.giveBack);
+    return ok({ ...order, lines: r.lines, total: r.total });
+  });
+}
+
 /** Причина отмены, которую участник не пишет сам; у менеджера её нет - он пишет свою. */
 const CANCEL_REASON: Readonly<Record<Actor, string | undefined>> = {
   buyer: 'Отменён покупателем',
@@ -143,7 +178,7 @@ const CANCEL_REASON: Readonly<Record<Actor, string | undefined>> = {
   manager: undefined,
 };
 
-/** Покупатель отменяет свой новый заказ по секретной ссылке (И-7). */
+/** Покупатель отменяет свой заказ по секретной ссылке, пока по нему нет оплат (И-7). */
 export async function cancelBySecret(
   ports: ShopPorts,
   secretHash: string,

@@ -1,8 +1,9 @@
+import type { ExtraLineInput } from 'contracts';
 import { APIError, type CollectionConfig } from 'payload';
 
 import { editorsOnly, isEditor, nobody, nobodyField } from '../lib/access/editors';
-import { draftLines } from '../lib/shop/invoices';
-import { lineToDoc, orderFromDoc } from '../lib/shop/payload-store';
+import { checkedExtra } from '../lib/shop/invoices';
+import { extraToDoc, invoiceFromDoc, payloadPorts } from '../lib/shop/payload-store';
 import { moneyField } from './money-field';
 import { shopLineFields } from './Orders';
 
@@ -20,6 +21,28 @@ import { shopLineFields } from './Orders';
  */
 const ro = { readOnly: true } as const;
 const locked = { create: nobodyField, update: nobodyField };
+const EXTRA_ERRORS: Record<string, string> = {
+  invalid:
+    'Добавленная строка заполнена неверно: у своей строки и скидки - название и сумма, у позиции - позиция каталога с ценой.',
+  discount_too_large: 'Скидка больше суммы строки или заказа, на которую она дана.',
+};
+
+/** Строка формы в ввод сценария: числа и связи как их отдаёт форма Payload. */
+const extraInput = (l: Record<string, unknown>): ExtraLineInput => {
+  const id = (v: unknown): number | null =>
+    v === null || v === undefined || v === ''
+      ? null
+      : Number(typeof v === 'object' ? (v as { id: unknown }).id : v);
+  return {
+    kind: (l['kind'] as ExtraLineInput['kind']) ?? 'charge',
+    title: String(l['title'] ?? ''),
+    offer: id(l['offer']),
+    quantity: Number(l['quantity'] ?? 1),
+    price: Number(l['priceMicros'] ?? 0),
+    appliesTo: id(l['appliesTo']),
+  };
+};
+
 const isDraft = (data: Record<string, unknown> | undefined): boolean =>
   data?.['status'] === 'draft';
 
@@ -43,32 +66,14 @@ export const Invoices: CollectionConfig = {
             dueAt: originalDoc['dueAt'] ?? null,
           };
         }
-        const orderId = originalDoc['order'];
-        const orderDoc = await req.payload.findByID({
-          collection: 'orders',
-          id:
-            typeof orderId === 'object' && orderId
-              ? (orderId as { id: number }).id
-              : (orderId as number),
-          depth: 0,
-          overrideAccess: true,
-          req,
-        });
-        const lines = draftLines(
-          orderFromDoc(orderDoc as unknown as Record<string, unknown>),
-          ((data['lines'] ?? originalDoc['lines'] ?? []) as Record<string, unknown>[]).map((l) => ({
-            offer: l['offer'] === null || l['offer'] === undefined ? null : Number(l['offer']),
-            title: String(l['title'] ?? ''),
-            quantity: Number(l['quantity']),
-            price: Number(l['priceMicros']),
-          })),
-        );
-        if (!lines.ok) {
+        // Строки из заказа не правятся (И-3); добавленные проверяет сценарий счёта.
+        const invoice = invoiceFromDoc(originalDoc as Record<string, unknown>);
+        const input = ((data['extraLines'] ?? []) as Record<string, unknown>[]).map(extraInput);
+        const extra = await checkedExtra(payloadPorts(req.payload, req), invoice.lines, input);
+        if (!extra.ok) {
           // APIError со статусом: менеджер видит причину, а не «внутреннюю ошибку».
           throw new APIError(
-            lines.error === 'quantity_locked'
-              ? 'Количество позиции берётся из заказа. Другое количество - отменить заказ и оформить заново.'
-              : 'Строка счёта заполнена неверно: название, количество от 1 и цена от 0.',
+            EXTRA_ERRORS[extra.error] ?? EXTRA_ERRORS['invalid']!,
             400,
             undefined,
             true,
@@ -76,8 +81,9 @@ export const Invoices: CollectionConfig = {
         }
         return {
           ...data,
-          lines: lines.value.map(lineToDoc),
-          totalMicros: lines.value.reduce((t, l) => t + l.sum, 0),
+          lines: originalDoc['lines'],
+          extraLines: extra.value.extra.map(extraToDoc),
+          totalMicros: invoice.lines.reduce((t, l) => t + l.sum, 0) + extra.value.sum,
         };
       },
     ],
@@ -165,10 +171,25 @@ export const Invoices: CollectionConfig = {
     }),
     {
       name: 'lines',
-      label: 'Строки',
+      label: 'Строки из заказа',
       labels: { singular: 'строку', plural: 'строк' },
       type: 'array',
-      // Правится только черновик счёта на оплату; выставленный не меняется (И-3).
+      // Копия живых строк заказа: остаток списан по заказу, счёт их не меняет (И-3).
+      access: locked,
+      admin: {
+        ...ro,
+        description:
+          'Строки заказа без снятых. Не правятся: другое количество или цена - через заказ.',
+        disableListColumn: true,
+        components: { RowLabel: '/admin/components/ShopLineRowLabel#ShopLineRowLabel' },
+      },
+      fields: shopLineFields,
+    },
+    {
+      name: 'extraLines',
+      label: 'Добавленные строки',
+      labels: { singular: 'строку', plural: 'строк' },
+      type: 'array',
       access: {
         create: nobodyField,
         update: ({ req: { user }, doc }) =>
@@ -176,11 +197,82 @@ export const Invoices: CollectionConfig = {
       },
       admin: {
         description:
-          'В черновике правится цена и добавляются свои строки - доставка, упаковка. Количество позиции из заказа не меняется.',
+          'Доставка и свои строки, позиция каталога по цене каталога, скидка на строку или на заказ.',
         disableListColumn: true,
         components: { RowLabel: '/admin/components/ShopLineRowLabel#ShopLineRowLabel' },
       },
-      fields: shopLineFields,
+      fields: [
+        {
+          name: 'kind',
+          label: 'Что это',
+          type: 'select',
+          required: true,
+          defaultValue: 'charge',
+          options: [
+            { value: 'charge', label: 'Своя строка' },
+            { value: 'offer', label: 'Позиция каталога' },
+            { value: 'discount', label: 'Скидка' },
+          ],
+        },
+        {
+          name: 'offer',
+          label: 'Позиция',
+          type: 'relationship',
+          relationTo: 'offers',
+          admin: { condition: (_, row) => row?.['kind'] === 'offer' },
+        },
+        {
+          name: 'title',
+          label: 'Название',
+          type: 'text',
+          admin: {
+            condition: (_, row) => row?.['kind'] !== 'offer',
+            description: 'Доставка, упаковка; у скидки - что за скидка: промокод, день рождения.',
+          },
+        },
+        {
+          type: 'row',
+          fields: [
+            {
+              name: 'quantity',
+              label: 'Кол-во',
+              type: 'number',
+              min: 1,
+              defaultValue: 1,
+              admin: { condition: (_, row) => row?.['kind'] !== 'discount' },
+            },
+            moneyField('priceMicros', 'Цена или скидка', {
+              admin: {
+                condition: (_, row) => row?.['kind'] !== 'offer',
+                description: 'У позиции каталога цена берётся из каталога.',
+              },
+            }),
+            moneyField('sumMicros', 'Сумма', { admin: ro }),
+          ],
+        },
+        {
+          name: 'appliesTo',
+          label: 'Скидка на позицию',
+          type: 'relationship',
+          relationTo: 'offers',
+          admin: {
+            condition: (_, row) => row?.['kind'] === 'discount',
+            description: 'Пусто - скидка на весь заказ, она раскладывается по строкам.',
+          },
+        },
+      ],
+    },
+    {
+      // Пишется вместе с аннулированием (lib/shop/invoices): руками не правится.
+      name: 'voidReason',
+      label: 'Почему аннулирован',
+      type: 'text',
+      access: locked,
+      admin: {
+        readOnly: true,
+        description: 'Её видит покупатель на странице заказа.',
+        condition: (data) => data?.['status'] === 'voided',
+      },
     },
   ],
 };

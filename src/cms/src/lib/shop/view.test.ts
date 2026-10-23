@@ -33,6 +33,8 @@ const invoice = (o: Partial<StoredInvoice>): StoredInvoice => ({
   status: 'issued',
   refundOf: null,
   lines: order.lines,
+  extra: [],
+  voidReason: null,
   total: 4_500_500_000,
   dueAt: null,
   ...o,
@@ -51,6 +53,8 @@ describe('заказ глазами покупателя', () => {
       'price',
       'sum',
       'mode',
+      'deposit',
+      'removed',
     ]);
   });
 
@@ -126,6 +130,7 @@ describe('позиция глазами покупателя', () => {
     slug: null,
     section: null,
     specs: {},
+    listPrice: null,
   });
 
   it('нулевая и пустая цена - по запросу, иначе Money', () => {

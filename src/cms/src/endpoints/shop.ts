@@ -6,6 +6,8 @@ import {
   cleanCart,
   depositLines,
   isSlug,
+  LINE_REMOVE_FROM,
+  liveLines,
   MAX_CART_LINES,
   parseMoney,
   INVOICE_TRANSITIONS,
@@ -20,10 +22,11 @@ import {
   changeInvoice,
   createInvoice,
   createRefund,
+  declineBySecret,
   deleteDraft,
   reportBySecret,
 } from '../lib/shop/invoices';
-import { cancelBySecret, changeOrder, placeOrder } from '../lib/shop/orders';
+import { cancelBySecret, changeOrder, placeOrder, removeLine } from '../lib/shop/orders';
 import { payloadPorts } from '../lib/shop/payload-store';
 import type { Failure, OfferQuery, Outcome, ShopPorts } from '../lib/shop/ports';
 import { myOrders } from '../lib/shop/my-orders';
@@ -54,6 +57,9 @@ const STATUS: Record<Failure, number> = {
   shortage: 409,
   money_held: 409,
   quantity_locked: 400,
+  discount_too_large: 400,
+  last_line: 409,
+  invoice_exists: 409,
 };
 
 const ports = (req: PayloadRequest): ShopPorts => payloadPorts(req.payload);
@@ -272,8 +278,12 @@ const buyerCancelEndpoint: Endpoint = {
   },
 };
 
-const buyerReportEndpoint: Endpoint = {
-  path: '/shop/invoices/:id/report',
+/** Действие покупателя со счётом своего заказа: «я оплатил» или отказ. */
+const buyerInvoiceEndpoint = (
+  action: 'report' | 'decline',
+  run: typeof reportBySecret,
+): Endpoint => ({
+  path: `/shop/invoices/:id/${action}`,
   method: 'post',
   handler: async (req) => {
     const refused = guard(req, 'buyerAction');
@@ -282,9 +292,9 @@ const buyerReportEndpoint: Endpoint = {
     const id = req.routeParams?.['id'];
     if (!hash || typeof id !== 'string' || !/^\d+$/.test(id))
       return json({ error: 'not_found' }, 404);
-    return answer(await reportBySecret(ports(req), hash, id), (i) => ({ status: i.status }));
+    return answer(await run(ports(req), hash, id), (i) => ({ status: i.status }));
   },
-};
+});
 
 /**
  * Какие действия доступны менеджеру сейчас - для кнопок в админке.
@@ -311,14 +321,22 @@ const adminActionsEndpoint: Endpoint = {
       const live = (await p.invoices.forOrder(order.id)).filter(
         (i) => i.kind === 'invoice' && i.status !== 'voided',
       );
+      const hasInvoice = live.length > 0;
       return json({
         status: order.status,
         actions,
+        // Строку снимают, пока счёта нет: живой счёт уже несёт её сумму.
+        removable:
+          LINE_REMOVE_FROM.includes(order.status) &&
+          !hasInvoice &&
+          liveLines(order.lines).length > 1
+            ? order.lines.flatMap((l, index) => (l.removed ? [] : [{ index, title: l.title }]))
+            : [],
         // Второй живой основной счёт сценарий отклонит (И-5) - кнопку не показываем.
         canInvoice: order.status === 'accepted' && !live.some((i) => i.purpose === 'payment'),
         canDeposit:
           order.status === 'accepted' &&
-          depositLines(order.lines).length > 0 &&
+          depositLines(liveLines(order.lines)).length > 0 &&
           !live.some((i) => i.purpose === 'deposit'),
       });
     }
@@ -364,6 +382,13 @@ const adminActionEndpoint: Endpoint = {
     if (kind === 'orders' && action === 'invoice') {
       return answer(await createInvoice(p, id), (i) => ({ id: i.id }));
     }
+    if (kind === 'orders' && action === 'remove-line') {
+      const data = await body(req);
+      const line = Number(data['line']);
+      const reason = typeof data['reason'] === 'string' ? data['reason'] : '';
+      if (!Number.isInteger(line) || line < 0) return json({ error: 'invalid' }, 400);
+      return answer(await removeLine(p, id, line, reason), (o) => ({ total: o.total }));
+    }
     if (kind === 'orders' && Object.hasOwn(ORDER_TRANSITIONS, action)) {
       const reason = (await body(req))['reason'];
       return answer(
@@ -395,9 +420,17 @@ const adminActionEndpoint: Endpoint = {
       return answer(await createRefund(p, id, { amount }), (i) => ({ id: i.id }));
     }
     if (kind === 'invoices' && Object.hasOwn(INVOICE_TRANSITIONS, action)) {
-      return answer(await changeInvoice(p, id, action as InvoiceAction, 'manager'), (i) => ({
-        status: i.status,
-      }));
+      const reason = action === 'void' ? (await body(req))['reason'] : undefined;
+      return answer(
+        await changeInvoice(
+          p,
+          id,
+          action as InvoiceAction,
+          'manager',
+          typeof reason === 'string' ? reason : undefined,
+        ),
+        (i) => ({ status: i.status }),
+      );
     }
     return json({ error: 'not_found' }, 404);
   },
@@ -411,7 +444,8 @@ export const shopEndpoints: Endpoint[] = [
   placeOrderEndpoint,
   orderViewEndpoint,
   buyerCancelEndpoint,
-  buyerReportEndpoint,
+  buyerInvoiceEndpoint('report', reportBySecret),
+  buyerInvoiceEndpoint('decline', declineBySecret),
   adminActionsEndpoint,
   adminActionEndpoint,
 ];

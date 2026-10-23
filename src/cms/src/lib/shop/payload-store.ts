@@ -14,6 +14,10 @@ import {
   type OrderStatus,
   shopSettings,
   cleanCharacteristics,
+  currentPrice,
+  EXTRA_KINDS,
+  type ExtraKind,
+  type ExtraLine,
   publicSpecs,
   type SpecValue,
 } from 'contracts';
@@ -55,22 +59,35 @@ const howToBuy = (v: unknown): HowToBuy => (v === 'request' ? 'request' : 'cart'
 const micros = (v: unknown): number | null =>
   typeof v === 'number' && Number.isSafeInteger(v) ? v : null;
 
-export function offerFromDoc(doc: Record<string, unknown>): OfferSnapshot {
+/** Цена позиции сейчас с учётом акции (ADR-007). */
+const priceOf = (doc: Record<string, unknown>, now: Date) =>
+  currentPrice(
+    micros(doc['priceMicros']),
+    micros(doc['promoPriceMicros']),
+    typeof doc['promoUntil'] === 'string' ? doc['promoUntil'] : null,
+    now,
+  );
+
+export function offerFromDoc(doc: Record<string, unknown>, now = new Date()): OfferSnapshot {
+  const { price, listPrice } = priceOf(doc, now);
   return {
     id: Number(doc['id']),
     title: str(doc['title']),
-    price: micros(doc['priceMicros']),
+    price,
+    listPrice,
     stock: typeof doc['stock'] === 'number' ? doc['stock'] : null,
     howToBuy: howToBuy(doc['howToBuy']),
     deposit: micros(doc['depositMicros']),
   };
 }
 
-export function cardFromDoc(doc: Record<string, unknown>): OfferCard {
+export function cardFromDoc(doc: Record<string, unknown>, now = new Date()): OfferCard {
+  const { price, listPrice } = priceOf(doc, now);
   return {
     id: Number(doc['id']),
     title: str(doc['title']),
-    price: micros(doc['priceMicros']),
+    price,
+    listPrice,
     stock: typeof doc['stock'] === 'number' ? doc['stock'] : null,
     summary: typeof doc['summary'] === 'string' ? doc['summary'] : null,
     image: doc['image'] ?? null,
@@ -134,6 +151,8 @@ export function orderFromDoc(doc: Record<string, unknown>): StoredOrder {
           offer: Number(idOf(l['offer'])),
           mode: howToBuy(l['mode']),
           deposit: micros(l['depositMicros']),
+          removed: str(l['removedReason']) || null,
+          listPrice: micros(l['listPriceMicros']),
         }) as OrderLine,
     ),
     total: Number(doc['totalMicros']),
@@ -158,10 +177,42 @@ export function invoiceFromDoc(doc: Record<string, unknown>): StoredInvoice {
     status: doc['status'] as StoredInvoice['status'],
     refundOf: idOf(doc['refundOf']),
     lines: ((doc['lines'] ?? []) as Record<string, unknown>[]).map(lineFromDoc),
+    extra: ((doc['extraLines'] ?? []) as Record<string, unknown>[]).map(extraFromDoc),
     total: Number(doc['totalMicros']),
     dueAt: typeof doc['dueAt'] === 'string' ? doc['dueAt'] : null,
+    voidReason: str(doc['voidReason']) || null,
   };
 }
+
+const extraKind = (v: unknown): ExtraKind =>
+  EXTRA_KINDS.includes(v as ExtraKind) ? (v as ExtraKind) : 'charge';
+
+/**
+ * Добавленная строка счёта из документа.
+ *
+ * @remarks
+ * Денежные поля в базе не бывают отрицательными (ADR-002), поэтому скидка лежит своим
+ * размером, а вычетом становится здесь, по виду строки.
+ */
+const extraFromDoc = (l: Record<string, unknown>): ExtraLine => ({
+  kind: extraKind(l['kind']),
+  title: str(l['title']),
+  offer: idOf(l['offer']),
+  quantity: Number(l['quantity'] ?? 1),
+  price: Number(l['priceMicros']),
+  appliesTo: idOf(l['appliesTo']),
+  sum: extraKind(l['kind']) === 'discount' ? -Number(l['sumMicros']) : Number(l['sumMicros']),
+});
+
+export const extraToDoc = (l: ExtraLine) => ({
+  kind: l.kind,
+  title: l.title,
+  offer: l.offer,
+  quantity: l.quantity,
+  priceMicros: l.price,
+  appliesTo: l.appliesTo,
+  sumMicros: Math.abs(l.sum),
+});
 
 export const lineToDoc = (l: InvoiceLine | OrderLine) => ({
   offer: l.offer,
@@ -169,7 +220,14 @@ export const lineToDoc = (l: InvoiceLine | OrderLine) => ({
   quantity: l.quantity,
   priceMicros: l.price,
   sumMicros: l.sum,
-  ...('mode' in l ? { mode: l.mode, depositMicros: l.deposit } : {}),
+  ...('mode' in l
+    ? {
+        mode: l.mode,
+        depositMicros: l.deposit,
+        removedReason: l.removed ?? null,
+        listPriceMicros: l.listPrice ?? null,
+      }
+    : {}),
 });
 
 /** Документ под запись: суммы - в поля с единицей в имени. */
@@ -324,6 +382,24 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
               );
         return changed === 1;
       },
+      removeLine: async (id, index, status, reason, total) => {
+        const at = new Date().toISOString();
+        // Строка помечается, только пока заказ в том же состоянии и она не снята:
+        // второе снятие не вернёт остаток ещё раз. _order у строк массива - с единицы.
+        const marked = await execute(payload)(
+          `UPDATE orders_lines SET removed_reason = ?
+             WHERE _parent_id = ? AND _order = ? AND removed_reason IS NULL
+               AND EXISTS (SELECT 1 FROM orders WHERE id = ? AND status = ?)`,
+          [reason, Number(id), index + 1, Number(id), status],
+        );
+        if (marked !== 1) return false;
+        await execute(payload)('UPDATE orders SET total_micros = ?, updated_at = ? WHERE id = ?', [
+          total,
+          at,
+          Number(id),
+        ]);
+        return true;
+      },
       newBefore: async (before) => {
         const found = await payload.find({
           collection: 'orders',
@@ -359,7 +435,11 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
       create: async (i) => {
         const doc = await payload.create({
           collection: 'invoices',
-          data: { ...withTotal(i), lines: i.lines.map(lineToDoc) } as never,
+          data: {
+            ...withTotal(i),
+            lines: i.lines.map(lineToDoc),
+            extraLines: i.extra.map(extraToDoc),
+          } as never,
           ...opts,
         });
         return invoiceFromDoc(doc as unknown as Record<string, unknown>);
@@ -367,6 +447,7 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
       update: async (id, patch) => {
         const data: Record<string, unknown> = { ...withTotal(patch) };
         if (patch.lines) data['lines'] = patch.lines.map(lineToDoc);
+        if (patch.extra) data['extraLines'] = patch.extra.map(extraToDoc);
         await payload.update({ collection: 'invoices', id, data: data as never, ...opts });
       },
       remove: async (id) => {

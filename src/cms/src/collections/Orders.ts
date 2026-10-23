@@ -101,6 +101,16 @@ export const Orders: CollectionConfig = {
       fields: [
         ...shopLineFields,
         moneyField('depositMicros', 'Бронь', { admin: ro }),
+        moneyField('listPriceMicros', 'Цена без акции', {
+          admin: { ...ro, condition: (_, row) => Boolean(row?.['listPriceMicros']) },
+        }),
+        {
+          // Пишется сценарием снятия строки (lib/shop/orders): руками не правится.
+          name: 'removedReason',
+          label: 'Снята, причина',
+          type: 'text',
+          admin: { ...ro, condition: (_, row) => Boolean(row?.['removedReason']) },
+        },
         {
           name: 'mode',
           label: 'Как купить',
