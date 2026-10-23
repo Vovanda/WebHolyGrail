@@ -3,27 +3,28 @@ import { cookies, headers } from 'next/headers';
 
 import type {
   BlogArticle,
-  BlogMediaRef,
-  VideoSetItem,
   BlogAuthor,
+  BlogMediaRef,
   BlogTag,
   BlogThread,
   BlogThreadSummary,
   BuyerOrderView,
-  OfferView,
-  OfferDetailView,
+  CatalogResultView,
   CatalogSectionSummary,
   CatalogSectionView,
-  VideoStream,
   FaqGroupDoc,
   MediaRef,
+  OfferDetailView,
+  OfferView,
   PageDoc,
   ReusableBlockDoc,
   SiteSettings,
-  VideoSetRef,
-  VideoSubtitleTrack,
   VideoChapter,
+  VideoSetItem,
+  VideoSetRef,
   VideoStoryboard,
+  VideoStream,
+  VideoSubtitleTrack,
 } from 'contracts';
 
 import { CMS_URL } from './cms-url';
@@ -961,6 +962,30 @@ export async function getCatalogSection(slug: string): Promise<CatalogSectionVie
     cache: 'no-store',
   }).catch(() => null);
   return response?.ok ? ((await response.json()) as CatalogSectionView) : null;
+}
+
+/**
+ * Страница выдачи каталога: раздел или весь магазин, запрос, фильтр, сортировка.
+ *
+ * @remarks
+ * Параметры адреса уходят в CMS как есть - разбирает и проверяет их ручка
+ * (docs/whg/44-catalog-search.md, «Выдача страницами»). Чужой раздел - null.
+ */
+export async function getCatalog(
+  section: string | null,
+  params: Readonly<Record<string, string | string[] | undefined>>,
+): Promise<CatalogResultView | null> {
+  if (section !== null && !isSlug(section)) return null;
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (key === 'section' || value === undefined) continue;
+    for (const v of Array.isArray(value) ? value : [value]) query.append(key, v);
+  }
+  if (section) query.set('section', section);
+  const response = await fetch(`${CMS_URL}/api/shop/catalog?${query.toString()}`, {
+    cache: 'no-store',
+  }).catch(() => null);
+  return response?.ok ? ((await response.json()) as CatalogResultView) : null;
 }
 
 /**

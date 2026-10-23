@@ -1,31 +1,24 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 
-import {
-  applyFilter,
-  CATALOG_HREF,
-  catalogItemOf,
-  facetsOf,
-  readFilter,
-  searchItems,
-  shopSettings,
-  withShopCharacteristics,
-} from 'contracts';
+import { CATALOG_HREF, readFilter, shopSettings } from 'contracts';
 
 import { CardRows } from '@/blocks/arrangements/CardRows';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { CatalogView } from '@/blocks/primitives/Shop/CatalogView';
 import { OfferCard } from '@/blocks/primitives/Shop/OfferCard';
-import { getCatalogSection, getSiteSettings, listOffers } from '@/lib/api-client.engine';
+import { ShopSearchBar } from '@/blocks/primitives/Shop/ShopSearchBar';
+import { getCatalog, getCatalogSection, getSiteSettings } from '@/lib/api-client.engine';
 import { rangesFromForm } from '@/lib/shop/catalog-href';
+import { positions } from '@/lib/shop/positions';
 
 /**
  * Раздел каталога `/shop/<слаг>`: поиск, фильтр по характеристикам и плитка позиций.
  *
  * @remarks
- * Состояние - в адресе (R13): `?material=pvc&thickness=1.2..2&q=клей`. Фильтр и
- * поиск считаются на сервере по позициям раздела: каталоги наших сайтов - сотни
- * позиций, отдельный сервис поиска не нужен (R7, 44-catalog-search.md). Без JS
+ * Состояние - в адресе (R13): `?material=pvc&thickness=1.2..2&q=клей&sort=&page=`.
+ * Выдачу считает индекс каталога в CMS, страница берёт одну её страницу
+ * (`getCatalog`) - вес не зависит от числа позиций (44-catalog-search.md). Без JS
  * страница работает целиком: значения фильтра - ссылки, диапазон и поиск - формы.
  */
 type Params = { section: string };
@@ -51,31 +44,29 @@ export default async function SectionPage({
   searchParams: Promise<Search>;
 }) {
   const [{ section: slug }, search] = await Promise.all([params, searchParams]);
-  const section = await getCatalogSection(slug);
-  if (!section) notFound();
-  const basePath = `/shop/${section.slug}`;
-  // Наличие, скидка и цена - общие для магазина, затем характеристики раздела.
-  const characteristics = withShopCharacteristics(section.characteristics);
+  const [result, settings] = await Promise.all([getCatalog(slug, search), getSiteSettings()]);
+  if (!result?.section) notFound();
+  const section = result.section;
+  const basePath = `${CATALOG_HREF}/${section.slug}`;
 
   // Форма диапазона присылает `ключ.min` и `ключ.max` - приводим к `ключ=от..до`.
-  const canonical = rangesFromForm(search, characteristics);
+  const canonical = rangesFromForm(search, result.characteristics);
   if (canonical !== null) redirect(canonical ? `${basePath}?${canonical}` : basePath);
 
-  const [offers, settings] = await Promise.all([
-    listOffers({ section: section.slug }),
-    getSiteSettings(),
-  ]);
   const shop = shopSettings(settings?.shop);
   const query = typeof search['q'] === 'string' ? search['q'].trim().slice(0, 100) : '';
-  const state = readFilter(search, characteristics);
-  const items = offers.map(catalogItemOf);
-  const found = query ? searchItems(items, query) : items;
-  const facets = facetsOf(found, state, characteristics);
-  const shown = applyFilter(found, state, characteristics);
+  const place = {
+    basePath,
+    state: readFilter(search, result.characteristics),
+    characteristics: result.characteristics,
+    query,
+    sort: result.sort,
+  };
 
   return (
     <section className="block-space bg-bg">
       <div className="mx-auto max-w-wide px-4 md:px-6">
+        <ShopSearchBar query={query} scope={{ slug: section.slug, title: section.title }} />
         <Breadcrumbs
           items={[
             { label: 'Главная', href: '/' },
@@ -83,25 +74,33 @@ export default async function SectionPage({
             { label: section.title },
           ]}
         />
-        <h1 className="font-display text-2xl font-semibold text-ink md:text-3xl">
-          {section.title}
-        </h1>
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h1 className="font-display text-2xl font-semibold text-ink md:text-3xl">
+            {section.title}
+          </h1>
+          <span data-part="title-count" className="text-sm text-muted">
+            {positions(result.total)}
+          </span>
+        </div>
         {section.description && (
           <p className="mt-2 max-w-content text-muted">{section.description}</p>
         )}
 
         <CatalogView
-          basePath={basePath}
-          query={query}
-          state={state}
-          characteristics={characteristics}
-          facets={facets}
-          found={shown.length}
-          searchLabel={`Поиск в разделе «${section.title}»`}
+          place={place}
+          facets={result.facets}
+          result={{
+            total: result.total,
+            page: result.page,
+            pages: result.pages,
+            shown: result.items.length,
+            sort: result.sort,
+          }}
+          empty="В разделе пока нет позиций."
         >
           <CardRows
             as="ul"
-            items={shown}
+            items={result.items}
             columns={5}
             columnsMd={3}
             columnsSm={2}

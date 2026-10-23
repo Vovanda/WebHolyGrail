@@ -18,6 +18,7 @@ import { MediaImage } from '@/blocks/primitives/Media';
 import { hasLexicalContent, LexicalRenderer } from '@/blocks/primitives/RichText';
 import { AddToCart } from '@/blocks/primitives/Shop/AddToCart';
 import { OfferCard } from '@/blocks/primitives/Shop/OfferCard';
+import { ShopSearchBar } from '@/blocks/primitives/Shop/ShopSearchBar';
 import { getOffer, getSiteSettings, listCatalogSections } from '@/lib/api-client.engine';
 import { jsonLd } from '@/lib/seo/json-ld';
 
@@ -75,6 +76,7 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
   return (
     <section className="block-space bg-bg">
       <div className="mx-auto max-w-wide px-4 md:px-6">
+        <ShopSearchBar />
         <Breadcrumbs items={crumbs} copyLink />
         <div
           data-part="offer"

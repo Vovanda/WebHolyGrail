@@ -14,7 +14,8 @@ import { forwardedFor } from '@/lib/forwarded-for';
  * как пришли - по адресу CMS считает лимит, по секрету находит заказ.
  *
  * `offers` - позиции корзины по номерам: названия, цены и остатки для показа;
- * с `?q=` - поиск позиций для добавления из корзины.
+ * с `?q=` - подсказки поиска с добавлением в корзину. `catalog` - страница
+ * выдачи каталога: раздел, запрос, фильтр, сортировка, страница.
  */
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,7 @@ const ROUTES: { re: RegExp; method: 'GET' | 'POST' }[] = [
   { re: /^orders\/cancel$/, method: 'POST' },
   { re: /^invoices\/\d+\/(report|decline)$/, method: 'POST' },
   { re: /^offers$/, method: 'GET' },
+  { re: /^catalog$/, method: 'GET' },
 ];
 
 const BODY_LIMIT = 16 * 1024;
@@ -81,6 +83,12 @@ async function forward(request: NextRequest, path: string[]): Promise<NextRespon
     target = q
       ? `${CMS_URL}/api/shop/offers?q=${encodeURIComponent(q)}`
       : `${CMS_URL}/api/shop/offers?ids=${ids.join(',')}`;
+  }
+
+  if (joined === 'catalog') {
+    // Параметры выдачи уходят как есть, но не длиннее разумного: адрес пишет кто угодно.
+    const query = request.nextUrl.search.slice(1, 2000);
+    target = `${CMS_URL}/api/shop/catalog${query ? `?${query}` : ''}`;
   }
 
   const secret = request.headers.get('x-order-secret');

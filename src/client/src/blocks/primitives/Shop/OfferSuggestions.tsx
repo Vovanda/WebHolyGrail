@@ -1,13 +1,13 @@
 'use client';
 
-import { formatMoney, MAX_QUANTITY, offerViewOf, type OfferView } from 'contracts';
+import { formatMoney, MAX_QUANTITY, type MediaRef, offerViewOf, type OfferView } from 'contracts';
 import { useState } from 'react';
 
+import { MediaImage } from '@/blocks/primitives/Media';
 import { cart } from '@/lib/shop/cart';
 import { OFFER_SNAPSHOTS, writeSnapshots } from '@/lib/shop/snapshots';
 
 import { QuantityStepper } from './QuantityStepper';
-import { primaryButton } from './ui';
 
 /**
  * Выпадающий список найденных позиций с количеством и «Добавить».
@@ -60,37 +60,60 @@ export function OfferSuggestions({
             <li
               key={o.id}
               data-part="offer-search-item"
-              className="flex flex-wrap items-center gap-3 border-b border-border px-3 py-2.5 last:border-b-0"
+              className="flex items-center gap-3 border-b border-border px-3 py-2 last:border-b-0"
             >
-              <span className="w-full min-w-0 text-ink sm:w-auto sm:flex-1">
+              <span
+                data-part="offer-search-media"
+                className="size-10 shrink-0 overflow-hidden rounded-md bg-surface-hover"
+              >
+                {typeof o.image === 'object' && o.image && (
+                  <MediaImage
+                    media={o.image as MediaRef}
+                    place="40px"
+                    alt=""
+                    zoom={false}
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </span>
+              <span className="min-w-0 flex-1">
                 {o.slug ? (
-                  <a href={`/shop/item/${o.slug}`} className="hover:text-accent">
+                  <a
+                    href={`/shop/item/${o.slug}`}
+                    className="line-clamp-1 text-sm text-ink hover:text-accent"
+                  >
                     {o.title}
                   </a>
                 ) : (
-                  o.title
+                  <span className="line-clamp-1 text-sm text-ink">{o.title}</span>
                 )}
-                <span className="block text-sm text-muted tabular-nums">
+                <span className="block text-sm font-semibold tabular-nums text-ink">
                   {o.price ? formatMoney(o.price) : ''}
-                  {gone ? ' · нет в наличии' : ''}
+                  {gone && <span className="ml-2 font-normal text-muted">нет в наличии</span>}
                 </span>
               </span>
               {!gone && o.price && (
-                <>
-                  <QuantityStepper
-                    value={quantity[o.id] ?? 1}
-                    max={stock ?? MAX_QUANTITY}
-                    title={o.title}
-                    onChange={(next) => setQuantity((q) => ({ ...q, [o.id]: Math.max(1, next) }))}
-                  />
+                <span className="flex shrink-0 items-center gap-2">
+                  <span className="hidden sm:block">
+                    <QuantityStepper
+                      value={quantity[o.id] ?? 1}
+                      max={stock ?? MAX_QUANTITY}
+                      title={o.title}
+                      onChange={(next) => setQuantity((q) => ({ ...q, [o.id]: Math.max(1, next) }))}
+                    />
+                  </span>
                   <button
                     type="button"
                     onClick={() => add(o)}
-                    className={`${primaryButton} min-w-28 py-2 text-sm`}
+                    className={`min-h-9 min-w-24 rounded-md border px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-accent ${
+                      added === o.id
+                        ? 'border-success text-success'
+                        : 'border-border-strong text-ink hover:border-accent hover:text-accent'
+                    }`}
                   >
                     {added === o.id ? 'Добавлено' : 'Добавить'}
                   </button>
-                </>
+                </span>
               )}
             </li>
           );

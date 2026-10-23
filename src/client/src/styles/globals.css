@@ -1105,6 +1105,11 @@
   [data-part='tile'] {
     grid-column: var(--sm-col) / span var(--sm-span);
     grid-row: var(--sm-row) / span var(--sm-rows);
+    /*
+      Элемент сетки не сжимается уже своего содержимого: длинное слово без
+      пробела распирало колонку, и соседняя карточка уезжала за край окна.
+    */
+    min-width: 0;
   }
 
   @media (min-width: 768px) {
