@@ -2,12 +2,17 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-import { type BuyerOrderSummary, formatMoney, ORDER_STATUS_LABELS } from 'contracts';
+import {
+  type BuyerOrderSummary,
+  formatMoney,
+  MY_ORDERS_PAGE,
+  ORDER_STATUS_LABELS,
+} from 'contracts';
 
 import { forgetOrder, rememberedOrders } from '@/lib/shop/cart';
 import { dropSnapshot, ORDER_SNAPSHOTS, readSnapshots, writeSnapshots } from '@/lib/shop/snapshots';
 
-import { Pagination } from '../Blog/Pagination';
+import { Pagination } from '../Pagination';
 
 /**
  * Заказы этого браузера: номер, состояние, дата и итог, у каждого ссылка.
@@ -24,7 +29,7 @@ import { Pagination } from '../Blog/Pagination';
  * Заказы, которые браузер уже видел, показываются по снимку сразу, сервер их
  * обновляет. Ссылку, по которой заказа больше нет, браузер забывает.
  */
-const PAGE = 10;
+const PAGE = MY_ORDERS_PAGE;
 
 type Row =
   | { readonly token: string; readonly state: 'shown'; readonly order: BuyerOrderSummary }

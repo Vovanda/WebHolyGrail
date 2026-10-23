@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getAuthorBySlug, getSiteSettings, listArticles } from '@/lib/api-client';
 import { blogColumn, resolveBlogSettings } from '@/lib/blog-settings';
 import { PostList } from '@/blocks/primitives/Blog/PostList';
-import { Pagination } from '@/blocks/primitives/Blog/Pagination';
+import { Pagination } from '@/blocks/primitives/Pagination';
 import { SectionEyebrow } from '@/blocks/primitives/SectionEyebrow';
 import { MediaImage } from '@/blocks/primitives/Media';
 

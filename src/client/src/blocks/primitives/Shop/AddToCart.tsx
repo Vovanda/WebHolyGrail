@@ -9,22 +9,6 @@ import { OFFER_SNAPSHOTS, writeSnapshots } from '@/lib/shop/snapshots';
 import { QuantityStepper } from './QuantityStepper';
 import { primaryButton } from './ui';
 
-/** Только поля карточки: страница позиции передаёт полный вид с галереей и описанием. */
-const offerView = (o: OfferView): OfferView => ({
-  id: o.id,
-  title: o.title,
-  price: o.price,
-  listPrice: o.listPrice ?? null,
-  stock: o.stock,
-  summary: o.summary,
-  image: o.image,
-  howToBuy: o.howToBuy,
-  deposit: o.deposit,
-  slug: o.slug,
-  section: o.section,
-  specs: o.specs,
-});
-
 /**
  * Кнопка «В корзину» на карточке позиции, а после - счётчик количества.
  *
@@ -84,7 +68,7 @@ export function AddToCart({
       disabled={!ready}
       className={`${primaryButton} min-h-11 w-full`}
       onClick={() => {
-        if (snapshot) writeSnapshots(OFFER_SNAPSHOTS, { [String(offer)]: offerView(snapshot) });
+        if (snapshot) writeSnapshots(OFFER_SNAPSHOTS, { [String(offer)]: snapshot });
         cart.add(offer);
       }}
     >

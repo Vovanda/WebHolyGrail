@@ -1,7 +1,14 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import { cardSpecs, formatMoney, type MediaRef, moneyDecimal, shopSettings } from 'contracts';
+import {
+  cardSpecs,
+  formatMoney,
+  type MediaRef,
+  moneyDecimal,
+  offerViewOf,
+  shopSettings,
+} from 'contracts';
 
 import { Breadcrumbs, type Crumb } from '@/blocks/primitives/Breadcrumbs';
 import { Gallery } from '@/blocks/primitives/Gallery';
@@ -114,7 +121,7 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
               <div className="max-w-xs">
                 <AddToCart
                   offer={offer.id}
-                  snapshot={offer}
+                  snapshot={offerViewOf(offer)}
                   title={offer.title}
                   available={offer.stock}
                   cartHref={shopSettings(settings?.shop).cartHref}

@@ -1,3 +1,4 @@
+import { isSlug } from 'contracts';
 import { cookies, headers } from 'next/headers';
 
 import type {
@@ -937,7 +938,7 @@ export async function listOffers(
 
 /** Позиция для своей страницы `/shop/item/<слаг>`; нет такой - null. */
 export async function getOffer(slug: string): Promise<OfferDetailView | null> {
-  if (!/^[a-z0-9-]{1,120}$/.test(slug)) return null;
+  if (!isSlug(slug)) return null;
   const response = await fetch(`${CMS_URL}/api/shop/offers/item/${slug}`, {
     cache: 'no-store',
   }).catch(() => null);
@@ -946,7 +947,7 @@ export async function getOffer(slug: string): Promise<OfferDetailView | null> {
 
 /** Раздел каталога `/shop/<слаг>`; нет такого - null. */
 export async function getCatalogSection(slug: string): Promise<CatalogSectionView | null> {
-  if (!/^[a-z0-9-]{1,120}$/.test(slug)) return null;
+  if (!isSlug(slug)) return null;
   const response = await fetch(`${CMS_URL}/api/shop/sections/${slug}`, {
     cache: 'no-store',
   }).catch(() => null);

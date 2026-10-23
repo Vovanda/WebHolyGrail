@@ -4,7 +4,7 @@ import { getSiteSettings, getThreadBySlug, listArticles } from '@/lib/api-client
 import { blogColumn, resolveBlogSettings } from '@/lib/blog-settings';
 import { PostList } from '@/blocks/primitives/Blog/PostList';
 import { ThreadCard } from '@/blocks/primitives/Blog/ThreadCard';
-import { Pagination } from '@/blocks/primitives/Blog/Pagination';
+import { Pagination } from '@/blocks/primitives/Pagination';
 import { SectionEyebrow } from '@/blocks/primitives/SectionEyebrow';
 
 /**

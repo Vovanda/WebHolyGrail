@@ -81,6 +81,7 @@ export function Cart({
   // Строки из снимка показываются сразу, а оформить можно только по ответу сервера: иначе покупатель
   // соглашается с ценой, которой уже нет.
   const [checked, setChecked] = useState('');
+  const [checkFailed, setCheckFailed] = useState(false);
   const [dropped, setDropped] = useState(false);
   const [orders, setOrders] = useState<string[]>([]);
   const [errors, setErrors] = useState<BuyerErrors>({});
@@ -107,6 +108,7 @@ export function Cart({
         setOffers(found);
         setLoaded(ids);
         setChecked(ids);
+        setCheckFailed(false);
         // Позиции больше нет или у неё нет цены - в заказ она не пойдёт: убираем сразу.
         const dead = ids
           .split(',')
@@ -117,7 +119,10 @@ export function Cart({
           setDropped(true);
         }
       })
-      .catch(() => setLoaded(ids));
+      .catch(() => {
+        setLoaded(ids);
+        setCheckFailed(true);
+      });
   }, [ids]);
 
   const rows = useMemo(
@@ -427,8 +432,19 @@ export function Cart({
                   disabled={busy || !confirmed}
                   className={`${primaryButton} min-h-12 w-full`}
                 >
-                  {busy ? 'Отправляем…' : confirmed ? 'Оформить заказ' : 'Сверяем цены…'}
+                  {busy
+                    ? 'Отправляем…'
+                    : confirmed
+                      ? 'Оформить заказ'
+                      : checkFailed
+                        ? 'Цены не сверились'
+                        : 'Сверяем цены…'}
                 </button>
+                {checkFailed && !confirmed && (
+                  <p role="alert" className="text-sm text-[color:var(--color-danger)]">
+                    Не удалось сверить цены с магазином - обновите страницу.
+                  </p>
+                )}
                 {message && (
                   <p role="alert" className="text-sm text-danger">
                     {message}
