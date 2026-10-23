@@ -3,6 +3,7 @@ import { discountPercent, formatMoney } from 'contracts';
 
 import { CopyCode } from '@/blocks/primitives/CopyCode';
 import { MediaImage } from '@/blocks/primitives/Media';
+import { MediaPlaceholder } from '@/blocks/primitives/Media/MediaPlaceholder';
 
 import { AddToCart } from './AddToCart';
 
@@ -55,27 +56,15 @@ export function OfferCard({
       className={`h-full w-full object-cover${gone ? ' opacity-60 grayscale' : ''}`}
     />
   ) : null;
-  const media = picture ?? (
-    // Фото нет - нейтральное поле с иконкой, как у больших магазинов: высота ряда
-    // та же, название стоит на своём месте ниже.
-    <div className="flex h-full w-full items-center justify-center text-muted">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
-        <circle cx="9" cy="10" r="1.75" stroke="currentColor" strokeWidth="1.5" />
-        <path d="m21 16-5-5-9 9" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-      </svg>
-    </div>
-  );
+  // Фото нет - нейтральное поле с иконкой той же высоты, название стоит на своём месте ниже.
+  const media = picture ?? <MediaPlaceholder />;
   return (
     <article
       data-part="card"
       data-state={gone ? 'sold-out' : 'available'}
       className="flex h-full flex-col rounded-2xl border border-transparent bg-bg p-3 transition-colors hover:border-border"
     >
-      <div
-        data-part="card-media"
-        className={`aspect-square overflow-hidden rounded-xl ${image ? '' : 'bg-surface-hover'}`}
-      >
+      <div data-part="card-media" className="aspect-square overflow-hidden rounded-xl">
         {/* Превью позиции не увеличивается: галерея крупно - на странице позиции. */}
         {href ? (
           <a href={href} aria-hidden="true" tabIndex={-1} className="block h-full">

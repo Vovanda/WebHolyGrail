@@ -3,6 +3,7 @@ import Link from 'next/link';
 
 import { CardRows } from '@/blocks/arrangements/CardRows';
 import { MediaImage } from '@/blocks/primitives/Media';
+import { MediaPlaceholder } from '@/blocks/primitives/Media/MediaPlaceholder';
 import { positions } from '@/lib/shop/positions';
 
 /**
@@ -48,24 +49,7 @@ export function SectionTiles({ nodes }: { readonly nodes: readonly SectionNode[]
                   className="h-full w-full object-contain"
                 />
               ) : (
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <rect
-                    x="3"
-                    y="4"
-                    width="18"
-                    height="16"
-                    rx="2"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                  />
-                  <circle cx="9" cy="10" r="1.75" stroke="currentColor" strokeWidth="1.5" />
-                  <path
-                    d="m21 16-5-5-9 9"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                <MediaPlaceholder size={32} />
               )}
             </span>
           </Link>

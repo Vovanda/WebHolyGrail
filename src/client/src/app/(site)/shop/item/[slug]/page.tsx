@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import {
   CATALOG_HREF,
   cardSpecs,
+  discountPercent,
   formatMoney,
   type MediaRef,
   moneyDecimal,
@@ -13,8 +14,11 @@ import {
 
 import { CardRows } from '@/blocks/arrangements/CardRows';
 import { Breadcrumbs, type Crumb } from '@/blocks/primitives/Breadcrumbs';
-import { Gallery } from '@/blocks/primitives/Gallery';
-import { MediaImage } from '@/blocks/primitives/Media';
+import { Collapsible } from '@/blocks/primitives/Collapsible';
+import { CopyCode } from '@/blocks/primitives/CopyCode';
+import { OfferGallery } from '@/blocks/primitives/Shop/OfferGallery';
+import { SpecTable } from '@/blocks/primitives/Shop/SpecTable';
+
 import { hasLexicalContent, LexicalRenderer } from '@/blocks/primitives/RichText';
 import { AddToCart } from '@/blocks/primitives/Shop/AddToCart';
 import { OfferCard } from '@/blocks/primitives/Shop/OfferCard';
@@ -55,7 +59,12 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
   const place = await getCatalog(offer.section, { page: '1' });
 
   const files = [offer.image, ...offer.gallery].filter(Boolean) as MediaRef[];
-  const specs = cardSpecs(offer.characteristics, offer.specs);
+  const groupOf = new Map(offer.characteristics.map((c) => [c.key, c.group ?? null]));
+  const specs = cardSpecs(offer.characteristics, offer.specs).map((s) => ({
+    ...s,
+    group: groupOf.get(s.key) ?? null,
+  }));
+  const discount = discountPercent(offer.price, offer.listPrice);
   const sold = offer.stock !== null && offer.stock <= 0;
   const crumbs: Crumb[] = [
     { label: 'Главная', href: '/' },
@@ -71,62 +80,71 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
       <div className="mx-auto max-w-wide px-4 md:px-6">
         <ShopTopBar tree={place?.tree ?? []} current={(place?.path ?? []).map((s) => s.slug)} />
         <Breadcrumbs items={crumbs} copyLink />
+        <h1 className="font-display text-2xl font-semibold leading-tight text-ink md:text-3xl">
+          {offer.title}
+        </h1>
+        {offer.sku && (
+          <p className="mt-2 text-sm text-muted">
+            <CopyCode
+              value={offer.sku}
+              label="Артикул"
+              copyLabel={`Скопировать артикул ${offer.sku}`}
+            />
+          </p>
+        )}
+
+        {/* Три зоны, как у Озона и ВсеИнструменты: фото, ключевые характеристики, цена. */}
         <div
           data-part="offer"
-          className={
-            files.length > 0
-              ? 'grid gap-8 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]'
-              : 'grid max-w-2xl gap-8'
-          }
+          className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,18rem)_20rem]"
         >
-          {files.length > 0 && (
-            <div data-part="offer-gallery" className="min-w-0">
-              {/* Первый кадр крупно и открывается по нажатию; остальные плиткой под ним. */}
-              <div className="aspect-[4/3] overflow-hidden rounded-xl border border-border bg-surface">
-                <MediaImage
-                  media={files[0]!}
-                  place="(max-width: 768px) 100vw, 640px"
-                  alt={offer.title}
-                  className="h-full w-full object-contain"
-                />
-              </div>
-              {files.length > 1 && (
-                <div className="mt-4">
-                  <Gallery
-                    node={{
-                      id: `offer-${offer.id}`,
-                      blockType: 'gallery',
-                      data: { files: files.slice(1), view: 'tiles' },
-                    }}
-                    {...(settings ? { settings } : {})}
-                  />
-                </div>
-              )}
-            </div>
-          )}
+          <OfferGallery files={files} title={offer.title} />
 
-          <div data-part="offer-buy" className="flex flex-col gap-4">
-            <h1 className="font-display text-2xl font-semibold text-ink md:text-3xl">
-              {offer.title}
-            </h1>
-            {offer.summary && <p className="text-muted">{offer.summary}</p>}
-            <p
-              data-part="offer-price"
-              className="font-display text-3xl font-semibold tabular-nums text-ink"
-            >
-              {offer.price ? formatMoney(offer.price) : 'Цена по запросу'}
-              {offer.price && offer.listPrice && (
-                <s data-part="offer-list-price" className="ml-3 text-lg font-normal text-muted">
+          <div data-part="offer-key" className="order-3 lg:order-none">
+            {offer.summary && <p className="mb-4 text-sm text-muted">{offer.summary}</p>}
+            {specs.length > 0 && (
+              <>
+                <h2 className="mb-3 font-display text-base font-semibold text-ink">О товаре</h2>
+                <SpecTable rows={specs.slice(0, 6).map((r) => ({ ...r, group: null }))} />
+                {specs.length > 6 && (
+                  <a
+                    href="#specs"
+                    className="mt-3 inline-block text-sm font-medium text-accent underline-offset-4 hover:underline"
+                  >
+                    Все характеристики ›
+                  </a>
+                )}
+              </>
+            )}
+          </div>
+
+          <aside
+            data-part="offer-buy"
+            className="order-2 self-start rounded-2xl border border-border bg-surface p-5 lg:sticky lg:top-24 lg:order-none"
+          >
+            {offer.price && offer.listPrice && (
+              <p className="flex flex-wrap items-center gap-2 text-sm tabular-nums">
+                <s data-part="offer-list-price" className="text-muted">
                   {formatMoney(offer.listPrice)}
                 </s>
-              )}
+                {discount !== null && (
+                  <span className="rounded-md bg-success px-1.5 py-0.5 text-xs font-medium text-accent-fg">
+                    −{discount}%
+                  </span>
+                )}
+              </p>
+            )}
+            <p
+              data-part="offer-price"
+              className="mt-1 font-display text-3xl font-bold tabular-nums text-ink"
+            >
+              {offer.price ? formatMoney(offer.price) : 'Цена по запросу'}
             </p>
             {offer.price && offer.deposit && (
-              <p className="text-sm text-muted">Бронь {formatMoney(offer.deposit)} вперёд</p>
+              <p className="mt-1 text-sm text-muted">Бронь {formatMoney(offer.deposit)} вперёд</p>
             )}
-            {sold && <p className="text-sm text-muted">Нет в наличии</p>}
             {offer.price && !sold && (
-              <div className="max-w-xs">
+              <div className="mt-4">
                 <AddToCart
                   offer={offer.id}
                   snapshot={offerViewOf(offer)}
@@ -137,27 +155,45 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
                 />
               </div>
             )}
-
-            {specs.length > 0 && (
-              <dl
-                data-part="offer-specs"
-                className="mt-2 grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm"
-              >
-                {specs.map((s) => (
-                  <div key={s.key} className="contents">
-                    <dt className="text-muted">{s.title}</dt>
-                    <dd className="text-ink">{s.value}</dd>
-                  </div>
-                ))}
-              </dl>
-            )}
-          </div>
+            <p
+              data-part="offer-stock"
+              className={`mt-4 text-sm ${sold ? 'text-muted' : 'text-success'}`}
+            >
+              {sold
+                ? 'Нет в наличии'
+                : offer.howToBuy === 'request'
+                  ? 'По заявке: наличие подтвердит продавец'
+                  : typeof offer.stock === 'number'
+                    ? `В наличии: ${offer.stock} шт.`
+                    : 'В наличии'}
+            </p>
+          </aside>
         </div>
 
-        {hasLexicalContent(offer.description) && (
-          <div data-part="offer-description" className="mt-10 max-w-prose">
-            <h2 className="mb-3 font-display text-xl font-semibold text-ink">Описание</h2>
-            <LexicalRenderer value={offer.description} settings={settings ?? undefined} />
+        {/* Описание и все характеристики - двумя колонками, обе свёрнуты. */}
+        {(hasLexicalContent(offer.description) || specs.length > 0) && (
+          <div className="mt-12 grid gap-10 border-t border-border pt-10 lg:grid-cols-2">
+            {hasLexicalContent(offer.description) && (
+              <section data-part="offer-description">
+                <h2 className="mb-4 font-display text-xl font-semibold text-ink">Описание</h2>
+                <Collapsible height={280}>
+                  <LexicalRenderer value={offer.description} settings={settings ?? undefined} />
+                </Collapsible>
+              </section>
+            )}
+            {specs.length > 0 && (
+              <section
+                id="specs"
+                data-part="offer-specs"
+                className={`scroll-mt-24 ${hasLexicalContent(offer.description) ? '' : 'lg:col-span-2'}`}
+              >
+                <h2 className="mb-4 font-display text-xl font-semibold text-ink">Характеристики</h2>
+                <Collapsible height={320} more="Все характеристики">
+                  {/* Описания нет - таблица во всю ширину, группы в две колонки. */}
+                  <SpecTable rows={specs} columns={hasLexicalContent(offer.description) ? 1 : 2} />
+                </Collapsible>
+              </section>
+            )}
           </div>
         )}
 

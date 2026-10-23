@@ -286,6 +286,7 @@ mirror	src/client/src/blocks/primitives/CarouselSection.tsx
 mirror	src/client/src/blocks/primitives/CatalogFilters.tsx
 mirror	src/client/src/blocks/primitives/CertifiedNotice.test.tsx
 mirror	src/client/src/blocks/primitives/CertifiedNotice.tsx
+mirror	src/client/src/blocks/primitives/Collapsible.tsx
 mirror	src/client/src/blocks/primitives/CollapsibleSection.tsx
 mirror	src/client/src/blocks/primitives/ComparisonTable.tsx
 mirror	src/client/src/blocks/primitives/CopyCode.tsx
@@ -317,6 +318,7 @@ mirror	src/client/src/blocks/primitives/Media/LaneCaption.tsx
 mirror	src/client/src/blocks/primitives/Media/LaneOverlay.tsx
 mirror	src/client/src/blocks/primitives/Media/MediaImage.test.tsx
 mirror	src/client/src/blocks/primitives/Media/MediaImage.tsx
+mirror	src/client/src/blocks/primitives/Media/MediaPlaceholder.tsx
 mirror	src/client/src/blocks/primitives/Media/MediaReveal.tsx
 mirror	src/client/src/blocks/primitives/Media/PageLightbox.tsx
 mirror	src/client/src/blocks/primitives/Media/types.ts
@@ -358,6 +360,7 @@ mirror	src/client/src/blocks/primitives/Shop/FacetPanel.tsx
 mirror	src/client/src/blocks/primitives/Shop/HeaderCart.tsx
 mirror	src/client/src/blocks/primitives/Shop/MyOrders.tsx
 mirror	src/client/src/blocks/primitives/Shop/OfferCard.tsx
+mirror	src/client/src/blocks/primitives/Shop/OfferGallery.tsx
 mirror	src/client/src/blocks/primitives/Shop/OfferSearch.tsx
 mirror	src/client/src/blocks/primitives/Shop/OfferSuggestions.tsx
 mirror	src/client/src/blocks/primitives/Shop/OrderActions.tsx
@@ -369,6 +372,7 @@ mirror	src/client/src/blocks/primitives/Shop/ShopSearchBar.tsx
 mirror	src/client/src/blocks/primitives/Shop/ShopTopBar.tsx
 mirror	src/client/src/blocks/primitives/Shop/Showcase.tsx
 mirror	src/client/src/blocks/primitives/Shop/SortMenu.tsx
+mirror	src/client/src/blocks/primitives/Shop/SpecTable.tsx
 mirror	src/client/src/blocks/primitives/Shop/ui.ts
 mirror	src/client/src/blocks/primitives/SidePanel.test.ts
 mirror	src/client/src/blocks/primitives/SidePanel.tsx
