@@ -13,6 +13,7 @@ import {
   CATALOG_HREF,
   checkBuyer,
   DEFAULT_CHECKOUT,
+  fitCartToStock,
   formatMoney,
   fromMoney,
   PHONE_FORMATS,
@@ -85,6 +86,8 @@ export function Cart({
   const [checked, setChecked] = useState('');
   const [checkFailed, setCheckFailed] = useState(false);
   const [dropped, setDropped] = useState(false);
+  // Урезанные по остатку строки: сколько было - покупатель видит, что поменялось.
+  const [trimmed, setTrimmed] = useState<Map<number, number>>(new Map());
   const [orders, setOrders] = useState<string[]>([]);
   const [errors, setErrors] = useState<BuyerErrors>({});
   const [message, setMessage] = useState<string | null>(null);
@@ -120,11 +123,21 @@ export function Cart({
           dead.forEach((id) => cart.remove(id));
           setDropped(true);
         }
+        // Больше остатка - урезаем сразу, а не ошибкой после «Оформить».
+        const fit = fitCartToStock(lines, d.docs);
+        if (fit.trimmed.length > 0) {
+          fit.trimmed.forEach((t) => cart.set(t.offer, t.to));
+          setTrimmed(
+            (was) => new Map([...was, ...fit.trimmed.map((t) => [t.offer, t.from] as const)]),
+          );
+        }
       })
       .catch(() => {
         setLoaded(ids);
         setCheckFailed(true);
       });
+    // Количество читается в момент сверки, а сверка идёт на смену набора позиций.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ids]);
 
   const rows = useMemo(
@@ -134,16 +147,20 @@ export function Cart({
         .filter((r): r is Row => Boolean(r.offer?.price)),
     [lines, offers],
   );
-  const count = rows.reduce((n, r) => n + r.quantity, 0);
+  // Проданные остаются на виду с пометкой, но в заказ, счёт и сумму не идут.
+  const fit = useMemo(() => fitCartToStock(lines, [...offers.values()]), [lines, offers]);
+  const soldOut = new Set(fit.soldOut);
+  const buying = rows.filter((r) => !soldOut.has(r.offer.id));
+  const count = buying.reduce((n, r) => n + r.quantity, 0);
   // За пределом точных целых сумму не показываем: сервер такой заказ всё равно не примет.
   const lineSum = (r: Row) => {
     const micros = fromMoney(r.offer.price) * r.quantity;
     return Number.isSafeInteger(micros) ? toMoney(micros, r.offer.price.currency) : null;
   };
-  const totalMicros = rows.reduce((t, r) => t + fromMoney(r.offer.price) * r.quantity, 0);
+  const totalMicros = buying.reduce((t, r) => t + fromMoney(r.offer.price) * r.quantity, 0);
   const total =
-    rows.length && Number.isSafeInteger(totalMicros)
-      ? toMoney(totalMicros, rows[0]!.offer.price.currency)
+    buying.length && Number.isSafeInteger(totalMicros)
+      ? toMoney(totalMicros, buying[0]!.offer.price.currency)
       : null;
   const loading = lines.length > 0 && loaded !== ids;
   const confirmed = checked === ids;
@@ -167,7 +184,7 @@ export function Cart({
       const r = await fetch('/internal/shop/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cart: lines, buyer: raw }),
+        body: JSON.stringify({ cart: fit.lines, buyer: raw }),
       });
       const res = (await r.json().catch(() => ({}))) as {
         secret?: string;
@@ -284,7 +301,9 @@ export function Cart({
               <OfferSearch />
               <ul data-part="lines" className="divide-y divide-border border-y border-border">
                 {rows.map(({ offer, quantity }) => {
-                  const sum = lineSum({ offer, quantity });
+                  const gone = soldOut.has(offer.id);
+                  const was = trimmed.get(offer.id);
+                  const sum = gone ? null : lineSum({ offer, quantity });
                   const max = typeof offer.stock === 'number' ? offer.stock : 1000;
                   const image =
                     typeof offer.image === 'object' && offer.image
@@ -294,6 +313,7 @@ export function Cart({
                     <li
                       key={offer.id}
                       data-part="line"
+                      data-state={gone ? 'sold-out' : was ? 'trimmed' : undefined}
                       className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-3 py-5 sm:grid-cols-[auto_minmax(0,1fr)_auto_9rem]"
                     >
                       <div
@@ -316,19 +336,35 @@ export function Cart({
                         <p className="mt-0.5 text-sm tabular-nums text-muted">
                           {formatMoney(offer.price)} за шт.
                         </p>
-                        {offer.howToBuy === 'request' && (
+                        {gone && (
+                          <p data-part="line-note" className="mt-0.5 text-sm text-danger">
+                            Нет в наличии - в заказ не войдёт
+                          </p>
+                        )}
+                        {!gone && was !== undefined && was > quantity && (
+                          <p
+                            data-part="line-note"
+                            role="status"
+                            className="mt-0.5 text-sm text-danger"
+                          >
+                            Осталось {offer.stock} шт. - было {was}, количество уменьшено
+                          </p>
+                        )}
+                        {offer.howToBuy === 'request' && !gone && (
                           <p data-part="line-note" className="mt-0.5 text-sm text-muted">
                             По заявке: наличие подтвердит продавец
                           </p>
                         )}
                       </div>
                       <div className="col-start-2 flex items-center gap-2 sm:col-start-auto">
-                        <QuantityStepper
-                          value={quantity}
-                          max={max}
-                          title={offer.title}
-                          onChange={(next) => cart.set(offer.id, next)}
-                        />
+                        {!gone && (
+                          <QuantityStepper
+                            value={quantity}
+                            max={max}
+                            title={offer.title}
+                            onChange={(next) => cart.set(offer.id, next)}
+                          />
+                        )}
                         <button
                           type="button"
                           data-part="line-remove"
@@ -441,7 +477,7 @@ export function Cart({
                 {hint('consent')}
                 <button
                   type="submit"
-                  disabled={busy || !confirmed}
+                  disabled={busy || !confirmed || fit.lines.length === 0}
                   className={`${primaryButton} min-h-12 w-full`}
                 >
                   {busy
