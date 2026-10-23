@@ -9,7 +9,14 @@ import type {
   Money,
   OfferView,
 } from 'contracts';
-import { checkBuyer, DEFAULT_CHECKOUT, formatMoney, fromMoney, toMoney } from 'contracts';
+import {
+  checkBuyer,
+  DEFAULT_CHECKOUT,
+  formatMoney,
+  fromMoney,
+  PHONE_FORMATS,
+  toMoney,
+} from 'contracts';
 import { useEffect, useMemo, useState } from 'react';
 
 import { MediaImage } from '@/blocks/primitives/Media';
@@ -163,6 +170,33 @@ export function Cart({
     } finally {
       setBusy(false);
     }
+  };
+
+  // Поле проверяется, как только из него ушли: о неверном номере покупатель
+  // узнаёт сразу, а не после «Оформить». Ошибки других полей не трогаем.
+  const checkField = (event: React.FocusEvent<HTMLFormElement>) => {
+    const name = (event.target as unknown as HTMLInputElement).name as keyof BuyerErrors;
+    if (!['name', 'phone', 'email'].includes(name)) return;
+    const form = new FormData(event.currentTarget);
+    const checked = checkBuyer(
+      {
+        name: form.get('name'),
+        phone: form.get('phone'),
+        email: form.get('email'),
+        consent: true,
+      },
+      rules,
+    );
+    // Пустое необязательное поле ошибки не даёт - её снимает и стирание номера;
+    // заполненный телефон или почта снимают и общее «телефон или почта».
+    // Пустое поле, которое проскочили, новой ошибки не даёт - только снимает старую.
+    const errors = checked.ok ? {} : checked.errors;
+    const filled = String(form.get(name) ?? '').trim() !== '';
+    setErrors((current) => ({
+      ...current,
+      [name]: filled ? errors[name] : current[name] && errors[name],
+      ...(name === 'name' ? {} : { contact: current.contact && errors.contact }),
+    }));
   };
 
   const hint = (k: keyof BuyerErrors) =>
@@ -329,7 +363,7 @@ export function Cart({
                 Оплата - по счёту: продавец выставит его, когда подтвердит заказ.
               </p>
 
-              <form onSubmit={submit} noValidate className="mt-6 grid gap-3">
+              <form onSubmit={submit} onBlur={checkField} noValidate className="mt-6 grid gap-3">
                 <input
                   name="name"
                   placeholder="Как к вам обращаться *"
@@ -338,10 +372,15 @@ export function Cart({
                   autoComplete="name"
                 />
                 {hint('name')}
+                {rules.phone === 'optional' && rules.email === 'optional' && (
+                  <p data-part="contact-hint" className="text-sm text-muted">
+                    Оставьте телефон или почту - иначе продавец не сможет с вами связаться.
+                  </p>
+                )}
                 {rules.phone !== 'hidden' && (
                   <input
                     name="phone"
-                    placeholder={label('Телефон', rules.phone)}
+                    placeholder={`${label('Телефон', rules.phone)}, например ${PHONE_FORMATS[rules.phoneFormat].example}`}
                     aria-label="Телефон"
                     className={field}
                     autoComplete="tel"
