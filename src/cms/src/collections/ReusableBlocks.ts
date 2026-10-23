@@ -3,7 +3,7 @@ import type { CollectionConfig } from 'payload';
 import { REUSABLE_INNER_BLOCKS } from '../blocks';
 import { BLOCK_ROW_LABELS } from '../blocks/engine';
 import { editorsOnly, adminsOnly } from '../lib/access/editors';
-import { moduleBlockFilter } from '../lib/modules/blocks';
+import { groupedByModule, moduleBlockFilter } from '../lib/modules/blocks';
 
 /**
  * ReusableBlocks — атомарные «шаблонные» композиции блоков, которые можно
@@ -49,7 +49,7 @@ export const ReusableBlocks: CollectionConfig = {
       type: 'blocks',
       labels: BLOCK_ROW_LABELS,
       required: true,
-      blocks: REUSABLE_INNER_BLOCKS,
+      blocks: groupedByModule(REUSABLE_INNER_BLOCKS),
       filterOptions: moduleBlockFilter('content', REUSABLE_INNER_BLOCKS),
     },
   ],

@@ -1,6 +1,6 @@
 import type { Block, BlocksField } from 'payload';
 
-import { disabledBlocks } from 'contracts';
+import { disabledBlocks, moduleOfBlock, MODULES } from 'contracts';
 
 import { readToggles } from '../toggles/source';
 
@@ -30,4 +30,32 @@ export function moduleBlockFilter(
     );
     return blocks.map((b) => b.slug).filter((slug) => !off.has(slug) || present.has(slug));
   };
+}
+
+/**
+ * Блоки в окне выбора сгруппированы по модулям.
+ *
+ * @remarks
+ * Без группы блоки модулей стоят вперемешку с общими, и владелец ищет витрину
+ * магазина среди героев и цитат. Блок без модуля идёт в «Стандартные»; своя группа
+ * блока, если её задали, главнее.
+ *
+ * Окно выбора ставит группы в порядке первого блока, поэтому порядок здесь и есть
+ * приоритет: сначала стандартные в порядке набора блоков (частые - выше), затем
+ * модули в порядке меню. Внутри группы - порядок набора.
+ */
+export function groupedByModule(blocks: readonly Block[]): Block[] {
+  const rank = (b: Block): number => {
+    const key = moduleOfBlock(b.slug);
+    return key ? 1 + MODULES.findIndex((m) => m.key === key) : 0;
+  };
+  return blocks
+    .map((b, i) => ({ b, i, r: rank(b) }))
+    .sort((x, y) => x.r - y.r || x.i - y.i)
+    .map(({ b }) => {
+      if (b.admin?.group) return b;
+      const key = moduleOfBlock(b.slug);
+      const group = key ? MODULES.find((m) => m.key === key)!.title : 'Стандартные';
+      return { ...b, admin: { ...b.admin, group } };
+    });
 }

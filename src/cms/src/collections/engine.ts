@@ -50,34 +50,35 @@ export const engineCollections = [
   Pages,
   ReusableBlocks,
   FaqGroups,
-  // Ответы форм - то, ради чего сайт обычно и заводят.
-  FormSubmissions,
-  // Магазин: заказы рядом с обращениями - это тоже входящее от посетителя;
-  // позиции и счета следом (docs/whg/43-shop.md).
-  Orders,
-  Invoices,
-  Offers,
-  // Записи и всё вокруг них.
-  Articles,
-  Threads,
-  Tags,
-  Authors,
   // Медиа: сами файлы и наборы видео.
   Media,
   Playlists,
+  // Заявки с форм - то, ради чего сайт обычно и заводят.
+  FormSubmissions,
+  // Магазин в порядке работы: что продаём, заказы на это, счета по заказам
+  // (docs/whg/43-shop.md).
+  Offers,
+  Orders,
+  Invoices,
+  // Записи и всё вокруг них.
+  Articles,
+  Threads,
+  Authors,
+  // Теги последними: их трогают реже всего.
+  Tags,
   // Доступы - своя группа: закрытой бывает любая запись, а не только видео.
   MediaAccesses,
   MediaAccessRights,
   MediaAccessCodes,
   MediaAccessLinks,
   KeyUsage,
-  // Специалисты по городам: тренеры, мастера, врачи, репетиторы.
-  Cities,
+  // Специалисты по городам: сами люди, потом справочник городов.
   Specialists,
+  Cities,
   SocialPosts,
   Comments,
   // Настройки последними: их трогают редко. Что на сайте включено - значения
   // по окружениям, меняются без выкладки.
-  FeatureToggles,
   Users,
+  FeatureToggles,
 ];

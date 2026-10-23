@@ -28,9 +28,10 @@ export const FeatureToggles: CollectionConfig = {
     group: 'Настройки',
     description: 'Что включено на сайте. Меняется здесь и доходит до сайта без выкладки.',
     components: {
-      // Свод над списком: владельцу нужен ответ «что сейчас включено на рабочем
-      // сайте», а не перечень записей по алфавиту.
-      beforeListTable: ['/admin/components/TogglesBoard#TogglesBoard'],
+      // Доска вместо списка: владельцу нужен ответ «что сейчас включено на
+      // рабочем сайте», а не перечень записей по алфавиту. Свой вид списка -
+      // публичный слот, прятать штатную таблицу правилами по её классам не нужно.
+      views: { list: { Component: '/admin/components/TogglesBoard#TogglesBoard' } },
     },
   },
   fields: [

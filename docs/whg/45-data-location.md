@@ -90,6 +90,35 @@ The split from the table above still holds: the owner changes what the site does
 the admin panel, whoever runs the servers changes technical knobs through Infisical. What
 changed is that both now land in one list.
 
+## Modules
+
+A module is a set of collections and blocks that not every site needs: blog, shop, forms,
+access, specialists, social. The registry lives in `contracts/src/modules.ts`, so the CMS and
+the site read the same list (R3). Content, media and settings are not modules: every site has
+them and they cannot be switched off.
+
+A module is switched by a system toggle `module.<key>` in the same `feature-toggles`
+collection. What differs from an ordinary toggle:
+
+- **A missing record means on.** Startup creates module toggles switched on, so a site built
+  before modules keeps every section it uses after an update (R10). Optional modules arrive
+  switched off only on a new instance, through its starting content.
+- **The owner switches it on the «Modules» tab of site settings**, as tiles in menu order. A
+  tile writes all three environments at once: a site either has the module or it does not.
+  Per-environment testing stays on the toggles board.
+- **Off means the code path is closed, not just hidden.** The module's collections leave the
+  admin menu and their API refuses; its endpoints answer 404; its scheduled tasks skip; its
+  blocks disappear from the block picker; its site pages answer 404. A block already placed
+  on a page stays in the data and renders a neutral «temporarily unavailable» plate of the
+  same place, so the page does not jump. Access checks run with `overrideAccess` and ignore
+  the toggle: closed records stay closed when the access module is off.
+- The CMS reads module state synchronously from a per-process snapshot refreshed on every
+  toggle write and every 30 seconds; the two blue-green colours each keep their own.
+
+A module that breaks startup itself is a different case: collections are built at launch, and
+a runtime toggle cannot help. Excluding a module from the build through an environment
+variable is a separate, planned level (#114).
+
 ## When we revisit
 
 - After scaffolding 3+ instances and watching what kinds of config drift between them.

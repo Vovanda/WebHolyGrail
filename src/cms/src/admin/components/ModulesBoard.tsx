@@ -43,18 +43,34 @@ const SETTINGS: CoreTile = {
 
 const byKey = (key: ModuleKey): EngineModule => MODULES.find((m) => m.key === key)!;
 
-/** Порядок меню: входящее от посетителя, содержимое, служебное ниже. */
+/** Порядок меню: основа сайта, входящее от посетителя, служебное ниже. */
 const TILES: readonly (CoreTile | EngineModule)[] = [
   CONTENT,
+  MEDIA,
   byKey('forms'),
   byKey('shop'),
   byKey('blog'),
-  MEDIA,
   byKey('access'),
   byKey('specialists'),
   byKey('social'),
   SETTINGS,
 ];
+
+/**
+ * Ссылки модуля в меню прячутся и возвращаются сразу, до перерисовки меню сервером.
+ *
+ * @remarks
+ * Меню админки собирает сервер, и его обновление идёт следом за нажатием.
+ * Ищем ссылки по адресу коллекции, а не по классам Payload: адрес - публичная
+ * часть админки и при обновлении не меняется, классы меняются.
+ */
+function showInMenu(key: ModuleKey, on: boolean): void {
+  for (const slug of byKey(key).collections) {
+    document
+      .querySelectorAll<HTMLElement>(`nav a[href$="/collections/${slug}"]`)
+      .forEach((a) => (a.style.display = on ? '' : 'none'));
+  }
+}
 
 const isOn = (doc: ToggleDoc | undefined): boolean =>
   doc ? doc.production === true || doc.staging === true || doc.development === true : true;
@@ -105,6 +121,15 @@ export function ModulesBoard() {
     const doc = docs?.[moduleToggleKey(key)];
     if (!doc) return;
     const next = !isOn(doc);
+    const apply = (value: boolean) =>
+      setDocs((current) => ({
+        ...current,
+        [moduleToggleKey(key)]: { ...doc, production: value, staging: value, development: value },
+      }));
+    // Плитка переключается сразу, а не после ответа: иначе нажатие выглядит
+    // пропущенным, и его повторяют - модуль возвращается обратно.
+    apply(next);
+    showInMenu(key, next);
     setBusy(key);
     const response = await fetch(`/api/feature-toggles/${doc.id}`, {
       method: 'PATCH',
@@ -113,11 +138,10 @@ export function ModulesBoard() {
       body: JSON.stringify({ production: next, staging: next, development: next }),
     }).catch(() => null);
     setBusy(null);
-    if (!response?.ok) return;
-    setDocs((current) => ({
-      ...current,
-      [moduleToggleKey(key)]: { ...doc, production: next, staging: next, development: next },
-    }));
+    if (!response?.ok) {
+      apply(!next);
+      return showInMenu(key, !next);
+    }
     // Меню админки собирает сервер: без обновления разделы модуля исчезли бы
     // только после перехода на другую страницу.
     router.refresh();
@@ -151,7 +175,8 @@ export function ModulesBoard() {
                 }}
               >
                 <TileText
-                  {...tile}
+                  title={tile.title}
+                  description={tile.description}
                   status={<span style={{ opacity: 0.75 }}>Всегда включён</span>}
                 />
               </div>
@@ -164,18 +189,18 @@ export function ModulesBoard() {
               key={tile.key}
               type="button"
               aria-pressed={on}
-              disabled={!doc || busy === tile.key}
+              disabled={!doc}
               onClick={() => void flip(tile.key)}
               style={{
                 ...tileStyle,
                 border: `1px solid ${on ? 'var(--theme-success-500)' : 'var(--theme-elevation-150)'}`,
                 background: on ? 'var(--theme-success-50)' : 'var(--theme-elevation-50)',
-                cursor: doc ? 'pointer' : 'default',
-                opacity: busy === tile.key ? 0.5 : 1,
+                cursor: busy === tile.key ? 'progress' : doc ? 'pointer' : 'default',
               }}
             >
               <TileText
-                {...tile}
+                title={tile.title}
+                description={tile.description}
                 status={doc ? (on ? 'Включён' : 'Выключен') : 'Появится после перезапуска'}
               />
             </button>

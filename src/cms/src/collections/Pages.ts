@@ -4,7 +4,7 @@ import { PAGE_BLOCKS } from '../blocks';
 import { BLOCK_ROW_LABELS } from '../blocks/engine';
 import { previewPath } from '../lib/preview';
 import { editorsOnly, adminsOnly } from '../lib/access/editors';
-import { moduleBlockFilter } from '../lib/modules/blocks';
+import { groupedByModule, moduleBlockFilter } from '../lib/modules/blocks';
 
 /**
  * Pages — страницы сайта из блоков.
@@ -56,7 +56,7 @@ export const Pages: CollectionConfig = {
       label: 'Блоки страницы',
       type: 'blocks',
       labels: BLOCK_ROW_LABELS,
-      blocks: PAGE_BLOCKS,
+      blocks: groupedByModule(PAGE_BLOCKS),
       filterOptions: moduleBlockFilter('blocks', PAGE_BLOCKS),
       admin: {
         description:
