@@ -1,6 +1,7 @@
 'use client';
 
-import { Button, Gutter } from '@payloadcms/ui';
+import { Button, Gutter, useConfig } from '@payloadcms/ui';
+import { formatAdminURL } from 'payload/shared';
 import { useEffect, useMemo, useState } from 'react';
 
 /**
@@ -44,18 +45,24 @@ export function TogglesBoard() {
   // Что сайт отдаёт на самом деле: у признаков из хранилища секретов значение
   // задаёт переменная, и по галочкам его не увидеть.
   const [actual, setActual] = useState<Record<string, boolean>>({});
+  const [error, setError] = useState<string | null>(null);
+  // Адреса - через маршруты конфига: сайт под своим путём (basePath) иначе
+  // ломает доску первой - это весь вид списка переключателей.
+  const { config } = useConfig();
+  const api = (path: `/${string}`) => formatAdminURL({ apiRoute: config.routes.api, path });
+  const admin = (path: `/${string}`) => formatAdminURL({ adminRoute: config.routes.admin, path });
 
   useEffect(() => {
-    void fetch('/api/feature-toggles?depth=0&limit=200&sort=group', { credentials: 'include' })
+    void fetch(api('/feature-toggles?depth=0&limit=200&sort=group'), { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setItems(d?.docs ?? []))
       .catch(() => setItems([]));
 
-    void fetch('/api/toggles', { credentials: 'include' })
+    void fetch(api('/toggles'), { credentials: 'include' })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setActual(d?.toggles ?? {}))
       .catch(() => undefined);
-  }, []);
+  }, [config.routes.api]);
 
   // Собираем по фичам: владелец думает «что там с видео», а не перебирает
   // признаки по алфавиту.
@@ -78,15 +85,21 @@ export function TogglesBoard() {
 
   async function toggle(item: Toggle, field: (typeof ENVIRONMENTS)[number]['field']) {
     setBusy(item.id);
+    setError(null);
     const next = !item[field];
-    const response = await fetch(`/api/feature-toggles/${item.id}`, {
+    const response = await fetch(api(`/feature-toggles/${item.id}`), {
       method: 'PATCH',
       credentials: 'include',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ [field]: next }),
     }).catch(() => null);
     setBusy(null);
-    if (!response?.ok) return;
+    if (!response?.ok) {
+      setError(
+        `Не сохранилось: «${item.title ?? item.key}». Обновите страницу и попробуйте снова.`,
+      );
+      return;
+    }
     setItems((current) =>
       (current ?? []).map((row) => (row.id === item.id ? { ...row, [field]: next } : row)),
     );
@@ -98,7 +111,7 @@ export function TogglesBoard() {
         <h1 style={{ margin: 0 }}>Переключатели</h1>
         <Button
           el="link"
-          url="/admin/collections/feature-toggles/create"
+          url={admin('/collections/feature-toggles/create')}
           buttonStyle="pill"
           size="small"
         >
@@ -108,6 +121,11 @@ export function TogglesBoard() {
       <p style={{ margin: '0 0 1rem', opacity: 0.7, fontSize: '.85rem' }}>
         Что включено сейчас. Галочка меняет состояние сразу, название открывает карточку.
       </p>
+      {error && (
+        <p role="alert" style={{ margin: '0 0 1rem', color: 'var(--theme-error-500)' }}>
+          {error}
+        </p>
+      )}
       <input
         type="search"
         value={query}
@@ -157,7 +175,7 @@ export function TogglesBoard() {
                 >
                   <div style={{ minWidth: 0 }}>
                     <a
-                      href={`/admin/collections/feature-toggles/${item.id}`}
+                      href={admin(`/collections/feature-toggles/${item.id}`)}
                       style={{ fontWeight: 500, color: 'inherit' }}
                     >
                       {item.title ?? item.key}

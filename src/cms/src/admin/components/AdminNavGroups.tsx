@@ -63,7 +63,7 @@ export function AdminNavGroups({
                 style={{
                   position: 'relative',
                   display: 'block',
-                  padding: '.3rem 0 .3rem calc(var(--base, 1rem) * 0.75)',
+                  padding: '.3rem 0 .3rem calc(var(--base, 20px) * 0.75)',
                   color: 'var(--theme-text)',
                   fontWeight: active ? 600 : 400,
                   textDecoration: 'none',

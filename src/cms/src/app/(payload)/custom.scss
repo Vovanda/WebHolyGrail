@@ -424,3 +424,14 @@ img.whg-attach-preview__thumb {
   color: var(--theme-elevation-500);
   white-space: nowrap;
 }
+
+/*
+  Своё меню админки (AdminNavGroups): фокус с клавиатуры виден так же, как у
+  штатных кнопок Payload. Инлайн-стилем :focus-visible не задать.
+*/
+[data-part='nav-link']:focus-visible,
+[data-part='nav-group-toggle']:focus-visible {
+  outline: 2px solid var(--theme-text);
+  outline-offset: 2px;
+  border-radius: var(--style-radius-s, 3px);
+}

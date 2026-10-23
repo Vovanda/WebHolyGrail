@@ -1,6 +1,7 @@
 'use client';
 
-import { Button, usePreferences } from '@payloadcms/ui';
+import { Button, useConfig, usePreferences } from '@payloadcms/ui';
+import { formatAdminURL } from 'payload/shared';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 
@@ -118,6 +119,10 @@ export function ModulesBoard() {
   const before = useRef<string[]>([]);
   const { getPreference, setPreference } = usePreferences();
   const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  // Адреса - через маршруты конфига: под своим путём сайта зашитый /api не найдётся.
+  const { config } = useConfig();
+  const api = (path: `/${string}`) => formatAdminURL({ apiRoute: config.routes.api, path });
 
   useEffect(() => {
     void getPreference<string[] | null>(NAV_ORDER_PREFERENCE)
@@ -153,7 +158,7 @@ export function ModulesBoard() {
   }
 
   useEffect(() => {
-    void fetch('/api/feature-toggles?depth=0&limit=200&where[key][like]=module.', {
+    void fetch(api('/feature-toggles?depth=0&limit=200&where[key][like]=module.'), {
       credentials: 'include',
     })
       .then((r) => (r.ok ? r.json() : null))
@@ -161,7 +166,7 @@ export function ModulesBoard() {
         setDocs(Object.fromEntries((d?.docs ?? []).map((doc) => [doc.key ?? '', doc]))),
       )
       .catch(() => setDocs({}));
-  }, []);
+  }, [config.routes.api]);
 
   async function flip(key: ModuleKey) {
     const doc = docs?.[moduleToggleKey(key)];
@@ -179,7 +184,8 @@ export function ModulesBoard() {
     apply(next);
     setModuleOn(key, next);
     setBusy(key);
-    const response = await fetch(`/api/feature-toggles/${doc.id}`, {
+    setError(null);
+    const response = await fetch(api(`/feature-toggles/${doc.id}`), {
       method: 'PATCH',
       credentials: 'include',
       headers: { 'content-type': 'application/json' },
@@ -188,6 +194,7 @@ export function ModulesBoard() {
     setBusy(null);
     if (!response?.ok) {
       apply(!next);
+      setError('Не сохранилось - модуль вернулся как был. Обновите страницу и попробуйте снова.');
       return setModuleOn(key, !next);
     }
     // Меню уже перестроилось по отметке; перерисовка приносит настоящие права
@@ -258,6 +265,11 @@ export function ModulesBoard() {
         нельзя поставить. Данные остаются: включите - и всё вернётся. Порядок плиток - порядок
         разделов в меню: перетащите плитку на нужное место.
       </p>
+      {error && (
+        <p role="alert" style={{ margin: '0 0 1rem', color: 'var(--theme-error-500)' }}>
+          {error}
+        </p>
+      )}
       <Button buttonStyle="secondary" size="small" onClick={resetOrder}>
         Порядок по умолчанию
       </Button>
