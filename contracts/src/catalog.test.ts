@@ -215,6 +215,8 @@ describe('похожие позиции', () => {
       item(4, 'membr', 900, { material: 'ТПО', thickness: 2 }),
       item(5, 'other', 1000, { material: 'ПВХ', thickness: 1.5 }),
       item(6, 'membr', null, { material: 'ПВХ', thickness: 1.5 }),
+      // Цена 0 - «цена по запросу», в ряд не идёт.
+      item(7, 'membr', 0, { material: 'ПВХ', thickness: 1.5 }),
     ]);
     expect(rows.map((r) => r.id)).toEqual([2, 3, 4]);
   });

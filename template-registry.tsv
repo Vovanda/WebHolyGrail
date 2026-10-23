@@ -346,6 +346,7 @@ mirror	src/client/src/blocks/primitives/Shop/FacetPanel.tsx
 mirror	src/client/src/blocks/primitives/Shop/HeaderCart.tsx
 mirror	src/client/src/blocks/primitives/Shop/MyOrders.tsx
 mirror	src/client/src/blocks/primitives/Shop/OfferCard.tsx
+mirror	src/client/src/blocks/primitives/Shop/OfferSearch.tsx
 mirror	src/client/src/blocks/primitives/Shop/OrderActions.tsx
 mirror	src/client/src/blocks/primitives/Shop/PaymentDetails.tsx
 mirror	src/client/src/blocks/primitives/Shop/QuantityStepper.tsx

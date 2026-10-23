@@ -146,7 +146,9 @@ export function similarItems<
       ? Number.POSITIVE_INFINITY
       : Math.abs(p - target.price) / target.price;
   return candidates
-    .filter((c) => c.id !== target.id && c.section === target.section && c.price !== null)
+    .filter(
+      (c) => c.id !== target.id && c.section === target.section && c.price !== null && c.price > 0,
+    )
     .map((c) => ({
       c,
       gone: typeof c.stock === 'number' && c.stock <= 0 ? 1 : 0,
