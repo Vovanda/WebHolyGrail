@@ -21,6 +21,7 @@ import {
   PHONE_FORMATS,
   type PhoneFormatKey,
 } from './phone';
+import type { Characteristic, SpecValue } from './catalog';
 import type { Micros, Money } from './money';
 
 export type Actor = 'buyer' | 'manager' | 'system';
@@ -500,6 +501,31 @@ export interface OfferView {
   readonly howToBuy: HowToBuy;
   /** Бронь за единицу; пусто - позиция без брони. */
   readonly deposit: Money | null;
+  /** Адрес позиции `/shop/item/<слаг>`; пусто - своей страницы нет. */
+  readonly slug: string | null;
+  /** Слаг раздела каталога; пусто - позиция вне разделов. */
+  readonly section: string | null;
+  /** Значения характеристик раздела по их ключам. */
+  readonly specs: Readonly<Record<string, SpecValue>>;
+}
+
+/** Страница позиции: всё из витрины плюс галерея, описание и характеристики раздела. */
+export interface OfferDetailView extends OfferView {
+  /** Картинки галереи как их отдаёт хранилище; первая - та же, что на витрине. */
+  readonly gallery: readonly unknown[];
+  /** Описание - текст редактора CMS. */
+  readonly description: unknown;
+  readonly sectionTitle: string | null;
+  /** Характеристики раздела по порядку - для таблицы в карточке. */
+  readonly characteristics: readonly Characteristic[];
+}
+
+/** Раздел каталога: название, описание и набор характеристик для фильтра. */
+export interface CatalogSectionView {
+  readonly slug: string;
+  readonly title: string;
+  readonly description: string | null;
+  readonly characteristics: readonly Characteristic[];
 }
 
 export interface BuyerLineView {

@@ -22,6 +22,8 @@ export interface Characteristic {
   /** Группа в панели фильтра: «Основные», «Размеры». */
   readonly group?: string | null | undefined;
   readonly filter: FilterView;
+  /** Показывать ли в карточке позиции; пусто - показывать. */
+  readonly inCard?: boolean | null | undefined;
 }
 
 export type SpecValue = string | number | boolean | null;
@@ -47,6 +49,61 @@ export type FilterState = Readonly<Record<string, Selection>>;
 
 const KEY = /^[a-z0-9-]{1,32}$/;
 const MAX_VALUES = 20;
+
+const KINDS: readonly SpecKind[] = ['enum', 'number', 'bool', 'text'];
+const VIEWS: readonly FilterView[] = ['checks', 'range', 'hidden'];
+
+/**
+ * Характеристики раздела из админки: годные, без повторов ключа.
+ *
+ * @remarks
+ * Владелец заводит их руками, поэтому разбор терпит пустое и неполное: строка
+ * без ключа или названия пропускается, неизвестный вид становится текстом,
+ * неизвестный вид фильтра - галочками у перечня и диапазоном у числа.
+ */
+export function cleanCharacteristics(raw: unknown): Characteristic[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: Characteristic[] = [];
+  for (const item of raw as Record<string, unknown>[]) {
+    const key = typeof item?.['key'] === 'string' ? item['key'].trim() : '';
+    const title = typeof item?.['title'] === 'string' ? item['title'].trim() : '';
+    if (!KEY.test(key) || !title || seen.has(key)) continue;
+    seen.add(key);
+    const kind = KINDS.includes(item['kind'] as SpecKind) ? (item['kind'] as SpecKind) : 'text';
+    const filter = VIEWS.includes(item['filter'] as FilterView)
+      ? (item['filter'] as FilterView)
+      : kind === 'number'
+        ? 'range'
+        : kind === 'text'
+          ? 'hidden'
+          : 'checks';
+    const text = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
+    out.push({
+      key,
+      title,
+      unit: text(item['unit']),
+      kind,
+      group: text(item['group']),
+      filter,
+      inCard: item['inCard'] !== false,
+    });
+  }
+  return out;
+}
+
+/** Строки характеристик для карточки позиции: по порядку раздела, только заполненные. */
+export function cardSpecs(
+  characteristics: readonly Characteristic[],
+  specs: Readonly<Record<string, SpecValue>>,
+): { readonly key: string; readonly title: string; readonly value: string }[] {
+  return characteristics.flatMap((c) => {
+    const text = c.inCard === false ? null : specText(specs[c.key]);
+    return text === null
+      ? []
+      : [{ key: c.key, title: c.title, value: c.unit ? `${text} ${c.unit}` : text }];
+  });
+}
 
 /** Значение характеристики позиции строкой - так оно стоит в адресе и в фасете. */
 export function specText(value: SpecValue | undefined): string | null {

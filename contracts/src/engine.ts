@@ -186,6 +186,8 @@ export type {
   InvoiceStatus,
   OfferSnapshot,
   OfferView,
+  OfferDetailView,
+  CatalogSectionView,
   OrderAction,
   OrderLine,
   OrderStatus,
@@ -228,6 +230,8 @@ export type {
 } from './money';
 export {
   applyFilter,
+  cardSpecs,
+  cleanCharacteristics,
   editDistance,
   facetsOf,
   normalize,

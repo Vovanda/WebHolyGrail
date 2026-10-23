@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  cardSpecs,
+  cleanCharacteristics,
   applyFilter,
   type CatalogItem,
   type Characteristic,
@@ -113,5 +115,65 @@ describe('поиск', () => {
 
   it('пустой запрос - все позиции', () => {
     expect(searchItems(ITEMS, '  ').length).toBe(5);
+  });
+});
+
+describe('характеристики раздела из админки', () => {
+  it('пропускает строки без ключа, названия и повторы; вид и фильтр по умолчанию', () => {
+    expect(
+      cleanCharacteristics([
+        { key: 'thickness', title: 'Толщина', unit: 'мм', kind: 'number' },
+        { key: 'Bad Key', title: 'Плохой ключ' },
+        { key: 'material', title: '' },
+        { key: 'thickness', title: 'Повтор', kind: 'enum' },
+        { key: 'material', title: 'Материал', kind: 'enum', inCard: false },
+        { key: 'note', title: 'Заметка', kind: 'странное' },
+      ]),
+    ).toEqual([
+      {
+        key: 'thickness',
+        title: 'Толщина',
+        unit: 'мм',
+        kind: 'number',
+        group: null,
+        filter: 'range',
+        inCard: true,
+      },
+      {
+        key: 'material',
+        title: 'Материал',
+        unit: null,
+        kind: 'enum',
+        group: null,
+        filter: 'checks',
+        inCard: false,
+      },
+      {
+        key: 'note',
+        title: 'Заметка',
+        unit: null,
+        kind: 'text',
+        group: null,
+        filter: 'hidden',
+        inCard: true,
+      },
+    ]);
+    expect(cleanCharacteristics(null)).toEqual([]);
+  });
+
+  it('строки карточки - по порядку раздела, с единицей, без пустых и скрытых', () => {
+    const chars = cleanCharacteristics([
+      { key: 'thickness', title: 'Толщина', unit: 'мм', kind: 'number' },
+      { key: 'material', title: 'Материал', kind: 'enum' },
+      { key: 'secret', title: 'Скрыто', kind: 'text', inCard: false },
+      { key: 'reinforced', title: 'Армирование', kind: 'bool' },
+    ]);
+    expect(
+      cardSpecs(chars, { material: 'ПВХ', thickness: 1.5, secret: 'x', reinforced: false }),
+    ).toEqual([
+      { key: 'thickness', title: 'Толщина', value: '1.5 мм' },
+      { key: 'material', title: 'Материал', value: 'ПВХ' },
+      { key: 'reinforced', title: 'Армирование', value: 'нет' },
+    ]);
   });
 });

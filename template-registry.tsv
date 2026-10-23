@@ -226,6 +226,9 @@ mirror	src/client/src/app/(site)/order/[token]/page.tsx
 mirror	src/client/src/app/(site)/order/layout.tsx
 mirror	src/client/src/app/(site)/orders/layout.tsx
 mirror	src/client/src/app/(site)/orders/page.tsx
+mirror	src/client/src/app/(site)/shop/[section]/page.tsx
+mirror	src/client/src/app/(site)/shop/item/[slug]/page.tsx
+mirror	src/client/src/app/(site)/shop/layout.tsx
 mirror	src/client/src/app/api/health/route.ts
 mirror	src/client/src/app/internal/geo/route.ts
 mirror	src/client/src/app/internal/preview/draft/route.ts
@@ -336,8 +339,10 @@ mirror	src/client/src/blocks/primitives/Separator/WaveDivider.tsx
 mirror	src/client/src/blocks/primitives/Shop/AddToCart.tsx
 mirror	src/client/src/blocks/primitives/Shop/Cart.tsx
 mirror	src/client/src/blocks/primitives/Shop/ConfirmDialog.tsx
+mirror	src/client/src/blocks/primitives/Shop/FacetPanel.tsx
 mirror	src/client/src/blocks/primitives/Shop/HeaderCart.tsx
 mirror	src/client/src/blocks/primitives/Shop/MyOrders.tsx
+mirror	src/client/src/blocks/primitives/Shop/OfferCard.tsx
 mirror	src/client/src/blocks/primitives/Shop/OrderActions.tsx
 mirror	src/client/src/blocks/primitives/Shop/PaymentDetails.tsx
 mirror	src/client/src/blocks/primitives/Shop/QuantityStepper.tsx
@@ -650,6 +655,8 @@ overlay	src/cms/migrations/20261023_120719_shop_drop_access.json
 overlay	src/cms/migrations/20261023_120719_shop_drop_access.ts
 overlay	src/cms/migrations/20261023_125752_shop_cart_href.json
 overlay	src/cms/migrations/20261023_125752_shop_cart_href.ts
+overlay	src/cms/migrations/20261023_131121_shop_catalog.json
+overlay	src/cms/migrations/20261023_131121_shop_catalog.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts
@@ -683,6 +690,7 @@ mirror	src/cms/src/admin/components/MediaCopiesField.tsx
 mirror	src/cms/src/admin/components/ModulesBoard.tsx
 mirror	src/cms/src/admin/components/MoneyCell.tsx
 mirror	src/cms/src/admin/components/MoneyField.tsx
+mirror	src/cms/src/admin/components/OfferSpecsField.tsx
 mirror	src/cms/src/admin/components/PalettePresetField.tsx
 mirror	src/cms/src/admin/components/PlaylistCoverCell.tsx
 mirror	src/cms/src/admin/components/PlaylistItemRowLabel.tsx
@@ -750,6 +758,7 @@ mirror	src/cms/src/blocks/VideoSet.ts
 mirror	src/cms/src/blocks/WaveDivider.ts
 mirror	src/cms/src/collections/Articles.ts
 mirror	src/cms/src/collections/Authors.ts
+mirror	src/cms/src/collections/CatalogSections.ts
 mirror	src/cms/src/collections/Cities.ts
 mirror	src/cms/src/collections/Comments.ts
 mirror	src/cms/src/collections/engine.ts

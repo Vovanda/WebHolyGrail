@@ -40,7 +40,7 @@ export const MODULES = [
     key: 'shop',
     title: 'Магазин',
     description: 'Позиции, заказы и счета; блоки витрины и корзины.',
-    collections: ['offers', 'orders', 'invoices'],
+    collections: ['offers', 'catalog-sections', 'orders', 'invoices'],
     blocks: ['shop-showcase', 'shop-cart'],
     onNewSite: false,
   },
