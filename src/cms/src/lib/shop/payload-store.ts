@@ -139,6 +139,7 @@ const lineFromDoc = (l: Record<string, unknown>): InvoiceLine => ({
   quantity: Number(l['quantity']),
   price: Number(l['priceMicros']),
   sum: Number(l['sumMicros']),
+  discount: Number(l['discountMicros'] ?? 0),
 });
 
 export function orderFromDoc(doc: Record<string, unknown>): StoredOrder {
@@ -222,6 +223,7 @@ export const lineToDoc = (l: InvoiceLine | OrderLine) => ({
   quantity: l.quantity,
   priceMicros: l.price,
   sumMicros: l.sum,
+  ...('discount' in l ? { discountMicros: l.discount ?? 0 } : {}),
   ...('mode' in l
     ? {
         mode: l.mode,

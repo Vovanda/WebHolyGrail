@@ -61,6 +61,7 @@ const STATUS: Record<Failure, number> = {
   discount_too_large: 400,
   last_line: 409,
   invoice_exists: 409,
+  deposit_extra: 400,
 };
 
 const ports = (req: PayloadRequest): ShopPorts => payloadPorts(req.payload);

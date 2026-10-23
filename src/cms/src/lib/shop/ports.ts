@@ -54,6 +54,8 @@ export interface InvoiceLine {
   readonly quantity: number;
   readonly price: Micros;
   readonly sum: Micros;
+  /** Доля скидок счёта на эту строку (ADR-007); у строк без скидки 0. */
+  readonly discount?: Micros;
 }
 
 export interface StoredInvoice {
@@ -205,7 +207,8 @@ export type Failure =
   | 'reason_required'
   | 'discount_too_large'
   | 'last_line'
-  | 'invoice_exists';
+  | 'invoice_exists'
+  | 'deposit_extra';
 
 export type Outcome<T> =
   | { readonly ok: true; readonly value: T }

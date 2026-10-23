@@ -119,7 +119,10 @@ export async function changeOrder(
       for (const invoice of invoices) {
         if (invoice.status === 'draft') await tx.invoices.remove(invoice.id);
         else if (INVOICE_OPEN.includes(invoice.status))
-          await tx.invoices.update(invoice.id, { status: 'voided' });
+          await tx.invoices.update(invoice.id, {
+            status: 'voided',
+            voidReason: `Заказ отменён: ${cancelReason}`,
+          });
       }
     }
     let switched: boolean;

@@ -294,6 +294,8 @@ describe('счёт', () => {
     expect(inv.value.lines.map((l) => [l.offer, l.quantity, l.price])).toEqual([[2, 3, 450_000]]);
     expect(inv.value.extra.map((l) => l.sum)).toEqual([150_000, 990_000, -50_000]);
     expect(inv.value.total).toBe(3 * 450_000 + 150_000 + 990_000 - 50_000);
+    // Доля скидки хранится у строки заказа в счёте (ADR-007).
+    expect(inv.value.lines[0]!.discount).toBe(50_000);
     const big = await updateDraft(ports, inv.value.id, {
       extra: [{ ...extra[2]!, price: 3 * 450_000 + 1 }],
     });

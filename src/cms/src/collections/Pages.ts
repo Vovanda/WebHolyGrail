@@ -1,5 +1,6 @@
 import { reservedRoute } from 'contracts';
 import type { CollectionConfig } from 'payload';
+import { text } from 'payload/shared';
 
 import { PAGE_BLOCKS } from '../blocks';
 import { BLOCK_ROW_LABELS } from '../blocks/engine';
@@ -49,7 +50,10 @@ export const Pages: CollectionConfig = {
       unique: true,
       index: true,
       // Адрес модуля перекрыл бы страницу: она отвечала бы 404.
-      validate: (value: unknown) => {
+      // Своя проверка заменяет штатную: required проверяет штатный text, затем резерв.
+      validate: (value: string | null | undefined, options: Parameters<typeof text>[1]) => {
+        const base = text(value, options);
+        if (base !== true) return base;
         const taken = typeof value === 'string' ? reservedRoute(value) : null;
         return taken === null || `Адрес «${taken}/…» занят разделом сайта - выберите другой.`;
       },

@@ -67,19 +67,32 @@ export function orderLinesFor(
   });
 }
 
-/** Добавленные строки, сверенные со строками из заказа и ценами каталога. */
+/**
+ * Добавленные строки черновика, сверенные со строками из заказа и ценами каталога.
+ *
+ * @remarks
+ * Одно правило и для сценария, и для формы админки: у счёта на бронь добавленных
+ * строк нет - бронь фиксированная часть цены, и основной счёт вычитает её целиком.
+ */
 export async function checkedExtra(
   tx: ShopPorts,
-  lines: readonly InvoiceLine[],
+  invoice: { readonly purpose: InvoicePurpose; readonly lines: readonly InvoiceLine[] },
   input: readonly ExtraLineInput[],
-): Promise<Outcome<{ extra: ExtraLine[]; sum: Micros }>> {
+): Promise<Outcome<{ extra: ExtraLine[]; sum: Micros; lines: InvoiceLine[] }>> {
+  if (invoice.purpose === 'deposit' && input.length > 0) return fail('deposit_extra');
+  const lines = invoice.lines;
   const offers = input.flatMap((l) => (l.kind === 'offer' && l.offer !== null ? [l.offer] : []));
   const catalog = new Map((await tx.offers.snapshots(offers)).map((o) => [o.id, o]));
   const r = extraLines(lines, input, (id) => {
     const o = catalog.get(id);
     return o && o.price !== null ? { title: o.title, price: o.price } : null;
   });
-  return r.ok ? ok({ extra: r.lines, sum: r.sum }) : fail(r.error);
+  if (!r.ok) return fail(r.error);
+  return ok({
+    extra: r.lines,
+    sum: r.sum,
+    lines: lines.map((l, k) => ({ ...l, discount: r.shares[k] ?? 0 })),
+  });
 }
 
 const totalOf = (lines: readonly InvoiceLine[]): Micros => lines.reduce((t, l) => t + l.sum, 0);
@@ -110,8 +123,7 @@ export async function createInvoice(
     const depositPaid = live.some((i) => i.purpose === 'deposit' && i.status === 'paid');
     const lines = orderLinesFor(order, purpose, depositPaid);
     if (lines.length === 0) return fail('invalid');
-    if (purpose === 'deposit' && input.extra?.length) return fail('invalid');
-    const extra = await checkedExtra(tx, lines, input.extra ?? []);
+    const extra = await checkedExtra(tx, { purpose, lines }, input.extra ?? []);
     if (!extra.ok) return extra;
     return ok(
       await tx.invoices.create({
@@ -120,7 +132,7 @@ export async function createInvoice(
         purpose,
         status: 'draft',
         refundOf: null,
-        lines,
+        lines: extra.value.lines,
         extra: extra.value.extra,
         total: totalOf(lines) + extra.value.sum,
         dueAt: input.dueAt ?? null,
@@ -140,10 +152,10 @@ export async function updateDraft(
     const invoice = await tx.invoices.get(id);
     if (!invoice || invoice.order === null) return fail('not_found');
     if (invoice.status !== 'draft' || invoice.kind !== 'invoice') return fail('forbidden');
-    if (invoice.purpose === 'deposit' && input.extra?.length) return fail('invalid');
-    const extra = await checkedExtra(tx, invoice.lines, input.extra ?? invoice.extra);
+    const extra = await checkedExtra(tx, invoice, input.extra ?? invoice.extra);
     if (!extra.ok) return extra;
     const patch = {
+      lines: extra.value.lines,
       extra: extra.value.extra,
       total: totalOf(invoice.lines) + extra.value.sum,
       dueAt: input.dueAt === undefined ? invoice.dueAt : input.dueAt,

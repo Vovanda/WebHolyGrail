@@ -3,7 +3,7 @@ import { APIError, type CollectionConfig } from 'payload';
 
 import { editorsOnly, isEditor, nobody, nobodyField } from '../lib/access/editors';
 import { checkedExtra } from '../lib/shop/invoices';
-import { extraToDoc, invoiceFromDoc, payloadPorts } from '../lib/shop/payload-store';
+import { extraToDoc, invoiceFromDoc, lineToDoc, payloadPorts } from '../lib/shop/payload-store';
 import { moneyField } from './money-field';
 import { shopLineFields } from './Orders';
 
@@ -13,15 +13,16 @@ import { shopLineFields } from './Orders';
  * @remarks
  * Счёт заводится кнопкой на заказе, возврат - кнопкой на оплаченном счёте;
  * через «Создать» его не завести. Переходы - кнопками через таблицу в
- * contracts. Менеджер правит только черновик: строки, цены, доставку, срок.
- * Хук сверяет строки черновика с заказом той же функцией, что и сценарий
- * (`draftLines`): количество позиции из заказа не меняется, суммы считает сервер.
+ * contracts. Строки из заказа - копия живых строк, они не правятся вовсе. В черновике
+ * менеджер правит добавленные строки и срок; хук проверяет их той же функцией, что
+ * и сценарий (`checkedExtra`), суммы и итог считает сервер.
  * Вне черновика итог и срок держатся прежними при любой записи: это части
  * выставленного документа, и правка через REST их не трогает.
  */
 const ro = { readOnly: true } as const;
 const locked = { create: nobodyField, update: nobodyField };
 const EXTRA_ERRORS: Record<string, string> = {
+  deposit_extra: 'У счёта на бронь добавленных строк нет: доставку и скидку - в основной счёт.',
   invalid:
     'Добавленная строка заполнена неверно: у своей строки и скидки - название и сумма, у позиции - позиция каталога с ценой.',
   discount_too_large: 'Скидка больше суммы строки или заказа, на которую она дана.',
@@ -69,7 +70,7 @@ export const Invoices: CollectionConfig = {
         // Строки из заказа не правятся (И-3); добавленные проверяет сценарий счёта.
         const invoice = invoiceFromDoc(originalDoc as Record<string, unknown>);
         const input = ((data['extraLines'] ?? []) as Record<string, unknown>[]).map(extraInput);
-        const extra = await checkedExtra(payloadPorts(req.payload, req), invoice.lines, input);
+        const extra = await checkedExtra(payloadPorts(req.payload, req), invoice, input);
         if (!extra.ok) {
           // APIError со статусом: менеджер видит причину, а не «внутреннюю ошибку».
           throw new APIError(
@@ -81,7 +82,7 @@ export const Invoices: CollectionConfig = {
         }
         return {
           ...data,
-          lines: originalDoc['lines'],
+          lines: extra.value.lines.map(lineToDoc),
           extraLines: extra.value.extra.map(extraToDoc),
           totalMicros: invoice.lines.reduce((t, l) => t + l.sum, 0) + extra.value.sum,
         };
@@ -183,7 +184,7 @@ export const Invoices: CollectionConfig = {
         disableListColumn: true,
         components: { RowLabel: '/admin/components/ShopLineRowLabel#ShopLineRowLabel' },
       },
-      fields: shopLineFields,
+      fields: [...shopLineFields, moneyField('discountMicros', 'Доля скидки', { admin: ro })],
     },
     {
       name: 'extraLines',
@@ -199,6 +200,8 @@ export const Invoices: CollectionConfig = {
         description:
           'Доставка и свои строки, позиция каталога по цене каталога, скидка на строку или на заказ.',
         disableListColumn: true,
+        // У счёта на бронь добавленных строк нет: бронь - фиксированная часть цены.
+        condition: (data) => data?.['purpose'] !== 'deposit',
         components: { RowLabel: '/admin/components/ShopLineRowLabel#ShopLineRowLabel' },
       },
       fields: [
@@ -257,7 +260,8 @@ export const Invoices: CollectionConfig = {
           relationTo: 'offers',
           admin: {
             condition: (_, row) => row?.['kind'] === 'discount',
-            description: 'Пусто - скидка на весь заказ, она раскладывается по строкам.',
+            description:
+              'Пусто - скидка на весь заказ: она раскладывается по строкам, доля видна у строки.',
           },
         },
       ],
