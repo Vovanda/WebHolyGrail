@@ -15,6 +15,7 @@ import {
 import { CardRows } from '@/blocks/arrangements/CardRows';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { FacetPanel } from '@/blocks/primitives/Shop/FacetPanel';
+import { SectionFilters } from '@/blocks/primitives/Shop/SectionFilters';
 import { OfferCard } from '@/blocks/primitives/Shop/OfferCard';
 import {
   getCatalogSection,
@@ -114,27 +115,20 @@ export default async function SectionPage({
           </button>
         </form>
 
-        <div className="mt-6 grid gap-8 md:grid-cols-[16rem_minmax(0,1fr)]">
-          <aside data-part="filter">
-            {/* На телефоне фильтр свёрнут: плитка важнее, чем полстраницы галочек.
-                Флажок вместо второй копии панели - она одна на обе ширины. */}
-            <input id="facets-open" type="checkbox" className="peer sr-only" />
-            <label
-              htmlFor="facets-open"
-              className="block cursor-pointer font-medium text-ink peer-focus-visible:underline md:hidden"
-            >
-              Фильтры
-            </label>
-            <div className="mt-4 hidden peer-checked:block md:mt-0 md:block">
-              <FacetPanel
-                basePath={basePath}
-                facets={facets}
-                state={state}
-                characteristics={section.characteristics}
-                query={query}
-              />
-            </div>
-          </aside>
+        <div className="mt-6 grid gap-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
+          {/* Фильтр: колонка на широком экране, боковая панель на узком (whg-layouts, push). */}
+          <SectionFilters
+            found={shown.length}
+            selected={[...new URLSearchParams(writeFilter(state, section.characteristics))].length}
+          >
+            <FacetPanel
+              basePath={basePath}
+              facets={facets}
+              state={state}
+              characteristics={section.characteristics}
+              query={query}
+            />
+          </SectionFilters>
 
           <div>
             <p data-part="result-count" className="mb-4 text-sm text-muted">

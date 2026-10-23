@@ -351,6 +351,7 @@ mirror	src/client/src/blocks/primitives/Shop/OfferSearch.tsx
 mirror	src/client/src/blocks/primitives/Shop/OrderActions.tsx
 mirror	src/client/src/blocks/primitives/Shop/PaymentDetails.tsx
 mirror	src/client/src/blocks/primitives/Shop/QuantityStepper.tsx
+mirror	src/client/src/blocks/primitives/Shop/SectionFilters.tsx
 mirror	src/client/src/blocks/primitives/Shop/Showcase.tsx
 mirror	src/client/src/blocks/primitives/Shop/ui.ts
 mirror	src/client/src/blocks/primitives/SidePanel.test.ts
