@@ -9,7 +9,13 @@ export const metadata: Metadata = {
 };
 
 /** Заказы, которые оформляли в этом браузере: на случай, если ссылку не сохранили. */
-export default function OrdersPage() {
+export default async function OrdersPage({
+  searchParams,
+}: {
+  readonly searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const raw = (await searchParams)['page'];
+  const page = typeof raw === 'string' && /^\d{1,4}$/.test(raw) ? Number(raw) : 1;
   return (
     <section className="block-space bg-bg">
       <div className="mx-auto max-w-content px-4 md:px-6">
@@ -20,7 +26,7 @@ export default function OrdersPage() {
           Заказы, оформленные в этом браузере. С другого устройства заказ открывается по своей
           ссылке.
         </p>
-        <MyOrders />
+        <MyOrders page={page} />
       </div>
     </section>
   );

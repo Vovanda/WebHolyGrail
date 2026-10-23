@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import { cardSpecs, formatMoney, type MediaRef, shopSettings } from 'contracts';
+import { cardSpecs, formatMoney, type MediaRef, moneyDecimal, shopSettings } from 'contracts';
 
 import { Breadcrumbs, type Crumb } from '@/blocks/primitives/Breadcrumbs';
 import { Gallery } from '@/blocks/primitives/Gallery';
 import { MediaImage } from '@/blocks/primitives/Media';
-import { LexicalRenderer } from '@/blocks/primitives/RichText';
+import { hasLexicalContent, LexicalRenderer } from '@/blocks/primitives/RichText';
 import { AddToCart } from '@/blocks/primitives/Shop/AddToCart';
 import { getOffer, getSiteSettings } from '@/lib/api-client.engine';
 import { jsonLd } from '@/lib/seo/json-ld';
@@ -134,7 +134,7 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
           </div>
         </div>
 
-        {offer.description != null && (
+        {hasLexicalContent(offer.description) && (
           <div data-part="offer-description" className="mt-10 max-w-prose">
             <h2 className="mb-3 font-display text-xl font-semibold text-ink">Описание</h2>
             <LexicalRenderer value={offer.description} settings={settings ?? undefined} />
@@ -154,7 +154,7 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
               ? {
                   offers: {
                     '@type': 'Offer',
-                    price: offer.price.units,
+                    price: moneyDecimal(offer.price),
                     priceCurrency: offer.price.currency,
                     availability: sold
                       ? 'https://schema.org/OutOfStock'

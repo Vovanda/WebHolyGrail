@@ -58,7 +58,7 @@ export default async function SectionPage({
   if (canonical !== null) redirect(canonical ? `${basePath}?${canonical}` : basePath);
 
   const [offers, settings] = await Promise.all([
-    listOffers({ section: section.slug, limit: 100 }),
+    listOffers({ section: section.slug }),
     getSiteSettings(),
   ]);
   const query = typeof search['q'] === 'string' ? search['q'].trim().slice(0, 100) : '';
@@ -101,20 +101,16 @@ export default async function SectionPage({
 
         <div className="mt-6 grid gap-8 md:grid-cols-[16rem_minmax(0,1fr)]">
           <aside data-part="filter">
-            {/* На телефоне фильтр свёрнут: плитка важнее, чем полстраницы галочек. */}
-            <details className="md:hidden">
-              <summary className="cursor-pointer font-medium text-ink">Фильтры</summary>
-              <div className="mt-4">
-                <FacetPanel
-                  basePath={basePath}
-                  facets={facets}
-                  state={state}
-                  characteristics={section.characteristics}
-                  query={query}
-                />
-              </div>
-            </details>
-            <div className="hidden md:block">
+            {/* На телефоне фильтр свёрнут: плитка важнее, чем полстраницы галочек.
+                Флажок вместо второй копии панели - она одна на обе ширины. */}
+            <input id="facets-open" type="checkbox" className="peer sr-only" />
+            <label
+              htmlFor="facets-open"
+              className="block cursor-pointer font-medium text-ink peer-focus-visible:underline md:hidden"
+            >
+              Фильтры
+            </label>
+            <div className="mt-4 hidden peer-checked:block md:mt-0 md:block">
               <FacetPanel
                 basePath={basePath}
                 facets={facets}
@@ -149,7 +145,10 @@ export default async function SectionPage({
  * @returns строку канонического адреса, если в запросе были поля формы;
  *   null - запрос уже канонический, переадресация не нужна.
  */
-function rangesFromForm(search: Search, characteristics: readonly Characteristic[]): string | null {
+export function rangesFromForm(
+  search: Search,
+  characteristics: readonly Characteristic[],
+): string | null {
   const keys = Object.keys(search);
   if (!keys.some((k) => /\.(min|max)$/.test(k))) return null;
   const params = new URLSearchParams();

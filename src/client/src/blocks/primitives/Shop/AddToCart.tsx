@@ -9,6 +9,21 @@ import { OFFER_SNAPSHOTS, writeSnapshots } from '@/lib/shop/snapshots';
 import { QuantityStepper } from './QuantityStepper';
 import { primaryButton } from './ui';
 
+/** Только поля карточки: страница позиции передаёт полный вид с галереей и описанием. */
+const offerView = (o: OfferView): OfferView => ({
+  id: o.id,
+  title: o.title,
+  price: o.price,
+  stock: o.stock,
+  summary: o.summary,
+  image: o.image,
+  howToBuy: o.howToBuy,
+  deposit: o.deposit,
+  slug: o.slug,
+  section: o.section,
+  specs: o.specs,
+});
+
 /**
  * Кнопка «В корзину» на карточке позиции, а после - счётчик количества.
  *
@@ -32,8 +47,8 @@ export function AddToCart({
   readonly offer: number;
   /** Карточка как её видит покупатель: корзина покажет строку сразу, не дожидаясь сервера. */
   readonly snapshot?: OfferView;
-  /** Название позиции - для подписи кнопок счётчика скринридеру. */
-  readonly title: string;
+  /** Название позиции - для подписи кнопок счётчика скринридеру; пусто - берётся из снимка. */
+  readonly title?: string;
   /** Сколько можно взять; пусто - без ограничений. */
   readonly available: number | null;
   readonly cartHref?: string;
@@ -52,7 +67,7 @@ export function AddToCart({
         <QuantityStepper
           value={inCart}
           max={available ?? MAX_QUANTITY}
-          title={title}
+          title={title ?? snapshot?.title ?? 'позиция'}
           onChange={(next) => cart.set(offer, next)}
         />
         <a href={cartHref} className="text-sm text-accent underline-offset-2 hover:underline">
@@ -68,7 +83,7 @@ export function AddToCart({
       disabled={!ready}
       className={`${primaryButton} min-h-11 w-full`}
       onClick={() => {
-        if (snapshot) writeSnapshots(OFFER_SNAPSHOTS, { [String(offer)]: snapshot });
+        if (snapshot) writeSnapshots(OFFER_SNAPSHOTS, { [String(offer)]: offerView(snapshot) });
         cart.add(offer);
       }}
     >

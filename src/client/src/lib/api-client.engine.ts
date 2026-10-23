@@ -921,14 +921,14 @@ export async function getPlaylistByCode(
 export async function listOffers(
   pick:
     | { readonly ids: readonly number[] }
-    | { readonly section: string; readonly limit: number }
+    | { readonly section: string }
     | { readonly limit: number },
 ): Promise<OfferView[]> {
   const query =
     'ids' in pick
       ? `ids=${pick.ids.join(',')}`
       : 'section' in pick
-        ? `section=${encodeURIComponent(pick.section)}&limit=${pick.limit}`
+        ? `section=${encodeURIComponent(pick.section)}`
         : `limit=${encodeURIComponent(pick.limit)}`;
   const response = await fetch(`${CMS_URL}/api/shop/offers?${query}`, { cache: 'no-store' });
   if (!response.ok) return [];

@@ -14,7 +14,7 @@ import { HeaderCart } from '@/blocks/primitives/Shop/HeaderCart';
  *   [Wordmark (mark + siteName)] — [mainNav центр] — [GitHub · заказы · корзина · ThemeToggle · CTA]
  *
  * Композиция (mobile):
- *   [Wordmark] — [ThemeToggle · CTA] (nav уходит в NavDrawer если он сконфигурирован
+ *   [Wordmark] — [заказы · корзина · ThemeToggle] (nav уходит в NavDrawer если он сконфигурирован
  *   в SiteSettings.layout, бургер живёт в самом NavDrawer-блоке).
  *
  * Опциональные поля из `node.data` (per-block override):
@@ -95,7 +95,7 @@ export function Header({
           ))}
         </nav>
 
-        {/* Right — GitHub · ThemeToggle · CTA */}
+        {/* Right — GitHub · заказы · корзина · ThemeToggle · CTA */}
         <div className="ml-auto lg:ml-0 flex items-center gap-1 md:gap-2">
           {githubUrl && (
             <a

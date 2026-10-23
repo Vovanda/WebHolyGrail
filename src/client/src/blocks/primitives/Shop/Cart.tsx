@@ -78,6 +78,9 @@ export function Cart({
   const lines = useCart();
   const [offers, setOffers] = useState<Map<number, OfferView>>(new Map());
   const [loaded, setLoaded] = useState('');
+  // Строки из снимка показываются сразу, а оформить можно только по ответу сервера: иначе покупатель
+  // соглашается с ценой, которой уже нет.
+  const [checked, setChecked] = useState('');
   const [dropped, setDropped] = useState(false);
   const [orders, setOrders] = useState<string[]>([]);
   const [errors, setErrors] = useState<BuyerErrors>({});
@@ -103,6 +106,7 @@ export function Cart({
         writeSnapshots(OFFER_SNAPSHOTS, Object.fromEntries(d.docs.map((o) => [String(o.id), o])));
         setOffers(found);
         setLoaded(ids);
+        setChecked(ids);
         // Позиции больше нет или у неё нет цены - в заказ она не пойдёт: убираем сразу.
         const dead = ids
           .split(',')
@@ -135,6 +139,7 @@ export function Cart({
       ? toMoney(totalMicros, rows[0]!.offer.price.currency)
       : null;
   const loading = lines.length > 0 && loaded !== ids;
+  const confirmed = checked === ids;
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -419,10 +424,10 @@ export function Cart({
                 {hint('consent')}
                 <button
                   type="submit"
-                  disabled={busy}
+                  disabled={busy || !confirmed}
                   className={`${primaryButton} min-h-12 w-full`}
                 >
-                  {busy ? 'Отправляем…' : 'Оформить заказ'}
+                  {busy ? 'Отправляем…' : confirmed ? 'Оформить заказ' : 'Сверяем цены…'}
                 </button>
                 {message && (
                   <p role="alert" className="text-sm text-danger">

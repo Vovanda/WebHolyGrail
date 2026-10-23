@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-import { type BuyerOrderView, formatMoney, ORDER_STATUS_LABELS } from 'contracts';
+import { type BuyerOrderSummary, formatMoney, ORDER_STATUS_LABELS } from 'contracts';
 
 import { forgetOrder, rememberedOrders } from '@/lib/shop/cart';
 import { dropSnapshot, ORDER_SNAPSHOTS, readSnapshots, writeSnapshots } from '@/lib/shop/snapshots';
 
-import { secondaryButton } from './ui';
+import { Pagination } from '../Blog/Pagination';
 
 /**
  * Заказы этого браузера: номер, состояние, дата и итог, у каждого ссылка.
@@ -18,8 +18,8 @@ import { secondaryButton } from './ui';
  * в одном месте - на случай, если ссылку не сохранили. Клиентский компонент по
  * необходимости (R14): ссылки живут в `localStorage`.
  *
- * Список идёт страницами по десять заказов, следующая - по «Показать ещё».
- * Страница спрашивается одним запросом: лимит частоты CMS считает запрос, а не
+ * Список идёт страницами по десять заказов с номерами, номер страницы - в адресе
+ * (`?page=`), номер сверх последней показывает последнюю. Страница спрашивается одним запросом: лимит частоты CMS считает запрос, а не
  * заказ, и длинный список не отнимает у покупателя «Я оплатил» и отмену.
  * Заказы, которые браузер уже видел, показываются по снимку сразу, сервер их
  * обновляет. Ссылку, по которой заказа больше нет, браузер забывает.
@@ -27,16 +27,15 @@ import { secondaryButton } from './ui';
 const PAGE = 10;
 
 type Row =
-  | { readonly token: string; readonly state: 'shown'; readonly order: BuyerOrderView }
+  | { readonly token: string; readonly state: 'shown'; readonly order: BuyerOrderSummary }
   | { readonly token: string; readonly state: 'loading' | 'busy' | 'gone' | 'failed' };
 
-export function MyOrders() {
+export function MyOrders({ page = 1 }: { readonly page?: number }) {
   const [tokens, setTokens] = useState<string[] | null>(null);
   const [rows, setRows] = useState<Map<string, Row>>(new Map());
-  const [shown, setShown] = useState(PAGE);
 
   const load = useCallback(async (page: readonly string[]) => {
-    const seen = readSnapshots<BuyerOrderView>(ORDER_SNAPSHOTS);
+    const seen = readSnapshots<BuyerOrderSummary>(ORDER_SNAPSHOTS);
     setRows((current) => {
       const next = new Map(current);
       for (const token of page) {
@@ -55,7 +54,7 @@ export function MyOrders() {
       cache: 'no-store',
     }).catch(() => null);
     const views = response?.ok
-      ? ((await response.json()) as { views: (BuyerOrderView | null)[] }).views
+      ? ((await response.json()) as { views: (BuyerOrderSummary | null)[] }).views
       : null;
     setRows((current) => {
       const next = new Map(current);
@@ -77,11 +76,13 @@ export function MyOrders() {
     });
   }, []);
 
+  const pages = tokens ? Math.max(1, Math.ceil(tokens.length / PAGE)) : 1;
+  const current = Math.min(Math.max(1, Math.floor(page)), pages);
+
+  useEffect(() => setTokens(rememberedOrders()), []);
   useEffect(() => {
-    const all = rememberedOrders();
-    setTokens(all);
-    void load(all.slice(0, PAGE));
-  }, [load]);
+    if (tokens?.length) void load(tokens.slice((current - 1) * PAGE, current * PAGE));
+  }, [tokens, current, load]);
 
   if (tokens === null) return <p className="text-muted">Ищем ваши заказы…</p>;
   if (tokens.length === 0) {
@@ -93,15 +94,10 @@ export function MyOrders() {
     );
   }
 
-  const more = () => {
-    void load(tokens.slice(shown, shown + PAGE));
-    setShown(shown + PAGE);
-  };
-
   return (
     <>
       <ul data-part="orders" className="divide-y divide-border border-y border-border">
-        {tokens.slice(0, shown).map((token) => {
+        {tokens.slice((current - 1) * PAGE, current * PAGE).map((token) => {
           const row = rows.get(token) ?? { token, state: 'loading' as const };
           return (
             <li key={token} data-part="order">
@@ -138,11 +134,12 @@ export function MyOrders() {
           );
         })}
       </ul>
-      {shown < tokens.length && (
-        <button type="button" onClick={more} className={`${secondaryButton} mt-4`}>
-          Показать ещё
-        </button>
-      )}
+      <Pagination
+        currentPage={current}
+        totalPages={pages}
+        hrefBuilder={(p) => (p === 1 ? '?' : `?page=${p}`)}
+        className="mt-6"
+      />
     </>
   );
 }
