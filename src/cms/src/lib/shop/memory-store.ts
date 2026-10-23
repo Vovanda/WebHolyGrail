@@ -115,6 +115,11 @@ export function memoryPorts(state: MemoryState): ShopPorts {
         state.orders.set(String(id), { ...o, lines, total });
         return true;
       },
+      basketsWith: async (offer, limit) =>
+        [...state.orders.values()]
+          .filter((o) => o.status !== 'cancelled' && o.lines.some((l) => l.offer === offer))
+          .slice(-limit)
+          .map((o) => o.lines.filter((l) => !l.removed).map((l) => l.offer)),
       bySecretHash: async (hash) =>
         [...state.orders.values()].find((o) => o.secretHash === hash) ?? null,
       switchStatus: async (id: Id, from: OrderStatus, to: OrderStatus, cancelReason?: string) => {

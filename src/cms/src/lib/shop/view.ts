@@ -118,6 +118,10 @@ export function toOfferDetailView(
   card: OfferDetailCard,
   money: MoneyPort,
   now: Date,
+  related: { readonly similar: readonly OfferCard[]; readonly together: readonly OfferCard[] } = {
+    similar: [],
+    together: [],
+  },
 ): OfferDetailView {
   return {
     ...toOfferView(card, money, now),
@@ -125,5 +129,7 @@ export function toOfferDetailView(
     description: card.description,
     sectionTitle: card.sectionTitle,
     characteristics: card.characteristics,
+    similar: related.similar.map((c) => toOfferView(c, money, now)),
+    together: related.together.map((c) => toOfferView(c, money, now)),
   };
 }

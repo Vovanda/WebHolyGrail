@@ -16,6 +16,7 @@ import {
   cleanCharacteristics,
   currentPrice,
   EXTRA_KINDS,
+  liveLines,
   type ExtraKind,
   type ExtraLine,
   publicSpecs,
@@ -400,6 +401,23 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
           Number(id),
         ]);
         return true;
+      },
+      basketsWith: async (offer, limit) => {
+        const found = await payload.find({
+          collection: 'orders',
+          where: {
+            and: [{ 'lines.offer': { equals: offer } }, { status: { not_equals: 'cancelled' } }],
+          },
+          sort: '-createdAt',
+          limit,
+          pagination: false,
+          ...opts,
+        });
+        return found.docs.map((d) =>
+          liveLines(orderFromDoc(d as unknown as Record<string, unknown>).lines).map(
+            (l) => l.offer,
+          ),
+        );
       },
       newBefore: async (before) => {
         const found = await payload.find({

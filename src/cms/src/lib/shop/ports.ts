@@ -160,6 +160,8 @@ export interface OrderPort {
   ): Promise<boolean>;
   /** Новые заказы, оформленные раньше `before`. */
   newBefore(before: Date): Promise<Id[]>;
+  /** Позиции недавних неотменённых заказов, где была `offer`: по корзине на заказ, без снятых строк. */
+  basketsWith(offer: number, limit: number): Promise<number[][]>;
 }
 
 export interface InvoicePort {

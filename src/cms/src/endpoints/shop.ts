@@ -30,6 +30,7 @@ import { cancelBySecret, changeOrder, placeOrder, removeLine } from '../lib/shop
 import { payloadPorts } from '../lib/shop/payload-store';
 import type { Failure, OfferQuery, Outcome, ShopPorts } from '../lib/shop/ports';
 import { myOrders } from '../lib/shop/my-orders';
+import { relatedOffers } from '../lib/shop/related';
 import { hashOrderSecret, isOrderSecret, newOrderSecret } from '../lib/shop/order-link';
 import { take, type RuleName } from '../lib/shop/throttle';
 import { toBuyerView, toOfferDetailView, toOfferView } from '../lib/shop/view';
@@ -163,7 +164,7 @@ const offerDetailEndpoint: Endpoint = {
     const p = ports(req);
     const card = await p.offers.detail(slug);
     if (!card) return json({ error: 'not_found' }, 404);
-    return json(toOfferDetailView(card, p.money, new Date()));
+    return json(toOfferDetailView(card, p.money, new Date(), await relatedOffers(p, card)));
   },
 };
 
