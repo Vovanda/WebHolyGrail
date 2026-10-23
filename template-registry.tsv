@@ -504,6 +504,7 @@ overlay	src/client/src/lib/seo/json-ld.test.ts
 overlay	src/client/src/lib/seo/json-ld.ts
 overlay	src/client/src/lib/share-image.test.ts
 overlay	src/client/src/lib/share-image.ts
+overlay	src/client/src/lib/shop/add-offer.ts
 overlay	src/client/src/lib/shop/cart.test.ts
 overlay	src/client/src/lib/shop/cart.ts
 overlay	src/client/src/lib/shop/catalog-href.test.ts

@@ -244,7 +244,7 @@ export function Cart({
   const label = (text: string, ask: AskField) => (ask === 'required' ? `${text} *` : text);
 
   return (
-    <section className="block-space bg-bg">
+    <section className="block-space min-h-[70vh] bg-bg">
       <div className="mx-auto max-w-wide px-4 md:px-6">
         <h2 data-part="title" className="font-display text-2xl font-semibold text-ink md:text-3xl">
           {data.heading ?? 'Корзина'}
@@ -261,44 +261,70 @@ export function Cart({
           </p>
         )}
 
-        {rows.length === 0 ? (
-          <div data-part="empty" className="mt-6 max-w-content">
-            <p className="text-muted">
-              {loading ? 'Загружаем корзину…' : (data.emptyText ?? 'В корзине пока пусто.')}
-            </p>
-            {!loading && (
-              <a href={CATALOG_HREF} className={`${primaryButton} mt-4`}>
-                В каталог
-              </a>
-            )}
-            {!loading && orders.length > 0 && (
-              <div data-part="orders" className="mt-6">
-                <p className="text-sm font-medium text-ink">Ваши заказы</p>
-                <ul className="mt-2 grid gap-1 text-sm">
-                  {orders.slice(0, 5).map((token, i) => (
-                    <li key={token}>
-                      <a
-                        href={`/order/${token}`}
-                        className="text-accent underline-offset-2 hover:underline"
-                      >
-                        {i === 0 ? 'Последний заказ' : 'Более ранний заказ'}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-                <a
-                  href="/orders"
-                  className="mt-2 inline-block text-sm text-accent underline-offset-2 hover:underline"
-                >
-                  Все мои заказы
-                </a>
+        {/*
+          Одна разметка на все состояния: поиск всегда первым в колонке строк, и поле
+          не пересоздаётся, когда в корзину легла первая позиция, - фокус остаётся
+          в наборе. Колонка итога появляется вместе со строками.
+        */}
+        <div
+          className={
+            rows.length > 0
+              ? 'mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_380px]'
+              : 'mt-6 max-w-content'
+          }
+        >
+          <div className="grid content-start gap-6">
+            <OfferSearch />
+            {rows.length === 0 && loading ? (
+              // Заготовки строк той же высоты: корзина читается, а вёрстка уже стоит на месте.
+              <ul
+                data-part="lines-loading"
+                aria-busy="true"
+                className="mt-6 divide-y divide-border border-y border-border"
+              >
+                {lines.map((l) => (
+                  <li key={l.offer} className="flex items-center gap-4 py-5">
+                    <span className="size-16 shrink-0 animate-pulse rounded-md bg-surface-hover" />
+                    <span className="grid flex-1 gap-2">
+                      <span className="h-4 w-2/3 animate-pulse rounded bg-surface-hover" />
+                      <span className="h-3 w-1/4 animate-pulse rounded bg-surface-hover" />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : rows.length === 0 ? (
+              <div data-part="empty" className="mt-6 max-w-content">
+                <p className="text-muted">{data.emptyText ?? 'В корзине пока пусто.'}</p>
+                {!loading && (
+                  <a href={CATALOG_HREF} className={`${primaryButton} mt-4`}>
+                    В каталог
+                  </a>
+                )}
+                {!loading && orders.length > 0 && (
+                  <div data-part="orders" className="mt-6">
+                    <p className="text-sm font-medium text-ink">Ваши заказы</p>
+                    <ul className="mt-2 grid gap-1 text-sm">
+                      {orders.slice(0, 5).map((token, i) => (
+                        <li key={token}>
+                          <a
+                            href={`/order/${token}`}
+                            className="text-accent underline-offset-2 hover:underline"
+                          >
+                            {i === 0 ? 'Последний заказ' : 'Более ранний заказ'}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                    <a
+                      href="/orders"
+                      className="mt-2 inline-block text-sm text-accent underline-offset-2 hover:underline"
+                    >
+                      Все мои заказы
+                    </a>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        ) : (
-          <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
-            <div className="grid content-start gap-6">
-              <OfferSearch />
+            ) : (
               <ul data-part="lines" className="divide-y divide-border border-y border-border">
                 {rows.map(({ offer, quantity }) => {
                   const gone = soldOut.has(offer.id);
@@ -394,8 +420,9 @@ export function Cart({
                   );
                 })}
               </ul>
-            </div>
-
+            )}
+          </div>
+          {rows.length > 0 && (
             <aside
               data-part="summary"
               className="rounded-xl border border-border bg-surface p-5 md:p-6 lg:sticky lg:top-24"
@@ -500,8 +527,8 @@ export function Cart({
                 )}
               </form>
             </aside>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </section>
   );

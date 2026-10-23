@@ -1,11 +1,10 @@
 'use client';
 
-import { formatMoney, MAX_QUANTITY, type MediaRef, offerViewOf, type OfferView } from 'contracts';
+import { formatMoney, MAX_QUANTITY, type MediaRef, type OfferView } from 'contracts';
 import { useState } from 'react';
 
 import { MediaImage } from '@/blocks/primitives/Media';
-import { cart } from '@/lib/shop/cart';
-import { OFFER_SNAPSHOTS, writeSnapshots } from '@/lib/shop/snapshots';
+import { addOffer } from '@/lib/shop/add-offer';
 
 import { QuantityStepper } from './QuantityStepper';
 
@@ -37,8 +36,7 @@ export function OfferSuggestions({
   const [added, setAdded] = useState<number | null>(null);
 
   const add = (offer: OfferView) => {
-    writeSnapshots(OFFER_SNAPSHOTS, { [String(offer.id)]: offerViewOf(offer) });
-    cart.add(offer.id, quantity[offer.id] ?? 1);
+    addOffer(offer, quantity[offer.id] ?? 1);
     setQuantity((q) => ({ ...q, [offer.id]: 1 }));
     setAdded(offer.id);
     onAdded?.(offer);
