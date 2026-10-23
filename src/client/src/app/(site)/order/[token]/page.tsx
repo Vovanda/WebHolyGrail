@@ -5,6 +5,7 @@ import {
   BUYER_STEP_TEXT,
   buyerStep,
   formatMoney,
+  fromMoney,
   INVOICE_STATUS_LABELS,
   INVOICE_TOTAL_LABELS,
   ORDER_STATUS_LABELS,
@@ -39,7 +40,12 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
   const invoices = order.invoices.filter((i) => i.kind === 'invoice' && i.status !== 'voided');
   // Аннулированный счёт показываем коротко с причиной: покупатель должен знать, почему он пропал.
   const voided = order.invoices.filter((i) => i.kind === 'invoice' && i.status === 'voided');
-  const paidSomething = order.invoices.some((i) => i.status === 'paid' || i.status === 'reported');
+  // Тот же признак, что у сервера: деньги у продавца (оплаты минус возвраты) или заявленная оплата.
+  const held = order.invoices.reduce(
+    (t, i) => (i.status === 'paid' ? t + (i.kind === 'refund' ? -1 : 1) * fromMoney(i.total) : t),
+    0,
+  );
+  const paidSomething = held !== 0 || order.invoices.some((i) => i.status === 'reported');
   const refunds = order.invoices.filter((i) => i.kind === 'refund' && i.status === 'paid');
 
   return (
