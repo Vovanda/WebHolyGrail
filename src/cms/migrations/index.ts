@@ -77,6 +77,7 @@ import * as migration_20261023_110340_order_cancel_reason from './20261023_11034
 import * as migration_20261023_113302_checkout_phone_format from './20261023_113302_checkout_phone_format';
 import * as migration_20261023_120719_shop_drop_access from './20261023_120719_shop_drop_access';
 import * as migration_20261023_125752_shop_cart_href from './20261023_125752_shop_cart_href';
+import * as migration_20261023_131121_shop_catalog from './20261023_131121_shop_catalog';
 
 export const migrations = [
   {
@@ -473,5 +474,10 @@ export const migrations = [
     up: migration_20261023_125752_shop_cart_href.up,
     down: migration_20261023_125752_shop_cart_href.down,
     name: '20261023_125752_shop_cart_href',
+  },
+  {
+    up: migration_20261023_131121_shop_catalog.up,
+    down: migration_20261023_131121_shop_catalog.down,
+    name: '20261023_131121_shop_catalog',
   },
 ];

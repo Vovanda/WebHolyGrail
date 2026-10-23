@@ -46,8 +46,13 @@ export function memoryPorts(state: MemoryState): ShopPorts {
         ids.map((id) => state.offers.get(id)).filter((o): o is OfferSnapshot => !!o),
       cards: async (query) => {
         const all = [...state.offers.values()].sort((a, b) => a.title.localeCompare(b.title));
+        // Разделов каталога в памяти нет: выборка по разделу пуста.
         const picked =
-          'ids' in query ? all.filter((o) => query.ids.includes(o.id)) : all.slice(0, query.limit);
+          'ids' in query
+            ? all.filter((o) => query.ids.includes(o.id))
+            : 'section' in query
+              ? []
+              : all.slice(0, query.limit);
         return picked.map((o) => ({
           id: o.id,
           title: o.title,
@@ -57,8 +62,13 @@ export function memoryPorts(state: MemoryState): ShopPorts {
           image: null,
           howToBuy: o.howToBuy,
           deposit: o.deposit,
+          slug: null,
+          section: null,
+          specs: {},
         }));
       },
+      detail: async () => null,
+      section: async () => null,
       take: async (lines) => {
         const taken: { offer: number; quantity: number }[] = [];
         for (const l of lines) {

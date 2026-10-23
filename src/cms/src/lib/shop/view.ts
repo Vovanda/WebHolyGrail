@@ -1,6 +1,6 @@
-import { type BuyerOrderView, isOverdue, type OfferView } from 'contracts';
+import { type BuyerOrderView, isOverdue, type OfferDetailView, type OfferView } from 'contracts';
 
-import type { MoneyPort, OfferCard, StoredInvoice, StoredOrder } from './ports';
+import type { MoneyPort, OfferCard, OfferDetailCard, StoredInvoice, StoredOrder } from './ports';
 
 /**
  * Заказ глазами покупателя: только то, что он вправе видеть (И-8).
@@ -77,5 +77,23 @@ export function toOfferView(card: OfferCard, money: MoneyPort, now: Date): Offer
     image: card.image,
     howToBuy: card.howToBuy,
     deposit: card.deposit === null ? null : money.at(card.deposit, now),
+    slug: card.slug,
+    section: card.section,
+    specs: card.specs,
+  };
+}
+
+/** Позиция для своей страницы: то же, что на витрине, плюс галерея, описание и раздел. */
+export function toOfferDetailView(
+  card: OfferDetailCard,
+  money: MoneyPort,
+  now: Date,
+): OfferDetailView {
+  return {
+    ...toOfferView(card, money, now),
+    gallery: card.gallery,
+    description: card.description,
+    sectionTitle: card.sectionTitle,
+    characteristics: card.characteristics,
   };
 }

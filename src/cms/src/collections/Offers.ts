@@ -19,15 +19,52 @@ export const Offers: CollectionConfig = {
   labels: { singular: 'Позиция', plural: 'Позиции' },
   admin: {
     useAsTitle: 'title',
-    defaultColumns: ['title', 'priceMicros', 'stock', 'updatedAt'],
+    defaultColumns: ['title', 'section', 'priceMicros', 'stock', 'updatedAt'],
     group: 'Магазин',
     description: 'Что продаёт сайт. Витрина на странице показывает эти позиции.',
   },
   access: { read: editorsOnly, create: editorsOnly, update: editorsOnly, delete: editorsOnly },
   fields: [
     { name: 'title', label: 'Название', type: 'text', required: true, maxLength: 200 },
+    {
+      name: 'slug',
+      label: 'Адрес в ссылке',
+      type: 'text',
+      unique: true,
+      index: true,
+      admin: {
+        position: 'sidebar',
+        description:
+          'Страница позиции - /shop/item/<адрес>. Заполнится сам из названия; после публикации не менять.',
+      },
+    },
+    {
+      name: 'section',
+      label: 'Раздел каталога',
+      type: 'relationship',
+      relationTo: 'catalog-sections',
+      admin: { position: 'sidebar', description: 'От раздела зависят характеристики позиции.' },
+    },
     { name: 'image', label: 'Картинка', type: 'upload', relationTo: 'media' },
+    {
+      name: 'gallery',
+      label: 'Галерея',
+      type: 'upload',
+      relationTo: 'media',
+      hasMany: true,
+      admin: { description: 'Ещё картинки для страницы позиции; первой идёт «Картинка».' },
+    },
     { name: 'summary', label: 'Короткое описание', type: 'textarea', maxLength: 500 },
+    { name: 'description', label: 'Описание', type: 'richText' },
+    {
+      name: 'specs',
+      label: 'Характеристики',
+      type: 'json',
+      admin: {
+        description: 'Поля по характеристикам выбранного раздела.',
+        components: { Field: '/admin/components/OfferSpecsField#OfferSpecsField' },
+      },
+    },
     {
       type: 'row',
       fields: [

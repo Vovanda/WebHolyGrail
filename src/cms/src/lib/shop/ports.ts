@@ -1,4 +1,6 @@
 import type {
+  CatalogSectionView,
+  Characteristic,
   InvoiceKind,
   InvoicePurpose,
   InvoiceStatus,
@@ -9,6 +11,7 @@ import type {
   OrderLine,
   OrderStatus,
   ShopSettings,
+  SpecValue,
 } from 'contracts';
 
 /**
@@ -77,14 +80,36 @@ export interface OfferCard {
   readonly image: unknown;
   readonly howToBuy: HowToBuy;
   readonly deposit: Micros | null;
+  readonly slug: string | null;
+  /** Слаг раздела каталога. */
+  readonly section: string | null;
+  readonly specs: Readonly<Record<string, SpecValue>>;
 }
 
-/** Какие позиции показать: выбранные по номерам либо первые `limit` по названию. */
-export type OfferQuery = { readonly ids: readonly number[] } | { readonly limit: number };
+/** Позиция для своей страницы: карточка плюс галерея, описание и раздел целиком. */
+export interface OfferDetailCard extends OfferCard {
+  readonly gallery: readonly unknown[];
+  readonly description: unknown;
+  readonly sectionTitle: string | null;
+  readonly characteristics: readonly Characteristic[];
+}
+
+/**
+ * Какие позиции показать: выбранные по номерам, раздел каталога либо первые
+ * `limit` по названию.
+ */
+export type OfferQuery =
+  | { readonly ids: readonly number[] }
+  | { readonly section: string; readonly limit: number }
+  | { readonly limit: number };
 
 export interface OfferPort {
   snapshots(ids: readonly number[]): Promise<OfferSnapshot[]>;
   cards(query: OfferQuery): Promise<OfferCard[]>;
+  /** Позиция по слагу её страницы; нет такой - null. */
+  detail(slug: string): Promise<OfferDetailCard | null>;
+  /** Раздел каталога по слагу; нет такого - null. */
+  section(slug: string): Promise<CatalogSectionView | null>;
   /**
    * Списывает остаток условной записью; не хватило на строке - возвращает
    * уже списанное и называет её (lib/shop/stock.ts).

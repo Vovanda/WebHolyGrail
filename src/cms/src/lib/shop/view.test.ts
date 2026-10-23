@@ -123,6 +123,9 @@ describe('позиция глазами покупателя', () => {
     image: null,
     howToBuy: 'cart' as const,
     deposit: null,
+    slug: null,
+    section: null,
+    specs: {},
   });
 
   it('нулевая и пустая цена - по запросу, иначе Money', () => {

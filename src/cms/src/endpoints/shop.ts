@@ -27,7 +27,7 @@ import { payloadPorts } from '../lib/shop/payload-store';
 import type { Failure, OfferQuery, Outcome, ShopPorts } from '../lib/shop/ports';
 import { hashOrderSecret, isOrderSecret, newOrderSecret } from '../lib/shop/order-link';
 import { take, type RuleName } from '../lib/shop/throttle';
-import { toBuyerView, toOfferView } from '../lib/shop/view';
+import { toBuyerView, toOfferDetailView, toOfferView } from '../lib/shop/view';
 import { allowedOrigins, clientKey, json } from './video/shared';
 
 /**
@@ -115,7 +115,10 @@ async function editor(req: PayloadRequest): Promise<boolean> {
   return isEditor(user);
 }
 
-/** `?ids=3,7` - позиции корзины; иначе `?limit=` первых по названию, для витрины. */
+/**
+ * `?ids=3,7` - позиции корзины; `?section=<слаг>` - раздел каталога; иначе
+ * `?limit=` первых по названию, для витрины.
+ */
 function offerQuery(req: PayloadRequest): OfferQuery {
   const url = new URL(req.url ?? 'http://local/');
   const ids = url.searchParams.get('ids');
@@ -128,9 +131,48 @@ function offerQuery(req: PayloadRequest): OfferQuery {
         .slice(0, MAX_CART_LINES),
     };
   }
-  const limit = Math.floor(Number(url.searchParams.get('limit') ?? 60));
-  return { limit: Number.isFinite(limit) ? Math.min(Math.max(limit, 1), 100) : 60 };
+  const raw = Math.floor(Number(url.searchParams.get('limit') ?? 60));
+  const limit = Number.isFinite(raw) ? Math.min(Math.max(raw, 1), 100) : 60;
+  const section = url.searchParams.get('section');
+  return section && SLUG.test(section) ? { section, limit } : { limit };
 }
+
+const SLUG = /^[a-z0-9-]{1,120}$/;
+
+/**
+ * Страница позиции `/shop/item/<слаг>` и раздел каталога `/shop/<слаг>`.
+ *
+ * @remarks
+ * Как и витрина, отдают цену в `Money` и без счёта частоты: их запрашивает
+ * сервер сайта. Чужой слаг - 404 без обращения к базе.
+ */
+const offerDetailEndpoint: Endpoint = {
+  path: '/shop/offers/item/:slug',
+  method: 'get',
+  handler: async (req) => {
+    const refused = guard(req, null);
+    if (refused) return refused;
+    const slug = String(req.routeParams?.['slug'] ?? '');
+    if (!SLUG.test(slug)) return json({ error: 'not_found' }, 404);
+    const p = ports(req);
+    const card = await p.offers.detail(slug);
+    if (!card) return json({ error: 'not_found' }, 404);
+    return json(toOfferDetailView(card, p.money, new Date()));
+  },
+};
+
+const sectionEndpoint: Endpoint = {
+  path: '/shop/sections/:slug',
+  method: 'get',
+  handler: async (req) => {
+    const refused = guard(req, null);
+    if (refused) return refused;
+    const slug = String(req.routeParams?.['slug'] ?? '');
+    if (!SLUG.test(slug)) return json({ error: 'not_found' }, 404);
+    const section = await ports(req).offers.section(slug);
+    return section ? json(section) : json({ error: 'not_found' }, 404);
+  },
+};
 
 /**
  * Позиции для витрины и корзины - цены в `Money`.
@@ -197,6 +239,38 @@ const orderViewEndpoint: Endpoint = {
     const order = hash ? await p.orders.bySecretHash(hash) : null;
     if (!order) return json({ error: 'not_found' }, 404);
     return json(toBuyerView(order, await p.invoices.forOrder(order.id), new Date(), p.money));
+  },
+};
+
+/** Сколько заказов «Мои заказы» спрашивают одним запросом - страница списка. */
+const VIEWS_PAGE = 10;
+
+/**
+ * Несколько заказов покупателя одним запросом - страница «Моих заказов».
+ *
+ * @remarks
+ * Лимит частоты считается один раз на запрос, а не на заказ: иначе список из
+ * двадцати заказов отнимал бы у покупателя «Я оплатил» и отмену. Секрет без
+ * заказа отвечает `null` на своём месте - браузер его забудет.
+ */
+const buyerViewsEndpoint: Endpoint = {
+  path: '/shop/orders/views',
+  method: 'post',
+  handler: async (req) => {
+    const refused = guard(req, 'buyerAction');
+    if (refused) return refused;
+    const raw = (await body(req))['secrets'];
+    const secrets = (Array.isArray(raw) ? raw : []).slice(0, VIEWS_PAGE);
+    const p = ports(req);
+    const now = new Date();
+    const views = await Promise.all(
+      secrets.map(async (secret) => {
+        if (!isOrderSecret(secret)) return null;
+        const order = await p.orders.bySecretHash(hashOrderSecret(secret));
+        return order ? toBuyerView(order, await p.invoices.forOrder(order.id), now, p.money) : null;
+      }),
+    );
+    return json({ views });
   },
 };
 
@@ -345,6 +419,9 @@ const adminActionEndpoint: Endpoint = {
 
 export const shopEndpoints: Endpoint[] = [
   offersEndpoint,
+  buyerViewsEndpoint,
+  offerDetailEndpoint,
+  sectionEndpoint,
   placeOrderEndpoint,
   orderViewEndpoint,
   buyerCancelEndpoint,

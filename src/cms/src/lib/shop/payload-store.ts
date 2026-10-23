@@ -13,11 +13,21 @@ import {
   type OrderLine,
   type OrderStatus,
   shopSettings,
+  cleanCharacteristics,
+  type SpecValue,
 } from 'contracts';
 
 import { moneyPort } from './money';
 import { type Execute, returnStock, takeStock } from './stock';
-import type { Id, InvoiceLine, OfferCard, ShopPorts, StoredInvoice, StoredOrder } from './ports';
+import type {
+  Id,
+  InvoiceLine,
+  OfferCard,
+  OfferDetailCard,
+  ShopPorts,
+  StoredInvoice,
+  StoredOrder,
+} from './ports';
 
 /**
  * Порты магазина на Payload - единственное место модуля, которое знает о CMS.
@@ -64,6 +74,38 @@ export function cardFromDoc(doc: Record<string, unknown>): OfferCard {
     image: doc['image'] ?? null,
     howToBuy: howToBuy(doc['howToBuy']),
     deposit: micros(doc['depositMicros']),
+    slug: typeof doc['slug'] === 'string' && doc['slug'] ? doc['slug'] : null,
+    section: sectionOf(doc['section'])?.slug ?? null,
+    specs: specsOf(doc['specs']),
+  };
+}
+
+/** Раздел из связи: при глубине 1 - запись, при 0 - только номер (тогда слага нет). */
+const sectionOf = (v: unknown): { slug: string; title: string; characteristics: unknown } | null =>
+  v && typeof v === 'object' && typeof (v as Record<string, unknown>)['slug'] === 'string'
+    ? (v as { slug: string; title: string; characteristics: unknown })
+    : null;
+
+/** Значения характеристик: только простые значения, остальное отбрасывается. */
+function specsOf(v: unknown): Record<string, SpecValue> {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return {};
+  return Object.fromEntries(
+    Object.entries(v as Record<string, unknown>).filter(
+      ([, x]) => typeof x === 'string' || typeof x === 'number' || typeof x === 'boolean',
+    ),
+  ) as Record<string, SpecValue>;
+}
+
+export function detailFromDoc(doc: Record<string, unknown>): OfferDetailCard {
+  const section = sectionOf(doc['section']);
+  return {
+    ...cardFromDoc(doc),
+    gallery: Array.isArray(doc['gallery'])
+      ? doc['gallery'].filter((m) => m && typeof m === 'object')
+      : [],
+    description: doc['description'] ?? null,
+    sectionTitle: section?.title ?? null,
+    characteristics: cleanCharacteristics(section?.characteristics),
   };
 }
 
@@ -184,9 +226,14 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
             ? [...new Set(query.ids.filter((id) => Number.isInteger(id) && id > 0))]
             : null;
         if (ids?.length === 0) return [];
+        const where = ids
+          ? { id: { in: ids } }
+          : 'section' in query
+            ? { 'section.slug': { equals: query.section } }
+            : null;
         const found = await payload.find({
           collection: 'offers',
-          ...(ids ? { where: { id: { in: ids } } } : {}),
+          ...(where ? { where } : {}),
           limit: ids ? ids.length : Math.min(Math.max(1, 'limit' in query ? query.limit : 1), 100),
           sort: 'title',
           pagination: false,
@@ -194,6 +241,36 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
           depth: 1,
         });
         return found.docs.map((d) => cardFromDoc(d as unknown as Record<string, unknown>));
+      },
+      detail: async (slug) => {
+        const found = await payload.find({
+          collection: 'offers',
+          where: { slug: { equals: slug } },
+          limit: 1,
+          pagination: false,
+          ...opts,
+          depth: 1,
+        });
+        const doc = found.docs[0];
+        return doc ? detailFromDoc(doc as unknown as Record<string, unknown>) : null;
+      },
+      section: async (slug) => {
+        const found = await payload.find({
+          collection: 'catalog-sections',
+          where: { slug: { equals: slug } },
+          limit: 1,
+          pagination: false,
+          ...opts,
+        });
+        const doc = found.docs[0] as unknown as Record<string, unknown> | undefined;
+        return doc
+          ? {
+              slug: str(doc['slug']),
+              title: str(doc['title']),
+              description: typeof doc['description'] === 'string' ? doc['description'] : null,
+              characteristics: cleanCharacteristics(doc['characteristics']),
+            }
+          : null;
       },
       take: (lines) => takeStock(execute(payload), lines),
       giveBack: (lines) => returnStock(execute(payload), lines),

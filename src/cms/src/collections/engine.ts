@@ -10,6 +10,7 @@ import { KeyUsage } from './KeyUsage';
 import { FaqGroups } from './FaqGroups';
 import { FeatureToggles } from './FeatureToggles';
 import { FormSubmissions } from './FormSubmissions';
+import { CatalogSections } from './CatalogSections';
 import { Invoices } from './Invoices';
 import { Media } from './Media';
 import { Offers } from './Offers';
@@ -58,6 +59,7 @@ export const engineCollections = [
   // Магазин в порядке работы: что продаём, заказы на это, счета по заказам
   // (docs/whg/43-shop.md).
   Offers,
+  CatalogSections,
   Orders,
   Invoices,
   // Записи и всё вокруг них.
