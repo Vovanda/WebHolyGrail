@@ -127,6 +127,9 @@ export default buildConfig({
       beforeDashboard: ['/admin/components/ComplianceNotice#ComplianceNotice'],
       // Страница в панели предпросмотра идёт за прокруткой формы.
       providers: ['/admin/components/PreviewScrollSync#PreviewScrollSync'],
+      // Своё меню: порядок групп у пользователя, модули без ожидания сервера,
+      // смена темы внизу, как на сайте (#182).
+      Nav: '/admin/components/AdminNav#AdminNav',
       /*
         Канал одной страницей: записи и подборки участника вместе, как их видит
         посетитель. В медиатеке записи лежат вперемешку с картинками, подборки -

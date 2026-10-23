@@ -424,13 +424,3 @@ img.whg-attach-preview__thumb {
   color: var(--theme-elevation-500);
   white-space: nowrap;
 }
-
-/*
-  Пункты внутри группы меню сдвинуты вправо от её заголовка.
-
-  Штатно они стоят вровень с заголовком, и группа читается как отдельное
-  меню. Сменится класс в новой версии - пункты просто вернутся к краю.
-*/
-.nav-group__content .nav__link {
-  padding-left: calc(var(--base, 1rem) * 0.75);
-}

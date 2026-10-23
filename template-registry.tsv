@@ -655,6 +655,9 @@ mirror	src/cms/scripts/restock-media.ts
 mirror	src/cms/scripts/rewrap-video-secrets.ts
 mirror	src/cms/scripts/seed-showcase-page.ts
 mirror	src/cms/scripts/write-snapshot.ts
+mirror	src/cms/src/admin/components/AdminNav.tsx
+mirror	src/cms/src/admin/components/AdminNavClient.tsx
+mirror	src/cms/src/admin/components/AdminNavGroups.tsx
 mirror	src/cms/src/admin/components/AppearanceField.tsx
 mirror	src/cms/src/admin/components/ColorField.tsx
 mirror	src/cms/src/admin/components/ComplianceNotice.tsx
@@ -669,11 +672,13 @@ mirror	src/cms/src/admin/components/PlaylistItemRowLabel.tsx
 mirror	src/cms/src/admin/components/PreviewScrollSync.tsx
 mirror	src/cms/src/admin/components/RestoreVideoField.tsx
 mirror	src/cms/src/admin/components/ShopActionsField.tsx
+mirror	src/cms/src/admin/components/ThemeToggle.tsx
 mirror	src/cms/src/admin/components/TogglesBoard.tsx
 mirror	src/cms/src/admin/components/useRelatedImageURL.ts
 mirror	src/cms/src/admin/components/VideoPreviewField.tsx
 mirror	src/cms/src/admin/components/VideoProgressField.tsx
 mirror	src/cms/src/admin/layout-default.ts
+mirror	src/cms/src/admin/navState.ts
 mirror	src/cms/src/admin/palette-presets-data.ts
 mirror	src/cms/src/admin/views/ChannelView.tsx
 mirror	src/cms/src/app/(payload)/admin/[[...segments]]/not-found.tsx
@@ -802,6 +807,8 @@ mirror	src/cms/src/lib/access/api-key-access.test.ts
 mirror	src/cms/src/lib/access/api-key-access.ts
 mirror	src/cms/src/lib/access/editors.test.ts
 mirror	src/cms/src/lib/access/editors.ts
+mirror	src/cms/src/lib/admin-nav/arrange.test.ts
+mirror	src/cms/src/lib/admin-nav/arrange.ts
 mirror	src/cms/src/lib/block-parts.ts
 mirror	src/cms/src/lib/bytes.test.ts
 mirror	src/cms/src/lib/bytes.ts
