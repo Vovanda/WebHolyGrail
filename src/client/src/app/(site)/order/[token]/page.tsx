@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import type { BuyerOrderView } from 'contracts';
 import { formatMoney, INVOICE_STATUS_LABELS, ORDER_STATUS_LABELS, shopSettings } from 'contracts';
 
+import { CopyLinkButton } from '@/blocks/primitives/CopyLinkButton';
 import { OrderActions } from '@/blocks/primitives/Shop/OrderActions';
 import { PaymentDetails } from '@/blocks/primitives/Shop/PaymentDetails';
 import { getOrderView, getSiteSettings } from '@/lib/api-client.engine';
@@ -65,9 +66,13 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
             Причина: {order.cancelReason}
           </p>
         )}
-        <p className="mt-2 text-sm text-muted">
-          Сохраните эту страницу: по её адресу заказ открывается без входа.
-        </p>
+        <div data-part="keep-link" className="mt-3 flex flex-wrap items-center gap-2">
+          <p className="text-sm text-ink">
+            Сохраните ссылку: с другого устройства или после очистки браузера заказ, его счета и
+            оплата открываются только по ней.
+          </p>
+          <CopyLinkButton label="Скопировать ссылку на заказ" caption="Скопировать ссылку" />
+        </div>
 
         <ul data-part="lines" className="mt-6 divide-y divide-border border-y border-border">
           {order.lines.map((l, i) => (
