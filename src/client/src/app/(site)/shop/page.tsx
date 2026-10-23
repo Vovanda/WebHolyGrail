@@ -9,7 +9,7 @@ import { CardRows } from '@/blocks/arrangements/CardRows';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { CatalogView } from '@/blocks/primitives/Shop/CatalogView';
 import { OfferCard } from '@/blocks/primitives/Shop/OfferCard';
-import { ShopSearchBar } from '@/blocks/primitives/Shop/ShopSearchBar';
+import { ShopTopBar } from '@/blocks/primitives/Shop/ShopTopBar';
 import { getCatalog, getSiteSettings } from '@/lib/api-client.engine';
 import { rangesFromForm } from '@/lib/shop/catalog-href';
 import { positions } from '@/lib/shop/positions';
@@ -74,7 +74,7 @@ export default async function CatalogPage({
   return (
     <section className="block-space bg-bg">
       <div className="mx-auto max-w-wide px-4 md:px-6">
-        <ShopSearchBar query={query} />
+        <ShopTopBar query={query} tree={result?.tree ?? []} />
         <Breadcrumbs items={[{ label: 'Главная', href: '/' }, { label: shop.menuTitle }]} />
         <h1 data-part="title" className="font-display text-2xl font-semibold text-ink md:text-3xl">
           {shop.menuTitle}

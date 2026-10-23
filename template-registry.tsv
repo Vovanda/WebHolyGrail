@@ -350,6 +350,7 @@ mirror	src/client/src/blocks/primitives/Shop/AddToCart.tsx
 mirror	src/client/src/blocks/primitives/Shop/Cart.tsx
 mirror	src/client/src/blocks/primitives/Shop/CatalogFilters.tsx
 mirror	src/client/src/blocks/primitives/Shop/CatalogPager.tsx
+mirror	src/client/src/blocks/primitives/Shop/CatalogTree.tsx
 mirror	src/client/src/blocks/primitives/Shop/CatalogView.tsx
 mirror	src/client/src/blocks/primitives/Shop/ConfirmDialog.tsx
 mirror	src/client/src/blocks/primitives/Shop/facet-parts.tsx
@@ -363,7 +364,9 @@ mirror	src/client/src/blocks/primitives/Shop/OrderActions.tsx
 mirror	src/client/src/blocks/primitives/Shop/PaymentDetails.tsx
 mirror	src/client/src/blocks/primitives/Shop/QuantityStepper.tsx
 mirror	src/client/src/blocks/primitives/Shop/QuickFilters.tsx
+mirror	src/client/src/blocks/primitives/Shop/SectionTiles.tsx
 mirror	src/client/src/blocks/primitives/Shop/ShopSearchBar.tsx
+mirror	src/client/src/blocks/primitives/Shop/ShopTopBar.tsx
 mirror	src/client/src/blocks/primitives/Shop/Showcase.tsx
 mirror	src/client/src/blocks/primitives/Shop/SortMenu.tsx
 mirror	src/client/src/blocks/primitives/Shop/ui.ts

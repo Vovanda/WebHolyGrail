@@ -7,7 +7,8 @@ import { CardRows } from '@/blocks/arrangements/CardRows';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
 import { CatalogView } from '@/blocks/primitives/Shop/CatalogView';
 import { OfferCard } from '@/blocks/primitives/Shop/OfferCard';
-import { ShopSearchBar } from '@/blocks/primitives/Shop/ShopSearchBar';
+import { SectionTiles } from '@/blocks/primitives/Shop/SectionTiles';
+import { ShopTopBar } from '@/blocks/primitives/Shop/ShopTopBar';
 import { getCatalog, getCatalogSection, getSiteSettings } from '@/lib/api-client.engine';
 import { rangesFromForm } from '@/lib/shop/catalog-href';
 import { positions } from '@/lib/shop/positions';
@@ -66,11 +67,20 @@ export default async function SectionPage({
   return (
     <section className="block-space bg-bg">
       <div className="mx-auto max-w-wide px-4 md:px-6">
-        <ShopSearchBar query={query} scope={{ slug: section.slug, title: section.title }} />
+        <ShopTopBar
+          query={query}
+          scope={{ slug: section.slug, title: section.title }}
+          tree={result.tree}
+          current={result.path.map((s) => s.slug)}
+        />
         <Breadcrumbs
           items={[
             { label: 'Главная', href: '/' },
             { label: shop.menuTitle, href: CATALOG_HREF },
+            ...result.path.slice(0, -1).map((s) => ({
+              label: s.title,
+              href: `${CATALOG_HREF}/${s.slug}`,
+            })),
             { label: section.title },
           ]}
         />
@@ -85,6 +95,7 @@ export default async function SectionPage({
         {section.description && (
           <p className="mt-2 max-w-content text-muted">{section.description}</p>
         )}
+        <SectionTiles nodes={result.children} />
 
         <CatalogView
           place={place}

@@ -18,8 +18,8 @@ import { MediaImage } from '@/blocks/primitives/Media';
 import { hasLexicalContent, LexicalRenderer } from '@/blocks/primitives/RichText';
 import { AddToCart } from '@/blocks/primitives/Shop/AddToCart';
 import { OfferCard } from '@/blocks/primitives/Shop/OfferCard';
-import { ShopSearchBar } from '@/blocks/primitives/Shop/ShopSearchBar';
-import { getOffer, getSiteSettings, listCatalogSections } from '@/lib/api-client.engine';
+import { ShopTopBar } from '@/blocks/primitives/Shop/ShopTopBar';
+import { getCatalog, getOffer, getSiteSettings } from '@/lib/api-client.engine';
 import { jsonLd } from '@/lib/seo/json-ld';
 
 /**
@@ -49,25 +49,18 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 }
 
 export default async function OfferPage({ params }: { params: Promise<Params> }) {
-  const [offer, settings, sections] = await Promise.all([
-    getOffer((await params).slug),
-    getSiteSettings(),
-    listCatalogSections(),
-  ]);
+  const [offer, settings] = await Promise.all([getOffer((await params).slug), getSiteSettings()]);
   if (!offer) notFound();
+  // Путь до раздела и дерево каталога - из той же ручки, что выдача.
+  const place = await getCatalog(offer.section, { page: '1' });
 
   const files = [offer.image, ...offer.gallery].filter(Boolean) as MediaRef[];
   const specs = cardSpecs(offer.characteristics, offer.specs);
   const sold = offer.stock !== null && offer.stock <= 0;
   const crumbs: Crumb[] = [
     { label: 'Главная', href: '/' },
-    // При одном разделе /shop ведёт в него же: ступень «Каталог» не нужна.
-    ...(sections.length > 1
-      ? [{ label: shopSettings(settings?.shop).menuTitle, href: CATALOG_HREF }]
-      : []),
-    ...(offer.section && offer.sectionTitle
-      ? [{ label: offer.sectionTitle, href: `/shop/${offer.section}` }]
-      : []),
+    { label: shopSettings(settings?.shop).menuTitle, href: CATALOG_HREF },
+    ...(place?.path ?? []).map((s) => ({ label: s.title, href: `${CATALOG_HREF}/${s.slug}` })),
     { label: offer.title },
   ];
 
@@ -76,7 +69,7 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
   return (
     <section className="block-space bg-bg">
       <div className="mx-auto max-w-wide px-4 md:px-6">
-        <ShopSearchBar />
+        <ShopTopBar tree={place?.tree ?? []} current={(place?.path ?? []).map((s) => s.slug)} />
         <Breadcrumbs items={crumbs} copyLink />
         <div
           data-part="offer"
