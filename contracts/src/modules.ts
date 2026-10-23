@@ -23,6 +23,8 @@ export interface EngineModule {
   readonly description: string;
   readonly collections: readonly string[];
   readonly blocks: readonly string[];
+  /** Первые сегменты адресов, которые модуль занимает своими маршрутами на сайте. */
+  readonly routes: readonly string[];
   /** Включён ли модуль у только что созданного сайта; живых сайтов не касается. */
   readonly onNewSite: boolean;
 }
@@ -34,6 +36,7 @@ export const MODULES = [
     description: 'Формы сайта и присланные через них ответы; блок формы.',
     collections: ['form-submissions'],
     blocks: ['request-form'],
+    routes: [],
     onNewSite: false,
   },
   {
@@ -42,6 +45,7 @@ export const MODULES = [
     description: 'Позиции, заказы и счета; блоки витрины и корзины.',
     collections: ['offers', 'catalog-sections', 'orders', 'invoices'],
     blocks: ['shop-showcase', 'shop-cart'],
+    routes: ['shop', 'order', 'orders'],
     onNewSite: false,
   },
   {
@@ -50,6 +54,7 @@ export const MODULES = [
     description: 'Статьи, треды, теги и авторы; блоки лент статей и тредов.',
     collections: ['articles', 'threads', 'tags', 'authors'],
     blocks: ['articles-section', 'threads-section'],
+    routes: ['blog'],
     onNewSite: true,
   },
   {
@@ -66,6 +71,7 @@ export const MODULES = [
       'media-access-links',
     ],
     blocks: [],
+    routes: [],
     onNewSite: false,
   },
   {
@@ -74,6 +80,7 @@ export const MODULES = [
     description: 'Каталог людей по городам: тренеры, мастера, врачи, репетиторы.',
     collections: ['cities', 'specialists'],
     blocks: ['specialist-directory', 'specialist-profile'],
+    routes: ['specialists'],
     onNewSite: false,
   },
   {
@@ -82,6 +89,7 @@ export const MODULES = [
     description: 'Посты и комментарии из соцсетей и блок ленты.',
     collections: ['social-posts', 'comments'],
     blocks: ['social-feed'],
+    routes: ['channel'],
     onNewSite: false,
   },
 ] as const satisfies readonly {
@@ -90,6 +98,7 @@ export const MODULES = [
   description: string;
   collections: readonly string[];
   blocks: readonly string[];
+  routes: readonly string[];
   onNewSite: boolean;
 }[];
 
@@ -122,6 +131,28 @@ export function isModuleEnabled(
 ): boolean {
   if (key === null) return true;
   return toggles[moduleToggleKey(key)] ?? true;
+}
+
+/** Адреса движка вне модулей: служебные маршруты сайта. */
+const ENGINE_ROUTES = ['api', 'internal', 'i', 'admin'] as const;
+
+/**
+ * Первые сегменты адресов, которые страница сайта занять не может.
+ *
+ * @remarks
+ * Маршрут модуля перекрывает страницу с тем же началом адреса: страница `shop/x`
+ * отвечала бы 404. Адреса резервируются у всех модулей, включённых и нет: модуль
+ * включают без выкладки, и страница не должна пропасть в этот момент.
+ */
+export const RESERVED_ROUTES: readonly string[] = [
+  ...ENGINE_ROUTES,
+  ...MODULES.flatMap((m) => [...m.routes]),
+];
+
+/** Занимает ли адрес страницы зарезервированное начало; вернёт его или null. */
+export function reservedRoute(slug: string): string | null {
+  const head = slug.replace(/^\/+/, '').split('/')[0]?.toLowerCase() ?? '';
+  return RESERVED_ROUTES.includes(head) ? head : null;
 }
 
 /** Блоки, которые нельзя ставить на страницу: блоки выключенных модулей. */

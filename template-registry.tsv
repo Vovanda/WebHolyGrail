@@ -318,6 +318,7 @@ mirror	src/client/src/blocks/primitives/Media/types.ts
 mirror	src/client/src/blocks/primitives/Media/useLaneFrame.ts
 mirror	src/client/src/blocks/primitives/Media/useLaneZoom.ts
 mirror	src/client/src/blocks/primitives/PageRef.tsx
+mirror	src/client/src/blocks/primitives/Pagination.tsx
 mirror	src/client/src/blocks/primitives/PhotoCountBadge.tsx
 mirror	src/client/src/blocks/primitives/PhotoLightbox.tsx
 mirror	src/client/src/blocks/primitives/PreviewLiveData.tsx

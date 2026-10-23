@@ -270,8 +270,9 @@ describe('шаг покупателя', () => {
 describe('страница корзины', () => {
   it('по умолчанию /cart, свой путь берётся, чужой адрес - нет', () => {
     expect(shopSettings(null).cartHref).toBe('/cart');
-    expect(shopSettings({ cartHref: '/shop/cart' }).cartHref).toBe('/shop/cart');
+    expect(shopSettings({ cartHref: '/basket' }).cartHref).toBe('/basket');
     expect(shopSettings({ cartHref: 'https://evil.example' }).cartHref).toBe('/cart');
     expect(shopSettings({ cartHref: '//evil.example' }).cartHref).toBe('/cart');
+    expect(shopSettings({ cartHref: '/\\evil.example' }).cartHref).toBe('/cart');
   });
 });

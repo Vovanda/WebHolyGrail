@@ -628,10 +628,15 @@ export function shopSettings(raw: ShopSettingsInput | null | undefined): ShopSet
   };
 }
 
-/** Путь своего сайта: с одной косой черты в начале; чужой адрес и мусор - null. */
+/**
+ * Путь своего сайта: с одной косой черты в начале; чужой адрес и мусор - null.
+ *
+ * @remarks
+ * Обратную косую браузер читает как прямую: `/\evil.example` увёл бы на чужой домен.
+ */
 function localPath(v: unknown): string | null {
   const path = text(v);
-  return /^\/(?!\/)[^\s]*$/.test(path) ? path : null;
+  return /^\/(?![/\\])[^\s\\]*$/.test(path) ? path : null;
 }
 
 /* ───────────────────────── Анкета покупателя ───────────────────────── */
@@ -735,6 +740,28 @@ export interface OfferDetailView extends OfferView {
   readonly characteristics: readonly Characteristic[];
 }
 
+/**
+ * Карточка позиции без полей страницы: так её запоминает корзина.
+ *
+ * @remarks
+ * Страница позиции отдаёт галерею, описание и характеристики раздела; в снимок
+ * корзины и в данные клиентского компонента они не идут.
+ */
+export const offerViewOf = (o: OfferView): OfferView => ({
+  id: o.id,
+  title: o.title,
+  price: o.price,
+  listPrice: o.listPrice ?? null,
+  stock: o.stock,
+  summary: o.summary,
+  image: o.image,
+  howToBuy: o.howToBuy,
+  deposit: o.deposit,
+  slug: o.slug,
+  section: o.section,
+  specs: o.specs,
+});
+
 /** Раздел каталога: название, описание и набор характеристик для фильтра. */
 export interface CatalogSectionView {
   readonly slug: string;
@@ -786,6 +813,9 @@ export interface BuyerOrderView {
   /** Почему заказ отменён - покупатель видит её по своей ссылке; у неотменённого null. */
   readonly cancelReason: string | null;
 }
+
+/** Сколько заказов на странице «Моих заказов»: столько сайт спрашивает, столько сервер отдаёт. */
+export const MY_ORDERS_PAGE = 10;
 
 /** Заказ строкой списка «Мои заказы»; строки, анкета и счета - только на странице заказа по ссылке. */
 export interface BuyerOrderSummary {

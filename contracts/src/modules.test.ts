@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   disabledBlocks,
+  reservedRoute,
   isModuleEnabled,
   MODULES,
   moduleOfBlock,
@@ -38,5 +39,16 @@ describe('модули движка', () => {
 
   it('у нового сайта из модулей включён только блог', () => {
     expect(MODULES.filter((m) => m.onNewSite).map((m) => m.key)).toEqual(['blog']);
+  });
+});
+
+describe('зарезервированные адреса', () => {
+  it('страница не занимает адрес модуля или движка, включённого или нет', () => {
+    expect(reservedRoute('shop/cart')).toBe('shop');
+    expect(reservedRoute('/Orders')).toBe('orders');
+    expect(reservedRoute('api')).toBe('api');
+    expect(reservedRoute('shopping')).toBeNull();
+    expect(reservedRoute('contacts/visit')).toBeNull();
+    expect(reservedRoute('')).toBeNull();
   });
 });

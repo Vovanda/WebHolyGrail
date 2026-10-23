@@ -125,6 +125,10 @@ export function publicSpecs(
   );
 }
 
+/** Характеристики, которые видны хоть где-то: скрытые везде наружу не отдаются даже названием. */
+export const visibleCharacteristics = (chars: readonly Characteristic[]): Characteristic[] =>
+  chars.filter((c) => c.inCard !== false || c.filter !== 'hidden');
+
 /** Значение характеристики позиции строкой - так оно стоит в адресе и в фасете. */
 export function specText(value: SpecValue | undefined): string | null {
   if (value === null || value === undefined || value === '') return null;

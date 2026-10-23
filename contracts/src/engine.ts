@@ -144,6 +144,7 @@ export {
   INVOICE_TRANSITIONS,
   MAX_CART_LINES,
   MAX_EXTRA_LINES,
+  MY_ORDERS_PAGE,
   MAX_QUANTITY,
   ORDER_FINAL,
   ORDER_STATUS_LABELS,
@@ -168,6 +169,7 @@ export {
   isOverdue,
   LINE_REMOVE_FROM,
   liveLines,
+  offerViewOf,
   orderTotal,
   paymentPrice,
   refundable,
@@ -252,6 +254,7 @@ export {
   isSlug,
   normalize,
   publicSpecs,
+  visibleCharacteristics,
   readFilter,
   searchItems,
   specText,
@@ -278,6 +281,8 @@ export {
   moduleOfBlock,
   moduleOfCollection,
   moduleToggleKey,
+  RESERVED_ROUTES,
+  reservedRoute,
 } from './modules';
 export type { EngineModule, ModuleKey } from './modules';
 export { checkPhone, DEFAULT_PHONE_FORMAT, isPhoneFormat, PHONE_FORMATS } from './phone';
