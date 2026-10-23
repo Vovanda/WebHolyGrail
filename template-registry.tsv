@@ -102,6 +102,8 @@ mirror	contracts/src/money.test.ts
 mirror	contracts/src/money.ts
 mirror	contracts/src/notices.ts
 mirror	contracts/src/pages.ts
+mirror	contracts/src/phone.test.ts
+mirror	contracts/src/phone.ts
 mirror	contracts/src/preview-scroll.test.ts
 mirror	contracts/src/preview-scroll.ts
 mirror	contracts/src/reusable.ts

@@ -14,6 +14,13 @@
  * в то, что видит сайт, они выходят только объектом `Money` (docs/adr/002-money.md).
  */
 
+import {
+  checkPhone,
+  DEFAULT_PHONE_FORMAT,
+  isPhoneFormat,
+  PHONE_FORMATS,
+  type PhoneFormatKey,
+} from './phone';
 import type { Micros, Money } from './money';
 
 export type Actor = 'buyer' | 'manager' | 'system';
@@ -342,12 +349,15 @@ export interface CheckoutRules {
   readonly phone: AskField;
   readonly email: AskField;
   readonly comment: boolean;
+  /** Как проверять телефон - формат страны из `PHONE_FORMATS`. */
+  readonly phoneFormat: PhoneFormatKey;
 }
 
 export const DEFAULT_CHECKOUT: CheckoutRules = {
   phone: 'optional',
   email: 'optional',
   comment: true,
+  phoneFormat: DEFAULT_PHONE_FORMAT,
 };
 
 export interface ShopSettings {
@@ -411,7 +421,12 @@ export function shopSettings(raw: ShopSettingsInput | null | undefined): ShopSet
     card: text(r['card'], 32),
     orderHoldHours: whole(r['orderHoldHours'], 1, 720, STALE_ORDER_HOURS),
     invoiceDueDays: whole(r['invoiceDueDays'], 0, 90, DEFAULT_INVOICE_DUE_DAYS),
-    checkout: { phone, email, comment: co['comment'] !== false },
+    checkout: {
+      phone,
+      email,
+      comment: co['comment'] !== false,
+      phoneFormat: isPhoneFormat(co['phoneFormat']) ? co['phoneFormat'] : DEFAULT_PHONE_FORMAT,
+    },
   };
 }
 
@@ -467,7 +482,9 @@ export function checkBuyer(
           ? 'Телефон - чтобы с вами связаться'
           : 'Телефон или почта - чтобы с вами связаться';
   }
-  if (buyer.phone && !/^\+?[\d\s()-]{5,}$/.test(buyer.phone)) errors.phone = 'Телефон цифрами';
+  // Формат телефона выбирает владелец: шаблоном пользуются сайты разных стран.
+  if (buyer.phone && !checkPhone(buyer.phone, rules.phoneFormat))
+    errors.phone = `Номер целиком, например ${PHONE_FORMATS[rules.phoneFormat].example}`;
   if (buyer.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyer.email))
     errors.email = 'Почта в виде name@example.ru';
   if (raw['consent'] !== true) errors.consent = 'Нужно согласие на обработку данных';

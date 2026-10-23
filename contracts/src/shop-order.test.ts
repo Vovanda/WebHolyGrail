@@ -168,7 +168,12 @@ describe('настройки магазина', () => {
   it('пусто - умолчания: 72 часа, 3 дня, телефон и почта по желанию', () => {
     const s = shopSettings(null);
     expect([s.orderHoldHours, s.invoiceDueDays]).toEqual([STALE_ORDER_HOURS, 3]);
-    expect(s.checkout).toEqual({ phone: 'optional', email: 'optional', comment: true });
+    expect(s.checkout).toEqual({
+      phone: 'optional',
+      email: 'optional',
+      comment: true,
+      phoneFormat: 'intl',
+    });
   });
 
   it('негодные сроки - умолчания; оба способа связи спрятать нельзя', () => {
@@ -188,16 +193,24 @@ describe('анкета по правилам владельца', () => {
   it('обязательная почта: без неё отказ у поля почты', () => {
     const r = checkBuyer(
       { ...base, phone: '+7 900 000-00-00' },
-      { phone: 'optional', email: 'required', comment: true },
+      { phone: 'optional', email: 'required', comment: true, phoneFormat: 'intl' },
     );
     expect(!r.ok && Object.keys(r.errors)).toEqual(['email']);
   });
 
   it('скрытый телефон не принимается и не требуется, нужна почта', () => {
-    const rules = { phone: 'hidden', email: 'optional', comment: false } as const;
-    const r = checkBuyer({ ...base, phone: '+7 900', comment: 'привет' }, rules);
+    const rules = {
+      phone: 'hidden',
+      email: 'optional',
+      comment: false,
+      phoneFormat: 'intl',
+    } as const;
+    const r = checkBuyer({ ...base, phone: '+7 900 123-45-67', comment: 'привет' }, rules);
     expect(!r.ok && r.errors.contact).toBe('Почта - чтобы с вами связаться');
-    const ok = checkBuyer({ ...base, phone: '+7 900', email: 'a@b.ru', comment: 'привет' }, rules);
+    const ok = checkBuyer(
+      { ...base, phone: '+7 900 123-45-67', email: 'a@b.ru', comment: 'привет' },
+      rules,
+    );
     expect(ok.ok && [ok.buyer.phone, ok.buyer.comment]).toEqual(['', '']);
   });
 });
@@ -209,5 +222,21 @@ describe('сумма за пределом точных целых', () => {
       [offer({ id: 1, price: 10_000_000_000_000 })],
     );
     expect(r.ok === false && r.tooLarge).toBe(true);
+  });
+  it('телефон - номер целиком: обрывок и буквы не проходят, номер со скобками и дефисами проходит', () => {
+    const base = { name: 'Анна', consent: true };
+    expect(checkBuyer({ ...base, phone: '11111' }).ok).toBe(false);
+    expect(checkBuyer({ ...base, phone: '+7 900' }).ok).toBe(false);
+    expect(checkBuyer({ ...base, phone: '8 900 abc 12 34' }).ok).toBe(false);
+    expect(checkBuyer({ ...base, phone: '+7 (900) 123-45-67' }).ok).toBe(true);
+    expect(checkBuyer({ ...base, phone: '89001234567' }).ok).toBe(true);
+  });
+  it('формат телефона из настроек; неизвестный - международный', () => {
+    expect(shopSettings({ checkout: { phoneFormat: 'ru' } }).checkout.phoneFormat).toBe('ru');
+    expect(shopSettings({ checkout: { phoneFormat: 'марс' } }).checkout.phoneFormat).toBe('intl');
+    const ru = { ...shopSettings({}).checkout, phoneFormat: 'ru' as const };
+    const r = checkBuyer({ name: 'Анна', phone: '+44 20 7946 0958', consent: true }, ru);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.phone).toContain('+7 900');
   });
 });

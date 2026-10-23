@@ -255,3 +255,5 @@ export {
   moduleToggleKey,
 } from './modules';
 export type { EngineModule, ModuleKey } from './modules';
+export { checkPhone, DEFAULT_PHONE_FORMAT, isPhoneFormat, PHONE_FORMATS } from './phone';
+export type { PhoneFormat, PhoneFormatKey } from './phone';
