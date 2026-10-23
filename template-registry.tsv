@@ -335,6 +335,7 @@ mirror	src/client/src/blocks/primitives/Separator/index.ts
 mirror	src/client/src/blocks/primitives/Separator/WaveDivider.tsx
 mirror	src/client/src/blocks/primitives/Shop/AddToCart.tsx
 mirror	src/client/src/blocks/primitives/Shop/Cart.tsx
+mirror	src/client/src/blocks/primitives/Shop/ConfirmDialog.tsx
 mirror	src/client/src/blocks/primitives/Shop/MyOrders.tsx
 mirror	src/client/src/blocks/primitives/Shop/OrderActions.tsx
 mirror	src/client/src/blocks/primitives/Shop/PaymentDetails.tsx

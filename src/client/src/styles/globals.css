@@ -236,6 +236,21 @@
   }
 
   /*
+    Фон под окном подтверждения затемняет страницу: в светлой теме чернилами
+    палитры, в тёмной - её фоном, потому что чернила там светлые. Утилита
+    bg-ink/55 здесь не годится - цвет задан переменной, и Tailwind не строит
+    для него класс с прозрачностью.
+  */
+  [data-part='confirm']::backdrop {
+    background: color-mix(in oklab, var(--color-ink) 55%, transparent);
+    backdrop-filter: blur(2px);
+  }
+
+  :root[data-theme='dark'] [data-part='confirm']::backdrop {
+    background: color-mix(in oklab, var(--color-bg) 70%, transparent);
+  }
+
+  /*
     Кнопка над страницей едет вместе с ней: она привязана к окну, а не
     к каркасу, и без сдвига оставалась бы на месте, когда страница уехала.
   */
