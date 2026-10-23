@@ -191,10 +191,13 @@ export type {
 } from './shop';
 export {
   CURRENCIES,
+  DEFAULT_BOOK,
   DEFAULT_RATES,
   MAX_UNITS,
   MICROS_PER_UNIT,
+  bookRateAt,
   cancelScheduled,
+  chainedRateAt,
   convertAt,
   formatMoney,
   fromBaseMicros,
@@ -202,6 +205,7 @@ export {
   microsToUnits,
   parseMoney,
   rateAt,
+  ratesFromVersions,
   scheduleRate,
   toBaseMicros,
   toMoney,
@@ -213,7 +217,9 @@ export type {
   Micros,
   Money,
   MoneyError,
+  RateBook,
   RateResult,
+  RateVersion,
   ScheduleResult,
 } from './money';
 export {

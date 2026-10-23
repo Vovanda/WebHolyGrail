@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  bookRateAt,
   cancelScheduled,
+  chainedRateAt,
   convertAt,
+  DEFAULT_BOOK,
   DEFAULT_RATES,
   type ExchangeRate,
   formatMoney,
@@ -11,6 +14,7 @@ import {
   MAX_UNITS,
   parseMoney,
   rateAt,
+  ratesFromVersions,
   scheduleRate,
   toBaseMicros,
   toMoney,
@@ -169,5 +173,98 @@ describe('версии курса и плановая смена', () => {
       ok: false,
       error: 'nothing_scheduled',
     });
+  });
+});
+
+describe('курс цепочкой через основную валюту', () => {
+  const v = (
+    currency: 'RUB' | 'USD',
+    rub: number,
+    from: string,
+    to: string | null = null,
+  ): ExchangeRate => ({
+    currency,
+    microsPerUnit: rub * 1_000_000,
+    from,
+    to,
+  });
+  const cross = [
+    v('USD', 90, '2026-01-01T00:00:00Z', '2026-06-01T00:00:00Z'),
+    v('USD', 100, '2026-06-01T00:00:00Z'),
+  ];
+
+  it('курс валюты к учёту - кросс-курс × курс основной, на дату документа', () => {
+    const main = [v('RUB', 1, '1970-01-01T00:00:00Z')];
+    const march = chainedRateAt(cross, main, 'RUB', 'USD', new Date('2026-03-01T00:00:00Z'));
+    const july = chainedRateAt(cross, main, 'RUB', 'USD', new Date('2026-07-01T00:00:00Z'));
+    expect(march.ok && march.rate.microsPerUnit).toBe(90_000_000);
+    expect(july.ok && july.rate.microsPerUnit).toBe(100_000_000);
+  });
+
+  it('смена курса основной одной правкой пересчитывает добавленные валюты', () => {
+    const main = [
+      v('RUB', 1, '1970-01-01T00:00:00Z', '2026-07-01T00:00:00Z'),
+      {
+        currency: 'RUB' as const,
+        microsPerUnit: 2_000_000,
+        from: '2026-07-01T00:00:00Z',
+        to: null,
+      },
+    ];
+    const r = chainedRateAt(cross, main, 'RUB', 'USD', new Date('2026-08-01T00:00:00Z'));
+    expect(r.ok && r.rate.microsPerUnit).toBe(200_000_000);
+    const before = chainedRateAt(cross, main, 'RUB', 'USD', new Date('2026-06-15T00:00:00Z'));
+    expect(before.ok && before.rate.microsPerUnit).toBe(100_000_000);
+  });
+
+  it('нет кросс-курса на дату - rate_missing, без подмены; основная валюта - свой курс', () => {
+    const main = [v('RUB', 1, '1970-01-01T00:00:00Z')];
+    expect(chainedRateAt(cross, main, 'RUB', 'USD', new Date('2025-12-01T00:00:00Z'))).toEqual({
+      ok: false,
+      error: 'rate_missing',
+    });
+    const rub = chainedRateAt(cross, main, 'RUB', 'RUB', new Date('2026-03-01T00:00:00Z'));
+    expect(rub.ok && rub.rate.microsPerUnit).toBe(1_000_000);
+  });
+});
+
+describe('журнал версий курса', () => {
+  it('конец действия - начало следующей версии той же валюты, порядок записи не важен', () => {
+    const rates = ratesFromVersions([
+      { currency: 'USD', microsPerUnit: 100_000_000, from: '2026-06-01T00:00:00Z' },
+      { currency: 'RUB', microsPerUnit: 1_000_000, from: '1970-01-01T00:00:00Z' },
+      { currency: 'USD', microsPerUnit: 90_000_000, from: '2026-01-01T00:00:00Z' },
+    ]);
+    expect(rates.filter((r) => r.currency === 'USD')).toEqual([
+      {
+        currency: 'USD',
+        microsPerUnit: 90_000_000,
+        from: '2026-01-01T00:00:00.000Z',
+        to: '2026-06-01T00:00:00.000Z',
+      },
+      { currency: 'USD', microsPerUnit: 100_000_000, from: '2026-06-01T00:00:00.000Z', to: null },
+    ]);
+    expect(rates.find((r) => r.currency === 'RUB')?.to).toBeNull();
+  });
+
+  it('снятая плановая версия в расчёт не идёт: прежняя снова действует', () => {
+    const rates = ratesFromVersions([
+      { currency: 'RUB', microsPerUnit: 1_000_000, from: '1970-01-01T00:00:00Z' },
+      {
+        currency: 'RUB',
+        microsPerUnit: 2_000_000,
+        from: '2026-12-01T00:00:00Z',
+        cancelledAt: '2026-11-01T00:00:00Z',
+      },
+    ]);
+    const r = rateAt(rates, 'RUB', new Date('2027-01-01T00:00:00Z'));
+    expect(r.ok && r.rate.microsPerUnit).toBe(1_000_000);
+  });
+
+  it('книга по умолчанию: рубль 1:1, другой валюты нет - rate_missing', () => {
+    const at = new Date('2026-10-23T00:00:00Z');
+    const rub = bookRateAt(DEFAULT_BOOK, 'RUB', at);
+    expect(rub.ok && rub.rate.microsPerUnit).toBe(1_000_000);
+    expect(bookRateAt(DEFAULT_BOOK, 'USD', at)).toEqual({ ok: false, error: 'rate_missing' });
   });
 });

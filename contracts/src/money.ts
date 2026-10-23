@@ -191,10 +191,98 @@ export function convertAt(
   return { ok: true, money: toMoney(fromBaseMicros(base, found.rate), currency) };
 }
 
+/**
+ * Курс валюты к учёту на дату - цепочкой через основную валюту (ADR-003).
+ *
+ * @remarks
+ * Основная валюта (рубль) связана с учётом своим курсом `main`, который владелец
+ * меняет вручную. Добавленная валюта знает только кросс-курс к основной из
+ * сервиса банка (`cross`: микроединицы основной за единицу валюты). Её курс к
+ * учёту - произведение двух курсов на ту же дату, поэтому смена курса основной
+ * одной правкой пересчитывает все валюты. Нет любого из двух на дату -
+ * `rate_missing`: подмены текущим курсом нет.
+ */
+export function chainedRateAt(
+  cross: readonly ExchangeRate[],
+  main: readonly ExchangeRate[],
+  mainCurrency: Currency,
+  currency: Currency,
+  at: Date,
+): RateResult {
+  const toMain = rateAt(main, mainCurrency, at);
+  if (currency === mainCurrency || !toMain.ok) return toMain;
+  const toCross = rateAt(cross, currency, at);
+  if (!toCross.ok) return toCross;
+  const ends = [toCross.rate.to, toMain.rate.to].filter((d): d is string => Boolean(d));
+  return {
+    ok: true,
+    rate: {
+      currency,
+      microsPerUnit: toBaseMicros(toCross.rate.microsPerUnit, toMain.rate),
+      from: toCross.rate.from > toMain.rate.from ? toCross.rate.from : toMain.rate.from,
+      to: ends.length > 0 ? ends.sort()[0]! : null,
+    },
+  };
+}
+
 /** Курс по умолчанию: рубль - 1:1 к базовой валюте учёта, действует всегда. */
 export const DEFAULT_RATES: readonly ExchangeRate[] = [
   { currency: 'RUB', microsPerUnit: MICROS_PER_UNIT, from: '1970-01-01T00:00:00.000Z', to: null },
 ];
+
+/**
+ * Версия курса, как она лежит в журнале: без конца действия.
+ *
+ * @remarks
+ * Запись журнала не правится. Конец действия выводится из начала следующей версии
+ * той же валюты, поэтому новой версии не нужно закрывать прежнюю записью в неё.
+ * Снятая плановая версия остаётся в журнале с отметкой и в расчёт не идёт.
+ */
+export interface RateVersion {
+  readonly currency: Currency;
+  readonly microsPerUnit: number;
+  readonly from: string;
+  readonly cancelledAt?: string | null;
+}
+
+/** Версии журнала → курсы с концом действия: снятые выпадают, конец - начало следующей. */
+export function ratesFromVersions(versions: readonly RateVersion[]): ExchangeRate[] {
+  const live = versions
+    .filter((v) => !v.cancelledAt)
+    .map((v) => ({ v, t: new Date(v.from).getTime() }))
+    .sort((a, b) => a.t - b.t);
+  return live.map(({ v }, i) => {
+    const next = live.slice(i + 1).find((n) => n.v.currency === v.currency);
+    return {
+      currency: v.currency,
+      microsPerUnit: v.microsPerUnit,
+      from: new Date(v.from).toISOString(),
+      to: next ? new Date(next.v.from).toISOString() : null,
+    };
+  });
+}
+
+/**
+ * Все курсы сайта: основная валюта к учёту и добавленные к основной (ADR-003).
+ *
+ * @remarks
+ * `main` - версии курса основной валюты к учёту, их меняет владелец. `cross` -
+ * кросс-курсы добавленных валют к основной из сервиса банка; у сайта с одной
+ * валютой их нет.
+ */
+export interface RateBook {
+  readonly mainCurrency: Currency;
+  readonly main: readonly ExchangeRate[];
+  readonly cross: readonly ExchangeRate[];
+}
+
+/** Книга по умолчанию: основная валюта рубль 1:1 к учёту, добавленных валют нет. */
+export const DEFAULT_BOOK: RateBook = { mainCurrency: 'RUB', main: DEFAULT_RATES, cross: [] };
+
+/** Курс валюты к учёту на дату по книге - цепочкой через основную. */
+export function bookRateAt(book: RateBook, currency: Currency, at: Date): RateResult {
+  return chainedRateAt(book.cross, book.main, book.mainCurrency, currency, at);
+}
 
 export type ScheduleResult =
   | { ok: true; rates: ExchangeRate[] }
