@@ -4,6 +4,12 @@ import {
   type Actor,
   canInvoice,
   canOrder,
+  removeOrderLine,
+  buildOrder,
+  currentPrice,
+  extraLines,
+  spreadDiscount,
+  type ExtraLineInput,
   heldAmount,
   type HowToBuy,
   HOW_TO_BUY,
@@ -241,18 +247,20 @@ describe('таблица переходов', () => {
     }
   });
 
-  it('покупатель и система отменяют только новый заказ', () => {
-    for (const actor of ['buyer', 'system'] as const) {
-      expect(canOrder('new', 'cancel', actor)).toBe(true);
-      expect(canOrder('accepted', 'cancel', actor)).toBe(false);
-    }
+  it('система отменяет только новый заказ, покупатель - и принятый', () => {
+    expect(canOrder('new', 'cancel', 'system')).toBe(true);
+    expect(canOrder('accepted', 'cancel', 'system')).toBe(false);
+    // Принятый - пока нет оплат: это проверяет сценарий по счетам заказа.
+    expect(canOrder('accepted', 'cancel', 'buyer')).toBe(true);
+    expect(canOrder('done', 'cancel', 'buyer')).toBe(false);
   });
 
-  it('И-7: покупатель со счётом только заявляет оплату и только по счёту на оплату', () => {
+  it('И-7: покупатель со счётом только заявляет оплату или отказывается, и только по счёту на оплату', () => {
     for (const s of INVOICE_STATUSES) {
       for (const a of INVOICE_ACTIONS) {
         for (const k of KINDS) {
-          if (a !== 'report' || k === 'refund') expect(canInvoice(s, a, 'buyer', k)).toBe(false);
+          if ((a !== 'report' && a !== 'decline') || k === 'refund')
+            expect(canInvoice(s, a, 'buyer', k)).toBe(false);
         }
       }
     }
@@ -343,5 +351,142 @@ describe('перебор достижимых состояний', () => {
         ORDER_FINAL.includes(w.order) && w.invoices.every((i) => INVOICE_FINAL.includes(i.status)),
     );
     expect(worlds.filter((w) => !settled.has(key(w)))).toEqual([]);
+  });
+});
+
+describe('снятие строки заказа', () => {
+  const line = (offer: number, sum: number, mode: 'cart' | 'request' = 'cart') => ({
+    offer,
+    title: `позиция ${offer}`,
+    quantity: 1,
+    price: sum,
+    sum,
+    mode,
+    deposit: null,
+  });
+  const lines = [line(1, 100), line(2, 50, 'request')];
+
+  it('строка остаётся помеченной, итог без неё, остаток возвращается только у державшей', () => {
+    const r = removeOrderLine('new', lines, 0, ' нет в наличии ');
+    expect(r.ok && r.lines[0]!.removed).toBe('нет в наличии');
+    expect(r.ok && r.total).toBe(50);
+    expect(r.ok && r.giveBack.map((l) => l.offer)).toEqual([1]);
+    // Заявка в новом заказе остаток не держит - возвращать нечего.
+    const req = removeOrderLine('new', lines, 1, 'нет');
+    expect(req.ok && req.giveBack).toEqual([]);
+  });
+
+  it('без причины, дважды, последнюю и в конечном заказе - нельзя', () => {
+    expect(removeOrderLine('new', lines, 0, '  ')).toEqual({ ok: false, error: 'reason_required' });
+    const once = removeOrderLine('accepted', lines, 0, 'нет');
+    expect(once.ok && removeOrderLine('accepted', once.lines, 0, 'нет')).toEqual({
+      ok: false,
+      error: 'forbidden',
+    });
+    expect(once.ok && removeOrderLine('accepted', once.lines, 1, 'нет')).toEqual({
+      ok: false,
+      error: 'last_line',
+    });
+    expect(removeOrderLine('done', lines, 0, 'нет')).toEqual({ ok: false, error: 'forbidden' });
+  });
+});
+
+describe('добавленные строки счёта и скидки', () => {
+  const base = [
+    { offer: 1, sum: 300 },
+    { offer: 2, sum: 100 },
+  ];
+  const catalog = (id: number) => (id === 7 ? { title: 'Корм', price: 50 } : null);
+  const ext = (o: Partial<ExtraLineInput>): ExtraLineInput => ({
+    kind: 'charge',
+    title: 'Доставка',
+    offer: null,
+    quantity: 1,
+    price: 0,
+    appliesTo: null,
+    ...o,
+  });
+
+  it('скидка на заказ раскладывается по строкам, доли в сумме равны скидке', () => {
+    expect(spreadDiscount([300, 100], 100)).toEqual([75, 25]);
+    const odd = spreadDiscount([1, 1, 1], 2);
+    expect(odd.reduce((t, x) => t + x, 0)).toBe(2);
+    expect(spreadDiscount([0, 0], 5)).toEqual([0, 0]);
+  });
+
+  it('доставка, позиция по цене каталога и скидки складываются в сумму', () => {
+    const r = extraLines(
+      base,
+      [
+        ext({ price: 40 }),
+        ext({ kind: 'offer', offer: 7, quantity: 2, price: 1 }),
+        ext({ kind: 'discount', title: 'Промокод', price: 30, appliesTo: 1 }),
+        ext({ kind: 'discount', title: 'День рождения', price: 20 }),
+      ],
+      catalog,
+    );
+    expect(r.ok && r.lines.map((l) => l.sum)).toEqual([40, 100, -30, -20]);
+    expect(r.ok && r.lines[1]!.title).toBe('Корм');
+    expect(r.ok && r.sum).toBe(90);
+  });
+
+  it('скидка больше строки или остатка заказа, чужая позиция, пустая строка - отказ', () => {
+    expect(
+      extraLines(base, [ext({ kind: 'discount', price: 101, appliesTo: 2 })], catalog),
+    ).toEqual({ ok: false, error: 'discount_too_large' });
+    expect(
+      extraLines(
+        base,
+        [
+          ext({ kind: 'discount', price: 300, appliesTo: 1 }),
+          ext({ kind: 'discount', price: 101 }),
+        ],
+        catalog,
+      ),
+    ).toEqual({ ok: false, error: 'discount_too_large' });
+    expect(extraLines(base, [ext({ kind: 'offer', offer: 99 })], catalog)).toEqual({
+      ok: false,
+      error: 'invalid',
+    });
+    expect(extraLines(base, [ext({ title: '  ' })], catalog)).toEqual({
+      ok: false,
+      error: 'invalid',
+    });
+  });
+});
+
+describe('акция на позиции', () => {
+  const now = new Date('2026-10-23T12:00:00Z');
+  it('акционная цена, пока идёт и ниже прайса; цена по прайсу рядом', () => {
+    expect(currentPrice(1000, 800, null, now)).toEqual({ price: 800, listPrice: 1000 });
+    expect(currentPrice(1000, 800, '2026-10-24T00:00:00Z', now)).toEqual({
+      price: 800,
+      listPrice: 1000,
+    });
+  });
+  it('кончилась, не ниже прайса или без цены - обычная цена', () => {
+    expect(currentPrice(1000, 800, '2026-10-22T00:00:00Z', now)).toEqual({
+      price: 1000,
+      listPrice: null,
+    });
+    expect(currentPrice(1000, 1000, null, now)).toEqual({ price: 1000, listPrice: null });
+    expect(currentPrice(null, 800, null, now)).toEqual({ price: null, listPrice: null });
+  });
+  it('строка заказа несёт акционную цену и цену по прайсу', () => {
+    const r = buildOrder(
+      [{ offer: 1, quantity: 2 }],
+      [
+        {
+          id: 1,
+          title: 'Корм',
+          price: 800,
+          listPrice: 1000,
+          stock: null,
+          howToBuy: 'cart',
+          deposit: null,
+        },
+      ],
+    );
+    expect(r.ok && [r.lines[0]!.price, r.lines[0]!.listPrice, r.total]).toEqual([800, 1000, 1600]);
   });
 });

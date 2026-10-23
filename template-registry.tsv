@@ -660,6 +660,10 @@ overlay	src/cms/migrations/20261023_125752_shop_cart_href.json
 overlay	src/cms/migrations/20261023_125752_shop_cart_href.ts
 overlay	src/cms/migrations/20261023_131121_shop_catalog.json
 overlay	src/cms/migrations/20261023_131121_shop_catalog.ts
+overlay	src/cms/migrations/20261023_152014_shop_order_lines_invoice_extra.json
+overlay	src/cms/migrations/20261023_152014_shop_order_lines_invoice_extra.ts
+overlay	src/cms/migrations/20261023_153305_shop_offer_promo.json
+overlay	src/cms/migrations/20261023_153305_shop_offer_promo.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts

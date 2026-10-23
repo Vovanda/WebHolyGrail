@@ -48,7 +48,7 @@ export type InvoiceStatus = 'draft' | 'issued' | 'reported' | 'paid' | 'voided';
  * продаёт её. Основной счёт после брони берёт за позицию цену минус бронь.
  */
 export type InvoicePurpose = 'payment' | 'deposit';
-export type InvoiceAction = 'issue' | 'report' | 'confirm' | 'reject' | 'void';
+export type InvoiceAction = 'issue' | 'report' | 'confirm' | 'reject' | 'void' | 'decline';
 
 export interface Transition<S extends string> {
   readonly from: readonly S[];
@@ -108,7 +108,14 @@ export function stockMoves<L extends { readonly mode: HowToBuy }>(
   };
 }
 
-export const CANCEL_FROM_NEW_ONLY: readonly Actor[] = ['buyer', 'system'];
+/**
+ * Кто отменяет только новый заказ: система - по сроку принятия.
+ *
+ * @remarks
+ * Покупатель отменяет и принятый, пока по заказу нет оплат и заявленных оплат:
+ * это проверяет сценарий по счетам заказа.
+ */
+export const CANCEL_FROM_NEW_ONLY: readonly Actor[] = ['system'];
 export const STALE_ORDER_HOURS = 72;
 
 export const INVOICE_TRANSITIONS: Readonly<Record<InvoiceAction, Transition<InvoiceStatus>>> = {
@@ -118,9 +125,11 @@ export const INVOICE_TRANSITIONS: Readonly<Record<InvoiceAction, Transition<Invo
   confirm: { from: ['issued', 'reported'], to: 'paid', actors: ['manager', 'system'] },
   reject: { from: ['reported'], to: 'issued', actors: ['manager'] },
   void: { from: ['issued', 'reported'], to: 'voided', actors: ['manager'] },
+  // Покупатель отказался от выставленного счёта; заявленную оплату сверяет менеджер.
+  decline: { from: ['issued'], to: 'voided', actors: ['buyer'] },
 };
 
-/** «Я оплатил» бывает только у счёта на оплату: о возврате покупатель не заявляет. */
+/** «Я оплатил» и отказ бывают только у счёта на оплату: о возврате покупатель не заявляет. */
 export const REPORT_KINDS: readonly InvoiceKind[] = ['invoice'];
 
 export const ORDER_FINAL: readonly OrderStatus[] = ['done', 'cancelled'];
@@ -145,7 +154,7 @@ export function canInvoice(
 ): boolean {
   const t = INVOICE_TRANSITIONS[action];
   if (!t.from.includes(status) || !t.actors.includes(actor)) return false;
-  if (action === 'report') return REPORT_KINDS.includes(kind);
+  if (action === 'report' || action === 'decline') return REPORT_KINDS.includes(kind);
   return true;
 }
 
@@ -215,6 +224,28 @@ export interface OfferSnapshot {
   readonly howToBuy: HowToBuy;
   /** Бронь за единицу: часть цены, которую платят вперёд; пусто - без брони. */
   readonly deposit: Micros | null;
+  /** Цена по прайсу, когда действует акция; без акции пусто. */
+  readonly listPrice?: Micros | null;
+}
+
+/**
+ * Цена позиции сейчас: акционная, пока акция идёт и она ниже цены по прайсу (ADR-007).
+ *
+ * @remarks
+ * Это шаг «скидка позиции» из слоёв цены: одна фиксированная акционная цена со сроком.
+ * Покупатель видит цену по прайсу зачёркнутой рядом с акционной; строка заказа несёт
+ * акционную цену и цену по прайсу - через месяц видно, откуда взялась сумма.
+ */
+export function currentPrice(
+  list: Micros | null,
+  promo: Micros | null,
+  promoUntil: string | null,
+  now: Date,
+): { readonly price: Micros | null; readonly listPrice: Micros | null } {
+  const running = promoUntil === null || new Date(promoUntil).getTime() > now.getTime();
+  return list !== null && promo !== null && promo > 0 && promo < list && running
+    ? { price: promo, listPrice: list }
+    : { price: list, listPrice: null };
 }
 
 export interface OrderLine {
@@ -226,6 +257,58 @@ export interface OrderLine {
   readonly mode: HowToBuy;
   /** Бронь за единицу на момент заказа: меньше цены и больше нуля, иначе пусто. */
   readonly deposit: Micros | null;
+  /** Строку снял менеджер - здесь причина для покупателя; живая строка - пусто. */
+  readonly removed?: string | null;
+  /** Цена по прайсу на момент заказа, если позиция шла по акции. */
+  readonly listPrice?: Micros | null;
+}
+
+/** В каких состояниях заказа менеджер снимает строку. */
+export const LINE_REMOVE_FROM: readonly OrderStatus[] = ['new', 'accepted'];
+
+/** Строки, которые остаются в заказе: снятые не продаются и в счёт не идут. */
+export const liveLines = <L extends { readonly removed?: string | null }>(
+  lines: readonly L[],
+): L[] => lines.filter((l) => !l.removed);
+
+/** Итог заказа: сумма живых строк. */
+export const orderTotal = (lines: readonly OrderLine[]): Micros =>
+  liveLines(lines).reduce((t, l) => t + l.sum, 0);
+
+/**
+ * Снять строку заказа с причиной.
+ *
+ * @remarks
+ * Строка остаётся в заказе помеченной: покупатель видит её зачёркнутой с причиной.
+ * Последнюю живую строку не снимают - такой заказ отменяют. `giveBack` - строка,
+ * чей остаток возвращается: только если она его держала в этом состоянии.
+ */
+export function removeOrderLine(
+  status: OrderStatus,
+  lines: readonly OrderLine[],
+  index: number,
+  reason: string,
+):
+  | {
+      readonly ok: true;
+      readonly lines: OrderLine[];
+      readonly total: Micros;
+      readonly giveBack: OrderLine[];
+    }
+  | { readonly ok: false; readonly error: 'forbidden' | 'reason_required' | 'last_line' } {
+  const line = lines[index];
+  if (!LINE_REMOVE_FROM.includes(status) || !line || line.removed)
+    return { ok: false, error: 'forbidden' };
+  const why = reason.trim().slice(0, 200);
+  if (!why) return { ok: false, error: 'reason_required' };
+  if (liveLines(lines).length === 1) return { ok: false, error: 'last_line' };
+  const next = lines.map((l, i) => (i === index ? { ...l, removed: why } : l));
+  return {
+    ok: true,
+    lines: next,
+    total: orderTotal(next),
+    giveBack: holdsStock(line.mode, status) ? [line] : [],
+  };
 }
 
 export type BuildOrderResult =
@@ -289,6 +372,7 @@ export function buildOrder(
       sum: o.price * quantity,
       mode: o.howToBuy,
       deposit: o.deposit !== null && o.deposit > 0 && o.deposit < o.price ? o.deposit : null,
+      ...(o.listPrice ? { listPrice: o.listPrice } : {}),
     });
   }
   if (shortage.length > 0 || lines.length === 0) {
@@ -319,6 +403,135 @@ export function depositLines(
 /** Цена позиции в основном счёте: после взятой брони - цена минус бронь. */
 export function paymentPrice(line: OrderLine, depositTaken: boolean): Micros {
   return depositTaken && line.deposit !== null ? line.price - line.deposit : line.price;
+}
+
+/* ───────────────────────── Добавленные строки счёта ───────────────────────── */
+
+/**
+ * Вид добавленной строки счёта: своя строка с ценой (доставка, упаковка), позиция
+ * каталога по цене каталога, скидка.
+ */
+export type ExtraKind = 'charge' | 'offer' | 'discount';
+export const EXTRA_KINDS: readonly ExtraKind[] = ['charge', 'offer', 'discount'];
+
+export interface ExtraLineInput {
+  readonly kind: ExtraKind;
+  readonly title: string;
+  /** Позиция каталога - у вида «позиция». */
+  readonly offer: number | null;
+  readonly quantity: number;
+  /** Цена своей строки; у скидки - её размер; у позиции каталога берётся из каталога. */
+  readonly price: Micros;
+  /** У скидки - позиция заказа, на чью строку она; пусто - на заказ целиком. */
+  readonly appliesTo: number | null;
+}
+
+export interface ExtraLine extends ExtraLineInput {
+  /** Сколько строка добавляет к итогу; у скидки отрицательная. */
+  readonly sum: Micros;
+}
+
+/** Строка счёта, на которую ложится скидка: строки из заказа. */
+export interface DiscountBase {
+  readonly offer: number | null;
+  readonly sum: Micros;
+}
+
+export const MAX_EXTRA_LINES = 50;
+
+/**
+ * Раскладывает скидку на заказ по строкам пропорционально их сумме.
+ *
+ * @remarks
+ * Без раскладки при снятии строки или частичном возврате нельзя сказать, какая
+ * часть скидки уходит вместе со строкой. Доли - целые микроединицы, остаток от
+ * округления достаётся строкам с наибольшей дробной частью; сумма долей равна скидке.
+ */
+export function spreadDiscount(sums: readonly Micros[], amount: Micros): Micros[] {
+  const base = sums.reduce((t, x) => t + x, 0);
+  if (base <= 0 || amount <= 0) return sums.map(() => 0);
+  const exact = sums.map((x) => (x * amount) / base);
+  const shares = exact.map(Math.floor);
+  let rest = amount - shares.reduce((t, x) => t + x, 0);
+  const order = exact.map((x, i) => [x - Math.floor(x), i] as const).sort((a, b) => b[0] - a[0]);
+  for (const [, i] of order) {
+    if (rest <= 0) break;
+    shares[i]! += 1;
+    rest -= 1;
+  }
+  return shares;
+}
+
+/**
+ * Добавленные строки счёта, проверенные против строк из заказа и каталога.
+ *
+ * @remarks
+ * Позиция каталога идёт по цене каталога: цену из формы не берём. Скидка на строку
+ * не больше её суммы, скидка на заказ - не больше того, что осталось от строк из
+ * заказа после скидок на строки. Доставка и свои строки под скидку не попадают.
+ */
+export function extraLines(
+  base: readonly DiscountBase[],
+  input: readonly ExtraLineInput[],
+  catalog: (offer: number) => { readonly title: string; readonly price: Micros } | null,
+):
+  | { readonly ok: true; readonly lines: ExtraLine[]; readonly sum: Micros }
+  | { readonly ok: false; readonly error: 'invalid' | 'discount_too_large' } {
+  if (input.length > MAX_EXTRA_LINES) return { ok: false, error: 'invalid' };
+  const lines: ExtraLine[] = [];
+  const lineDiscount = new Map<number, Micros>();
+  let orderDiscount = 0;
+  for (const l of input) {
+    const quantity = l.kind === 'discount' ? 1 : Math.floor(Number(l.quantity));
+    if (!EXTRA_KINDS.includes(l.kind) || !Number.isInteger(quantity) || quantity < 1)
+      return { ok: false, error: 'invalid' };
+    if (l.kind === 'offer') {
+      const o = l.offer === null ? null : catalog(l.offer);
+      if (!o || o.price <= 0) return { ok: false, error: 'invalid' };
+      lines.push({
+        ...l,
+        title: o.title,
+        quantity,
+        price: o.price,
+        appliesTo: null,
+        sum: o.price * quantity,
+      });
+      continue;
+    }
+    const price = Math.round(Number(l.price));
+    const title = String(l.title ?? '')
+      .trim()
+      .slice(0, 200);
+    if (!Number.isSafeInteger(price) || price < 0 || !title) return { ok: false, error: 'invalid' };
+    if (l.kind === 'charge') {
+      lines.push({
+        ...l,
+        title,
+        offer: null,
+        quantity,
+        price,
+        appliesTo: null,
+        sum: price * quantity,
+      });
+      continue;
+    }
+    if (price === 0) return { ok: false, error: 'invalid' };
+    if (l.appliesTo !== null) {
+      if (!base.some((b) => b.offer === l.appliesTo)) return { ok: false, error: 'invalid' };
+      lineDiscount.set(l.appliesTo, (lineDiscount.get(l.appliesTo) ?? 0) + price);
+    } else orderDiscount += price;
+    lines.push({ ...l, title, offer: null, quantity: 1, price, sum: -price });
+  }
+  for (const [offer, d] of lineDiscount) {
+    const lineSum = base.filter((b) => b.offer === offer).reduce((t, b) => t + b.sum, 0);
+    if (d > lineSum) return { ok: false, error: 'discount_too_large' };
+  }
+  const left =
+    base.reduce((t, b) => t + b.sum, 0) - [...lineDiscount.values()].reduce((t, d) => t + d, 0);
+  if (orderDiscount > left) return { ok: false, error: 'discount_too_large' };
+  const sum = lines.reduce((t, l) => t + l.sum, 0);
+  if (!Number.isSafeInteger(sum)) return { ok: false, error: 'invalid' };
+  return { ok: true, lines, sum };
 }
 
 /* ───────────────────────── Настройки магазина ───────────────────────── */
@@ -495,6 +708,8 @@ export interface OfferView {
   readonly id: number;
   readonly title: string;
   readonly price: Money | null;
+  /** Цена по прайсу, пока идёт акция: показывается зачёркнутой рядом с ценой. */
+  readonly listPrice?: Money | null;
   readonly stock: number | null;
   readonly summary: string | null;
   readonly image: unknown;
@@ -533,6 +748,10 @@ export interface BuyerLineView {
   readonly quantity: number;
   readonly price: Money;
   readonly sum: Money;
+  /** Строку снял менеджер - причина; покупатель видит строку зачёркнутой. */
+  readonly removed?: string | null;
+  /** Скидка: покупатель видит её вычетом, сумма в строке - размер скидки. */
+  readonly discount?: boolean;
 }
 
 export interface BuyerInvoiceView {
@@ -543,7 +762,10 @@ export interface BuyerInvoiceView {
   readonly overdue: boolean;
   readonly dueAt: string | null;
   readonly total: Money;
+  /** Строки из заказа, затем добавленные: доставка, позиция, скидка. */
   readonly lines: readonly BuyerLineView[];
+  /** Почему аннулирован; у живого счёта null. */
+  readonly voidReason: string | null;
 }
 
 /** Заказ глазами покупателя (И-8): только эти поля, ничего служебного. */
@@ -556,6 +778,8 @@ export interface BuyerOrderView {
     readonly offer: number;
     /** Заявка: позицию подтвердит менеджер, остаток за покупателем ещё не закреплён. */
     readonly mode: HowToBuy;
+    /** Бронь за единицу: часть цены, которую платят вперёд; без брони null. */
+    readonly deposit: Money | null;
   })[];
   readonly buyer: BuyerInput;
   readonly invoices: readonly BuyerInvoiceView[];
