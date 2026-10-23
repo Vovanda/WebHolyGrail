@@ -674,6 +674,7 @@ mirror	src/cms/src/admin/components/PlaylistItemRowLabel.tsx
 mirror	src/cms/src/admin/components/PreviewScrollSync.tsx
 mirror	src/cms/src/admin/components/RestoreVideoField.tsx
 mirror	src/cms/src/admin/components/ShopActionsField.tsx
+mirror	src/cms/src/admin/components/ShopLineRowLabel.tsx
 mirror	src/cms/src/admin/components/ThemeToggle.tsx
 mirror	src/cms/src/admin/components/TogglesBoard.tsx
 mirror	src/cms/src/admin/components/useRelatedImageURL.ts

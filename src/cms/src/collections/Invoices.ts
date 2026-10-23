@@ -178,6 +178,7 @@ export const Invoices: CollectionConfig = {
       admin: {
         description:
           'В черновике правится цена и добавляются свои строки - доставка, курс. Количество позиции из заказа не меняется.',
+        components: { RowLabel: '/admin/components/ShopLineRowLabel#ShopLineRowLabel' },
       },
       fields: shopLineFields,
     },

@@ -100,7 +100,10 @@ export const Orders: CollectionConfig = {
       labels: { singular: 'Строка', plural: 'Строки' },
       type: 'array',
       access: locked,
-      admin: ro,
+      admin: {
+        ...ro,
+        components: { RowLabel: '/admin/components/ShopLineRowLabel#ShopLineRowLabel' },
+      },
       fields: [
         ...shopLineFields,
         moneyField('depositMicros', 'Бронь', { admin: ro }),
