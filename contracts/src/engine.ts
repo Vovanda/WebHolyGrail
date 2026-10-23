@@ -278,6 +278,7 @@ export {
   searchItems,
   SORTS,
   sortItems,
+  stemWord,
   specText,
   switchLayout,
   toggleValue,

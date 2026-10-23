@@ -35,7 +35,11 @@ export interface CatalogItem {
   readonly id: number;
   readonly title: string;
   readonly sku?: string | null | undefined;
+  /** Другие названия от продавца, необязательно: «роутер» у «маршрутизатора». */
+  readonly keywords?: string | null | undefined;
   readonly section?: string | null | undefined;
+  /** Название раздела - для поиска: покупатель пишет «перфоратор», а не слаг раздела. */
+  readonly sectionTitle?: string | null | undefined;
   readonly summary?: string | null | undefined;
   readonly specs: Readonly<Record<string, SpecValue>>;
 }
@@ -604,11 +608,12 @@ function wordMatches(word: string, token: string): boolean {
   );
 }
 
-/** Где ищет и с каким весом: название, артикул, раздел, характеристики, описание. */
+/** Где ищет и с каким весом: название и другие названия, артикул, раздел, характеристики, описание. */
 const FIELDS: readonly [(i: CatalogItem) => string, number][] = [
   [(i) => i.title, 5],
+  [(i) => i.keywords ?? '', 5],
   [(i) => i.sku ?? '', 4],
-  [(i) => i.section ?? '', 3],
+  [(i) => i.sectionTitle ?? '', 3],
   [
     (i) =>
       Object.values(i.specs)
@@ -646,13 +651,75 @@ function tokensOf(item: CatalogItem): readonly (readonly string[])[] {
   return tokens;
 }
 
-function score(item: CatalogItem, words: readonly string[]): number {
+/**
+ * Падежные и числовые окончания, от длинных к коротким. Отсекаются у слова
+ * запроса, дальше слово ищется по началу: «перфораторы» находит «перфоратор»,
+ * «дрели» - «дрель». Морфологии тут нет и не нужно: каталогу хватает основы.
+ */
+const ENDINGS = [
+  'ами',
+  'ями',
+  'ого',
+  'его',
+  'ому',
+  'ему',
+  'ыми',
+  'ими',
+  'ов',
+  'ев',
+  'ей',
+  'ам',
+  'ям',
+  'ах',
+  'ях',
+  'ой',
+  'ый',
+  'ий',
+  'ая',
+  'яя',
+  'ое',
+  'ее',
+  'ые',
+  'ие',
+  'ых',
+  'их',
+  'ую',
+  'юю',
+  'ы',
+  'и',
+  'а',
+  'я',
+  'у',
+  'ю',
+  'е',
+  'о',
+];
+
+/** Основа слова запроса: окончание отсекается у слов от шести букв, основа - от четырёх. */
+export function stemWord(word: string): string {
+  if (word.length < 6 || /\d/.test(word)) return word;
+  for (const ending of ENDINGS) {
+    if (word.endsWith(ending) && word.length - ending.length >= 4) {
+      return word.slice(0, -ending.length);
+    }
+  }
+  return word;
+}
+
+/** Чем можно заменить слово запроса: оно само и его основа. */
+function variantsOf(word: string): string[] {
+  const stem = stemWord(word);
+  return stem === word ? [word] : [word, stem];
+}
+
+function score(item: CatalogItem, words: readonly (readonly string[])[]): number {
   const fields = tokensOf(item);
   let total = 0;
-  for (const word of words) {
+  for (const variants of words) {
     let best = 0;
     FIELDS.forEach(([, weight], at) => {
-      if (weight > best && fields[at]!.some((t) => wordMatches(word, t))) best = weight;
+      if (weight > best && fields[at]!.some((t) => variants.some((word) => wordMatches(word, t))))
+        best = weight;
     });
     if (best === 0) return 0;
     total += best;
@@ -666,12 +733,14 @@ function score(item: CatalogItem, words: readonly string[]): number {
  * @remarks
  * Каждое слово запроса должно найтись хоть где-то; выше те, у кого совпало в
  * более важном поле. Пустая выдача в своей раскладке - пробуется другая: человек
- * набрал «fqajy», имея в виду «айфон». Синонимы владельца подставляет тот, кто
- * зовёт поиск, до вызова.
+ * набрал «fqajy», имея в виду «айфон». Слово запроса ищется вместе с основой
+ * (без окончания). Ищется по тому, что продавец и так заводит: название, артикул,
+ * раздел, характеристики; другие названия товара («роутер» у «маршрутизатора»)
+ * продавец может дописать в позиции, но без них поиск работает так же.
  */
 export function searchItems<T extends CatalogItem>(items: readonly T[], query: string): T[] {
   const run = (q: string): T[] => {
-    const words = wordsOf(q).slice(0, 8);
+    const words = wordsOf(q).slice(0, 8).map(variantsOf);
     if (words.length === 0) return [...items];
     return items
       .map((item) => ({ item, s: score(item, words) }))

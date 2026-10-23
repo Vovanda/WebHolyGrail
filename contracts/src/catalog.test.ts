@@ -15,6 +15,7 @@ import {
   searchItems,
   similarItems,
   sortItems,
+  stemWord,
   switchLayout,
   toggleValue,
   type CatalogItem,
@@ -340,5 +341,47 @@ describe('поиск по артикулу', () => {
   it('опечатка в названии и другая раскладка', () => {
     expect(searchItems(items, 'перфаратор').map((i) => i.id)).toEqual([1]);
     expect(searchItems(items, 'lhtkm').map((i) => i.id)).toEqual([2]);
+  });
+});
+
+describe('поиск без ручной разметки: окончания, раздел, характеристики', () => {
+  const items = [
+    { id: 1, title: 'Перфоратор сетевой', specs: {} },
+    { id: 2, title: 'Дрель-шуруповёрт аккумуляторная', specs: {} },
+    { id: 3, title: 'Дрель ударная', specs: {} },
+  ];
+  const ids = (q: string) => searchItems(items, q).map((i) => i.id);
+
+  it('множественное число и падеж находят единственное', () => {
+    expect(ids('перфораторы')).toEqual([1]);
+    expect(ids('дрели')).toEqual([2, 3]);
+    expect(ids('аккумуляторный')).toEqual([2]);
+  });
+
+  it('раздел и характеристики находят то, чего нет в названии', () => {
+    const more = [
+      ...items,
+      {
+        id: 4,
+        title: 'Модель X-200',
+        sectionTitle: 'Перфораторы',
+        specs: { power: 'аккумулятор' },
+      },
+    ];
+    expect(searchItems(more, 'аккумуляторный перфоратор').map((i) => i.id)).toEqual([4]);
+  });
+
+  it('другое название от продавца: роутер находит маршрутизатор', () => {
+    const more = [
+      ...items,
+      { id: 5, title: 'Маршрутизатор Wi-Fi 6', keywords: 'роутер', specs: {} },
+    ];
+    expect(searchItems(more, 'роутеры').map((i) => i.id)).toEqual([5]);
+  });
+
+  it('основа не режет короткие слова и коды', () => {
+    expect(stemWord('дрель')).toBe('дрель');
+    expect(stemWord('tt1000')).toBe('tt1000');
+    expect(stemWord('перфораторы')).toBe('перфоратор');
   });
 });

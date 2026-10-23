@@ -685,6 +685,8 @@ overlay	src/cms/migrations/20261023_181415_shop_offer_has_page.json
 overlay	src/cms/migrations/20261023_181415_shop_offer_has_page.ts
 overlay	src/cms/migrations/20261023_183057_catalog_quick_filter.json
 overlay	src/cms/migrations/20261023_183057_catalog_quick_filter.ts
+overlay	src/cms/migrations/20261023_190707_offer_search_words.json
+overlay	src/cms/migrations/20261023_190707_offer_search_words.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts
