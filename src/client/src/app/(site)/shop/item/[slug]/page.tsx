@@ -10,11 +10,13 @@ import {
   shopSettings,
 } from 'contracts';
 
+import { CardRows } from '@/blocks/arrangements/CardRows';
 import { Breadcrumbs, type Crumb } from '@/blocks/primitives/Breadcrumbs';
 import { Gallery } from '@/blocks/primitives/Gallery';
 import { MediaImage } from '@/blocks/primitives/Media';
 import { hasLexicalContent, LexicalRenderer } from '@/blocks/primitives/RichText';
 import { AddToCart } from '@/blocks/primitives/Shop/AddToCart';
+import { OfferCard } from '@/blocks/primitives/Shop/OfferCard';
 import { getOffer, getSiteSettings } from '@/lib/api-client.engine';
 import { jsonLd } from '@/lib/seo/json-ld';
 
@@ -58,6 +60,8 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
       : []),
     { label: offer.title },
   ];
+
+  const cartHref = shopSettings(settings?.shop).cartHref;
 
   return (
     <section className="block-space bg-bg">
@@ -124,7 +128,7 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
                   snapshot={offerViewOf(offer)}
                   title={offer.title}
                   available={offer.stock}
-                  cartHref={shopSettings(settings?.shop).cartHref}
+                  cartHref={cartHref}
                   label={offer.howToBuy === 'request' ? 'Оставить заявку' : 'В корзину'}
                 />
               </div>
@@ -151,6 +155,23 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
             <h2 className="mb-3 font-display text-xl font-semibold text-ink">Описание</h2>
             <LexicalRenderer value={offer.description} settings={settings ?? undefined} />
           </div>
+        )}
+
+        {(
+          [
+            ['similar', 'Похожие', offer.similar],
+            ['together', 'С этим часто берут', offer.together],
+          ] as const
+        ).map(
+          ([part, title, items]) =>
+            items.length > 0 && (
+              <section key={part} data-part={`offer-${part}`} className="mt-12">
+                <h2 className="mb-4 font-display text-xl font-semibold text-ink">{title}</h2>
+                <CardRows as="ul" items={[...items]} columns={4} gap="md" keepColumns>
+                  {(item) => <OfferCard offer={item} cartHref={cartHref} />}
+                </CardRows>
+              </section>
+            ),
         )}
       </div>
 
