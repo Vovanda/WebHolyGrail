@@ -908,7 +908,65 @@ export interface CatalogSectionView {
 /** Раздел на `/shop` без условий: несколько позиций и сколько их всего. */
 export interface CatalogPreview {
   readonly section: CatalogSectionSummary;
+  /** Начало раздела в его порядке. */
   readonly items: readonly OfferView[];
+  /**
+   * Последние позиции раздела, если их нет в начале.
+   *
+   * @remarks
+   * Лента идёт по кругу: перед первой карточкой стоят последние, и при обратном
+   * ходе они видны сразу. Середина догружается страницами выдачи (`laneNextPage`).
+   */
+  readonly tail?: readonly OfferView[];
+}
+
+/** Сколько позиций с начала раздела приходит в превью ленты. */
+export const LANE_HEAD = 12;
+/** Сколько позиций с конца раздела приходит в превью ленты. */
+export const LANE_TAIL = 4;
+
+/**
+ * Кольцо ленты: начало, догруженные страницы и хвост раздела без повторов.
+ *
+ * @remarks
+ * Страницы выдачи начинаются с первой позиции раздела и перекрывают начало,
+ * а последняя страница - хвост. Позиция остаётся там, где встретилась первой,
+ * кроме хвоста: он всегда замыкает кольцо.
+ */
+export function laneRing<T extends { readonly id: number }>(
+  head: readonly T[],
+  pages: readonly (readonly T[])[],
+  tail: readonly T[],
+): T[] {
+  const last = new Set(tail.map((i) => i.id));
+  const seen = new Set<number>();
+  const ring: T[] = [];
+  for (const item of [...head, ...pages.flat()]) {
+    if (seen.has(item.id) || last.has(item.id)) continue;
+    seen.add(item.id);
+    ring.push(item);
+  }
+  return [...ring, ...tail];
+}
+
+/**
+ * Какую страницу выдачи догрузить ленте, или null - кольцо собрано.
+ *
+ * @remarks
+ * Страница размером `pageSize` покрывает позиции с `(n-1)*pageSize`. Нужны
+ * страницы до той, на которой начинается хвост: дальше всё уже пришло.
+ */
+export function laneNextPage(
+  count: number,
+  headSize: number,
+  tailSize: number,
+  loadedPages: number,
+  pageSize: number,
+): number | null {
+  const middleEnd = count - tailSize;
+  if (middleEnd <= headSize) return null;
+  const need = Math.ceil(middleEnd / pageSize);
+  return loadedPages < need ? loadedPages + 1 : null;
 }
 
 /**

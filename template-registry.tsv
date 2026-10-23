@@ -95,6 +95,7 @@ mirror	contracts/src/grid-areas.test.ts
 mirror	contracts/src/grid-areas.ts
 mirror	contracts/src/grid-rows.test.ts
 mirror	contracts/src/grid-rows.ts
+mirror	contracts/src/lane.test.ts
 mirror	contracts/src/layout.ts
 mirror	contracts/src/media.test.ts
 mirror	contracts/src/media.ts
