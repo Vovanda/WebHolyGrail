@@ -90,11 +90,12 @@ export const Orders: CollectionConfig = {
     {
       name: 'lines',
       label: 'Строки',
-      labels: { singular: 'Строка', plural: 'Строки' },
+      labels: { singular: 'строку', plural: 'строк' },
       type: 'array',
       access: locked,
       admin: {
         ...ro,
+        disableListColumn: true,
         components: { RowLabel: '/admin/components/ShopLineRowLabel#ShopLineRowLabel' },
       },
       fields: [
@@ -128,7 +129,7 @@ export const Orders: CollectionConfig = {
       name: 'managerNote',
       label: 'Заметка менеджера',
       type: 'textarea',
-      admin: { description: 'Видит только сотрудник.' },
+      admin: { description: 'Покупатель её не видит.' },
     },
     {
       // Хэш секрета ссылки заказа: по нему покупатель видит заказ без входа.

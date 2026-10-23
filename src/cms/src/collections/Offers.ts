@@ -4,7 +4,7 @@ import { editorsOnly } from '../lib/access/editors';
 import { moneyField } from './money-field';
 
 /**
- * Позиции магазина - всё, что сайт продаёт: товар, курс, доступ к видео, щенок.
+ * Позиции магазина - всё, что сайт продаёт: товар, курс, щенок.
  *
  * @remarks
  * Одна коллекция на любой бизнес (docs/whg/43-shop.md). Штучная позиция - это
@@ -26,6 +26,8 @@ export const Offers: CollectionConfig = {
   access: { read: editorsOnly, create: editorsOnly, update: editorsOnly, delete: editorsOnly },
   fields: [
     { name: 'title', label: 'Название', type: 'text', required: true, maxLength: 200 },
+    { name: 'image', label: 'Картинка', type: 'upload', relationTo: 'media' },
+    { name: 'summary', label: 'Короткое описание', type: 'textarea', maxLength: 500 },
     {
       type: 'row',
       fields: [
@@ -45,12 +47,6 @@ export const Offers: CollectionConfig = {
         },
       ],
     },
-    moneyField('depositMicros', 'Бронь', {
-      admin: {
-        description:
-          'Часть цены вперёд. Сначала выставляется счёт на бронь, потом основной - на цену минус бронь.',
-      },
-    }),
     {
       name: 'howToBuy',
       label: 'Как купить',
@@ -66,7 +62,11 @@ export const Offers: CollectionConfig = {
           'По заявке - остаток списывается, когда вы примете заказ; до этого позиция остаётся на витрине.',
       },
     },
-    { name: 'image', label: 'Картинка', type: 'upload', relationTo: 'media' },
-    { name: 'summary', label: 'Коротко', type: 'textarea', maxLength: 500 },
+    moneyField('depositMicros', 'Бронь', {
+      admin: {
+        description:
+          'Часть цены вперёд. Сначала выставляется счёт на бронь, потом основной - на цену минус бронь.',
+      },
+    }),
   ],
 };

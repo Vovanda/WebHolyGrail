@@ -166,7 +166,7 @@ export const Invoices: CollectionConfig = {
     {
       name: 'lines',
       label: 'Строки',
-      labels: { singular: 'Строка', plural: 'Строки' },
+      labels: { singular: 'строку', plural: 'строк' },
       type: 'array',
       // Правится только черновик счёта на оплату; выставленный не меняется (И-3).
       access: {
@@ -176,7 +176,8 @@ export const Invoices: CollectionConfig = {
       },
       admin: {
         description:
-          'В черновике правится цена и добавляются свои строки - доставка, курс. Количество позиции из заказа не меняется.',
+          'В черновике правится цена и добавляются свои строки - доставка, упаковка. Количество позиции из заказа не меняется.',
+        disableListColumn: true,
         components: { RowLabel: '/admin/components/ShopLineRowLabel#ShopLineRowLabel' },
       },
       fields: shopLineFields,
