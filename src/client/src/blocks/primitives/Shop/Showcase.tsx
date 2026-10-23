@@ -96,6 +96,8 @@ export async function Showcase({
                       media={image}
                       place="(max-width: 768px) 100vw, 360px"
                       alt=""
+                      // Превью позиции не увеличивается: галерея с лайтбоксом - в карточке (#178).
+                      zoom={false}
                       className={`h-full w-full object-cover${gone ? ' opacity-60 grayscale' : ''}`}
                     />
                   </div>
