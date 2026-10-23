@@ -35,4 +35,8 @@ describe('модули движка', () => {
     expect(off).toEqual(['shop-showcase', 'shop-cart']);
     expect(off).not.toContain('articles-section');
   });
+
+  it('у нового сайта из модулей включён только блог', () => {
+    expect(MODULES.filter((m) => m.onNewSite).map((m) => m.key)).toEqual(['blog']);
+  });
 });

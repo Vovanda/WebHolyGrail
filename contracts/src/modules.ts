@@ -23,6 +23,8 @@ export interface EngineModule {
   readonly description: string;
   readonly collections: readonly string[];
   readonly blocks: readonly string[];
+  /** Включён ли модуль у только что созданного сайта; живых сайтов не касается. */
+  readonly onNewSite: boolean;
 }
 
 export const MODULES = [
@@ -32,6 +34,7 @@ export const MODULES = [
     description: 'Формы сайта и присланные через них ответы; блок формы.',
     collections: ['form-submissions'],
     blocks: ['request-form'],
+    onNewSite: false,
   },
   {
     key: 'shop',
@@ -39,6 +42,7 @@ export const MODULES = [
     description: 'Позиции, заказы и счета; блоки витрины и корзины.',
     collections: ['offers', 'orders', 'invoices'],
     blocks: ['shop-showcase', 'shop-cart'],
+    onNewSite: false,
   },
   {
     key: 'blog',
@@ -46,6 +50,7 @@ export const MODULES = [
     description: 'Статьи, треды, теги и авторы; блоки лент статей и тредов.',
     collections: ['articles', 'threads', 'tags', 'authors'],
     blocks: ['articles-section', 'threads-section'],
+    onNewSite: true,
   },
   {
     // Доступы - своя категория, не часть медиа: закрытой бывает любая запись.
@@ -61,6 +66,7 @@ export const MODULES = [
       'media-access-links',
     ],
     blocks: [],
+    onNewSite: false,
   },
   {
     key: 'specialists',
@@ -68,6 +74,7 @@ export const MODULES = [
     description: 'Каталог людей по городам: тренеры, мастера, врачи, репетиторы.',
     collections: ['cities', 'specialists'],
     blocks: ['specialist-directory', 'specialist-profile'],
+    onNewSite: false,
   },
   {
     key: 'social',
@@ -75,6 +82,7 @@ export const MODULES = [
     description: 'Посты и комментарии из соцсетей и блок ленты.',
     collections: ['social-posts', 'comments'],
     blocks: ['social-feed'],
+    onNewSite: false,
   },
 ] as const satisfies readonly {
   key: string;
@@ -82,6 +90,7 @@ export const MODULES = [
   description: string;
   collections: readonly string[];
   blocks: readonly string[];
+  onNewSite: boolean;
 }[];
 
 export type ModuleKey = (typeof MODULES)[number]['key'];
