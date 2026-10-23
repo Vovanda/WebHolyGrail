@@ -642,6 +642,8 @@ overlay	src/cms/migrations/20261023_110340_order_cancel_reason.json
 overlay	src/cms/migrations/20261023_110340_order_cancel_reason.ts
 overlay	src/cms/migrations/20261023_113302_checkout_phone_format.json
 overlay	src/cms/migrations/20261023_113302_checkout_phone_format.ts
+overlay	src/cms/migrations/20261023_120719_shop_drop_access.json
+overlay	src/cms/migrations/20261023_120719_shop_drop_access.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts
@@ -863,7 +865,6 @@ mirror	src/cms/src/lib/shop/memory-store.ts
 mirror	src/cms/src/lib/shop/money.ts
 mirror	src/cms/src/lib/shop/order-link.ts
 mirror	src/cms/src/lib/shop/orders.ts
-mirror	src/cms/src/lib/shop/payload-access.ts
 mirror	src/cms/src/lib/shop/payload-store.ts
 mirror	src/cms/src/lib/shop/ports.ts
 mirror	src/cms/src/lib/shop/scenarios.test.ts

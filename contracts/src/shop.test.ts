@@ -4,7 +4,6 @@ import {
   type Actor,
   canInvoice,
   canOrder,
-  fullyRefunded,
   heldAmount,
   type HowToBuy,
   HOW_TO_BUY,
@@ -57,10 +56,6 @@ interface Invoice {
   /** Возврат - имя счёта, который он возвращает. */
   readonly of: string | null;
   readonly total: number;
-  /** Действуют ли сейчас коды доступа по строкам этого счёта. */
-  readonly codes: boolean;
-  /** Сколько раз коды выдавались; насыщается на 2, чтобы пространство было конечным. */
-  readonly grants: number;
 }
 
 interface World {
@@ -116,25 +111,13 @@ function applyInvoice(w: World, index: number, action: InvoiceAction, actor: Act
   const inv = w.invoices[index];
   if (!inv || !canInvoice(inv.status, action, actor, inv.kind)) return null;
   const to = INVOICE_TRANSITIONS[action].to;
-  // Абстракция модели: аннулированный возврат не деньги и не коды, ни на что не влияет -
+  // Абстракция модели: аннулированный возврат не деньги, ни на что не влияет -
   // модель его убирает. Иначе возвраты «завёл - аннулировал» копились бы без конца.
   // На возврат никто не ссылается, поэтому убрать его можно из любого места.
   if (inv.kind === 'refund' && to === 'voided') {
     return { ...w, invoices: w.invoices.filter((_, i) => i !== index) };
   }
-  let invoices = w.invoices.map((x, i) => (i === index ? { ...x, status: to } : x));
-  if (to === 'paid' && inv.kind === 'invoice') {
-    invoices = invoices.map((x, i) =>
-      i === index ? { ...x, codes: true, grants: Math.min(x.grants + 1, 2) } : x,
-    );
-  }
-  if (to === 'paid' && inv.kind === 'refund') {
-    // Доступ отзывает только полный возврат: часть денег за курс - курс остаётся.
-    const source = invoices.find((x) => x.id === inv.of)!;
-    if (fullyRefunded(source.total, refundsOf(invoices, inv.of))) {
-      invoices = invoices.map((x) => (x.id === inv.of ? { ...x, codes: false } : x));
-    }
-  }
+  const invoices = w.invoices.map((x, i) => (i === index ? { ...x, status: to } : x));
   return { ...w, invoices };
 }
 
@@ -153,7 +136,7 @@ function steps(w: World): World[] {
     });
   }
   // Счёт на 2 единицы: возврат бывает на 1 (часть денег) и на 2 (всё).
-  const blank = { codes: false, grants: 0, total: INVOICE_TOTAL } as const;
+  const blank = { total: INVOICE_TOTAL } as const;
   // Счёт заводит менеджер к принятому заказу.
   const freeId = INVOICE_IDS.find((id) => !w.invoices.some((i) => i.id === id));
   if (
@@ -304,16 +287,6 @@ describe('перебор достижимых состояний', () => {
     // Остаток за покупателем: корзина - с оформления, заявка - с принятия; отмена возвращает.
     const held = (w: World) => w.order !== 'cancelled' && (w.mode === 'cart' || w.order !== 'new');
     for (const w of worlds) expect(w.stock).toBe(held(w) ? STOCK - 1 : STOCK);
-  });
-
-  it('И-5: коды действуют ровно у оплаченного и не возвращённого счёта, выданы не больше раза', () => {
-    for (const w of worlds) {
-      for (const i of w.invoices.filter((x) => x.kind === 'invoice')) {
-        const full = fullyRefunded(i.total, refundsOf(w.invoices, i.id));
-        expect(i.codes).toBe(i.status === 'paid' && !full);
-        expect(i.grants).toBeLessThanOrEqual(1);
-      }
-    }
   });
 
   it('И-6: у отменённого заказа деньги возвращены, живых счетов нет', () => {

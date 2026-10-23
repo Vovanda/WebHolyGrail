@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildOrder,
+  buyerStep,
   checkBuyer,
   cleanCart,
   depositLines,
+  type InvoiceStatus,
   MAX_QUANTITY,
   type OfferSnapshot,
   paymentPrice,
@@ -16,7 +18,6 @@ const offer = (o: Partial<OfferSnapshot> & { id: number }): OfferSnapshot => ({
   title: `Позиция ${o.id}`,
   price: 10_000,
   stock: null,
-  access: null,
   howToBuy: 'cart',
   deposit: null,
   ...o,
@@ -59,7 +60,6 @@ describe('сборка заказа', () => {
           quantity: 3,
           price: 12_550,
           sum: 37_650,
-          access: null,
           mode: 'cart',
           deposit: null,
         },
@@ -101,11 +101,6 @@ describe('сборка заказа', () => {
 
   it('пустая корзина - пустой заказ', () => {
     expect(buildOrder([], [])).toEqual({ ok: false, empty: true, shortage: [] });
-  });
-
-  it('позиция с доступом несёт его в строку', () => {
-    const r = buildOrder([{ offer: 5, quantity: 1 }], [offer({ id: 5, access: 42 })]);
-    expect(r.ok && r.lines[0]?.access).toBe(42);
   });
 });
 
@@ -238,5 +233,36 @@ describe('сумма за пределом точных целых', () => {
     const r = checkBuyer({ name: 'Анна', phone: '+44 20 7946 0958', consent: true }, ru);
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.errors.phone).toContain('+7 900');
+  });
+});
+
+describe('шаг покупателя', () => {
+  const pay = (status: InvoiceStatus) => ({ kind: 'invoice', purpose: 'payment', status }) as const;
+  const deposit = (status: InvoiceStatus) =>
+    ({ kind: 'invoice', purpose: 'deposit', status }) as const;
+  const refund = (status: InvoiceStatus) =>
+    ({ kind: 'refund', purpose: 'payment', status }) as const;
+
+  it('новый, выполненный и отменённый заказ - по состоянию заказа', () => {
+    expect(buyerStep('new', [])).toBe('placed');
+    expect(buyerStep('done', [pay('paid')])).toBe('done');
+    expect(buyerStep('cancelled', [pay('issued')])).toBe('cancelled');
+  });
+
+  it('у принятого решает самый срочный счёт', () => {
+    expect(buyerStep('accepted', [])).toBe('awaiting-invoice');
+    expect(buyerStep('accepted', [pay('paid')])).toBe('paid');
+    expect(buyerStep('accepted', [pay('paid'), pay('reported')])).toBe('payment-reported');
+    expect(buyerStep('accepted', [pay('reported'), pay('issued')])).toBe('awaiting-payment');
+  });
+
+  it('оплаченная бронь без основного счёта - покупатель должен остаток', () => {
+    expect(buyerStep('accepted', [deposit('paid')])).toBe('deposit-paid');
+    expect(buyerStep('accepted', [deposit('paid'), pay('issued')])).toBe('awaiting-payment');
+    expect(buyerStep('accepted', [deposit('paid'), pay('paid')])).toBe('paid');
+  });
+
+  it('возврат на шаг не влияет', () => {
+    expect(buyerStep('accepted', [pay('paid'), refund('issued')])).toBe('paid');
   });
 });

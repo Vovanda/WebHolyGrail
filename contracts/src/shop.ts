@@ -196,22 +196,6 @@ export function refundable(
   );
 }
 
-/**
- * Возвращены ли деньги за счёт целиком (И-5).
- *
- * @remarks
- * Только полный возврат отзывает доступ к видео: вернули часть денег за курс -
- * курс остаётся у покупателя.
- */
-export function fullyRefunded(
-  invoiceTotal: Micros,
-  refunds: readonly { status: InvoiceStatus; total: Micros }[],
-): boolean {
-  return (
-    refunds.filter((r) => r.status === 'paid').reduce((t, r) => t + r.total, 0) >= invoiceTotal
-  );
-}
-
 /* ───────────────────────── Корзина и сборка заказа ───────────────────────── */
 
 export interface CartLine {
@@ -227,8 +211,6 @@ export interface OfferSnapshot {
   readonly price: Micros | null;
   /** Пусто - без ограничений. */
   readonly stock: number | null;
-  /** Доступ к видео, который продаёт позиция. */
-  readonly access: number | null;
   readonly howToBuy: HowToBuy;
   /** Бронь за единицу: часть цены, которую платят вперёд; пусто - без брони. */
   readonly deposit: Micros | null;
@@ -240,7 +222,6 @@ export interface OrderLine {
   readonly quantity: number;
   readonly price: Micros;
   readonly sum: Micros;
-  readonly access: number | null;
   readonly mode: HowToBuy;
   /** Бронь за единицу на момент заказа: меньше цены и больше нуля, иначе пусто. */
   readonly deposit: Micros | null;
@@ -305,7 +286,6 @@ export function buildOrder(
       quantity,
       price: o.price,
       sum: o.price * quantity,
-      access: o.access,
       mode: o.howToBuy,
       deposit: o.deposit !== null && o.deposit > 0 && o.deposit < o.price ? o.deposit : null,
     });
@@ -528,7 +508,6 @@ export interface BuyerInvoiceView {
   readonly dueAt: string | null;
   readonly total: Money;
   readonly lines: readonly BuyerLineView[];
-  readonly codes: readonly string[];
 }
 
 /** Заказ глазами покупателя (И-8): только эти поля, ничего служебного. */
@@ -562,3 +541,65 @@ export const INVOICE_STATUS_LABELS: Readonly<Record<InvoiceStatus, string>> = {
   paid: 'Оплачен',
   voided: 'Аннулирован',
 };
+
+/** Подпись суммы счёта: у оплаченного - сколько заплачено, у остальных - сколько платить. */
+export const INVOICE_TOTAL_LABELS: Readonly<Record<InvoiceStatus, string>> = {
+  draft: 'К оплате',
+  issued: 'К оплате',
+  reported: 'К оплате',
+  paid: 'Оплачено',
+  voided: 'Сумма',
+};
+
+/** Где заказ с точки зрения покупателя: от этого зависит, что ему делать дальше. */
+export type BuyerStep =
+  | 'placed'
+  | 'awaiting-invoice'
+  | 'awaiting-payment'
+  | 'payment-reported'
+  | 'deposit-paid'
+  | 'paid'
+  | 'done'
+  | 'cancelled';
+
+export const BUYER_STEP_TEXT: Readonly<Record<BuyerStep, string>> = {
+  placed: 'Заказ получен. Продавец свяжется с вами, подтвердит наличие и выставит счёт.',
+  'awaiting-invoice':
+    'Заказ подтверждён. Счёт появится на этой странице, как только продавец его выставит.',
+  'awaiting-payment': 'Заказ подтверждён. Оплатите счёт ниже и нажмите «Я оплатил».',
+  'payment-reported': 'Оплата отмечена. Продавец проверит поступление денег.',
+  'deposit-paid': 'Бронь оплачена. Счёт на остаток появится на этой странице.',
+  paid: 'Счёт оплачен. Продавец свяжется с вами, чтобы передать заказ.',
+  done: 'Заказ выполнен.',
+  cancelled: 'Заказ отменён.',
+};
+
+/**
+ * Шаг покупателя по заказу и его счетам.
+ *
+ * @remarks
+ * У принятого заказа решает самый срочный счёт на оплату: неоплаченный важнее
+ * того, что ждёт проверки, а тот - оплаченного. Возвраты, черновики и
+ * аннулированные на шаг не влияют. Оплаченная бронь без оплаченного основного
+ * счёта - отдельный шаг: покупатель ещё должен остаток.
+ */
+export function buyerStep(
+  order: OrderStatus,
+  invoices: readonly {
+    readonly kind: InvoiceKind;
+    readonly purpose: InvoicePurpose;
+    readonly status: InvoiceStatus;
+  }[],
+): BuyerStep {
+  if (order === 'new') return 'placed';
+  if (order === 'done') return 'done';
+  if (order === 'cancelled') return 'cancelled';
+  const own = invoices.filter((i) => i.kind === 'invoice');
+  const has = (status: InvoiceStatus, purpose?: InvoicePurpose) =>
+    own.some((i) => i.status === status && (purpose === undefined || i.purpose === purpose));
+  if (has('issued')) return 'awaiting-payment';
+  if (has('reported')) return 'payment-reported';
+  if (has('paid', 'payment')) return 'paid';
+  if (has('paid', 'deposit')) return 'deposit-paid';
+  return 'awaiting-invoice';
+}
