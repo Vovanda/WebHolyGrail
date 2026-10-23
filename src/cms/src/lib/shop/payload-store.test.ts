@@ -40,7 +40,7 @@ describe('позиция из документа Payload', () => {
   it('страница позиции - раздел, его характеристики и галерея без мусора', () => {
     const detail = detailFromDoc(doc);
     expect(detail.sectionTitle).toBe('Курсы');
-    expect(detail.characteristics.map((c) => c.key)).toEqual(['hours', 'cost', 'format']);
+    expect(detail.characteristics.map((c) => c.key)).toEqual(['hours', 'format']);
     expect(detail.gallery).toEqual([{ id: 3 }]);
     expect(detail.specs).not.toHaveProperty('cost');
   });

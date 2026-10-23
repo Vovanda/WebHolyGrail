@@ -1,11 +1,8 @@
-import type { BuyerOrderSummary } from 'contracts';
+import { type BuyerOrderSummary, MY_ORDERS_PAGE } from 'contracts';
 
 import { hashOrderSecret, isOrderSecret } from './order-link';
 import type { ShopPorts } from './ports';
 import { toBuyerSummary } from './view';
-
-/** Сколько заказов «Мои заказы» спрашивают одним запросом - страница списка. */
-export const MY_ORDERS_PAGE = 10;
 
 /**
  * Страница «Моих заказов» по секретам, которые хранит браузер покупателя.

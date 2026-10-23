@@ -8,16 +8,6 @@ import {
 
 import type { MoneyPort, OfferCard, OfferDetailCard, StoredInvoice, StoredOrder } from './ports';
 
-/**
- * Заказ глазами покупателя: только то, что он вправе видеть (И-8).
- *
- * @remarks
- * Собирается по полям явно: новое служебное поле (заметка менеджера, хэш
- * секрета) само в ответ не попадёт. Черновики счетов покупатель не видит.
- *
- * Суммы выходят `Money` по курсу на дату оформления заказа - она же дата
- * документа для его счетов (docs/adr/007-pricing-layers.md).
- */
 /** Строка «Моих заказов»: итог по курсу на дату заказа, как и на его странице. */
 export function toBuyerSummary(order: StoredOrder, money: MoneyPort): BuyerOrderSummary {
   return {
@@ -28,6 +18,16 @@ export function toBuyerSummary(order: StoredOrder, money: MoneyPort): BuyerOrder
   };
 }
 
+/**
+ * Заказ глазами покупателя: только то, что он вправе видеть (И-8).
+ *
+ * @remarks
+ * Собирается по полям явно: новое служебное поле (заметка менеджера, хэш
+ * секрета) само в ответ не попадёт. Черновики счетов покупатель не видит.
+ *
+ * Суммы выходят `Money` по курсу на дату оформления заказа - она же дата
+ * документа для его счетов (docs/adr/007-pricing-layers.md).
+ */
 export function toBuyerView(
   order: StoredOrder,
   invoices: readonly StoredInvoice[],

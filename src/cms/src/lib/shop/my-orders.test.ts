@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { memoryPorts, memoryState } from './memory-store';
-import { MY_ORDERS_PAGE, myOrders } from './my-orders';
+import { MY_ORDERS_PAGE } from 'contracts';
+
+import { myOrders } from './my-orders';
 import { newOrderSecret } from './order-link';
 import { placeOrder } from './orders';
 import type { ShopPorts } from './ports';

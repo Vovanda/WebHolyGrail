@@ -19,6 +19,7 @@ import {
   type ExtraKind,
   type ExtraLine,
   publicSpecs,
+  visibleCharacteristics,
   type SpecValue,
 } from 'contracts';
 
@@ -127,7 +128,7 @@ export function detailFromDoc(doc: Record<string, unknown>): OfferDetailCard {
       : [],
     description: doc['description'] ?? null,
     sectionTitle: section?.title ?? null,
-    characteristics: cleanCharacteristics(section?.characteristics),
+    characteristics: visibleCharacteristics(cleanCharacteristics(section?.characteristics)),
   };
 }
 
@@ -335,7 +336,7 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
               slug: str(doc['slug']),
               title: str(doc['title']),
               description: typeof doc['description'] === 'string' ? doc['description'] : null,
-              characteristics: cleanCharacteristics(doc['characteristics']),
+              characteristics: visibleCharacteristics(cleanCharacteristics(doc['characteristics'])),
             }
           : null;
       },

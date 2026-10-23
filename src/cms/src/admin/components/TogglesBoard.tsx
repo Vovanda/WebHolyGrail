@@ -175,7 +175,12 @@ export function TogglesBoard() {
                 >
                   <div style={{ minWidth: 0 }}>
                     <a
-                      href={admin(`/collections/feature-toggles/${item.id}`)}
+                      // Голый <a> идёт мимо Next: путь сайта добавляем сами.
+                      href={formatAdminURL({
+                        adminRoute: config.routes.admin,
+                        path: `/collections/feature-toggles/${item.id}`,
+                        includeBasePath: true,
+                      })}
                       style={{ fontWeight: 500, color: 'inherit' }}
                     >
                       {item.title ?? item.key}

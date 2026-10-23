@@ -102,13 +102,13 @@ export interface OfferDetailCard extends OfferCard {
   readonly characteristics: readonly Characteristic[];
 }
 
+/** Потолок позиций в разделе: раздел читается целиком, но не бесконечно. */
+export const SECTION_CAP = 2000;
+
 /**
  * Какие позиции показать: выбранные по номерам, раздел каталога целиком
  * (до `SECTION_CAP`) либо первые `limit` по названию.
  */
-/** Потолок позиций в разделе: раздел читается целиком, но не бесконечно. */
-export const SECTION_CAP = 2000;
-
 export type OfferQuery =
   | { readonly ids: readonly number[] }
   | { readonly section: string }

@@ -1,3 +1,4 @@
+import { reservedRoute } from 'contracts';
 import type { CollectionConfig } from 'payload';
 
 import { PAGE_BLOCKS } from '../blocks';
@@ -47,6 +48,11 @@ export const Pages: CollectionConfig = {
       required: true,
       unique: true,
       index: true,
+      // Адрес модуля перекрыл бы страницу: она отвечала бы 404.
+      validate: (value: unknown) => {
+        const taken = typeof value === 'string' ? reservedRoute(value) : null;
+        return taken === null || `Адрес «${taken}/…» занят разделом сайта - выберите другой.`;
+      },
       admin: {
         description: 'Часть URL после домена. Главная — пустая строка. Без ведущего слэша.',
       },
