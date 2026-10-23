@@ -100,6 +100,11 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
               className="font-display text-3xl font-semibold tabular-nums text-ink"
             >
               {offer.price ? formatMoney(offer.price) : 'Цена по запросу'}
+              {offer.price && offer.listPrice && (
+                <s data-part="offer-list-price" className="ml-3 text-lg font-normal text-muted">
+                  {formatMoney(offer.listPrice)}
+                </s>
+              )}
             </p>
             {offer.price && offer.deposit && (
               <p className="text-sm text-muted">Бронь {formatMoney(offer.deposit)} вперёд</p>

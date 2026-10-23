@@ -98,6 +98,11 @@ export function OfferCard({
             }
           >
             {price ? formatMoney(price) : 'Цена по запросу'}
+            {price && offer.listPrice && (
+              <s data-part="card-list-price" className="ml-2 text-base font-normal text-muted">
+                {formatMoney(offer.listPrice)}
+              </s>
+            )}
           </p>
           {price && offer.deposit && (
             <p data-part="card-caption" className="mt-0.5 text-sm text-muted">

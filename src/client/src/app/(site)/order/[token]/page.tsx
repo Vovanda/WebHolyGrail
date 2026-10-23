@@ -37,6 +37,9 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
   const [order, settings] = await Promise.all([getOrderView(token), getSiteSettings()]);
   if (!order) notFound();
   const invoices = order.invoices.filter((i) => i.kind === 'invoice' && i.status !== 'voided');
+  // Аннулированный счёт показываем коротко с причиной: покупатель должен знать, почему он пропал.
+  const voided = order.invoices.filter((i) => i.kind === 'invoice' && i.status === 'voided');
+  const paidSomething = order.invoices.some((i) => i.status === 'paid' || i.status === 'reported');
   const refunds = order.invoices.filter((i) => i.kind === 'refund' && i.status === 'paid');
 
   return (
@@ -77,17 +80,35 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
             <li
               key={i}
               data-part="line"
+              data-removed={l.removed ? '' : undefined}
               className="flex flex-wrap justify-between gap-3 py-3 text-ink"
             >
               <span>
-                {l.title} × {l.quantity}
-                {l.mode === 'request' && order.status === 'new' && (
+                <span className={l.removed ? 'text-muted line-through' : undefined}>
+                  {l.title} × {l.quantity}
+                </span>
+                {l.removed ? (
                   <span data-part="line-note" className="block text-sm text-muted">
-                    По заявке: продавец подтвердит наличие
+                    Снята продавцом: {l.removed}
                   </span>
+                ) : (
+                  <>
+                    {l.mode === 'request' && order.status === 'new' && (
+                      <span data-part="line-note" className="block text-sm text-muted">
+                        По заявке: продавец подтвердит наличие
+                      </span>
+                    )}
+                    {l.deposit && (
+                      <span data-part="line-note" className="block text-sm text-muted">
+                        Бронь {formatMoney(l.deposit)} за штуку - платится вперёд, входит в цену
+                      </span>
+                    )}
+                  </>
                 )}
               </span>
-              <span className="tabular-nums">{formatMoney(l.sum)}</span>
+              <span className={`tabular-nums${l.removed ? ' text-muted line-through' : ''}`}>
+                {formatMoney(l.sum)}
+              </span>
             </li>
           ))}
         </ul>
@@ -95,7 +116,7 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
           Итого: {formatMoney(order.total)}
         </p>
 
-        {order.status === 'new' && (
+        {(order.status === 'new' || (order.status === 'accepted' && !paidSomething)) && (
           <div className="mt-6">
             <OrderActions token={token} action="cancel" />
           </div>
@@ -123,11 +144,15 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
             </header>
             <ul className="mt-3 divide-y divide-border">
               {inv.lines.map((l, i) => (
-                <li key={i} className="flex flex-wrap justify-between gap-3 py-2 text-ink">
-                  <span>
-                    {l.title} × {l.quantity}
+                <li
+                  key={i}
+                  data-part={l.discount ? 'invoice-discount' : 'invoice-line'}
+                  className="flex flex-wrap justify-between gap-3 py-2 text-ink"
+                >
+                  <span>{l.discount ? `Скидка: ${l.title}` : `${l.title} × ${l.quantity}`}</span>
+                  <span className="tabular-nums">
+                    {l.discount ? `−${formatMoney(l.sum)}` : formatMoney(l.sum)}
                   </span>
-                  <span className="tabular-nums">{formatMoney(l.sum)}</span>
                 </li>
               ))}
             </ul>
@@ -137,12 +162,20 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
             {inv.status === 'issued' && (
               <div className="mt-4 grid gap-3">
                 <PaymentDetails shop={shopSettings(settings?.shop)} note={settings?.paymentNote} />
-                <div>
+                <div className="flex flex-wrap gap-3">
                   <OrderActions token={token} action="report" invoiceId={inv.id} />
+                  <OrderActions token={token} action="decline" invoiceId={inv.id} />
                 </div>
               </div>
             )}
           </article>
+        ))}
+
+        {voided.map((inv) => (
+          <p key={inv.id} data-part="invoice-voided" className="mt-6 text-muted">
+            {inv.purpose === 'deposit' ? 'Счёт на бронь' : 'Счёт'} № {inv.id} на{' '}
+            {formatMoney(inv.total)} аннулирован{inv.voidReason ? `: ${inv.voidReason}` : '.'}
+          </p>
         ))}
 
         {refunds.map((r) => (

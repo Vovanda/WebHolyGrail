@@ -14,6 +14,7 @@ const offerView = (o: OfferView): OfferView => ({
   id: o.id,
   title: o.title,
   price: o.price,
+  listPrice: o.listPrice ?? null,
   stock: o.stock,
   summary: o.summary,
   image: o.image,

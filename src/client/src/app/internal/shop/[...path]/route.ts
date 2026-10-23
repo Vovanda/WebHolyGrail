@@ -22,7 +22,7 @@ const ROUTES: { re: RegExp; method: 'GET' | 'POST' }[] = [
   { re: /^orders\/view$/, method: 'GET' },
   { re: /^orders\/views$/, method: 'POST' },
   { re: /^orders\/cancel$/, method: 'POST' },
-  { re: /^invoices\/\d+\/report$/, method: 'POST' },
+  { re: /^invoices\/\d+\/(report|decline)$/, method: 'POST' },
   { re: /^offers$/, method: 'GET' },
 ];
 
