@@ -60,6 +60,11 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
         <p data-part="next-step" className="mt-4 text-ink">
           {nextStep(order, invoices.filter((i) => i.status === 'issued').length)}
         </p>
+        {order.cancelReason && (
+          <p data-part="cancel-reason" className="mt-1 text-ink">
+            Причина: {order.cancelReason}
+          </p>
+        )}
         <p className="mt-2 text-sm text-muted">
           Сохраните эту страницу: по её адресу заказ открывается без входа.
         </p>
