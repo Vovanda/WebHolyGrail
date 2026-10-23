@@ -23,6 +23,7 @@ import { MediaImage } from '@/blocks/primitives/Media';
 import { cart, rememberedOrders, rememberOrder, useCart } from '@/lib/shop/cart';
 import { OFFER_SNAPSHOTS, readSnapshots, writeSnapshots } from '@/lib/shop/snapshots';
 
+import { OfferSearch } from './OfferSearch';
 import { QuantityStepper } from './QuantityStepper';
 import { field, primaryButton } from './ui';
 
@@ -273,80 +274,85 @@ export function Cart({
           </div>
         ) : (
           <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
-            <ul data-part="lines" className="divide-y divide-border border-y border-border">
-              {rows.map(({ offer, quantity }) => {
-                const sum = lineSum({ offer, quantity });
-                const max = typeof offer.stock === 'number' ? offer.stock : 1000;
-                const image =
-                  typeof offer.image === 'object' && offer.image ? (offer.image as MediaRef) : null;
-                return (
-                  <li
-                    key={offer.id}
-                    data-part="line"
-                    className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-3 py-5 sm:grid-cols-[auto_minmax(0,1fr)_auto_9rem]"
-                  >
-                    <div
-                      data-part="line-media"
-                      className="row-span-2 h-16 w-16 overflow-hidden rounded-md border border-border bg-surface sm:row-span-1"
+            <div className="grid content-start gap-6">
+              <OfferSearch />
+              <ul data-part="lines" className="divide-y divide-border border-y border-border">
+                {rows.map(({ offer, quantity }) => {
+                  const sum = lineSum({ offer, quantity });
+                  const max = typeof offer.stock === 'number' ? offer.stock : 1000;
+                  const image =
+                    typeof offer.image === 'object' && offer.image
+                      ? (offer.image as MediaRef)
+                      : null;
+                  return (
+                    <li
+                      key={offer.id}
+                      data-part="line"
+                      className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-3 py-5 sm:grid-cols-[auto_minmax(0,1fr)_auto_9rem]"
                     >
-                      {image && (
-                        <MediaImage
-                          media={image}
-                          place="64px"
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
-                      )}
-                    </div>
-                    <div className="min-w-0 self-center">
-                      <p data-part="line-title" className="font-medium text-ink">
-                        {offer.title}
-                      </p>
-                      <p className="mt-0.5 text-sm tabular-nums text-muted">
-                        {formatMoney(offer.price)} за шт.
-                      </p>
-                      {offer.howToBuy === 'request' && (
-                        <p data-part="line-note" className="mt-0.5 text-sm text-muted">
-                          По заявке: наличие подтвердит продавец
+                      <div
+                        data-part="line-media"
+                        className="row-span-2 h-16 w-16 overflow-hidden rounded-md border border-border bg-surface sm:row-span-1"
+                      >
+                        {image && (
+                          <MediaImage
+                            media={image}
+                            place="64px"
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div className="min-w-0 self-center">
+                        <p data-part="line-title" className="font-medium text-ink">
+                          {offer.title}
                         </p>
-                      )}
-                    </div>
-                    <div className="col-start-2 flex items-center gap-2 sm:col-start-auto">
-                      <QuantityStepper
-                        value={quantity}
-                        max={max}
-                        title={offer.title}
-                        onChange={(next) => cart.set(offer.id, next)}
-                      />
-                      <button
-                        type="button"
-                        data-part="line-remove"
-                        className="ml-2 min-h-11 px-2 text-sm text-muted transition-colors hover:text-ink sm:hidden"
-                        onClick={() => cart.remove(offer.id)}
-                      >
-                        Убрать
-                      </button>
-                    </div>
-                    <div className="col-start-2 flex items-center justify-between gap-3 sm:col-start-auto sm:flex-col sm:items-end sm:justify-center">
-                      <span
-                        data-part="line-sum"
-                        className="font-display text-lg font-semibold tabular-nums text-ink"
-                      >
-                        {sum ? formatMoney(sum) : ''}
-                      </span>
-                      <button
-                        type="button"
-                        data-part="line-remove"
-                        className="hidden text-sm text-muted transition-colors hover:text-ink sm:block"
-                        onClick={() => cart.remove(offer.id)}
-                      >
-                        Убрать
-                      </button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+                        <p className="mt-0.5 text-sm tabular-nums text-muted">
+                          {formatMoney(offer.price)} за шт.
+                        </p>
+                        {offer.howToBuy === 'request' && (
+                          <p data-part="line-note" className="mt-0.5 text-sm text-muted">
+                            По заявке: наличие подтвердит продавец
+                          </p>
+                        )}
+                      </div>
+                      <div className="col-start-2 flex items-center gap-2 sm:col-start-auto">
+                        <QuantityStepper
+                          value={quantity}
+                          max={max}
+                          title={offer.title}
+                          onChange={(next) => cart.set(offer.id, next)}
+                        />
+                        <button
+                          type="button"
+                          data-part="line-remove"
+                          className="ml-2 min-h-11 px-2 text-sm text-muted transition-colors hover:text-ink sm:hidden"
+                          onClick={() => cart.remove(offer.id)}
+                        >
+                          Убрать
+                        </button>
+                      </div>
+                      <div className="col-start-2 flex items-center justify-between gap-3 sm:col-start-auto sm:flex-col sm:items-end sm:justify-center">
+                        <span
+                          data-part="line-sum"
+                          className="font-display text-lg font-semibold tabular-nums text-ink"
+                        >
+                          {sum ? formatMoney(sum) : ''}
+                        </span>
+                        <button
+                          type="button"
+                          data-part="line-remove"
+                          className="hidden text-sm text-muted transition-colors hover:text-ink sm:block"
+                          onClick={() => cart.remove(offer.id)}
+                        >
+                          Убрать
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
 
             <aside
               data-part="summary"

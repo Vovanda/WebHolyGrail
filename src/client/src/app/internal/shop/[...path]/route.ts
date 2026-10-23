@@ -13,7 +13,8 @@ import { forwardedFor } from '@/lib/forwarded-for';
  * посетителя. Секрет заказа (`X-Order-Secret`) и цепочка адресов уходят в CMS
  * как пришли - по адресу CMS считает лимит, по секрету находит заказ.
  *
- * `offers` - позиции корзины по номерам: названия, цены и остатки для показа.
+ * `offers` - позиции корзины по номерам: названия, цены и остатки для показа;
+ * с `?q=` - поиск позиций для добавления из корзины.
  */
 export const dynamic = 'force-dynamic';
 
@@ -73,9 +74,13 @@ async function forward(request: NextRequest, path: string[]): Promise<NextRespon
 
   let target = `${CMS_URL}/api/shop/${joined}`;
   if (joined === 'offers') {
+    // Поиск из корзины - по запросу; иначе позиции корзины по номерам.
+    const q = (request.nextUrl.searchParams.get('q') ?? '').trim().slice(0, 100);
     const ids = offerIds(request);
-    if (ids.length === 0) return NextResponse.json({ docs: [] });
-    target = `${CMS_URL}/api/shop/offers?ids=${ids.join(',')}`;
+    if (!q && ids.length === 0) return NextResponse.json({ docs: [] });
+    target = q
+      ? `${CMS_URL}/api/shop/offers?q=${encodeURIComponent(q)}`
+      : `${CMS_URL}/api/shop/offers?ids=${ids.join(',')}`;
   }
 
   const secret = request.headers.get('x-order-secret');
