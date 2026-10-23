@@ -458,6 +458,87 @@ export function quickFilters(
   });
 }
 
+/* ──────────────────────── Сортировка и страницы ──────────────────────── */
+
+/** Порядок выдачи; ключ стоит в адресе `?sort=`. */
+export type SortKey = 'default' | 'price-asc' | 'price-desc' | 'discount' | 'new';
+
+export const SORTS: readonly { readonly key: SortKey; readonly title: string }[] = [
+  { key: 'default', title: 'По умолчанию' },
+  { key: 'price-asc', title: 'Сначала дешевле' },
+  { key: 'price-desc', title: 'Сначала дороже' },
+  { key: 'discount', title: 'По размеру скидки' },
+  { key: 'new', title: 'Новинки' },
+];
+
+/** Сколько позиций на странице выдачи. */
+export const PAGE_SIZE = 30;
+
+/** Порядок из адреса; чужое значение - «по умолчанию». */
+export function readSort(raw: string | readonly string[] | undefined): SortKey {
+  const text = Array.isArray(raw) ? raw[0] : raw;
+  return SORTS.some((s) => s.key === text) ? (text as SortKey) : 'default';
+}
+
+/** Номер страницы из адреса: целое от 1, мусор - первая. */
+export function readPage(raw: string | readonly string[] | undefined): number {
+  const n = Number(Array.isArray(raw) ? raw[0] : raw);
+  return Number.isInteger(n) && n >= 1 ? n : 1;
+}
+
+/** Чем сортировать: значения берёт тот, кто знает позицию. */
+export interface SortKeys<T> {
+  readonly price: (item: T) => number | null;
+  readonly discount: (item: T) => number;
+  readonly created: (item: T) => string;
+}
+
+/**
+ * Позиции в заданном порядке.
+ *
+ * @remarks
+ * «По умолчанию» оставляет порядок входа - его задаёт хранилище, как в списке
+ * админки, а при запросе поиска - релевантность. Позиция без цены при сортировке
+ * по цене уходит в конец в обе стороны: «цена по запросу» не дешевле и не дороже.
+ * Сортировка устойчивая: равные остаются в порядке входа.
+ */
+export function sortItems<T>(items: readonly T[], sort: SortKey, keys: SortKeys<T>): T[] {
+  if (sort === 'default') return [...items];
+  const order = items.map((item, at) => ({ item, at }));
+  const byPrice = (dir: 1 | -1) => (a: { item: T; at: number }, b: { item: T; at: number }) => {
+    const pa = keys.price(a.item);
+    const pb = keys.price(b.item);
+    if (pa === null || pb === null) return pa === pb ? a.at - b.at : pa === null ? 1 : -1;
+    return (pa - pb) * dir || a.at - b.at;
+  };
+  const compare =
+    sort === 'price-asc'
+      ? byPrice(1)
+      : sort === 'price-desc'
+        ? byPrice(-1)
+        : sort === 'discount'
+          ? (a: { item: T; at: number }, b: { item: T; at: number }) =>
+              keys.discount(b.item) - keys.discount(a.item) || a.at - b.at
+          : (a: { item: T; at: number }, b: { item: T; at: number }) =>
+              keys.created(b.item).localeCompare(keys.created(a.item)) || a.at - b.at;
+  return order.sort(compare).map((o) => o.item);
+}
+
+/** Страница выдачи: какие позиции и сколько всего. */
+export interface Page<T> {
+  readonly items: readonly T[];
+  readonly page: number;
+  readonly pages: number;
+  readonly total: number;
+}
+
+/** Срез страницы; номер за последней страницей прижимается к последней. */
+export function pageOf<T>(items: readonly T[], page: number, size = PAGE_SIZE): Page<T> {
+  const pages = Math.max(1, Math.ceil(items.length / size));
+  const at = Math.min(Math.max(1, page), pages);
+  return { items: items.slice((at - 1) * size, at * size), page: at, pages, total: items.length };
+}
+
 /* ───────────────────────── Поиск ───────────────────────── */
 
 /** Нижний регистр, ё → е, один пробел между словами. */
@@ -513,6 +594,8 @@ export function editDistance(a: string, b: string, limit: number): number {
 /** Подходит ли слово запроса к слову текста: по началу или с допуском опечатки. */
 function wordMatches(word: string, token: string): boolean {
   if (token.startsWith(word)) return true;
+  // В артикуле и модели одна цифра - другой товар: слова с цифрами без допуска.
+  if (/\d/.test(word)) return false;
   const budget = typoBudget(word);
   if (budget === 0) return false;
   return (
@@ -536,16 +619,41 @@ const FIELDS: readonly [(i: CatalogItem) => string, number][] = [
   [(i) => i.summary ?? '', 1],
 ];
 
+/** Слова текста: между ними всё, что не буква и не цифра. */
+const wordsOf = (s: string): string[] =>
+  normalize(s)
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean);
+
+/**
+ * Слова полей позиции, нарезанные один раз на позицию.
+ *
+ * @remarks
+ * Индекс каталога держит одни и те же объекты позиций между запросами, и резать
+ * их поля заново на каждый запрос значило бы делать одну работу тысячи раз.
+ * У короткого поля (артикул «TT-1000») добавляется и слитное написание:
+ * покупатель набирает его и как «tt1000».
+ */
+const fieldWords = new WeakMap<CatalogItem, readonly (readonly string[])[]>();
+function tokensOf(item: CatalogItem): readonly (readonly string[])[] {
+  const cached = fieldWords.get(item);
+  if (cached) return cached;
+  const tokens = FIELDS.map(([field]) => {
+    const words = wordsOf(field(item));
+    return words.length > 1 && words.length <= 4 ? [...words, words.join('')] : words;
+  });
+  fieldWords.set(item, tokens);
+  return tokens;
+}
+
 function score(item: CatalogItem, words: readonly string[]): number {
+  const fields = tokensOf(item);
   let total = 0;
   for (const word of words) {
     let best = 0;
-    for (const [field, weight] of FIELDS) {
-      const tokens = normalize(field(item))
-        .split(/[^\p{L}\p{N}]+/u)
-        .filter(Boolean);
-      if (tokens.some((t) => wordMatches(word, t))) best = Math.max(best, weight);
-    }
+    FIELDS.forEach(([, weight], at) => {
+      if (weight > best && fields[at]!.some((t) => wordMatches(word, t))) best = weight;
+    });
     if (best === 0) return 0;
     total += best;
   }
@@ -563,7 +671,7 @@ function score(item: CatalogItem, words: readonly string[]): number {
  */
 export function searchItems<T extends CatalogItem>(items: readonly T[], query: string): T[] {
   const run = (q: string): T[] => {
-    const words = normalize(q).split(' ').filter(Boolean).slice(0, 8);
+    const words = wordsOf(q).slice(0, 8);
     if (words.length === 0) return [...items];
     return items
       .map((item) => ({ item, s: score(item, words) }))

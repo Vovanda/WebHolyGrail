@@ -6,11 +6,15 @@ import {
   cleanCharacteristics,
   editDistance,
   facetsOf,
+  pageOf,
   publicSpecs,
   quickFilters,
   readFilter,
+  readPage,
+  readSort,
   searchItems,
   similarItems,
+  sortItems,
   switchLayout,
   toggleValue,
   type CatalogItem,
@@ -281,5 +285,60 @@ describe('общие характеристики магазина и быстр
     const state = readFilter({ brand: 'B' }, chars);
     const quick = quickFilters(facetsOf(items, state, chars), chars);
     expect(quick.find((q) => q.label === 'Со скидкой')).toBeUndefined();
+  });
+});
+
+describe('сортировка и страницы выдачи', () => {
+  const items = [
+    { id: 1, price: 300, discount: 0, created: '2026-01-03' },
+    { id: 2, price: null, discount: 0, created: '2026-01-01' },
+    { id: 3, price: 100, discount: 20, created: '2026-01-02' },
+    { id: 4, price: 200, discount: 5, created: '2026-01-04' },
+  ];
+  const keys = {
+    price: (i: (typeof items)[number]) => i.price,
+    discount: (i: (typeof items)[number]) => i.discount,
+    created: (i: (typeof items)[number]) => i.created,
+  };
+  const ids = (sort: Parameters<typeof sortItems>[1]) =>
+    sortItems(items, sort, keys).map((i) => i.id);
+
+  it('по умолчанию - порядок входа', () => expect(ids('default')).toEqual([1, 2, 3, 4]));
+  it('без цены - в конце в обе стороны', () => {
+    expect(ids('price-asc')).toEqual([3, 4, 1, 2]);
+    expect(ids('price-desc')).toEqual([1, 4, 3, 2]);
+  });
+  it('по скидке и новинки', () => {
+    expect(ids('discount')).toEqual([3, 4, 1, 2]);
+    expect(ids('new')).toEqual([4, 1, 3, 2]);
+  });
+  it('порядок и страница из адреса терпят мусор', () => {
+    expect(readSort('price-asc')).toBe('price-asc');
+    expect(readSort('drop table')).toBe('default');
+    expect(readPage('3')).toBe(3);
+    expect(readPage('-1')).toBe(1);
+    expect(readPage('2.5')).toBe(1);
+  });
+  it('страница за последней прижимается к последней', () => {
+    const list = Array.from({ length: 65 }, (_, i) => i);
+    expect(pageOf(list, 1)).toMatchObject({ page: 1, pages: 3, total: 65 });
+    expect(pageOf(list, 9).items).toEqual([60, 61, 62, 63, 64]);
+    expect(pageOf([], 1)).toMatchObject({ items: [], page: 1, pages: 1, total: 0 });
+  });
+});
+
+describe('поиск по артикулу', () => {
+  const items = [
+    { id: 1, title: 'Перфоратор', sku: 'TT-1000', specs: {} },
+    { id: 2, title: 'Дрель', sku: 'TT-2000', specs: {} },
+  ];
+  it('находит как написан, слитно и частями', () => {
+    for (const q of ['TT-1000', 'tt1000', 'TT 1000', '1000']) {
+      expect(searchItems(items, q).map((i) => i.id)).toEqual([1]);
+    }
+  });
+  it('опечатка в названии и другая раскладка', () => {
+    expect(searchItems(items, 'перфаратор').map((i) => i.id)).toEqual([1]);
+    expect(searchItems(items, 'lhtkm').map((i) => i.id)).toEqual([2]);
   });
 });

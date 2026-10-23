@@ -21,7 +21,7 @@ import {
   PHONE_FORMATS,
   type PhoneFormatKey,
 } from './phone';
-import type { CatalogItem, Characteristic, SpecValue } from './catalog';
+import type { CatalogItem, Characteristic, Facet, SortKey, SpecValue } from './catalog';
 import { fromMoney, type Micros, type Money } from './money';
 
 export type Actor = 'buyer' | 'manager' | 'system';
@@ -897,6 +897,34 @@ export interface CatalogSectionView {
   readonly title: string;
   readonly description: string | null;
   readonly characteristics: readonly Characteristic[];
+}
+
+/** Раздел на `/shop` без условий: несколько позиций и сколько их всего. */
+export interface CatalogPreview {
+  readonly section: CatalogSectionSummary;
+  readonly items: readonly OfferView[];
+}
+
+/**
+ * Выдача каталога страницей (`/api/shop/catalog`, docs/whg/44-catalog-search.md).
+ *
+ * @remarks
+ * Сайт получает одну страницу, а не раздел целиком: вес ответа не зависит от
+ * числа позиций. Фасеты и характеристики - для фильтра над выдачей; превью
+ * разделов приходят только на `/shop` без запроса и условий.
+ */
+export interface CatalogResultView {
+  /** Раздел выдачи; null - весь магазин. */
+  readonly section: CatalogSectionView | null;
+  /** Характеристики фильтра: общие для магазина, затем раздела. */
+  readonly characteristics: readonly Characteristic[];
+  readonly facets: readonly Facet[];
+  readonly items: readonly OfferView[];
+  readonly page: number;
+  readonly pages: number;
+  readonly total: number;
+  readonly sort: SortKey;
+  readonly previews: readonly CatalogPreview[];
 }
 
 export interface BuyerLineView {
