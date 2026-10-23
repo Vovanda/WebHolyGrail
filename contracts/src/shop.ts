@@ -745,6 +745,8 @@ export interface OfferView {
   readonly price: Money | null;
   /** Цена по прайсу, пока идёт акция: показывается зачёркнутой рядом с ценой. */
   readonly listPrice?: Money | null;
+  /** Артикул продавца; пусто - строки артикула на карточке нет. */
+  readonly sku?: string | null;
   readonly stock: number | null;
   readonly summary: string | null;
   readonly image: unknown;
@@ -786,6 +788,7 @@ export const offerViewOf = (o: OfferView): OfferView => ({
   title: o.title,
   price: o.price,
   listPrice: o.listPrice ?? null,
+  sku: o.sku ?? null,
   stock: o.stock,
   summary: o.summary,
   image: o.image,
