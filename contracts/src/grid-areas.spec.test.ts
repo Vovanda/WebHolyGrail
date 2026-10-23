@@ -209,3 +209,17 @@ describe('сетка держит колонки', () => {
     expect(layouts({}, 1, 3, { keepColumns: true }).md?.columns).toBe(4);
   });
 });
+
+describe('полные ряды', () => {
+  it('ряды заполнены, остаток последним рядом по центру', () => {
+    const grid = layout('', 16, 5, { keepColumns: true, fullRows: true });
+    const rows = [1, 2, 3, 4].map((r) => grid?.cells.filter((c) => c.row === r).length);
+    expect(rows).toEqual([5, 5, 5, 1]);
+    expect(grid?.cells.find((c) => c.row === 4)).toMatchObject({ column: 5, width: 2 });
+  });
+
+  it('без свойства ряды по-прежнему симметричные', () => {
+    const grid = layout('', 16, 5, { keepColumns: true });
+    expect(grid?.cells.filter((c) => c.row === 1).length).toBe(4);
+  });
+});

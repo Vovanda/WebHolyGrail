@@ -309,6 +309,12 @@ export function areasWidth(raw: string | null | undefined): number | null {
   return Math.max(...(named.length > 0 ? named : rows).map((row) => row.length));
 }
 
+/** Полные ряды по `perRow`, остаток последним рядом: 16 при пяти - 5 5 5 1. */
+function fullRows(count: number, perRow: number): number[] {
+  const rows = Array.from({ length: Math.floor(count / perRow) }, () => perRow);
+  return count % perRow > 0 ? [...rows, count % perRow] : rows;
+}
+
 /**
  * Места всех карточек блока: заданные владельцем и досчитанные.
  *
@@ -326,6 +332,7 @@ export function placeAll(
   raw: string | null | undefined,
   count: number,
   perRow: number,
+  options: LayoutOptions = {},
 ): { readonly areas: ReadonlyArray<Area>; readonly rows: ReadonlyArray<number> } | null {
   if (count <= 0) return null;
 
@@ -352,7 +359,11 @@ export function placeAll(
   let offset = 0;
   let row = askedRows;
 
-  for (const length of balancedRows(free.length, Math.max(1, Math.floor(perRow)))) {
+  const capacity = Math.max(1, Math.floor(perRow));
+  const lengths = options.fullRows
+    ? fullRows(free.length, capacity)
+    : balancedRows(free.length, capacity);
+  for (const length of lengths) {
     row += 1;
     rows.push(length);
     for (let at = 0; at < length; at += 1) {
@@ -389,6 +400,12 @@ export interface LayoutOptions {
    * остаётся своей ширины, а не растягивается на весь ряд.
    */
   readonly keepColumns?: boolean;
+  /**
+   * Ряды полные, неполный только последний - он встаёт по центру. Без свойства
+   * ряды подбираются симметрично (8 при трёх в ряд - 3 2 3). Витрине важнее
+   * место: симметричные ряды по четыре при пяти колонках оставляют поля.
+   */
+  readonly fullRows?: boolean;
 }
 
 /** Раскладка блока целиком: плитки и во сколько долей их класть. */
@@ -420,7 +437,7 @@ export function layout(
   perRow: number,
   options: LayoutOptions = {},
 ): Layout | null {
-  const placed = placeAll(raw, count, perRow);
+  const placed = placeAll(raw, count, perRow, options);
   if (!placed) return null;
 
   const width = Math.max(...placed.rows, options.keepColumns ? perRow : 1);
