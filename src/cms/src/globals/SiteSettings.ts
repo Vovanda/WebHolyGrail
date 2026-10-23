@@ -902,6 +902,16 @@ export const SiteSettings: GlobalConfig = {
                   ],
                 },
                 {
+                  name: 'cartHref',
+                  label: 'Страница корзины',
+                  type: 'text',
+                  defaultValue: '/cart',
+                  admin: {
+                    description:
+                      'Адрес страницы, где стоит блок корзины. На неё ведёт значок корзины в шапке.',
+                  },
+                },
+                {
                   name: 'checkout',
                   label: 'Что спрашивать при оформлении',
                   type: 'group',

@@ -76,6 +76,7 @@ import * as migration_20261022_232708_shop_settings from './20261022_232708_shop
 import * as migration_20261023_110340_order_cancel_reason from './20261023_110340_order_cancel_reason';
 import * as migration_20261023_113302_checkout_phone_format from './20261023_113302_checkout_phone_format';
 import * as migration_20261023_120719_shop_drop_access from './20261023_120719_shop_drop_access';
+import * as migration_20261023_125752_shop_cart_href from './20261023_125752_shop_cart_href';
 
 export const migrations = [
   {
@@ -467,5 +468,10 @@ export const migrations = [
     up: migration_20261023_120719_shop_drop_access.up,
     down: migration_20261023_120719_shop_drop_access.down,
     name: '20261023_120719_shop_drop_access',
+  },
+  {
+    up: migration_20261023_125752_shop_cart_href.up,
+    down: migration_20261023_125752_shop_cart_href.down,
+    name: '20261023_125752_shop_cart_href',
   },
 ];
