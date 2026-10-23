@@ -117,6 +117,18 @@ export const Orders: CollectionConfig = {
       ],
     },
     {
+      // Пишется вместе со статусом «отменён» (lib/shop/orders): руками не правится.
+      name: 'cancelReason',
+      label: 'Причина отмены',
+      type: 'text',
+      access: locked,
+      admin: {
+        readOnly: true,
+        description: 'Её видит покупатель на странице заказа.',
+        condition: (data) => data?.['status'] === 'cancelled',
+      },
+    },
+    {
       name: 'managerNote',
       label: 'Заметка менеджера',
       type: 'textarea',

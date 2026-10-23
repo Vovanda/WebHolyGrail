@@ -48,6 +48,7 @@ const STATUS: Record<Failure, number> = {
   not_found: 404,
   forbidden: 409,
   invalid: 400,
+  reason_required: 400,
   empty: 400,
   shortage: 409,
   money_held: 409,
@@ -306,9 +307,17 @@ const adminActionEndpoint: Endpoint = {
       return answer(await createInvoice(p, id), (i) => ({ id: i.id }));
     }
     if (kind === 'orders' && Object.hasOwn(ORDER_TRANSITIONS, action)) {
-      return answer(await changeOrder(p, id, action as OrderAction, 'manager'), (o) => ({
-        status: o.status,
-      }));
+      const reason = (await body(req))['reason'];
+      return answer(
+        await changeOrder(
+          p,
+          id,
+          action as OrderAction,
+          'manager',
+          typeof reason === 'string' ? reason : undefined,
+        ),
+        (o) => ({ status: o.status }),
+      );
     }
     if (kind === 'invoices' && action === 'delete') {
       const invoice = await p.invoices.get(id);

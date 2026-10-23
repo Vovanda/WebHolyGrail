@@ -23,6 +23,7 @@ const order: StoredOrder = {
   total: 4_500_500_000,
   buyer: { name: 'Анна', phone: '+7', email: '', comment: '' },
   secretHash: 'секретный хэш',
+  cancelReason: null,
   createdAt: '2026-10-23T00:00:00Z',
 };
 const invoice = (o: Partial<StoredInvoice>): StoredInvoice => ({

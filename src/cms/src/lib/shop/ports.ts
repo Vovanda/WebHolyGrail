@@ -39,6 +39,8 @@ export interface StoredOrder {
   /** Хэш секрета ссылки заказа; сам секрет знает только покупатель. */
   readonly secretHash: string;
   readonly createdAt: string;
+  /** Почему отменён; ставится в том же переходе, что и «отменён». */
+  readonly cancelReason: string | null;
 }
 
 export interface InvoiceLine {
@@ -104,7 +106,7 @@ export interface OfferPort {
 }
 
 export interface OrderPort {
-  create(order: Omit<StoredOrder, 'id' | 'createdAt'>): Promise<StoredOrder>;
+  create(order: Omit<StoredOrder, 'id' | 'createdAt' | 'cancelReason'>): Promise<StoredOrder>;
   get(id: Id): Promise<StoredOrder | null>;
   bySecretHash(hash: string): Promise<StoredOrder | null>;
   /**
@@ -114,7 +116,7 @@ export interface OrderPort {
    * Условная запись, как у остатка: два процесса, отменяющие один заказ, не
    * вернут остаток дважды - второй получит `false`.
    */
-  switchStatus(id: Id, from: OrderStatus, to: OrderStatus): Promise<boolean>;
+  switchStatus(id: Id, from: OrderStatus, to: OrderStatus, cancelReason?: string): Promise<boolean>;
   /** Новые заказы, оформленные раньше `before`. */
   newBefore(before: Date): Promise<Id[]>;
 }
@@ -164,7 +166,8 @@ export type Failure =
   | 'empty'
   | 'shortage'
   | 'money_held'
-  | 'quantity_locked';
+  | 'quantity_locked'
+  | 'reason_required';
 
 export type Outcome<T> =
   | { readonly ok: true; readonly value: T }

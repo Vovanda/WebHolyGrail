@@ -32,6 +32,7 @@ const ERRORS: Record<string, string> = {
   money_held: 'По заказу получены деньги: сначала верните их счётом-возвратом.',
   quantity_locked: 'Количество позиции берётся из заказа.',
   forbidden: 'Сейчас это действие недоступно - обновите страницу.',
+  reason_required: 'Напишите причину отмены - покупатель увидит её на странице заказа.',
 };
 
 interface State {
@@ -70,10 +71,20 @@ export function ShopActionsField() {
   if (buttons.length === 0) return null;
 
   const run = async (action: string) => {
-    if (action === 'cancel' || action === 'void' || action === 'delete') {
+    // Отмену подтверждает сама причина: без неё окно ничего не отправит.
+    if (action === 'void' || action === 'delete') {
       if (!window.confirm(`${LABELS[action]}? Отменить это нельзя.`)) return;
     }
     let body: Record<string, unknown> = {};
+    if (action === 'cancel') {
+      const reason = window.prompt(
+        'Причина для покупателя - он увидит её на странице заказа. Для себя пишите в заметку менеджера.',
+        '',
+      );
+      if (reason === null) return;
+      if (!reason.trim()) return setError(ERRORS['reason_required']!);
+      body = { reason: reason.trim() };
+    }
     if (action === 'refund') {
       const left = state.refundable;
       if (!left) return;

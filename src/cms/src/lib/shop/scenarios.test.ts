@@ -144,12 +144,12 @@ describe('заявка', () => {
 
   it('отмена новой заявки остатка не трогает, принятой - возвращает', async () => {
     const o = await order([{ offer: 4, quantity: 1 }], 'r3');
-    await changeOrder(ports, o.id, 'cancel', 'manager');
+    await changeOrder(ports, o.id, 'cancel', 'manager', 'нет в наличии');
     expect(state.offers.get(4)?.stock).toBe(1);
 
     const p = await order([{ offer: 4, quantity: 1 }], 'r4');
     await changeOrder(ports, p.id, 'accept', 'manager');
-    await changeOrder(ports, p.id, 'cancel', 'manager');
+    await changeOrder(ports, p.id, 'cancel', 'manager', 'нет в наличии');
     expect(state.offers.get(4)?.stock).toBe(1);
   });
 
@@ -172,6 +172,26 @@ describe('отмена заказа', () => {
     await order();
     expect((await cancelBySecret(ports, 'h1')).ok).toBe(true);
     expect(state.offers.get(1)?.stock).toBe(1);
+  });
+
+  it('у отмены всегда есть причина: менеджер пишет свою, покупателю и системе она ставится сама', async () => {
+    const byManager = await order([{ offer: 1, quantity: 1 }], 'm');
+    expect(await changeOrder(ports, byManager.id, 'cancel', 'manager', '  ')).toEqual({
+      ok: false,
+      error: 'reason_required',
+    });
+    expect(state.orders.get(String(byManager.id))?.status).toBe('new');
+    await changeOrder(ports, byManager.id, 'cancel', 'manager', ' нет в наличии ');
+    expect(state.orders.get(String(byManager.id))?.cancelReason).toBe('нет в наличии');
+
+    const byBuyer = await order([{ offer: 2, quantity: 1 }], 'b');
+    await cancelBySecret(ports, 'b');
+    expect(state.orders.get(String(byBuyer.id))?.cancelReason).toBe('Отменён покупателем');
+
+    const bySystem = await order([{ offer: 2, quantity: 1 }], 's');
+    state.now = new Date(state.now.getTime() + 73 * 3_600_000);
+    await cancelStaleOrders(ports);
+    expect(state.orders.get(String(bySystem.id))?.cancelReason).toBe('Не принят вовремя');
   });
 
   it('чужая ссылка не находит заказ', async () => {
@@ -218,7 +238,7 @@ describe('отмена заказа', () => {
   it('с оплаченным счётом отмена отказывает, пока деньги не вернули', async () => {
     const o = await order();
     const paid = await paidInvoice(o);
-    expect(await changeOrder(ports, o.id, 'cancel', 'manager')).toEqual({
+    expect(await changeOrder(ports, o.id, 'cancel', 'manager', 'нет в наличии')).toEqual({
       ok: false,
       error: 'money_held',
     });
@@ -226,7 +246,7 @@ describe('отмена заказа', () => {
     if (!refund.ok) throw new Error(refund.error);
     await changeInvoice(ports, refund.value.id, 'issue', 'manager');
     await changeInvoice(ports, refund.value.id, 'confirm', 'manager');
-    expect((await changeOrder(ports, o.id, 'cancel', 'manager')).ok).toBe(true);
+    expect((await changeOrder(ports, o.id, 'cancel', 'manager', 'нет в наличии')).ok).toBe(true);
     expect(state.offers.get(1)?.stock).toBe(1);
   });
 
@@ -237,7 +257,7 @@ describe('отмена заказа', () => {
     const b = await createInvoice(ports, o.id, { purpose: 'deposit' });
     if (!a.ok || !b.ok) throw new Error('счёт');
     await changeInvoice(ports, a.value.id, 'issue', 'manager');
-    await changeOrder(ports, o.id, 'cancel', 'manager');
+    await changeOrder(ports, o.id, 'cancel', 'manager', 'нет в наличии');
     expect(state.invoices.get(String(a.value.id))?.status).toBe('voided');
     expect(state.invoices.has(String(b.value.id))).toBe(false);
   });
@@ -467,7 +487,7 @@ describe('доступ к видео', () => {
       await changeInvoice(ports, r.value.id, 'issue', 'manager');
       await changeInvoice(ports, r.value.id, 'confirm', 'manager');
     }
-    expect((await changeOrder(ports, o.id, 'cancel', 'manager')).ok).toBe(true);
+    expect((await changeOrder(ports, o.id, 'cancel', 'manager', 'нет в наличии')).ok).toBe(true);
     expect(state.offers.get(1)?.stock).toBe(1);
   });
 });

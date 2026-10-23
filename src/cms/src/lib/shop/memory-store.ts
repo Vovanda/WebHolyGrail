@@ -89,17 +89,26 @@ export function memoryPorts(state: MemoryState): ShopPorts {
     },
     orders: {
       create: async (o) => {
-        const order: StoredOrder = { ...o, id: next(), createdAt: state.now.toISOString() };
+        const order: StoredOrder = {
+          ...o,
+          id: next(),
+          createdAt: state.now.toISOString(),
+          cancelReason: null,
+        };
         state.orders.set(String(order.id), order);
         return order;
       },
       get: async (id) => state.orders.get(String(id)) ?? null,
       bySecretHash: async (hash) =>
         [...state.orders.values()].find((o) => o.secretHash === hash) ?? null,
-      switchStatus: async (id: Id, from: OrderStatus, to: OrderStatus) => {
+      switchStatus: async (id: Id, from: OrderStatus, to: OrderStatus, cancelReason?: string) => {
         const o = state.orders.get(String(id));
         if (!o || o.status !== from) return false;
-        state.orders.set(String(id), { ...o, status: to });
+        state.orders.set(String(id), {
+          ...o,
+          status: to,
+          cancelReason: cancelReason ?? o.cancelReason,
+        });
         return true;
       },
       newBefore: async (before) =>

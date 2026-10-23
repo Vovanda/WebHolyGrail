@@ -81,18 +81,23 @@ export async function placeOrder(
  *
  * @remarks
  * Принятие списывает остаток строк заявки - не хватило, заказ остаётся новым.
- * Отмена возвращает то, что заказ держал, и закрывает счета.
+ * Отмена возвращает то, что заказ держал, и закрывает счета. У отмены всегда
+ * есть причина, покупатель видит её по ссылке: менеджер пишет её сам, без неё
+ * отмены нет; за покупателя и систему она известна заранее.
  */
 export async function changeOrder(
   ports: ShopPorts,
   id: Id,
   action: OrderAction,
   actor: Actor,
+  reason?: string,
 ): Promise<Outcome<StoredOrder>> {
   return ports.transaction(async (tx) => {
     const order = await tx.orders.get(id);
     if (!order) return fail('not_found');
     if (!canOrder(order.status, action, actor)) return fail('forbidden');
+    const cancelReason = action === 'cancel' ? reason?.trim() || CANCEL_REASON[actor] : undefined;
+    if (action === 'cancel' && !cancelReason) return fail('reason_required');
 
     const to = ORDER_TRANSITIONS[action].to;
     const moves = stockMoves(order.lines, order.status, to);
@@ -115,7 +120,7 @@ export async function changeOrder(
     }
     let switched: boolean;
     try {
-      switched = await tx.orders.switchStatus(order.id, order.status, to);
+      switched = await tx.orders.switchStatus(order.id, order.status, to, cancelReason);
     } catch (error) {
       // Транзакций в движке нет (#155): списанное при принятии возвращаем сами.
       if (moves.take.length > 0) await tx.offers.giveBack(moves.take);
@@ -127,9 +132,16 @@ export async function changeOrder(
       return fail('forbidden');
     }
     if (moves.giveBack.length > 0) await tx.offers.giveBack(moves.giveBack);
-    return ok({ ...order, status: to });
+    return ok({ ...order, status: to, cancelReason: cancelReason ?? order.cancelReason });
   });
 }
+
+/** Причина отмены, которую участник не пишет сам; у менеджера её нет - он пишет свою. */
+const CANCEL_REASON: Readonly<Record<Actor, string | undefined>> = {
+  buyer: 'Отменён покупателем',
+  system: 'Не принят вовремя',
+  manager: undefined,
+};
 
 /** Покупатель отменяет свой новый заказ по секретной ссылке (И-7). */
 export async function cancelBySecret(

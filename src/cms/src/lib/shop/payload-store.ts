@@ -108,6 +108,7 @@ export function orderFromDoc(doc: Record<string, unknown>): StoredOrder {
     },
     secretHash: str(doc['secretHash']),
     createdAt: str(doc['createdAt']),
+    cancelReason: str(doc['cancelReason']) || null,
   };
 }
 
@@ -248,11 +249,20 @@ export function payloadPorts(
         const doc = found.docs[0];
         return doc ? orderFromDoc(doc as unknown as Record<string, unknown>) : null;
       },
-      switchStatus: async (id, from, to) => {
-        const changed = await execute(payload)(
-          'UPDATE orders SET status = ?, updated_at = ? WHERE id = ? AND status = ?',
-          [to, new Date().toISOString(), Number(id), from],
-        );
+      switchStatus: async (id, from, to, cancelReason) => {
+        const at = new Date().toISOString();
+        // Причина пишется тем же условным UPDATE, что и статус: отменённый
+        // заказ без причины не появляется ни на миг.
+        const changed =
+          cancelReason === undefined
+            ? await execute(payload)(
+                'UPDATE orders SET status = ?, updated_at = ? WHERE id = ? AND status = ?',
+                [to, at, Number(id), from],
+              )
+            : await execute(payload)(
+                'UPDATE orders SET status = ?, cancel_reason = ?, updated_at = ? WHERE id = ? AND status = ?',
+                [to, cancelReason, at, Number(id), from],
+              );
         return changed === 1;
       },
       newBefore: async (before) => {

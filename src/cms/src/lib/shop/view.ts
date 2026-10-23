@@ -58,6 +58,7 @@ export function toBuyerView(
         })),
         codes: i.status === 'paid' && i.kind === 'invoice' ? i.codes.map((c) => c.code) : [],
       })),
+    cancelReason: order.status === 'cancelled' ? order.cancelReason : null,
   };
 }
 
