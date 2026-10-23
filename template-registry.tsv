@@ -687,6 +687,8 @@ overlay	src/cms/migrations/20261023_183057_catalog_quick_filter.json
 overlay	src/cms/migrations/20261023_183057_catalog_quick_filter.ts
 overlay	src/cms/migrations/20261023_190707_offer_search_words.json
 overlay	src/cms/migrations/20261023_190707_offer_search_words.ts
+overlay	src/cms/migrations/20261023_192508_search_misses.json
+overlay	src/cms/migrations/20261023_192508_search_misses.ts
 mirror	src/cms/next.config.ts
 mirror	src/cms/README.md
 mirror	src/cms/scripts/adopt-history.ts
@@ -808,6 +810,7 @@ mirror	src/cms/src/collections/Orders.ts
 mirror	src/cms/src/collections/Pages.ts
 mirror	src/cms/src/collections/Playlists.ts
 mirror	src/cms/src/collections/ReusableBlocks.ts
+mirror	src/cms/src/collections/SearchMisses.ts
 mirror	src/cms/src/collections/SocialPosts.ts
 mirror	src/cms/src/collections/Specialists.ts
 mirror	src/cms/src/collections/Tags.ts

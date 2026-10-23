@@ -90,6 +90,7 @@ export function memoryPorts(state: MemoryState): ShopPorts {
       sections: async () => [],
       catalog: async () => ({ cards: [], sections: [] }),
       catalogVersion: async () => '',
+      recordSearchMiss: async () => undefined,
       section: async () => null,
       take: async (lines) => {
         const taken: { offer: number; quantity: number }[] = [];

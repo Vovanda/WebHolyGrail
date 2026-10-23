@@ -14,6 +14,7 @@ import { CatalogSections } from './CatalogSections';
 import { Invoices } from './Invoices';
 import { Media } from './Media';
 import { Offers } from './Offers';
+import { SearchMisses } from './SearchMisses';
 import { Orders } from './Orders';
 import { Pages } from './Pages';
 import { Playlists } from './Playlists';
@@ -60,6 +61,7 @@ export const engineCollections = [
   // (docs/whg/43-shop.md).
   Offers,
   CatalogSections,
+  SearchMisses,
   Orders,
   Invoices,
   // Записи и всё вокруг них.

@@ -11,6 +11,8 @@ export type Rule = { limit: number; windowMs: number };
 export const RULES = {
   placeOrder: { limit: 10, windowMs: 60 * 60_000 },
   buyerAction: { limit: 60, windowMs: 10 * 60_000 },
+  // Пустой поиск пишется в журнал: один клиент не накрутит счёт запросу.
+  searchMiss: { limit: 20, windowMs: 10 * 60_000 },
 } as const satisfies Record<string, Rule>;
 
 export type RuleName = keyof typeof RULES;

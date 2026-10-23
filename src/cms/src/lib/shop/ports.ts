@@ -167,6 +167,8 @@ export interface OfferPort {
    * и хук правки в одном не обновит память другого.
    */
   catalogVersion(): Promise<string>;
+  /** Запрос без находок - в журнал: новая запись или счёт +1 у прежней. */
+  recordSearchMiss(query: string, at: Date): Promise<void>;
 }
 
 export interface OrderPort {

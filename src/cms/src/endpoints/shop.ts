@@ -9,6 +9,7 @@ import {
   LINE_REMOVE_FROM,
   liveLines,
   MAX_CART_LINES,
+  normalize,
   parseMoney,
   INVOICE_TRANSITIONS,
   ORDER_TRANSITIONS,
@@ -256,6 +257,11 @@ const catalogEndpoint: Endpoint = {
     const answer = queryCatalog(await catalog(req).get(), slug, params);
     if (!answer) return json({ error: 'not_found' }, 404);
     const p = ports(req);
+    const query = normalize(url.searchParams.get('q') ?? '').slice(0, 100);
+    // Пустая выдача по запросу - в журнал продавцу; ответ покупателю не ждёт записи.
+    if (answer.total === 0 && query.length >= 2 && take('searchMiss', clientKey(req)).allowed) {
+      void p.offers.recordSearchMiss(query, new Date()).catch(() => undefined);
+    }
     const now = new Date();
     const view = (e: (typeof answer.entries)[number]) => toOfferView(e.card, p.money, now);
     return json({

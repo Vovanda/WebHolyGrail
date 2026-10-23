@@ -392,6 +392,30 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
             .filter((s) => s.slug),
         };
       },
+      recordSearchMiss: async (query, at) => {
+        const found = await payload.find({
+          collection: 'search-misses',
+          where: { query: { equals: query } },
+          limit: 1,
+          pagination: false,
+          ...opts,
+        });
+        const doc = found.docs[0] as { id: number; count?: number } | undefined;
+        if (doc) {
+          await payload.update({
+            collection: 'search-misses',
+            id: doc.id,
+            data: { count: (doc.count ?? 0) + 1, lastAt: at.toISOString() },
+            ...opts,
+          });
+        } else {
+          await payload.create({
+            collection: 'search-misses',
+            data: { query, count: 1, lastAt: at.toISOString() },
+            ...opts,
+          });
+        }
+      },
       catalogVersion: async () => {
         // Число записей ловит удаление, время последней правки - всё остальное.
         const last = (collection: 'offers' | 'catalog-sections') =>
