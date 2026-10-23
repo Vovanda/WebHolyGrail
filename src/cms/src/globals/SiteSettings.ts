@@ -902,6 +902,17 @@ export const SiteSettings: GlobalConfig = {
                   ],
                 },
                 {
+                  name: 'menuTitle',
+                  label: 'Название в меню',
+                  type: 'text',
+                  defaultValue: 'Магазин',
+                  maxLength: 40,
+                  admin: {
+                    description:
+                      'Пункт меню, ведущий в каталог /shop; появляется сам, пока магазин включён.',
+                  },
+                },
+                {
                   name: 'cartHref',
                   label: 'Страница корзины',
                   type: 'text',

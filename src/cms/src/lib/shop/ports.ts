@@ -1,4 +1,5 @@
 import type {
+  CatalogSectionSummary,
   CatalogSectionView,
   Characteristic,
   ExtraLine,
@@ -137,6 +138,8 @@ export interface OfferPort {
   ): Promise<{ ok: true } | { ok: false; offer: number }>;
   /** Возвращает остаток - при отмене заказа. */
   giveBack(lines: readonly { offer: number; quantity: number }[]): Promise<void>;
+  /** Разделы каталога со счётом позиций - для страницы `/shop`; пустые не отдаются. */
+  sections(): Promise<CatalogSectionSummary[]>;
 }
 
 export interface OrderPort {

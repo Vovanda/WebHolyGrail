@@ -86,6 +86,7 @@ export function memoryPorts(state: MemoryState): ShopPorts {
         }));
       },
       detail: async () => null,
+      sections: async () => [],
       section: async () => null,
       take: async (lines) => {
         const taken: { offer: number; quantity: number }[] = [];

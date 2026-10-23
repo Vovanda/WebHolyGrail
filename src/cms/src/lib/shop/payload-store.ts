@@ -351,6 +351,33 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
             }
           : null;
       },
+      sections: async () => {
+        const found = await payload.find({
+          collection: 'catalog-sections',
+          sort: 'title',
+          limit: 200,
+          pagination: false,
+          ...opts,
+        });
+        const counted = await Promise.all(
+          found.docs.map(async (d) => {
+            const doc = d as unknown as Record<string, unknown>;
+            const { totalDocs } = await payload.count({
+              collection: 'offers',
+              where: { section: { equals: doc['id'] } },
+              overrideAccess: true,
+              ...(req ? { req } : {}),
+            });
+            return {
+              slug: str(doc['slug']),
+              title: str(doc['title']),
+              description: typeof doc['description'] === 'string' ? doc['description'] : null,
+              count: totalDocs,
+            };
+          }),
+        );
+        return counted.filter((s) => s.count > 0 && s.slug);
+      },
       take: (lines) => takeStock(execute(payload), lines),
       giveBack: (lines) => returnStock(execute(payload), lines),
     },

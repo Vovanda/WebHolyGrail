@@ -172,6 +172,17 @@ const offerDetailEndpoint: Endpoint = {
   },
 };
 
+/** Разделы каталога со счётом позиций - страница `/shop`. */
+const sectionsEndpoint: Endpoint = {
+  path: '/shop/sections',
+  method: 'get',
+  handler: async (req) => {
+    const refused = guard(req, null);
+    if (refused) return refused;
+    return json({ docs: await ports(req).offers.sections() });
+  },
+};
+
 const sectionEndpoint: Endpoint = {
   path: '/shop/sections/:slug',
   method: 'get',
@@ -445,6 +456,7 @@ export const shopEndpoints: Endpoint[] = [
   offersEndpoint,
   buyerViewsEndpoint,
   offerDetailEndpoint,
+  sectionsEndpoint,
   sectionEndpoint,
   placeOrderEndpoint,
   orderViewEndpoint,
