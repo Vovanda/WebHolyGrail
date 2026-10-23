@@ -256,6 +256,8 @@ export type {
   RateVersion,
   ScheduleResult,
 } from './money';
+export { ancestorsOf, findNode, sectionPath, sectionTree } from './catalog-tree';
+export type { SectionLink, SectionNode } from './catalog-tree';
 export {
   applyFilter,
   cardSpecs,

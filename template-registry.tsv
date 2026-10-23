@@ -82,6 +82,8 @@ mirror	commitlint.config.js
 mirror	contracts/src/blocks.test.ts
 mirror	contracts/src/blocks.ts
 mirror	contracts/src/blog.ts
+mirror	contracts/src/catalog-tree.test.ts
+mirror	contracts/src/catalog-tree.ts
 mirror	contracts/src/catalog.test.ts
 mirror	contracts/src/catalog.ts
 mirror	contracts/src/engine.ts

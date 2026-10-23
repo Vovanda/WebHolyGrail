@@ -22,6 +22,7 @@ import {
   type PhoneFormatKey,
 } from './phone';
 import type { CatalogItem, Characteristic, Facet, SortKey, SpecValue } from './catalog';
+import type { SectionNode } from './catalog-tree';
 import { fromMoney, type Micros, type Money } from './money';
 
 export type Actor = 'buyer' | 'manager' | 'system';
@@ -889,6 +890,8 @@ export interface CatalogSectionSummary {
   readonly title: string;
   readonly description: string | null;
   readonly count: number;
+  /** Картинка плитки раздела; пусто - плитка без картинки. */
+  readonly image?: unknown;
 }
 
 /** Раздел каталога: название, описание и набор характеристик для фильтра. */
@@ -897,6 +900,9 @@ export interface CatalogSectionView {
   readonly title: string;
   readonly description: string | null;
   readonly characteristics: readonly Characteristic[];
+  /** Слаг родительского раздела; пусто - верхний раздел. */
+  readonly parent?: string | null;
+  readonly image?: unknown;
 }
 
 /** Раздел на `/shop` без условий: несколько позиций и сколько их всего. */
@@ -925,6 +931,12 @@ export interface CatalogResultView {
   readonly total: number;
   readonly sort: SortKey;
   readonly previews: readonly CatalogPreview[];
+  /** Дерево разделов со счётом - для панели «Каталог». */
+  readonly tree: readonly SectionNode[];
+  /** Путь до раздела выдачи - для крошек; на /shop пусто. */
+  readonly path: readonly { readonly slug: string; readonly title: string }[];
+  /** Подразделы раздела выдачи - плитками сверху; на /shop пусто. */
+  readonly children: readonly SectionNode[];
 }
 
 export interface BuyerLineView {
