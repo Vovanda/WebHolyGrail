@@ -179,12 +179,13 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
                 <CardRows
                   as="ul"
                   items={[...items]}
-                  columns={4}
+                  columns={5}
                   columnsMd={3}
                   columnsSm={2}
                   gap="sm"
                   keepColumns
                   evenRows={false}
+                  fullRows
                 >
                   {(item) => <OfferCard offer={item} cartHref={cartHref} />}
                 </CardRows>

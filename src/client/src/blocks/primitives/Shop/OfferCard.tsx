@@ -23,10 +23,11 @@ function availability(offer: OfferView, gone: boolean) {
  * Рисуется на сервере (R14); живые только кнопка корзины и копирование артикула.
  * Есть адрес позиции - картинка и название ведут на её страницу `/shop/item/<слаг>`.
  *
- * Карточка мелкая, четыре в ряд: сверху фото, под ним цена - главное, что ищет
- * глаз; название в две строки, артикул, наличие и кнопка внизу, на одном месте
- * у всех карточек ряда. Без картинки верх занимает название крупным шрифтом:
- * высота совпадает с соседями, и заглушки «фото скоро» нет.
+ * Карточка мелкая, пять в ряд, без своей подложки - рамка проступает при
+ * наведении: сверху фото, под ним скидка и цена - главное, что ищет глаз;
+ * название до трёх строк, артикул справа, внизу одной строкой кнопка и наличие.
+ * Без картинки на месте фото нейтральное поле с иконкой, название стоит там же,
+ * где у соседей.
  *
  * Части размечены `data-part` - вид меняется в «Виде блока».
  */
@@ -54,111 +55,101 @@ export function OfferCard({
       className={`h-full w-full object-cover${gone ? ' opacity-60 grayscale' : ''}`}
     />
   ) : null;
+  const media = picture ?? (
+    // Фото нет - нейтральное поле с иконкой, как у больших магазинов: высота ряда
+    // та же, название стоит на своём месте ниже.
+    <div className="flex h-full w-full items-center justify-center text-muted">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
+        <circle cx="9" cy="10" r="1.75" stroke="currentColor" strokeWidth="1.5" />
+        <path d="m21 16-5-5-9 9" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+    </div>
+  );
   return (
     <article
       data-part="card"
       data-state={gone ? 'sold-out' : 'available'}
-      className="flex h-full flex-col overflow-hidden rounded-lg border border-border bg-surface"
+      className="flex h-full flex-col rounded-2xl border border-transparent bg-bg p-3 transition-colors hover:border-border"
     >
-      {image ? (
-        <div data-part="card-media" className="aspect-square overflow-hidden">
-          {/* Превью позиции не увеличивается: галерея крупно - на странице позиции. */}
-          {href ? (
-            <a href={href} aria-hidden="true" tabIndex={-1} className="block h-full">
-              {picture}
-            </a>
-          ) : (
-            picture
-          )}
-        </div>
-      ) : (
-        <div
-          data-part="card-media"
-          className="flex aspect-square items-end bg-accent-soft p-3 md:p-4"
-        >
-          <h3
-            data-part="card-title"
-            className="line-clamp-4 text-balance font-display text-lg font-semibold leading-tight text-ink md:text-xl"
-          >
-            {title}
-          </h3>
-        </div>
-      )}
-      <div className="flex flex-1 flex-col p-3 md:p-4">
+      <div
+        data-part="card-media"
+        className={`aspect-square overflow-hidden rounded-xl ${image ? '' : 'bg-surface-hover'}`}
+      >
+        {/* Превью позиции не увеличивается: галерея крупно - на странице позиции. */}
+        {href ? (
+          <a href={href} aria-hidden="true" tabIndex={-1} className="block h-full">
+            {media}
+          </a>
+        ) : (
+          media
+        )}
+      </div>
+      <div className="mt-3 flex flex-1 flex-col">
         <div data-part="card-price">
           {price ? (
             <>
-              <p className="font-display text-xl font-semibold tracking-tight tabular-nums text-ink md:text-2xl">
-                {formatMoney(price)}
-              </p>
-              {offer.listPrice && (
-                <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm tabular-nums">
-                  <s data-part="card-list-price" className="text-muted">
+              {discount !== null && (
+                <span
+                  data-part="card-discount"
+                  className="mb-1 inline-block rounded-md bg-success px-1.5 py-0.5 text-sm font-medium leading-none text-accent-fg"
+                >
+                  −{discount}%
+                </span>
+              )}
+              <p className="flex flex-wrap items-baseline gap-x-1.5 tabular-nums">
+                <span className="text-xl font-bold leading-6 text-ink">{formatMoney(price)}</span>
+                {offer.listPrice && (
+                  <s data-part="card-list-price" className="text-sm text-muted">
                     {formatMoney(offer.listPrice)}
                   </s>
-                  {discount !== null && (
-                    <span
-                      data-part="card-discount"
-                      className="rounded bg-danger-soft px-1.5 text-xs font-semibold text-danger"
-                    >
-                      −{discount}%
-                    </span>
-                  )}
-                </p>
-              )}
+                )}
+              </p>
             </>
           ) : (
-            <p className="text-sm font-medium text-muted">Цена по запросу</p>
+            <p className="text-base font-medium leading-6 text-muted">Цена по запросу</p>
           )}
         </div>
-        {image && (
-          <h3
-            data-part="card-title"
-            className="mt-2 line-clamp-2 text-sm font-medium leading-snug text-ink"
-          >
-            {title}
-          </h3>
-        )}
-        {offer.summary && (
-          <p data-part="card-subtitle" className="mt-1 line-clamp-2 text-xs text-muted">
-            {offer.summary}
-          </p>
-        )}
+        <h3
+          data-part="card-title"
+          className="mt-1 line-clamp-3 text-sm leading-5 text-ink [&_a]:hover:text-accent"
+        >
+          {title}
+        </h3>
         {offer.sku && (
-          <div className="mt-1.5">
-            <CopyCode
-              value={offer.sku}
-              label="Арт."
-              copyLabel={`Скопировать артикул ${offer.sku}`}
-            />
+          <div className="mt-1 flex justify-end">
+            <CopyCode value={offer.sku} copyLabel={`Скопировать артикул ${offer.sku}`} />
           </div>
         )}
-        <p
-          data-part="card-stock"
-          data-state={stockLine.state}
-          className={`mt-1.5 flex items-center gap-1.5 text-xs ${
-            stockLine.state === 'in-stock' ? 'text-success' : 'text-muted'
-          }`}
-        >
-          <span aria-hidden="true" className="size-1.5 shrink-0 rounded-full bg-current" />
-          {stockLine.text}
-        </p>
         <div className="mt-auto pt-3">
           {price && offer.deposit && (
-            <p data-part="card-caption" className="mb-2 text-xs text-muted">
+            <p data-part="card-caption" className="mb-2 text-[13px] leading-4 text-muted">
               Бронь {formatMoney(offer.deposit)} вперёд
             </p>
           )}
-          {price && !gone && (
-            <AddToCart
-              offer={offer.id}
-              snapshot={offer}
-              title={offer.title}
-              available={stock}
-              cartHref={cartHref}
-              label={offer.howToBuy === 'request' ? 'Оставить заявку' : 'В корзину'}
-            />
-          )}
+          {/* Кнопка и наличие одной строкой: высота карточки не растёт ради подписи. */}
+          <div className="flex min-h-9 flex-wrap items-center justify-between gap-x-2 gap-y-1">
+            {price && !gone && (
+              <AddToCart
+                offer={offer.id}
+                snapshot={offer}
+                title={offer.title}
+                available={stock}
+                cartHref={cartHref}
+                className="min-h-9 px-4 py-1.5 text-sm"
+                label={offer.howToBuy === 'request' ? 'Оставить заявку' : 'В корзину'}
+              />
+            )}
+            <p
+              data-part="card-stock"
+              data-state={stockLine.state}
+              className={`ml-auto text-[13px] leading-4 ${
+                stockLine.state === 'in-stock' ? 'text-success' : 'text-muted'
+              }`}
+            >
+              {stockLine.text}
+            </p>
+          </div>
         </div>
       </div>
     </article>

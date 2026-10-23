@@ -4,25 +4,20 @@ import { notFound, redirect } from 'next/navigation';
 import {
   applyFilter,
   CATALOG_HREF,
-  type Characteristic,
+  catalogItemOf,
   facetsOf,
   readFilter,
   searchItems,
   shopSettings,
-  writeFilter,
+  withShopCharacteristics,
 } from 'contracts';
 
 import { CardRows } from '@/blocks/arrangements/CardRows';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
-import { FacetPanel } from '@/blocks/primitives/Shop/FacetPanel';
-import { SectionFilters } from '@/blocks/primitives/Shop/SectionFilters';
+import { CatalogView } from '@/blocks/primitives/Shop/CatalogView';
 import { OfferCard } from '@/blocks/primitives/Shop/OfferCard';
-import {
-  getCatalogSection,
-  listCatalogSections,
-  getSiteSettings,
-  listOffers,
-} from '@/lib/api-client.engine';
+import { getCatalogSection, getSiteSettings, listOffers } from '@/lib/api-client.engine';
+import { rangesFromForm } from '@/lib/shop/catalog-href';
 
 /**
  * Раздел каталога `/shop/<слаг>`: поиск, фильтр по характеристикам и плитка позиций.
@@ -56,24 +51,27 @@ export default async function SectionPage({
   searchParams: Promise<Search>;
 }) {
   const [{ section: slug }, search] = await Promise.all([params, searchParams]);
-  const [section, sections] = await Promise.all([getCatalogSection(slug), listCatalogSections()]);
+  const section = await getCatalogSection(slug);
   if (!section) notFound();
   const basePath = `/shop/${section.slug}`;
+  // Наличие, скидка и цена - общие для магазина, затем характеристики раздела.
+  const characteristics = withShopCharacteristics(section.characteristics);
 
   // Форма диапазона присылает `ключ.min` и `ключ.max` - приводим к `ключ=от..до`.
-  const canonical = rangesFromForm(search, section.characteristics);
+  const canonical = rangesFromForm(search, characteristics);
   if (canonical !== null) redirect(canonical ? `${basePath}?${canonical}` : basePath);
 
   const [offers, settings] = await Promise.all([
     listOffers({ section: section.slug }),
     getSiteSettings(),
   ]);
+  const shop = shopSettings(settings?.shop);
   const query = typeof search['q'] === 'string' ? search['q'].trim().slice(0, 100) : '';
-  const state = readFilter(search, section.characteristics);
-  const found = query ? searchItems(offers, query) : offers;
-  const facets = facetsOf(found, state, section.characteristics);
-  const shown = applyFilter(found, state, section.characteristics);
-  const cartHref = shopSettings(settings?.shop).cartHref;
+  const state = readFilter(search, characteristics);
+  const items = offers.map(catalogItemOf);
+  const found = query ? searchItems(items, query) : items;
+  const facets = facetsOf(found, state, characteristics);
+  const shown = applyFilter(found, state, characteristics);
 
   return (
     <section className="block-space bg-bg">
@@ -81,106 +79,41 @@ export default async function SectionPage({
         <Breadcrumbs
           items={[
             { label: 'Главная', href: '/' },
-            // При одном разделе /shop сразу ведёт сюда же - ступень была бы петлёй.
-            ...(sections.length > 1
-              ? [{ label: shopSettings(settings?.shop).menuTitle, href: CATALOG_HREF }]
-              : []),
+            { label: shop.menuTitle, href: CATALOG_HREF },
             { label: section.title },
           ]}
         />
         <h1 className="font-display text-2xl font-semibold text-ink md:text-3xl">
           {section.title}
         </h1>
-        {section.description && <p className="mt-2 text-muted">{section.description}</p>}
+        {section.description && (
+          <p className="mt-2 max-w-content text-muted">{section.description}</p>
+        )}
 
-        <form method="get" action={basePath} role="search" className="mt-6 flex max-w-xl gap-2">
-          {[...new URLSearchParams(writeFilter(state, section.characteristics))].map(
-            ([name, value]) => (
-              <input key={name} type="hidden" name={name} value={value} />
-            ),
-          )}
-          <input
-            type="search"
-            name="q"
-            defaultValue={query}
-            placeholder="Поиск в разделе"
-            aria-label="Поиск в разделе"
-            className="w-full rounded-md border border-border bg-bg px-3 py-2.5 text-ink outline-none placeholder:text-muted focus:border-accent"
-          />
-          <button
-            type="submit"
-            className="rounded-md bg-accent px-5 py-2.5 font-medium text-accent-fg hover:opacity-90"
+        <CatalogView
+          basePath={basePath}
+          query={query}
+          state={state}
+          characteristics={characteristics}
+          facets={facets}
+          found={shown.length}
+          searchLabel={`Поиск в разделе «${section.title}»`}
+        >
+          <CardRows
+            as="ul"
+            items={shown}
+            columns={5}
+            columnsMd={3}
+            columnsSm={2}
+            gap="sm"
+            keepColumns
+            evenRows={false}
+            fullRows
           >
-            Найти
-          </button>
-        </form>
-
-        <div className="mt-6 grid gap-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
-          {/* Фильтр: колонка на широком экране, боковая панель на узком (whg-layouts, push). */}
-          <SectionFilters
-            found={shown.length}
-            selected={[...new URLSearchParams(writeFilter(state, section.characteristics))].length}
-          >
-            <FacetPanel
-              basePath={basePath}
-              facets={facets}
-              state={state}
-              characteristics={section.characteristics}
-              query={query}
-            />
-          </SectionFilters>
-
-          <div>
-            <p data-part="result-count" className="mb-4 text-sm text-muted">
-              {shown.length > 0
-                ? `Найдено: ${shown.length}`
-                : 'Ничего не нашлось - смягчите фильтр или запрос.'}
-            </p>
-            {shown.length > 0 && (
-              <CardRows
-                as="ul"
-                items={shown}
-                columns={4}
-                columnsMd={3}
-                columnsSm={2}
-                gap="sm"
-                keepColumns
-                evenRows={false}
-              >
-                {(offer) => <OfferCard offer={offer} cartHref={cartHref} />}
-              </CardRows>
-            )}
-          </div>
-        </div>
+            {(offer) => <OfferCard offer={offer} cartHref={shop.cartHref} />}
+          </CardRows>
+        </CatalogView>
       </div>
     </section>
   );
-}
-
-/**
- * Поля формы диапазона в адрес фильтра.
- *
- * @returns строку канонического адреса, если в запросе были поля формы;
- *   null - запрос уже канонический, переадресация не нужна.
- */
-export function rangesFromForm(
-  search: Search,
-  characteristics: readonly Characteristic[],
-): string | null {
-  const keys = Object.keys(search);
-  if (!keys.some((k) => /\.(min|max)$/.test(k))) return null;
-  const params = new URLSearchParams();
-  for (const [k, v] of Object.entries(search)) {
-    if (typeof v !== 'string' || /\.(min|max)$/.test(k)) continue;
-    params.set(k, v);
-  }
-  for (const c of characteristics) {
-    const min = search[`${c.key}.min`];
-    const max = search[`${c.key}.max`];
-    const lo = typeof min === 'string' ? min.trim() : '';
-    const hi = typeof max === 'string' ? max.trim() : '';
-    if (lo || hi) params.set(c.key, `${lo}..${hi}`);
-    else if (keys.includes(`${c.key}.min`)) params.delete(c.key);
-  }
-  return params.toString();
 }

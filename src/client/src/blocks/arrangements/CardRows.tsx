@@ -50,6 +50,7 @@ export function CardRows<T>({
   tileLayoutSm,
   keepColumns = false,
   evenRows = true,
+  fullRows = false,
   as = 'div',
   className,
   children,
@@ -81,6 +82,11 @@ export function CardRows<T>({
    */
   readonly evenRows?: boolean;
   /**
+   * Ряды полные, неполный только последний - по центру. Без свойства ряды
+   * подбираются симметрично; витрина включает его, чтобы не терять место.
+   */
+  readonly fullRows?: boolean;
+  /**
    * Каким тегом собрать сетку. Список документов и подобное остаётся списком:
    * рисовать перечень набором div значило бы отобрать его смысл у тех,
    * кто слушает страницу, а не смотрит.
@@ -102,7 +108,7 @@ export function CardRows<T>({
     { lg: tileLayout, md: tileLayoutMd, sm: tileLayoutSm },
     items.length,
     columns,
-    { keepColumns },
+    { keepColumns, fullRows },
     { md: columnsMd, sm: columnsSm },
   );
   if (!grid.lg) return null;

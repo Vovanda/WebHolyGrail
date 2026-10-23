@@ -62,10 +62,11 @@ export async function Showcase({
         <CardRows
           as="ul"
           items={offers}
-          columns={4}
+          columns={5}
           columnsMd={3}
           columnsSm={2}
           evenRows={false}
+          fullRows
           gap="sm"
           tileLayout={data.tileLayout}
           tileLayoutMd={data.tileLayoutMd}

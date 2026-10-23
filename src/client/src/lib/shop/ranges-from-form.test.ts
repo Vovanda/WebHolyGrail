@@ -1,7 +1,7 @@
 import { cleanCharacteristics } from 'contracts';
 import { describe, expect, it } from 'vitest';
 
-import { rangesFromForm } from './page';
+import { rangesFromForm } from './catalog-href';
 
 const chars = cleanCharacteristics([
   { key: 'hours', title: 'Часы', kind: 'number' },

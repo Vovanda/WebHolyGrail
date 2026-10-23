@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { cart, useCart } from '@/lib/shop/cart';
 import { OFFER_SNAPSHOTS, writeSnapshots } from '@/lib/shop/snapshots';
+import { cn } from '@/lib/utils';
 
 import { QuantityStepper } from './QuantityStepper';
 import { primaryButton } from './ui';
@@ -28,6 +29,7 @@ export function AddToCart({
   available,
   cartHref = '/cart',
   label = 'В корзину',
+  className = 'min-h-11 w-full',
 }: {
   readonly offer: number;
   /** Карточка как её видит покупатель: корзина покажет строку сразу, не дожидаясь сервера. */
@@ -37,6 +39,8 @@ export function AddToCart({
   /** Сколько можно взять; пусто - без ограничений. */
   readonly available: number | null;
   readonly cartHref?: string;
+  /** Размер кнопки: карточка витрины ставит компактную, страница позиции - во всю ширину. */
+  readonly className?: string;
   /** Надпись на кнопке: «В корзину» или «Оставить заявку» у позиции по заявке. */
   readonly label?: string;
 }) {
@@ -72,7 +76,7 @@ export function AddToCart({
       type="button"
       data-part="card-action"
       disabled={!ready}
-      className={`${primaryButton} min-h-11 w-full`}
+      className={cn(primaryButton, className)}
       onClick={() => {
         if (snapshot) writeSnapshots(OFFER_SNAPSHOTS, { [String(offer)]: snapshot });
         cart.add(offer);
