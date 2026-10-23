@@ -246,3 +246,12 @@ export type {
   SpecKind,
   SpecValue,
 } from './catalog';
+export {
+  MODULES,
+  disabledBlocks,
+  isModuleEnabled,
+  moduleOfBlock,
+  moduleOfCollection,
+  moduleToggleKey,
+} from './modules';
+export type { EngineModule, ModuleKey } from './modules';

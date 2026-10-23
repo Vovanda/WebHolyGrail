@@ -61,6 +61,15 @@ export interface SiteSettings {
   readonly layout?: SiteLayoutConfig;
   /** Настройки видео, которые нужны странице. */
   readonly video?: VideoSettings;
+  /**
+   * Значения переключателей на момент запроса страницы.
+   *
+   * @remarks
+   * Не поле глобала: сайт подмешивает ответ `/api/toggles` к настройкам, чтобы
+   * синхронная отрисовка блоков знала, какие модули выключены
+   * ({@link isModuleEnabled}).
+   */
+  readonly toggles?: Readonly<Record<string, boolean>>;
 }
 
 /**
