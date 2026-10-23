@@ -362,19 +362,78 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
         return doc ? sectionFromDoc(doc) : null;
       },
       catalog: async () => {
+        /*
+          Глубина 0 и только поля карточки: с глубиной 1 Payload подгружал раздел
+          и картинку к каждой позиции отдельно, и на десяти тысячах позиций сборка
+          индекса шла секунды. Разделы и картинки читаются одним запросом каждые.
+        */
         const [offers, sections] = await Promise.all([
           payload.find({
             collection: 'offers',
             sort: 'title',
             pagination: false,
+            select: {
+              title: true,
+              slug: true,
+              hasPage: true,
+              sku: true,
+              section: true,
+              image: true,
+              summary: true,
+              specs: true,
+              priceMicros: true,
+              promoPriceMicros: true,
+              promoUntil: true,
+              stock: true,
+              howToBuy: true,
+              depositMicros: true,
+              keywords: true,
+              tags: true,
+              createdAt: true,
+            },
             ...opts,
-            depth: 1,
           }),
           payload.find({ collection: 'catalog-sections', pagination: false, ...opts }),
         ]);
+        const sectionById = new Map(
+          sections.docs.map((d) => [
+            (d as { id: number }).id,
+            d as unknown as Record<string, unknown>,
+          ]),
+        );
+        const imageIds = [
+          ...new Set(
+            offers.docs
+              .map((d) => (d as { image?: unknown }).image)
+              .filter((id): id is number => typeof id === 'number'),
+          ),
+        ];
+        const images = new Map<number, unknown>();
+        for (let at = 0; at < imageIds.length; at += 500) {
+          const chunk = imageIds.slice(at, at + 500);
+          const found = await payload.find({
+            collection: 'media',
+            where: { id: { in: chunk } },
+            limit: chunk.length,
+            pagination: false,
+            ...opts,
+          });
+          for (const m of found.docs) images.set((m as { id: number }).id, m);
+        }
         return {
           cards: offers.docs.map((d) => {
-            const doc = d as unknown as Record<string, unknown>;
+            const raw = d as unknown as Record<string, unknown>;
+            const doc: Record<string, unknown> = {
+              ...raw,
+              section:
+                typeof raw['section'] === 'number'
+                  ? (sectionById.get(raw['section']) ?? raw['section'])
+                  : raw['section'],
+              image:
+                typeof raw['image'] === 'number'
+                  ? (images.get(raw['image']) ?? null)
+                  : raw['image'],
+            };
             return {
               ...cardFromDoc(doc),
               createdAt: str(doc['createdAt']),

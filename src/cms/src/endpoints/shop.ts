@@ -28,7 +28,7 @@ import {
   reportBySecret,
 } from '../lib/shop/invoices';
 import { cancelBySecret, changeOrder, placeOrder, removeLine } from '../lib/shop/orders';
-import { catalogIndex, type CatalogIndex } from '../lib/shop/catalog-index';
+import { catalogFor } from '../lib/shop/catalog-shared';
 import { queryCatalog } from '../lib/shop/catalog-query';
 import { payloadPorts } from '../lib/shop/payload-store';
 import type { Failure, OfferQuery, Outcome, ShopPorts } from '../lib/shop/ports';
@@ -221,22 +221,6 @@ const offersEndpoint: Endpoint = {
 };
 
 /**
- * Индекс каталога - один на процесс CMS (docs/whg/44-catalog-search.md).
- *
- * @remarks
- * Читает без запроса пользователя: индекс общий для всех, а не принадлежит
- * чьей-то транзакции. Свежесть держит сверка версии данных, а не хуки правки.
- */
-let index: CatalogIndex | null = null;
-const catalog = (req: PayloadRequest): CatalogIndex => {
-  if (!index) {
-    const store = payloadPorts(req.payload).offers;
-    index = catalogIndex({ load: () => store.catalog(), version: () => store.catalogVersion() });
-  }
-  return index;
-};
-
-/**
  * Выдача каталога страницей: раздел или весь магазин, запрос, фильтр, сортировка.
  *
  * @remarks
@@ -254,7 +238,7 @@ const catalogEndpoint: Endpoint = {
     const slug = url.searchParams.get('section');
     if (slug !== null && !isSlug(slug)) return json({ error: 'not_found' }, 404);
     const params = Object.fromEntries(url.searchParams);
-    const answer = queryCatalog(await catalog(req).get(), slug, params);
+    const answer = queryCatalog(await catalogFor(req.payload).get(), slug, params);
     if (!answer) return json({ error: 'not_found' }, 404);
     const p = ports(req);
     const query = normalize(url.searchParams.get('q') ?? '').slice(0, 100);

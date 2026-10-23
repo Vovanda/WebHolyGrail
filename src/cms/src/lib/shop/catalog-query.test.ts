@@ -81,6 +81,14 @@ describe('выдача каталога по индексу', () => {
     expect(queryCatalog(snap, null, { q: 'роутеры' })!.entries.map((e) => e.card.id)).toEqual([2]);
   });
 
+  it('те же параметры на том же снимке - тот же ответ без пересчёта', () => {
+    const a = queryCatalog(snapshot, 'tools', { brand: 'A', sort: 'price-asc' });
+    const b = queryCatalog(snapshot, 'tools', { sort: 'price-asc', brand: 'A' });
+    expect(b).not.toBeNull();
+    expect(queryCatalog(snapshot, 'tools', { brand: 'A', sort: 'price-asc' })).toBe(a);
+    expect(b!.total).toBe(a!.total);
+  });
+
   it('чужой раздел - нет выдачи', () => {
     expect(queryCatalog(snapshot, 'nope', {})).toBeNull();
   });

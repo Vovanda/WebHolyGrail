@@ -67,13 +67,15 @@ describe('свежесть индекса', () => {
     expect(load).toHaveBeenCalledTimes(1);
   });
 
-  it('правка в другом экземпляре - версия другая, индекс пересобран', async () => {
+  it('правка в другом экземпляре - прежний снимок сразу, новый после фоновой пересборки', async () => {
     const { index, load, tick, bump } = setup([card(1)]);
-    await index.get();
+    const first = await index.get();
     bump('v2');
     tick(1500);
-    await index.get();
+    expect(await index.get()).toBe(first);
+    await index.idle();
     expect(load).toHaveBeenCalledTimes(2);
+    expect(await index.get()).not.toBe(first);
   });
 
   it('наступил конец акции - пересобирается без правки', async () => {
@@ -81,7 +83,19 @@ describe('свежесть индекса', () => {
     await index.get();
     tick(6000);
     await index.get();
+    await index.idle();
     expect(load).toHaveBeenCalledTimes(2);
+  });
+
+  it('упавшая пересборка оставляет прежний снимок', async () => {
+    const { index, load, tick, bump } = setup([card(1)]);
+    const first = await index.get();
+    load.mockRejectedValueOnce(new Error('база недоступна'));
+    bump('v2');
+    tick(1500);
+    expect(await index.get()).toBe(first);
+    await index.idle();
+    expect(await index.get()).toBe(first);
   });
 
   it('одновременные запросы ждут одну пересборку', async () => {

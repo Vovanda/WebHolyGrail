@@ -10,6 +10,7 @@ import {
   readPage,
   readSort,
   SHOP_CHARACTERISTICS,
+  searchIndex,
   searchItems,
   type SortKey,
   sortItems,
@@ -58,6 +59,40 @@ export function queryCatalog(
   sectionSlug: string | null,
   params: Params,
 ): CatalogAnswer | null {
+  // Тот же снимок и те же параметры - тот же ответ: популярные подборки не считаются заново.
+  const key = `${sectionSlug ?? ''}?${new URLSearchParams(
+    Object.entries(params).flatMap(([k, v]) =>
+      v === undefined ? [] : (Array.isArray(v) ? v : [v]).map((x) => [k, String(x)]),
+    ),
+  ).toString()}`;
+  let cache = answers.get(snapshot);
+  if (!cache) answers.set(snapshot, (cache = new Map()));
+  const hit = cache.get(key);
+  if (hit !== undefined) return hit;
+  const answer = computeCatalog(snapshot, sectionSlug, params);
+  if (cache.size >= REMEMBERED_ANSWERS) cache.delete(cache.keys().next().value!);
+  cache.set(key, answer);
+  return answer;
+}
+
+/** Сколько ответов помнит один снимок индекса. */
+const REMEMBERED_ANSWERS = 300;
+const answers = new WeakMap<CatalogSnapshot, Map<string, CatalogAnswer | null>>();
+
+/**
+ * Индексы поиска для всего магазина и каждого раздела - заранее, в фоновой
+ * сборке снимка: первый покупатель с запросом не ждёт их построения.
+ */
+export function prepareSearch(snapshot: CatalogSnapshot): void {
+  searchIndex(preparedOf(snapshot.entries).items);
+  for (const pool of snapshot.bySection.values()) searchIndex(preparedOf(pool).items);
+}
+
+function computeCatalog(
+  snapshot: CatalogSnapshot,
+  sectionSlug: string | null,
+  params: Params,
+): CatalogAnswer | null {
   const section = sectionSlug
     ? (snapshot.sections.find((s) => s.slug === sectionSlug) ?? null)
     : null;
@@ -73,7 +108,7 @@ export function queryCatalog(
   const found = query ? searchEntries(pool, query) : pool;
 
   const state = readFilter(params, characteristics);
-  const items = found.map((e) => e.item);
+  const items = query ? found.map((e) => e.item) : preparedOf(found).items;
   const facets = facetsOf(items, state, characteristics);
   const keep = new Set(applyFilter(items, state, characteristics).map((i) => i.id));
   const filtered = found.filter((e) => keep.has(e.card.id));
@@ -111,13 +146,24 @@ export function queryCatalog(
   };
 }
 
+/** Позиции набора и их номера - один раз на набор: на них держится кеш индекса поиска. */
+const prepared = new WeakMap<
+  readonly CatalogEntry[],
+  { items: readonly CatalogEntry['item'][]; byId: ReadonlyMap<number, CatalogEntry> }
+>();
+function preparedOf(pool: readonly CatalogEntry[]) {
+  let ready = prepared.get(pool);
+  if (!ready) {
+    ready = { items: pool.map((e) => e.item), byId: new Map(pool.map((e) => [e.card.id, e])) };
+    prepared.set(pool, ready);
+  }
+  return ready;
+}
+
 /** Поиск по позициям индекса тем же правилом, что раздел каталога и корзина. */
-function searchEntries(pool: readonly CatalogEntry[], query: string): CatalogEntry[] {
-  const byId = new Map(pool.map((e) => [e.card.id, e]));
-  return searchItems(
-    pool.map((e) => e.item),
-    query,
-  ).flatMap((item) => {
+export function searchEntries(pool: readonly CatalogEntry[], query: string): CatalogEntry[] {
+  const { items, byId } = preparedOf(pool);
+  return searchItems(items, query).flatMap((item) => {
     const entry = byId.get(item.id);
     return entry ? [entry] : [];
   });

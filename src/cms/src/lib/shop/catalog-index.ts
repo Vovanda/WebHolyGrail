@@ -21,8 +21,13 @@ export interface CatalogSnapshot {
 }
 
 export interface CatalogIndex {
-  /** Свежий индекс: сверяет версию данных и пересобирается, если она разошлась. */
+  /**
+   * Индекс без ожидания пересборки: прежний снимок, пока новый собирается в фоне.
+   * Ждёт только самую первую сборку.
+   */
   get(): Promise<CatalogSnapshot>;
+  /** Дождаться фоновой пересборки, если она идёт, - для прогрева и проверок. */
+  idle(): Promise<void>;
 }
 
 /** Позиция индекса из карточки: значения общих характеристик - из её полей. */
@@ -91,13 +96,19 @@ function nextPromoEdge(cards: readonly CatalogCard[], now: number): number {
  * кончается в `promoUntil`, - поэтому индекс пересобирается и тогда, когда
  * наступил ближайший конец акции.
  *
- * Пересборка одна на всех: запросы, пришедшие во время неё, ждут ту же.
+ * Пересборка идёт в фоне, а запросы получают прежний снимок (stale-while-revalidate):
+ * чтение десяти тысяч позиций через Payload занимает секунды, и покупатель не
+ * должен их ждать. Правка становится видна, когда пересборка закончилась. Ждёт
+ * только самая первая сборка - её делают при старте CMS. Упавшая пересборка
+ * оставляет прежний снимок, следующая сверка попробует снова.
  */
 export function catalogIndex(source: {
   readonly load: () => Promise<CatalogData>;
   readonly version: () => Promise<string>;
   readonly checkEveryMs?: number;
   readonly now?: () => number;
+  /** Подготовить свежий снимок до того, как он начнёт отвечать: индекс поиска и т.п. */
+  readonly prepare?: (snapshot: CatalogSnapshot) => void;
 }): CatalogIndex {
   const every = source.checkEveryMs ?? 1000;
   const now = source.now ?? Date.now;
@@ -111,9 +122,11 @@ export function catalogIndex(source: {
 
   const rebuild = async (version: string): Promise<CatalogSnapshot> => {
     const data = await source.load();
+    const snapshot = snapshotOf(data);
+    source.prepare?.(snapshot);
     const at = now();
     built = {
-      snapshot: snapshotOf(data),
+      snapshot,
       version,
       checkedAt: at,
       expiresAt: nextPromoEdge(data.cards, at),
@@ -131,16 +144,25 @@ export function catalogIndex(source: {
     return rebuild(version);
   };
 
+  const start = (): Promise<CatalogSnapshot> => {
+    pending ??= refresh().finally(() => {
+      pending = null;
+    });
+    return pending;
+  };
+
   return {
     get() {
+      if (!built) return start();
       const at = now();
-      if (built && at - built.checkedAt < every && at < built.expiresAt) {
-        return Promise.resolve(built.snapshot);
+      if (at - built.checkedAt >= every || at >= built.expiresAt) {
+        // Прежний снимок отвечает сразу; ошибка фона не роняет запрос.
+        start().catch(() => undefined);
       }
-      pending ??= refresh().finally(() => {
-        pending = null;
-      });
-      return pending;
+      return Promise.resolve(built.snapshot);
+    },
+    async idle() {
+      await pending?.catch(() => undefined);
     },
   };
 }

@@ -19,6 +19,7 @@ import { engineCollections } from './collections/engine';
 // эти коллекции пустой груз, и синк папку domain не обходит.
 import { engineTasks } from './jobs/engine';
 import { previewPath, siteUrl } from './lib/preview';
+import { warmCatalog } from './lib/shop/catalog-shared';
 import { withAutoSlug } from './lib/slug';
 import { withModule } from './lib/modules/collection';
 import { watchModules } from './lib/modules/enabled';
@@ -186,6 +187,9 @@ export default buildConfig({
     // Снимок модулей - после заведения переключателей, чтобы первый же снимок
     // видел записи модулей.
     watchModules(payload);
+
+    // Индекс каталога - в фоне: запуск его не ждёт, первый покупатель тоже.
+    void warmCatalog(payload);
   },
   /**
    * Jobs Queue — admin UI на /admin/collections/payload-jobs. Template поставляет
