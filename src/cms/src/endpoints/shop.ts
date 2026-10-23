@@ -14,7 +14,7 @@ import {
   ORDER_TRANSITIONS,
   refundable,
 } from 'contracts';
-import type { InvoiceAction, OrderAction } from 'contracts';
+import type { CatalogResultView, InvoiceAction, OrderAction } from 'contracts';
 
 import { isEditor } from '../lib/access/editors';
 import { checkRequestOrigin } from '../lib/video/request-origin';
@@ -27,6 +27,8 @@ import {
   reportBySecret,
 } from '../lib/shop/invoices';
 import { cancelBySecret, changeOrder, placeOrder, removeLine } from '../lib/shop/orders';
+import { catalogIndex, type CatalogIndex } from '../lib/shop/catalog-index';
+import { queryCatalog } from '../lib/shop/catalog-query';
 import { payloadPorts } from '../lib/shop/payload-store';
 import type { Failure, OfferQuery, Outcome, ShopPorts } from '../lib/shop/ports';
 import { myOrders } from '../lib/shop/my-orders';
@@ -214,6 +216,59 @@ const offersEndpoint: Endpoint = {
     const now = new Date();
     const cards = await p.offers.cards(offerQuery(req));
     return json({ docs: cards.map((c) => toOfferView(c, p.money, now)) });
+  },
+};
+
+/**
+ * Индекс каталога - один на процесс CMS (docs/whg/44-catalog-search.md).
+ *
+ * @remarks
+ * Читает без запроса пользователя: индекс общий для всех, а не принадлежит
+ * чьей-то транзакции. Свежесть держит сверка версии данных, а не хуки правки.
+ */
+let index: CatalogIndex | null = null;
+const catalog = (req: PayloadRequest): CatalogIndex => {
+  if (!index) {
+    const store = payloadPorts(req.payload).offers;
+    index = catalogIndex({ load: () => store.catalog(), version: () => store.catalogVersion() });
+  }
+  return index;
+};
+
+/**
+ * Выдача каталога страницей: раздел или весь магазин, запрос, фильтр, сортировка.
+ *
+ * @remarks
+ * `?section=<слаг>&q=&<характеристика>=<значения>&sort=&page=`. Сайт получает
+ * одну страницу, фасеты и число найденного; на `/shop` без условий - превью
+ * разделов. Цена страницы переводится в `Money` на момент ответа.
+ */
+const catalogEndpoint: Endpoint = {
+  path: '/shop/catalog',
+  method: 'get',
+  handler: async (req) => {
+    const refused = guard(req, null);
+    if (refused) return refused;
+    const url = new URL(req.url ?? 'http://local/');
+    const slug = url.searchParams.get('section');
+    if (slug !== null && !isSlug(slug)) return json({ error: 'not_found' }, 404);
+    const params = Object.fromEntries(url.searchParams);
+    const answer = queryCatalog(await catalog(req).get(), slug, params);
+    if (!answer) return json({ error: 'not_found' }, 404);
+    const p = ports(req);
+    const now = new Date();
+    const view = (e: (typeof answer.entries)[number]) => toOfferView(e.card, p.money, now);
+    return json({
+      section: answer.section,
+      characteristics: answer.characteristics,
+      facets: answer.facets,
+      items: answer.entries.map(view),
+      page: answer.page,
+      pages: answer.pages,
+      total: answer.total,
+      sort: answer.sort,
+      previews: answer.previews.map((pv) => ({ section: pv.section, items: pv.entries.map(view) })),
+    } satisfies CatalogResultView);
   },
 };
 
@@ -454,6 +509,7 @@ const adminActionEndpoint: Endpoint = {
 
 export const shopEndpoints: Endpoint[] = [
   offersEndpoint,
+  catalogEndpoint,
   buyerViewsEndpoint,
   offerDetailEndpoint,
   sectionsEndpoint,

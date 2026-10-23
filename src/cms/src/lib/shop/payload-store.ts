@@ -24,6 +24,7 @@ import {
   visibleCharacteristics,
   type SpecValue,
 } from 'contracts';
+import type { CatalogSectionView } from 'contracts';
 
 import { moneyPort } from './money';
 import { type Execute, returnStock, takeStock } from './stock';
@@ -107,6 +108,16 @@ export function cardFromDoc(doc: Record<string, unknown>, now = new Date()): Off
       cleanCharacteristics(sectionOf(doc['section'])?.characteristics),
       specsOf(doc['specs']),
     ),
+  };
+}
+
+/** Раздел каталога для сайта: только характеристики, которые видны покупателю. */
+function sectionFromDoc(doc: Record<string, unknown>): CatalogSectionView {
+  return {
+    slug: str(doc['slug']),
+    title: str(doc['title']),
+    description: typeof doc['description'] === 'string' ? doc['description'] : null,
+    characteristics: visibleCharacteristics(cleanCharacteristics(doc['characteristics'])),
   };
 }
 
@@ -348,14 +359,50 @@ export function payloadPorts(payload: Payload, req?: PayloadRequest): ShopPorts 
           ...opts,
         });
         const doc = found.docs[0] as unknown as Record<string, unknown> | undefined;
-        return doc
-          ? {
-              slug: str(doc['slug']),
-              title: str(doc['title']),
-              description: typeof doc['description'] === 'string' ? doc['description'] : null,
-              characteristics: visibleCharacteristics(cleanCharacteristics(doc['characteristics'])),
-            }
-          : null;
+        return doc ? sectionFromDoc(doc) : null;
+      },
+      catalog: async () => {
+        const [offers, sections] = await Promise.all([
+          payload.find({
+            collection: 'offers',
+            sort: 'title',
+            pagination: false,
+            ...opts,
+            depth: 1,
+          }),
+          payload.find({ collection: 'catalog-sections', pagination: false, ...opts }),
+        ]);
+        return {
+          cards: offers.docs.map((d) => {
+            const doc = d as unknown as Record<string, unknown>;
+            return {
+              ...cardFromDoc(doc),
+              createdAt: str(doc['createdAt']),
+              promoUntil: typeof doc['promoUntil'] === 'string' ? doc['promoUntil'] : null,
+            };
+          }),
+          sections: sections.docs
+            .map((d) => sectionFromDoc(d as unknown as Record<string, unknown>))
+            .filter((s) => s.slug),
+        };
+      },
+      catalogVersion: async () => {
+        // Число записей ловит удаление, время последней правки - всё остальное.
+        const last = (collection: 'offers' | 'catalog-sections') =>
+          payload
+            .find({ collection, sort: '-updatedAt', limit: 1, pagination: false, ...opts })
+            .then((r) => str((r.docs[0] as { updatedAt?: unknown } | undefined)?.updatedAt));
+        const count = (collection: 'offers' | 'catalog-sections') =>
+          payload
+            .count({ collection, overrideAccess: true, ...(req ? { req } : {}) })
+            .then((r) => r.totalDocs);
+        const parts = await Promise.all([
+          count('offers'),
+          last('offers'),
+          count('catalog-sections'),
+          last('catalog-sections'),
+        ]);
+        return parts.join('|');
       },
       sections: async () => {
         const found = await payload.find({

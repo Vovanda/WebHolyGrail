@@ -99,6 +99,19 @@ export interface OfferCard {
   readonly specs: Readonly<Record<string, SpecValue>>;
 }
 
+/** Позиция в индексе каталога: карточка и время создания - для сортировки «новинки». */
+export interface CatalogCard extends OfferCard {
+  readonly createdAt: string;
+  /** Конец акции; после него цена другая, и индекс пересобирается. */
+  readonly promoUntil: string | null;
+}
+
+/** Всё, из чего строится индекс каталога. */
+export interface CatalogData {
+  readonly cards: readonly CatalogCard[];
+  readonly sections: readonly CatalogSectionView[];
+}
+
 /** Позиция для своей страницы: карточка плюс галерея, описание и раздел целиком. */
 export interface OfferDetailCard extends OfferCard {
   readonly gallery: readonly unknown[];
@@ -142,6 +155,16 @@ export interface OfferPort {
   giveBack(lines: readonly { offer: number; quantity: number }[]): Promise<void>;
   /** Разделы каталога со счётом позиций - для страницы `/shop`; пустые не отдаются. */
   sections(): Promise<CatalogSectionSummary[]>;
+  /** Все позиции и разделы для индекса каталога, в порядке «по умолчанию». */
+  catalog(): Promise<CatalogData>;
+  /**
+   * Версия данных каталога: меняется при любой правке позиций и разделов.
+   *
+   * @remarks
+   * Индекс сверяется с ней перед ответом: экземпляров CMS бывает несколько,
+   * и хук правки в одном не обновит память другого.
+   */
+  catalogVersion(): Promise<string>;
 }
 
 export interface OrderPort {

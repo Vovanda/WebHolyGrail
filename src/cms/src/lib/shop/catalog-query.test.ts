@@ -1,0 +1,77 @@
+import { cleanCharacteristics } from 'contracts';
+import { describe, expect, it } from 'vitest';
+
+import { snapshotOf } from './catalog-index';
+import { queryCatalog } from './catalog-query';
+import type { CatalogCard } from './ports';
+
+const card = (id: number, over: Partial<CatalogCard> = {}): CatalogCard => ({
+  id,
+  title: `Перфоратор ${id}`,
+  price: (1000 + id * 100) * 1_000_000,
+  listPrice: null,
+  sku: null,
+  stock: null,
+  summary: null,
+  image: null,
+  howToBuy: 'cart',
+  deposit: null,
+  slug: null,
+  section: 'tools',
+  specs: { brand: id % 2 ? 'A' : 'B' },
+  createdAt: `2026-10-${String(10 + id).padStart(2, '0')}T00:00:00.000Z`,
+  promoUntil: null,
+  ...over,
+});
+
+const tools = {
+  slug: 'tools',
+  title: 'Инструмент',
+  description: null,
+  characteristics: cleanCharacteristics([{ key: 'brand', title: 'Бренд', kind: 'enum' }]),
+};
+const paint = { slug: 'paint', title: 'Краски', description: null, characteristics: [] };
+
+const snapshot = snapshotOf({
+  cards: [
+    ...Array.from({ length: 40 }, (_, i) => card(i + 1)),
+    card(100, { section: 'paint', title: 'Краска белая' }),
+  ],
+  sections: [tools, paint],
+});
+
+describe('выдача каталога по индексу', () => {
+  it('раздел страницами по 30, характеристики общие и раздела', () => {
+    const r = queryCatalog(snapshot, 'tools', {})!;
+    expect(r.entries).toHaveLength(30);
+    expect(r).toMatchObject({ total: 40, pages: 2, page: 1 });
+    expect(r.characteristics.map((c) => c.key)).toEqual(['in-stock', 'sale', 'price', 'brand']);
+    expect(queryCatalog(snapshot, 'tools', { page: '2' })!.entries).toHaveLength(10);
+  });
+
+  it('фильтр, сортировка и счёт вместе', () => {
+    const r = queryCatalog(snapshot, 'tools', { brand: 'A', sort: 'price-desc' })!;
+    expect(r.total).toBe(20);
+    expect(r.entries[0]!.card.id).toBe(39);
+    const brand = r.facets.find((f) => f.key === 'brand');
+    expect(brand?.view === 'checks' && brand.options.map((o) => o.count)).toEqual([20, 20]);
+  });
+
+  it('поиск по магазину без раздела находит в любом', () => {
+    const r = queryCatalog(snapshot, null, { q: 'краска' })!;
+    expect(r.entries.map((e) => e.card.id)).toEqual([100]);
+    expect(r.previews).toEqual([]);
+  });
+
+  it('/shop без условий - превью разделов по пять', () => {
+    const r = queryCatalog(snapshot, null, {})!;
+    expect(r.previews.map((p) => [p.section.slug, p.section.count, p.entries.length])).toEqual([
+      ['tools', 40, 5],
+      ['paint', 1, 1],
+    ]);
+  });
+
+  it('чужой раздел - нет выдачи', () => {
+    expect(queryCatalog(snapshot, 'nope', {})).toBeNull();
+  });
+});
