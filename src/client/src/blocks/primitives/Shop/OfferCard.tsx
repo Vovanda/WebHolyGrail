@@ -26,7 +26,7 @@ function availability(offer: OfferView, gone: boolean) {
  *
  * Карточка мелкая, пять в ряд, без своей подложки - рамка проступает при
  * наведении: сверху фото, под ним скидка и цена - главное, что ищет глаз;
- * название до трёх строк, артикул справа, внизу одной строкой кнопка и наличие.
+ * название до трёх строк, артикул справа, внизу наличие и под ним кнопка.
  * Без картинки на месте фото нейтральное поле с иконкой, название стоит там же,
  * где у соседей.
  *
@@ -116,9 +116,18 @@ export function OfferCard({
               Бронь {formatMoney(offer.deposit)} вперёд
             </p>
           )}
-          {/* Кнопка и наличие одной строкой: высота карточки не растёт ради подписи. */}
-          <div className="flex min-h-9 flex-wrap items-center justify-between gap-x-2 gap-y-1">
-            {price && !gone && (
+          {/* Наличие своей строкой над кнопкой: «В наличии: 1000 шт.» не упрётся в неё. */}
+          <p
+            data-part="card-stock"
+            data-state={stockLine.state}
+            className={`text-[13px] leading-4 ${
+              stockLine.state === 'in-stock' ? 'text-success' : 'text-muted'
+            }`}
+          >
+            {stockLine.text}
+          </p>
+          {price && !gone && (
+            <div className="mt-2">
               <AddToCart
                 offer={offer.id}
                 snapshot={offer}
@@ -128,17 +137,8 @@ export function OfferCard({
                 className="min-h-9 px-4 py-1.5 text-sm"
                 label={offer.howToBuy === 'request' ? 'Оставить заявку' : 'В корзину'}
               />
-            )}
-            <p
-              data-part="card-stock"
-              data-state={stockLine.state}
-              className={`ml-auto text-[13px] leading-4 ${
-                stockLine.state === 'in-stock' ? 'text-success' : 'text-muted'
-              }`}
-            >
-              {stockLine.text}
-            </p>
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </article>
