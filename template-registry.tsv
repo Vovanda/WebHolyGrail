@@ -155,6 +155,7 @@ overlay	docs/stack/infisical.md
 overlay	docs/stack/payload.md
 overlay	docs/stack/README.md
 overlay	docs/sync-journal.md
+overlay	docs/ux/backgrounds.md
 overlay	docs/ux/block-appearance.md
 overlay	docs/ux/content-framing.md
 overlay	docs/ux/extending.md
