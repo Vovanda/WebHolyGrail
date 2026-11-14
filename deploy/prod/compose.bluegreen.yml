@@ -53,6 +53,13 @@ services:
       # Дальше правится из админки и seed его не трогает.
       SITE_NAME: ${SITE_NAME:-}
       SITE_SLUG: ${SITE_SLUG}
+    # Секреты сайта, которых шаблон не знает (соцсети, внешние API), приезжают
+    # в контейнер только отсюда: `environment` выше пропускает лишь перечисленное,
+    # а переменная из --env-file живёт в подстановке ${...}, не в самом контейнере.
+    # Файл готовит deploy.sh из Infisical (tmpfs, на время прогона).
+    # `environment` главнее env_file: явные строки выше env_file не перетирают.
+    env_file:
+      - /dev/shm/infisical-${SITE_SLUG}.env
     volumes:
       - ../../src/cms/data:/data
     ports:
