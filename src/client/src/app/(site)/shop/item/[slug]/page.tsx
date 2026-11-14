@@ -7,7 +7,6 @@ import {
   discountPercent,
   formatMoney,
   type MediaRef,
-  moneyDecimal,
   offerViewOf,
   shopSettings,
 } from 'contracts';
@@ -23,7 +22,10 @@ import { AddToCart } from '@/blocks/primitives/Shop/AddToCart';
 import { OfferLane } from '@/blocks/primitives/Shop/OfferLane';
 import { ShopTopBar } from '@/blocks/primitives/Shop/ShopTopBar';
 import { getCatalog, getOffer, getSiteSettings } from '@/lib/api-client.engine';
+import { mediaRenditions, resolveMediaUrl } from '@/lib/media';
+import { breadcrumbJsonLd } from '@/lib/seo';
 import { jsonLd } from '@/lib/seo/json-ld';
+import { offerJsonLd } from '@/lib/shop/json-ld';
 
 /**
  * Страница позиции `/shop/item/<слаг>`: галерея, цена, корзина, характеристики, описание.
@@ -73,6 +75,13 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
   ];
 
   const cartHref = shopSettings(settings?.shop).cartHref;
+  const images = files
+    .map((file) => {
+      const renditions = mediaRenditions(file);
+      return renditions.at(-1)?.url ?? resolveMediaUrl(file);
+    })
+    .filter((url): url is string => Boolean(url));
+  const path = `/shop/item/${offer.slug ?? ''}`;
 
   return (
     <section className="block-space bg-bg">
@@ -220,25 +229,16 @@ export default async function OfferPage({ params }: { params: Promise<Params> })
 
       <script
         type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLd(offerJsonLd(offer, { path, images })) }}
+      />
+      <script
+        type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: jsonLd({
-            '@context': 'https://schema.org',
-            '@type': 'Product',
-            name: offer.title,
-            ...(offer.summary ? { description: offer.summary } : {}),
-            ...(offer.price
-              ? {
-                  offers: {
-                    '@type': 'Offer',
-                    price: moneyDecimal(offer.price),
-                    priceCurrency: offer.price.currency,
-                    availability: sold
-                      ? 'https://schema.org/OutOfStock'
-                      : 'https://schema.org/InStock',
-                  },
-                }
-              : {}),
-          }),
+          __html: jsonLd(
+            breadcrumbJsonLd(
+              crumbs.map((crumb) => ({ name: crumb.label, url: crumb.href ?? path })),
+            ),
+          ),
         }}
       />
     </section>

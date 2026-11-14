@@ -6,7 +6,10 @@ import {
   listAllTags,
   listAllThreads,
   listArticles,
+  listCatalogSections,
+  listOffers,
 } from '@/lib/api-client';
+import { isModuleEnabled } from 'contracts';
 
 /**
  * `/sitemap.xml` — автоматический sitemap по содержимому CMS.
@@ -82,6 +85,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
     for (const thread of threads) {
       add(`/blog/thread/${thread.slug}`, { changeFrequency: 'weekly', priority: 0.6 });
+    }
+  }
+
+  if (isModuleEnabled(settings?.toggles ?? {}, 'shop')) {
+    const [sections, offers] = await Promise.all([
+      listCatalogSections().catch(() => []),
+      listOffers({ limit: 5000 }).catch(() => []),
+    ]);
+    add('/shop', { changeFrequency: 'weekly', priority: 0.9 });
+    for (const section of sections) add(`/shop/${section.slug}`, { priority: 0.8 });
+    for (const offer of offers) {
+      if (offer.slug) add(`/shop/item/${offer.slug}`, { priority: 0.6 });
     }
   }
 

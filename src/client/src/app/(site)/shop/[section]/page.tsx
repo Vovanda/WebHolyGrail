@@ -4,13 +4,16 @@ import { notFound, redirect } from 'next/navigation';
 import { CATALOG_HREF, readFilter, shopSettings } from 'contracts';
 
 import { CardRows } from '@/blocks/arrangements/CardRows';
-import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
+import { Breadcrumbs, type Crumb } from '@/blocks/primitives/Breadcrumbs';
 import { CatalogView } from '@/blocks/primitives/Shop/CatalogView';
 import { OfferCard } from '@/blocks/primitives/Shop/OfferCard';
 import { SectionTiles } from '@/blocks/primitives/Shop/SectionTiles';
 import { ShopTopBar } from '@/blocks/primitives/Shop/ShopTopBar';
 import { getCatalog, getCatalogSection, getSiteSettings } from '@/lib/api-client.engine';
+import { breadcrumbJsonLd } from '@/lib/seo';
+import { jsonLd } from '@/lib/seo/json-ld';
 import { rangesFromForm } from '@/lib/shop/catalog-href';
+import { offerListJsonLd } from '@/lib/shop/json-ld';
 import { positions } from '@/lib/shop/positions';
 
 /**
@@ -56,6 +59,15 @@ export default async function SectionPage({
 
   const shop = shopSettings(settings?.shop);
   const query = typeof search['q'] === 'string' ? search['q'].trim().slice(0, 100) : '';
+  const crumbs: Crumb[] = [
+    { label: 'Главная', href: '/' },
+    { label: shop.menuTitle, href: CATALOG_HREF },
+    ...result.path.slice(0, -1).map((s) => ({
+      label: s.title,
+      href: `${CATALOG_HREF}/${s.slug}`,
+    })),
+    { label: section.title },
+  ];
   const place = {
     basePath,
     state: readFilter(search, result.characteristics),
@@ -73,17 +85,7 @@ export default async function SectionPage({
           tree={result.tree}
           current={result.path.map((s) => s.slug)}
         />
-        <Breadcrumbs
-          items={[
-            { label: 'Главная', href: '/' },
-            { label: shop.menuTitle, href: CATALOG_HREF },
-            ...result.path.slice(0, -1).map((s) => ({
-              label: s.title,
-              href: `${CATALOG_HREF}/${s.slug}`,
-            })),
-            { label: section.title },
-          ]}
-        />
+        <Breadcrumbs items={crumbs} />
         <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <h1 className="font-display text-2xl font-semibold text-ink md:text-3xl">
             {section.title}
@@ -124,6 +126,30 @@ export default async function SectionPage({
           </CardRows>
         </CatalogView>
       </div>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd(
+            breadcrumbJsonLd(
+              crumbs.map((crumb) => ({
+                name: crumb.label,
+                url: crumb.href ?? basePath,
+              })),
+            ),
+          ),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLd(
+            offerListJsonLd({
+              name: section.title,
+              items: result.items.map((item) => ({ title: item.title, slug: item.slug })),
+            }),
+          ),
+        }}
+      />
     </section>
   );
 }

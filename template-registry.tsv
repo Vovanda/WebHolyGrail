@@ -514,6 +514,8 @@ overlay	src/client/src/lib/shop/cart.test.ts
 overlay	src/client/src/lib/shop/cart.ts
 overlay	src/client/src/lib/shop/catalog-href.test.ts
 overlay	src/client/src/lib/shop/catalog-href.ts
+overlay	src/client/src/lib/shop/json-ld.test.ts
+overlay	src/client/src/lib/shop/json-ld.ts
 overlay	src/client/src/lib/shop/page-window.test.ts
 overlay	src/client/src/lib/shop/positions.test.ts
 overlay	src/client/src/lib/shop/positions.ts
