@@ -16,6 +16,7 @@ import {
   getVideoByCode,
   issueVideoToken,
 } from '@/lib/api-client';
+import { jsonLd } from '@/lib/seo/json-ld';
 
 /**
  * Страница видео: `/@<канал>/v/<код>`.
@@ -213,10 +214,8 @@ export default async function VideoPage({
       {video.access === 'public' && (
         <script
           type="application/ld+json"
-          // Значения собраны на сервере из своей же базы, посторонней строки
-          // здесь оказаться неоткуда.
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
+            __html: jsonLd({
               '@context': 'https://schema.org',
               '@type': 'VideoObject',
               name: video.title,

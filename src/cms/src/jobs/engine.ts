@@ -1,3 +1,4 @@
+import { CancelStaleOrdersTask } from './cancel-stale-orders.task';
 import { BuildHlsTask } from './build-hls.task';
 import { PurgeAccessTask } from './purge-access.task';
 import { PurgeKeyUsageTask } from './purge-key-usage.task';
@@ -16,4 +17,10 @@ import { PurgeVideosTask } from './purge-videos.task';
  * Иначе выходит разъезд: файл задания приезжает обновлением, а в сборке сайта
  * его нет - и проверка типов падает на имени задачи, которого «не существует».
  */
-export const engineTasks = [BuildHlsTask, PurgeVideosTask, PurgeKeyUsageTask, PurgeAccessTask];
+export const engineTasks = [
+  BuildHlsTask,
+  PurgeVideosTask,
+  PurgeKeyUsageTask,
+  PurgeAccessTask,
+  CancelStaleOrdersTask,
+];

@@ -53,15 +53,18 @@ pnpm setup-infisical -- --site my-site
 
 ## Документация
 
-| Файл                                             | Что                                                   |
-| ------------------------------------------------ | ----------------------------------------------------- |
-| [`00-overview.md`](whg/00-overview.md)           | Категория, боль которую закрывает, что в коробке      |
-| [`15-vision.md`](whg/15-vision.md)               | Stack rationale: почему именно эти выборы             |
-| [`30-philosophy.md`](whg/30-philosophy.md)       | R-rules R1-R9                                         |
-| [`32-structure.md`](whg/32-structure.md)         | Структура монорепо, growth models, project types      |
-| [`37-scaffolding.md`](whg/37-scaffolding.md)     | Создание нового сайта (gh template → Infisical → dev) |
-| [`45-data-location.md`](whg/45-data-location.md) | Где живут значения — Payload / Infisical / код        |
-| [`stack/`](stack/)                               | Reference по компонентам стека                        |
+| Файл                                               | Что                                                   |
+| -------------------------------------------------- | ----------------------------------------------------- |
+| [`00-overview.md`](whg/00-overview.md)             | Категория, боль которую закрывает, что в коробке      |
+| [`15-vision.md`](whg/15-vision.md)                 | Stack rationale: почему именно эти выборы             |
+| [`30-philosophy.md`](whg/30-philosophy.md)         | R-rules R1-R9                                         |
+| [`32-structure.md`](whg/32-structure.md)           | Структура монорепо, growth models, project types      |
+| [`37-scaffolding.md`](whg/37-scaffolding.md)       | Создание нового сайта (gh template → Infisical → dev) |
+| [`43-shop.md`](whg/43-shop.md)                     | Магазин: позиции, корзина, заказ, флаги               |
+| [`44-catalog-search.md`](whg/44-catalog-search.md) | Проект: фильтр и поиск по каталогу                    |
+| [`45-data-location.md`](whg/45-data-location.md)   | Где живут значения — Payload / Infisical / код        |
+| [`47-forms-records.md`](whg/47-forms-records.md)   | Проект: формы и записи из админки                     |
+| [`stack/`](stack/)                                 | Reference по компонентам стека                        |
 
 ## Лицензия
 

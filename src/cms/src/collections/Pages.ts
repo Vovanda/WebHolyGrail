@@ -1,8 +1,12 @@
+import { reservedRoute } from 'contracts';
 import type { CollectionConfig } from 'payload';
+import { text } from 'payload/shared';
 
 import { PAGE_BLOCKS } from '../blocks';
 import { BLOCK_ROW_LABELS } from '../blocks/engine';
 import { previewPath } from '../lib/preview';
+import { editorsOnly, adminsOnly } from '../lib/access/editors';
+import { groupedByModule, moduleBlockFilter } from '../lib/modules/blocks';
 
 /**
  * Pages — страницы сайта из блоков.
@@ -45,6 +49,14 @@ export const Pages: CollectionConfig = {
       required: true,
       unique: true,
       index: true,
+      // Адрес модуля перекрыл бы страницу: она отвечала бы 404.
+      // Своя проверка заменяет штатную: required проверяет штатный text, затем резерв.
+      validate: (value: string | null | undefined, options: Parameters<typeof text>[1]) => {
+        const base = text(value, options);
+        if (base !== true) return base;
+        const taken = typeof value === 'string' ? reservedRoute(value) : null;
+        return taken === null || `Адрес «${taken}/…» занят разделом сайта - выберите другой.`;
+      },
       admin: {
         description: 'Часть URL после домена. Главная — пустая строка. Без ведущего слэша.',
       },
@@ -54,7 +66,8 @@ export const Pages: CollectionConfig = {
       label: 'Блоки страницы',
       type: 'blocks',
       labels: BLOCK_ROW_LABELS,
-      blocks: PAGE_BLOCKS,
+      blocks: groupedByModule(PAGE_BLOCKS),
+      filterOptions: moduleBlockFilter('blocks', PAGE_BLOCKS),
       admin: {
         description:
           'Перетаскивайте блоки для смены порядка. Можно добавить несколько одинаковых блоков (например 2 цитаты подряд).',
@@ -88,8 +101,8 @@ export const Pages: CollectionConfig = {
       if (user) return true;
       return { _status: { equals: 'published' } };
     },
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    create: editorsOnly,
+    update: editorsOnly,
+    delete: adminsOnly,
   },
 };

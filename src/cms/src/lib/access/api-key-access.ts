@@ -1,3 +1,5 @@
+import { isEditor } from './editors';
+
 /**
  * Кто видит ключ API учётной записи.
  *
@@ -11,13 +13,16 @@
 export interface Viewer {
   readonly id: number | string;
   readonly role?: string | null | undefined;
+  /** Коллекция, через которую вошли: ключ видят только редакторы. */
+  readonly collection?: string | undefined;
 }
 
 export function canReadApiKey(
   viewer: Viewer | null | undefined,
   accountId: number | string | undefined,
 ): boolean {
-  if (!viewer) return false;
+  // Номер и роль чужой коллекции с редакторскими не сравниваются вовсе.
+  if (!isEditor(viewer)) return false;
   if (viewer.role === 'admin') return true;
   return accountId !== undefined && String(viewer.id) === String(accountId);
 }

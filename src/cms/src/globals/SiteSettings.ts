@@ -1,5 +1,7 @@
 import type { GlobalConfig } from 'payload';
-import { BLOG_COLUMN_PX, BLOG_TEXT_PX } from 'contracts';
+import { BLOG_COLUMN_PX, BLOG_TEXT_PX, DEFAULT_PHONE_FORMAT, PHONE_FORMATS } from 'contracts';
+import { editorsOnly } from '../lib/access/editors';
+import { moduleOn } from '../lib/modules/enabled';
 
 /**
  * SiteSettings — глобальные настройки сайта. Синглтон.
@@ -39,7 +41,7 @@ export const SiteSettings: GlobalConfig = {
   slug: 'site-settings',
   label: 'Настройки сайта',
   admin: {
-    group: 'Администрирование',
+    group: 'Настройки',
   },
   hooks: {
     beforeValidate: [emptyDatesToNull],
@@ -91,6 +93,17 @@ export const SiteSettings: GlobalConfig = {
                   admin: { description: 'Yandex / Google Maps embed iframe src.' },
                 },
               ],
+            },
+          ],
+        },
+        {
+          label: 'Модули',
+          description: 'Что есть у сайта: включите нужное, выключите лишнее.',
+          fields: [
+            {
+              name: 'modulesBoard',
+              type: 'ui',
+              admin: { components: { Field: '/admin/components/ModulesBoard#ModulesBoard' } },
             },
           ],
         },
@@ -726,6 +739,8 @@ export const SiteSettings: GlobalConfig = {
         },
         {
           label: 'Блог',
+          // Вкладка модуля видна, пока модуль включён (#114).
+          admin: { condition: () => moduleOn('blog') },
           description: 'Как показывать статьи и обсуждения.',
           fields: [
             {
@@ -798,7 +813,175 @@ export const SiteSettings: GlobalConfig = {
           ],
         },
         {
+          /*
+            Настройки магазина - своей вкладкой: владелец ищет их по слову
+            «Магазин», а не под контактами. Вкладка без имени: поля лежат там
+            же, где лежали, миграция не нужна (docs/whg/43-shop.md).
+          */
+          label: 'Магазин',
+          // Вкладка модуля видна, пока модуль включён (#114).
+          admin: { condition: () => moduleOn('shop') },
+          fields: [
+            {
+              // Пояснение над реквизитами у неоплаченного счёта; сами реквизиты - в shop ниже.
+              name: 'paymentNote',
+              label: 'Как оплатить счёт',
+              type: 'textarea',
+              admin: {
+                description:
+                  'Текст над реквизитами у счёта: что написать в назначении платежа, когда ждать подтверждения. Сами реквизиты, СБП и карта - в полях ниже.',
+              },
+            },
+            {
+              // Разбирается одной функцией shopSettings (contracts): пустое поле -
+              // значение по умолчанию, сценарии и сайт читают одинаково.
+              name: 'shop',
+              label: false,
+              type: 'group',
+              fields: [
+                {
+                  name: 'payee',
+                  label: 'Получатель',
+                  type: 'group',
+                  admin: { description: 'Покупатель видит это у выставленного счёта.' },
+                  fields: [
+                    { name: 'name', label: 'Название или ФИО', type: 'text' },
+                    {
+                      type: 'row',
+                      fields: [
+                        { name: 'inn', label: 'ИНН', type: 'text', maxLength: 12 },
+                        { name: 'bik', label: 'БИК', type: 'text', maxLength: 9 },
+                      ],
+                    },
+                    {
+                      type: 'row',
+                      fields: [
+                        { name: 'account', label: 'Расчётный счёт', type: 'text', maxLength: 20 },
+                        { name: 'corrAccount', label: 'Корр. счёт', type: 'text', maxLength: 20 },
+                      ],
+                    },
+                    { name: 'bank', label: 'Банк', type: 'text' },
+                  ],
+                },
+                {
+                  name: 'sbp',
+                  label: 'СБП',
+                  type: 'group',
+                  fields: [
+                    {
+                      type: 'row',
+                      fields: [
+                        { name: 'phone', label: 'Телефон для перевода', type: 'text' },
+                        { name: 'bank', label: 'Банк получателя', type: 'text' },
+                      ],
+                    },
+                  ],
+                },
+                { name: 'card', label: 'Номер карты для перевода', type: 'text', maxLength: 32 },
+                {
+                  type: 'row',
+                  fields: [
+                    {
+                      name: 'orderHoldHours',
+                      label: 'Ждать принятия заказа, часов',
+                      type: 'number',
+                      min: 1,
+                      max: 720,
+                      defaultValue: 72,
+                      admin: { description: 'Непринятый заказ отменяется, остаток возвращается.' },
+                    },
+                    {
+                      name: 'invoiceDueDays',
+                      label: 'Срок оплаты счёта, дней',
+                      type: 'number',
+                      min: 0,
+                      max: 90,
+                      defaultValue: 3,
+                      admin: { description: '0 - без срока.' },
+                    },
+                  ],
+                },
+                {
+                  name: 'menuTitle',
+                  label: 'Название в меню',
+                  type: 'text',
+                  defaultValue: 'Магазин',
+                  maxLength: 40,
+                  admin: {
+                    description:
+                      'Пункт меню, ведущий в каталог /shop; появляется сам, пока магазин включён.',
+                  },
+                },
+                {
+                  name: 'cartHref',
+                  label: 'Страница корзины',
+                  type: 'text',
+                  defaultValue: '/cart',
+                  admin: {
+                    description:
+                      'Адрес страницы, где стоит блок корзины. На неё ведёт значок корзины в шапке.',
+                  },
+                },
+                {
+                  name: 'checkout',
+                  label: 'Что спрашивать при оформлении',
+                  type: 'group',
+                  fields: [
+                    {
+                      type: 'row',
+                      fields: [
+                        {
+                          name: 'phone',
+                          label: 'Телефон',
+                          type: 'select',
+                          defaultValue: 'optional',
+                          options: [
+                            { value: 'required', label: 'Обязательно' },
+                            { value: 'optional', label: 'По желанию' },
+                            { value: 'hidden', label: 'Не спрашивать' },
+                          ],
+                        },
+                        {
+                          name: 'email',
+                          label: 'Почта',
+                          type: 'select',
+                          defaultValue: 'optional',
+                          options: [
+                            { value: 'required', label: 'Обязательно' },
+                            { value: 'optional', label: 'По желанию' },
+                            { value: 'hidden', label: 'Не спрашивать' },
+                          ],
+                        },
+                      ],
+                    },
+                    {
+                      name: 'phoneFormat',
+                      label: 'Формат телефона',
+                      type: 'select',
+                      defaultValue: DEFAULT_PHONE_FORMAT,
+                      options: Object.entries(PHONE_FORMATS).map(([value, format]) => ({
+                        value,
+                        label: `${format.title}, например ${format.example}`,
+                      })),
+                      admin: { description: 'По нему анкета проверяет номер и показывает пример.' },
+                    },
+                    {
+                      name: 'comment',
+                      label: 'Комментарий к заказу',
+                      type: 'checkbox',
+                      defaultValue: true,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
           label: 'Данные',
+          // Оператор персональных данных нужен, когда сайт их собирает: формы и
+          // заказы магазина. Без обоих модулей вкладке нечего настраивать.
+          admin: { condition: () => moduleOn('forms') || moduleOn('shop') },
           description: 'Оператор персональных данных и текст политики.',
           fields: [
             {
@@ -867,6 +1050,6 @@ export const SiteSettings: GlobalConfig = {
   ],
   access: {
     read: () => true, // публичные настройки сайта читаются всеми.
-    update: ({ req: { user } }) => Boolean(user),
+    update: editorsOnly,
   },
 };

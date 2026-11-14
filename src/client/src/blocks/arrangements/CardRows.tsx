@@ -42,11 +42,15 @@ export interface TilePlace {
 export function CardRows<T>({
   items,
   columns = 3,
+  columnsMd,
+  columnsSm,
   gap = 'md',
   tileLayout,
   tileLayoutMd,
   tileLayoutSm,
   keepColumns = false,
+  evenRows = true,
+  fullRows = false,
   as = 'div',
   className,
   children,
@@ -54,6 +58,10 @@ export function CardRows<T>({
   readonly items: readonly T[];
   /** Сколько карточек помещается в ряд на широком экране. */
   readonly columns?: number;
+  /** Сколько в ряд на среднем экране; пусто - две. Мелким карточкам нужно больше. */
+  readonly columnsMd?: number | undefined;
+  /** Сколько в ряд на малом экране; пусто - одна. */
+  readonly columnsSm?: number | undefined;
   readonly gap?: 'sm' | 'md' | 'lg';
   /** Раскладка владельца на большом экране; пусто - фигура считается сама. */
   readonly tileLayout?: string | null | undefined;
@@ -67,6 +75,17 @@ export function CardRows<T>({
    * Без свойства короткий набор делит ширину между собой.
    */
   readonly keepColumns?: boolean;
+  /**
+   * Все ряды высотой с самый высокий. Без этого карточка на два ряда сплющится,
+   * поэтому по умолчанию включено. Набор одинаковых мелких карточек, где у одной
+   * есть кнопка, а у другой нет, выключает свойство: ряд берёт высоту своих.
+   */
+  readonly evenRows?: boolean;
+  /**
+   * Ряды полные, неполный только последний - по центру. Без свойства ряды
+   * подбираются симметрично; витрина включает его, чтобы не терять место.
+   */
+  readonly fullRows?: boolean;
   /**
    * Каким тегом собрать сетку. Список документов и подобное остаётся списком:
    * рисовать перечень набором div значило бы отобрать его смысл у тех,
@@ -89,7 +108,8 @@ export function CardRows<T>({
     { lg: tileLayout, md: tileLayoutMd, sm: tileLayoutSm },
     items.length,
     columns,
-    { keepColumns },
+    { keepColumns, fullRows },
+    { md: columnsMd, sm: columnsSm },
   );
   if (!grid.lg) return null;
 
@@ -119,6 +139,7 @@ export function CardRows<T>({
       data-tiles={items.length}
       data-columns={columns}
       data-layout={tileLayout?.trim() ? 'custom' : 'auto'}
+      data-rows={evenRows ? 'even' : 'fit'}
       className={cn('grid', GAP[gap].flow, GAP[gap].grid, className)}
       /*
         Долей столько, сколько нужно этой ширине. Медиазапрос в разметку не

@@ -10,7 +10,12 @@ import { KeyUsage } from './KeyUsage';
 import { FaqGroups } from './FaqGroups';
 import { FeatureToggles } from './FeatureToggles';
 import { FormSubmissions } from './FormSubmissions';
+import { CatalogSections } from './CatalogSections';
+import { Invoices } from './Invoices';
 import { Media } from './Media';
+import { Offers } from './Offers';
+import { SearchMisses } from './SearchMisses';
+import { Orders } from './Orders';
 import { Pages } from './Pages';
 import { Playlists } from './Playlists';
 import { ReusableBlocks } from './ReusableBlocks';
@@ -47,29 +52,37 @@ export const engineCollections = [
   Pages,
   ReusableBlocks,
   FaqGroups,
-  // Обращения - то, ради чего сайт обычно и заводят.
+  // Медиа: сами файлы и наборы видео.
+  Media,
+  Playlists,
+  // Заявки с форм - то, ради чего сайт обычно и заводят.
   FormSubmissions,
+  // Магазин в порядке работы: что продаём, заказы на это, счета по заказам
+  // (docs/whg/43-shop.md).
+  Offers,
+  CatalogSections,
+  SearchMisses,
+  Orders,
+  Invoices,
   // Записи и всё вокруг них.
   Articles,
   Threads,
-  Tags,
   Authors,
-  // Медиа: сами файлы, наборы видео, права на них и коды, которые эти права выдают.
-  // Доступ живёт рядом с видео, а не отдельным разделом - человек ищет его там,
-  // где лежит сам файл.
-  Media,
-  Playlists,
+  // Теги последними: их трогают реже всего.
+  Tags,
+  // Доступы - своя группа: закрытой бывает любая запись, а не только видео.
   MediaAccesses,
   MediaAccessRights,
   MediaAccessCodes,
   MediaAccessLinks,
   KeyUsage,
-  // Каталог людей по городам: тренеры, мастера, врачи, репетиторы.
-  Cities,
+  // Специалисты по городам: сами люди, потом справочник городов.
   Specialists,
+  Cities,
   SocialPosts,
   Comments,
-  // Что на сайте включено: значения по окружениям, меняются без выкладки.
-  FeatureToggles,
+  // Настройки последними: их трогают редко. Что на сайте включено - значения
+  // по окружениям, меняются без выкладки.
   Users,
+  FeatureToggles,
 ];

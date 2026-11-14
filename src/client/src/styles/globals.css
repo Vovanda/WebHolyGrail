@@ -236,6 +236,23 @@
   }
 
   /*
+    Фон под окнами (подтверждение, карточка DetailDrawer) затемняет страницу: в светлой теме чернилами
+    палитры, в тёмной - её фоном, потому что чернила там светлые. Утилита
+    bg-ink/55 здесь не годится - цвет задан переменной, и Tailwind не строит
+    для него класс с прозрачностью.
+  */
+  [data-part='confirm']::backdrop,
+  [data-part='detail-backdrop'] {
+    background: color-mix(in oklab, var(--color-ink) 55%, transparent);
+    backdrop-filter: blur(2px);
+  }
+
+  :root[data-theme='dark'] [data-part='confirm']::backdrop,
+  :root[data-theme='dark'] [data-part='detail-backdrop'] {
+    background: color-mix(in oklab, var(--color-bg) 70%, transparent);
+  }
+
+  /*
     Кнопка над страницей едет вместе с ней: она привязана к окну, а не
     к каркасу, и без сдвига оставалась бы на месте, когда страница уехала.
   */
@@ -401,6 +418,16 @@
   body:is([data-side-panel-left], [data-side-panel-right]) [data-site-shell] {
     margin-left: var(--shell-shift);
     margin-right: calc(-1 * var(--shell-shift));
+  }
+
+  /*
+    Сдвинутый каркас выходит за край окна на величину сдвига. Влево браузер
+    такой вылет не прокручивает, вправо - прокручивает, и левая панель давала
+    горизонтальную полосу, а правая нет. Вылет обрезается с обеих сторон
+    одинаково; clip, а не hidden, - липкая шапка остаётся липкой.
+  */
+  body:is([data-side-panel-left], [data-side-panel-right]) {
+    overflow-x: clip;
   }
 
   /*
@@ -1071,9 +1098,18 @@
     grid-auto-rows: 1fr;
   }
 
+  [data-part='tiles'][data-rows='fit'] {
+    grid-auto-rows: auto;
+  }
+
   [data-part='tile'] {
     grid-column: var(--sm-col) / span var(--sm-span);
     grid-row: var(--sm-row) / span var(--sm-rows);
+    /*
+      Элемент сетки не сжимается уже своего содержимого: длинное слово без
+      пробела распирало колонку, и соседняя карточка уезжала за край окна.
+    */
+    min-width: 0;
   }
 
   @media (min-width: 768px) {

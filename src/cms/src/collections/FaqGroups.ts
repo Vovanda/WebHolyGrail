@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload';
+import { editorsOnly, adminsOnly } from '../lib/access/editors';
 
 /**
  * FAQ-группы — раздел сайта «Ответы на вопросы».
@@ -118,8 +119,8 @@ export const FaqGroups: CollectionConfig = {
       if (user) return true;
       return { _status: { equals: 'published' } };
     },
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    create: editorsOnly,
+    update: editorsOnly,
+    delete: adminsOnly,
   },
 };

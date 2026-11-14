@@ -64,6 +64,39 @@ interface LexNode {
   readonly language?: string;
 }
 
+/** Узлы-обёртки: сами по себе ничего не показывают, видимое - в их детях. */
+const WRAPPERS = new Set([
+  'root',
+  'paragraph',
+  'heading',
+  'quote',
+  'list',
+  'listitem',
+  'link',
+  'autolink',
+]);
+
+const visible = (node: LexNode): boolean =>
+  node.type === 'text'
+    ? Boolean(node.text?.trim())
+    : node.type === 'linebreak'
+      ? false
+      : WRAPPERS.has(node.type)
+        ? (node.children ?? []).some(visible)
+        : true;
+
+/**
+ * Есть ли в тексте редактора что показать.
+ *
+ * @remarks
+ * Очищенное в админке поле приходит не пустым, а корнем с пустым абзацем:
+ * без этой проверки над ним остаётся заголовок раздела без текста.
+ */
+export function hasLexicalContent(value: unknown): boolean {
+  const root = (value as { root?: LexNode } | null | undefined)?.root;
+  return root ? visible(root) : false;
+}
+
 export function LexicalRenderer({ value, className, settings }: LexicalRendererProps) {
   const root = (value as { root?: LexNode } | null | undefined)?.root;
   if (!root?.children?.length) return null;

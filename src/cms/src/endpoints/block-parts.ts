@@ -1,6 +1,7 @@
 import type { Endpoint } from 'payload';
 
 import { collectBlockParts } from '../lib/block-parts';
+import { isEditor } from '../lib/access/editors';
 
 /**
  * Из чего состоит блок.
@@ -17,7 +18,7 @@ export const blockPartsEndpoint: Endpoint = {
   path: '/block-parts',
   method: 'get',
   handler: (req) => {
-    if (!req.user) {
+    if (!isEditor(req.user)) {
       return new Response(JSON.stringify({ error: 'Нужно войти' }), {
         status: 401,
         headers: { 'content-type': 'application/json; charset=utf-8' },

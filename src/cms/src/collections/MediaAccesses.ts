@@ -1,5 +1,7 @@
 import type { CollectionConfig } from 'payload';
 
+import { editorsOnly } from '../lib/access/editors';
+
 /**
  * Доступ - то, что продают и то, что отбирают целиком.
  *
@@ -19,8 +21,16 @@ export const MediaAccesses: CollectionConfig = {
   admin: {
     useAsTitle: 'title',
     defaultColumns: ['title', 'cutoff'],
-    group: 'Медиа',
+    group: 'Доступы',
     description: 'Что продаётся одним куском: курс, сезон, подписка. Права выдаются на доступ.',
+  },
+  access: {
+    // Что продаётся и что в него входит, правит и видит тот, кто продаёт.
+    // Сценарии выдачи и проверки прав читают доступы сами, в обход правила.
+    read: editorsOnly,
+    create: editorsOnly,
+    update: editorsOnly,
+    delete: editorsOnly,
   },
   fields: [
     {

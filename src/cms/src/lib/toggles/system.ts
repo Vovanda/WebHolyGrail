@@ -1,5 +1,7 @@
 import type { Payload } from 'payload';
 
+import { MODULES, moduleToggleKey } from 'contracts';
+
 /**
  * Переключатели, которые знает сам движок.
  *
@@ -21,6 +23,8 @@ export interface SystemToggle {
   readonly key: string;
   readonly title: string;
   readonly description: string;
+  /** Группа в списке переключателей: по ней они собираются. */
+  readonly group: string;
   /** Каким он должен быть у сайта, где о нём ещё не думали. */
   readonly enabled: boolean;
 }
@@ -29,10 +33,26 @@ export const SYSTEM_TOGGLES: readonly SystemToggle[] = [
   {
     key: 'video.layout.vendor',
     title: 'Плеер: сторонний вид',
+    group: 'Видео',
     description:
       'Выключен - запись играет в нашем плеере: панель, оглавление и код доступа собраны нами. Включён - берётся вид библиотеки. Переключается в любой момент, перекодировать записи не нужно.',
     enabled: false,
   },
+  /*
+    Модули заводятся включёнными: сайт, где о модулях ещё не думали, уже
+    пользуется ими, и выключить их обновлением значит забрать у владельца
+    разделы (R10). Выключенными опциональные модули приходят только к новому
+    сайту - их ставит стартовое наполнение.
+  */
+  ...MODULES.map(
+    (m): SystemToggle => ({
+      key: moduleToggleKey(m.key),
+      title: `Модуль: ${m.title}`,
+      group: 'Модули',
+      description: `${m.description} Выключен - раздел скрыт в админке, его страницы и ручки не отвечают, блоки не ставятся; данные остаются.`,
+      enabled: true,
+    }),
+  ),
 ];
 
 /**
@@ -71,6 +91,7 @@ export async function adoptSystemToggles(payload: Payload): Promise<number> {
         data: {
           title: toggle.title,
           key: toggle.key,
+          group: toggle.group,
           description: toggle.description,
           production: toggle.enabled,
           staging: toggle.enabled,

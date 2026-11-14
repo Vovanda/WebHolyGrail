@@ -2,6 +2,8 @@ import type { MediaRef } from './media';
 import type { LinkRef } from './blocks';
 import type { ThemeConfig } from './theme';
 import type { SiteLayoutConfig } from './layout';
+import { isModuleEnabled } from './modules';
+import { CATALOG_HREF, shopSettings, type ShopSettingsInput } from './shop';
 
 /**
  * Пункт меню — ссылка, у которой может быть один уровень вложенности.
@@ -38,6 +40,10 @@ export interface SiteSettings {
   readonly logo?: MediaRef;
   /** Контакты для footer и блока Contacts. */
   readonly contacts: ContactsInfo;
+  /** Как оплатить счёт: реквизиты, показываются у неоплаченного счёта. */
+  readonly paymentNote?: string | null;
+  /** Магазин: реквизиты, сроки, анкета; как есть из CMS - читается через `shopSettings`. */
+  readonly shop?: ShopSettingsInput | null;
   /** Основная навигация в header. */
   readonly mainNav: readonly NavItem[];
   /** Дополнительная навигация в footer (если отличается от main). */
@@ -56,6 +62,15 @@ export interface SiteSettings {
   readonly layout?: SiteLayoutConfig;
   /** Настройки видео, которые нужны странице. */
   readonly video?: VideoSettings;
+  /**
+   * Значения переключателей на момент запроса страницы.
+   *
+   * @remarks
+   * Не поле глобала: сайт подмешивает ответ `/api/toggles` к настройкам, чтобы
+   * синхронная отрисовка блоков знала, какие модули выключены
+   * ({@link isModuleEnabled}).
+   */
+  readonly toggles?: Readonly<Record<string, boolean>>;
 }
 
 /**
@@ -154,4 +169,19 @@ export interface VideoDeniedSettings {
   readonly actionHref?: string;
   /** Текст на время, пока нарезка ещё идёт. */
   readonly notReadyTitle?: string;
+}
+
+/**
+ * Меню сайта: пункты владельца плюс вход в каталог, когда магазин включён.
+ *
+ * @remarks
+ * Пункт каталога появляется сам (docs/whg/43-shop.md, «На сайте»): владелец включил
+ * модуль - покупатель видит, куда идти. Если владелец сам поставил пункт на `/shop`,
+ * второй не добавляется. Подпись - из настроек магазина.
+ */
+export function siteNav(settings: Pick<SiteSettings, 'mainNav' | 'toggles' | 'shop'>): NavItem[] {
+  const nav = [...(settings.mainNav ?? [])];
+  if (!isModuleEnabled(settings.toggles ?? {}, 'shop')) return nav;
+  if (nav.some((item) => item.href.replace(/\/+$/, '') === CATALOG_HREF)) return nav;
+  return [...nav, { href: CATALOG_HREF, label: shopSettings(settings.shop).menuTitle }];
 }

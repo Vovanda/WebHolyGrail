@@ -1,23 +1,30 @@
-import { cookies } from 'next/headers';
+import { isSlug } from 'contracts';
+import { cookies, headers } from 'next/headers';
 
 import type {
   BlogArticle,
-  BlogMediaRef,
-  VideoSetItem,
   BlogAuthor,
+  BlogMediaRef,
   BlogTag,
   BlogThread,
   BlogThreadSummary,
-  VideoStream,
+  BuyerOrderView,
+  CatalogResultView,
+  CatalogSectionSummary,
+  CatalogSectionView,
   FaqGroupDoc,
   MediaRef,
+  OfferDetailView,
+  OfferView,
   PageDoc,
   ReusableBlockDoc,
   SiteSettings,
-  VideoSetRef,
-  VideoSubtitleTrack,
   VideoChapter,
+  VideoSetItem,
+  VideoSetRef,
   VideoStoryboard,
+  VideoStream,
+  VideoSubtitleTrack,
 } from 'contracts';
 
 import { CMS_URL } from './cms-url';
@@ -132,13 +139,16 @@ export async function getPageById(id: string | number): Promise<PageDoc | null> 
  * @returns глобальные настройки или `null` если глобал ещё не заполнен.
  */
 export async function getSiteSettings(): Promise<SiteSettings | null> {
-  const response = await fetch(`${CMS_URL}/api/globals/site-settings?depth=1`, {
-    cache: 'no-store',
-  });
+  const [response, toggles] = await Promise.all([
+    fetch(`${CMS_URL}/api/globals/site-settings?depth=1`, { cache: 'no-store' }),
+    getToggles(),
+  ]);
 
   if (!response.ok) return null;
 
-  return (await response.json()) as SiteSettings;
+  // Переключатели едут вместе с настройками: по ним отрисовка блоков знает,
+  // какие модули выключены, и рисует заглушку вместо их блоков.
+  return { ...((await response.json()) as SiteSettings), toggles };
 }
 
 /**
@@ -902,4 +912,97 @@ export async function getPlaylistByCode(
   );
   if (!response.ok) return null;
   return (await response.json()) as PlaylistView;
+}
+
+/**
+ * Позиции магазина для витрины: все по порядку или выбранные в блоке.
+ *
+ * @remarks
+ * `no-store`: остаток штучной позиции меняется заказом, и витрина должна
+ * показать «нет в наличии» сразу, а не после сборки.
+ */
+export async function listOffers(
+  pick:
+    | { readonly ids: readonly number[] }
+    | { readonly section: string }
+    | { readonly limit: number },
+): Promise<OfferView[]> {
+  const query =
+    'ids' in pick
+      ? `ids=${pick.ids.join(',')}`
+      : 'section' in pick
+        ? `section=${encodeURIComponent(pick.section)}`
+        : `limit=${encodeURIComponent(pick.limit)}`;
+  const response = await fetch(`${CMS_URL}/api/shop/offers?${query}`, { cache: 'no-store' });
+  if (!response.ok) return [];
+  return ((await response.json()) as { docs: OfferView[] }).docs;
+}
+
+/** Позиция для своей страницы `/shop/item/<слаг>`; нет такой - null. */
+export async function getOffer(slug: string): Promise<OfferDetailView | null> {
+  if (!isSlug(slug)) return null;
+  const response = await fetch(`${CMS_URL}/api/shop/offers/item/${slug}`, {
+    cache: 'no-store',
+  }).catch(() => null);
+  return response?.ok ? ((await response.json()) as OfferDetailView) : null;
+}
+
+/** Раздел каталога `/shop/<слаг>`; нет такого - null. */
+/** Разделы каталога со счётом позиций - страница `/shop`; пустые не приходят. */
+export async function listCatalogSections(): Promise<CatalogSectionSummary[]> {
+  const response = await fetch(`${CMS_URL}/api/shop/sections`, { cache: 'no-store' }).catch(
+    () => null,
+  );
+  return response?.ok ? ((await response.json()) as { docs: CatalogSectionSummary[] }).docs : [];
+}
+
+export async function getCatalogSection(slug: string): Promise<CatalogSectionView | null> {
+  if (!isSlug(slug)) return null;
+  const response = await fetch(`${CMS_URL}/api/shop/sections/${slug}`, {
+    cache: 'no-store',
+  }).catch(() => null);
+  return response?.ok ? ((await response.json()) as CatalogSectionView) : null;
+}
+
+/**
+ * Страница выдачи каталога: раздел или весь магазин, запрос, фильтр, сортировка.
+ *
+ * @remarks
+ * Параметры адреса уходят в CMS как есть - разбирает и проверяет их ручка
+ * (docs/whg/44-catalog-search.md, «Выдача страницами»). Чужой раздел - null.
+ */
+export async function getCatalog(
+  section: string | null,
+  params: Readonly<Record<string, string | string[] | undefined>>,
+): Promise<CatalogResultView | null> {
+  if (section !== null && !isSlug(section)) return null;
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (key === 'section' || value === undefined) continue;
+    for (const v of Array.isArray(value) ? value : [value]) query.append(key, v);
+  }
+  if (section) query.set('section', section);
+  const response = await fetch(`${CMS_URL}/api/shop/catalog?${query.toString()}`, {
+    cache: 'no-store',
+  }).catch(() => null);
+  return response?.ok ? ((await response.json()) as CatalogResultView) : null;
+}
+
+/**
+ * Заказ по секрету ссылки - то, что покупатель вправе видеть (И-8).
+ *
+ * @remarks
+ * Цепочка адресов посетителя уходит в CMS как пришла: CMS считает лимит по
+ * последнему адресу. Без неё все страницы заказов всех покупателей шли бы с
+ * адреса сервера сайта одним счётом, и чужой перебор ссылок запирал бы всех.
+ */
+export async function getOrderView(token: string): Promise<BuyerOrderView | null> {
+  if (!/^[A-Za-z0-9_-]{22}$/.test(token)) return null;
+  const chain = (await headers()).get('x-forwarded-for');
+  const response = await fetch(`${CMS_URL}/api/shop/orders/view`, {
+    headers: { 'x-order-secret': token, ...(chain ? { 'x-forwarded-for': chain } : {}) },
+    cache: 'no-store',
+  }).catch(() => null);
+  if (!response?.ok) return null;
+  return (await response.json()) as BuyerOrderView;
 }

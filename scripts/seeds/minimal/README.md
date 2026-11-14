@@ -7,6 +7,7 @@
 - **Initial admin user** — `Users.role=admin`, email из `ADMIN_INITIAL_EMAIL`, пароль из `ADMIN_INITIAL_PASSWORD`. Если password не задан — admin не создаётся, юзер получит first-user wizard на `/admin`.
 - **Home page** — пустая `Pages` запись, `slug=home`, `_status=published`, без блоков.
 - **Имя сайта** — `SiteSettings.siteName` из `SITE_NAME` (fallback `SITE_SLUG`), и только если оно ещё не заполнено.
+- **Модули** — у нового сайта выключены все модули, кроме блога (`onNewSite` в `contracts/src/modules.ts`). Только когда до наполнения в базе не было ни пользователей, ни страниц, и только у модуля без записей: на живом сайте выбор владельца не трогается.
 
 Ничего от движка тут нет (#72): ни логотипа WHG, ни его меню, ни лендинга, ни FAQ про движок — всё это в отдельном пресете `whg-landing`, который гоняется только на самом whg.sawking.tech.
 

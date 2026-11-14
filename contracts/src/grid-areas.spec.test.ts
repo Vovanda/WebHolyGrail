@@ -167,6 +167,13 @@ describe('три ширины', () => {
     expect(grid.sm?.columns).toBe(2);
   });
 
+  it('мелким карточкам узкие экраны дают свою вместимость', () => {
+    const grid = layouts({}, 8, 4, {}, { md: 3, sm: 2 });
+    expect(grid.lg?.columns).toBe(8);
+    expect(grid.md?.columns).toBe(6);
+    expect(grid.sm?.columns).toBe(4);
+  });
+
   it('незаполненная не наследует фигуру соседней', () => {
     const grid = layouts({ lg: 'a a b : c d e', md: '', sm: '' }, 5, 3);
     expect(grid.lg?.cells.find((cell) => cell.name === 'a')).toMatchObject({ width: 4 });
@@ -200,5 +207,19 @@ describe('сетка держит колонки', () => {
 
   it('на планшете одна карточка - половина ширины', () => {
     expect(layouts({}, 1, 3, { keepColumns: true }).md?.columns).toBe(4);
+  });
+});
+
+describe('полные ряды', () => {
+  it('ряды заполнены, остаток последним рядом по центру', () => {
+    const grid = layout('', 16, 5, { keepColumns: true, fullRows: true });
+    const rows = [1, 2, 3, 4].map((r) => grid?.cells.filter((c) => c.row === r).length);
+    expect(rows).toEqual([5, 5, 5, 1]);
+    expect(grid?.cells.find((c) => c.row === 4)).toMatchObject({ column: 5, width: 2 });
+  });
+
+  it('без свойства ряды по-прежнему симметричные', () => {
+    const grid = layout('', 16, 5, { keepColumns: true });
+    expect(grid?.cells.filter((c) => c.row === 1).length).toBe(4);
   });
 });

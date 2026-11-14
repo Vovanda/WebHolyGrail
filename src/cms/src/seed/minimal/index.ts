@@ -43,6 +43,7 @@ import config from '../../payload.config.js';
 import { createInitialAdmin } from './createInitialAdmin.js';
 import { createHomePage } from './createHomePage.js';
 import { createStarterToggles } from './createStarterToggles.js';
+import { startModulesOff } from './startModulesOff.js';
 
 async function main(): Promise<void> {
   const email =
@@ -54,6 +55,14 @@ async function main(): Promise<void> {
 
   console.log('→ booting Payload...');
   const payload = await getPayload({ config });
+
+  // Новый сайт - пустая база до наполнения: ни редакторов, ни страниц. Главную
+  // владелец может удалить, и её пересоздание новым сайтом не делает.
+  const [users, pages] = await Promise.all([
+    payload.count({ collection: 'users', overrideAccess: true }),
+    payload.count({ collection: 'pages', overrideAccess: true }),
+  ]);
+  const isNewSite = users.totalDocs === 0 && pages.totalDocs === 0;
 
   if (password) {
     console.log(`→ createInitialAdmin(${email})`);
@@ -83,6 +92,10 @@ async function main(): Promise<void> {
   console.log(
     toggles > 0 ? `  ✓ переключателей заведено: ${toggles}` : '  · переключатели уже есть',
   );
+
+  console.log('→ startModulesOff()');
+  const off = await startModulesOff(payload, isNewSite);
+  console.log(off.length > 0 ? `  ✓ модули выключены: ${off.join(', ')}` : '  · модули не трогаем');
 
   console.log('\nDone. CMS: http://localhost:3001/admin');
   if (password) {

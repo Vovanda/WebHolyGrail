@@ -21,7 +21,7 @@ import { RatingStars } from '@/blocks/primitives/RatingStars';
  * там же — здесь только выбор города. Так переключение мгновенное и не требует
  * похода в CMS на каждый клик.
  *
- * **Как определяется город.** Спрашиваем `/api/geo` — он смотрит на IP и
+ * **Как определяется город.** Спрашиваем `/internal/geo` — он смотрит на IP и
  * возвращает название города. Разрешение у посетителя не запрашиваем: окно
  * «сайт хочет знать ваше местоположение» на первом экране отпугивает сильнее,
  * чем помогает точность. Не совпало или сервис молчит — показываем город по
@@ -92,7 +92,7 @@ export function SpecialistTop({
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch('/api/geo');
+        const res = await fetch('/internal/geo');
         if (!res.ok) return;
         const { city } = (await res.json()) as { city?: string };
         if (!city || cancelled) return;

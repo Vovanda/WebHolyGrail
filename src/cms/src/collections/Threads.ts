@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload';
+import { editorsOnly } from '../lib/access/editors';
 
 /**
  * Threads — серия связанных Articles (one-to-many через Article.thread).
@@ -72,8 +73,8 @@ export const Threads: CollectionConfig = {
       if (user) return true;
       return { status: { equals: 'published' } };
     },
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => Boolean(user),
+    create: editorsOnly,
+    update: editorsOnly,
+    delete: editorsOnly,
   },
 };

@@ -86,6 +86,9 @@ export function RequestForm({
       const cmsUrl = process.env['NEXT_PUBLIC_CMS_URL'] ?? '';
       const res = await fetch(`${cmsUrl}/api/form-submissions`, {
         method: 'POST',
+        // Заявку шлёт посетитель. Без этого на одном домене с админкой уходила
+        // кука редактора, а редактору создавать заявки закрыто - ответ 403.
+        credentials: 'omit',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           formType: data.requestType ?? 'general',

@@ -1,6 +1,8 @@
 import type { CollectionConfig } from 'payload';
 
+import { refreshModules } from '../lib/modules/enabled';
 import { forgetToggles } from '../lib/toggles/source';
+import { editorsOnly, adminsOnly } from '../lib/access/editors';
 
 /**
  * Переключатели возможностей.
@@ -26,9 +28,10 @@ export const FeatureToggles: CollectionConfig = {
     group: 'Настройки',
     description: 'Что включено на сайте. Меняется здесь и доходит до сайта без выкладки.',
     components: {
-      // Свод над списком: владельцу нужен ответ «что сейчас включено на рабочем
-      // сайте», а не перечень записей по алфавиту.
-      beforeListTable: ['/admin/components/TogglesBoard#TogglesBoard'],
+      // Доска вместо списка: владельцу нужен ответ «что сейчас включено на
+      // рабочем сайте», а не перечень записей по алфавиту. Свой вид списка -
+      // публичный слот, прятать штатную таблицу правилами по её классам не нужно.
+      views: { list: { Component: '/admin/components/TogglesBoard#TogglesBoard' } },
     },
   },
   fields: [
@@ -131,16 +134,19 @@ export const FeatureToggles: CollectionConfig = {
   ],
   hooks: {
     afterChange: [
-      ({ doc }) => {
+      async ({ doc, req }) => {
         // Свод в памяти забываем сразу: владелец нажал переключатель и ждёт,
-        // что сайт изменится теперь, а не через полминуты.
+        // что сайт изменится теперь, а не через полминуты. Снимок модулей
+        // обновляется тут же - по нему админка прячет разделы.
         forgetToggles();
+        await refreshModules(req.payload).catch(() => undefined);
         return doc;
       },
     ],
     afterDelete: [
-      ({ doc }) => {
+      async ({ doc, req }) => {
         forgetToggles();
+        await refreshModules(req.payload).catch(() => undefined);
         return doc;
       },
     ],
@@ -157,8 +163,8 @@ export const FeatureToggles: CollectionConfig = {
     // Читают все: значения нужны и сайту, и админке. Секретов здесь нет -
     // признак говорит лишь о том, включена ли возможность.
     read: () => true,
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    create: editorsOnly,
+    update: editorsOnly,
+    delete: adminsOnly,
   },
 };

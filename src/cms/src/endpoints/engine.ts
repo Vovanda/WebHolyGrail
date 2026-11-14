@@ -1,4 +1,6 @@
 import { blockPartsEndpoint } from './block-parts';
+import { withModuleEndpoints } from '../lib/modules/endpoint';
+import { shopEndpoints } from './shop';
 import { togglesEndpoint } from './toggles';
 import {
   videoAccessEndpoint,
@@ -42,4 +44,5 @@ export const engineEndpoints = [
   videoAccessEndpoint,
   videoKeyEndpoint,
   videoManifestEndpoint,
+  ...withModuleEndpoints('shop', shopEndpoints),
 ];

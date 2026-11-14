@@ -66,7 +66,7 @@ describe('CarouselDeck', () => {
     // gap работает между соседями по разметке, а в круге движок уносит карточки
     // сдвигом - и на стыке зазор пропадал. Внутренний отступ едет вместе с карточкой.
     expect(html).not.toMatch(/class="[^"]*\bgap-\d/);
-    expect(html).toContain('pl-[var(--carousel-gap)]');
+    expect(html).toContain('ps-[var(--carousel-gap)]');
   });
 
   it('меры берутся из переменной, а не из разметки', () => {

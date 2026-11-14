@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Github } from 'lucide-react';
-import type { BlockNode, SiteSettings } from 'contracts';
+import { type BlockNode, siteNav, type SiteSettings } from 'contracts';
 
 /**
  * Footer — минималистичный нижний слой template'а.
@@ -55,7 +55,7 @@ export function Footer({
   // settings-based fallback: если в node.data нет docsLinks/projectLinks,
   // используем SiteSettings.footerNav (или mainNav как fallback) — даёт
   // контент-менеджеру управление footer-nav через CMS без правки кода.
-  const settingsNav = settings.footerNav?.length ? settings.footerNav : (settings.mainNav ?? []);
+  const settingsNav = settings.footerNav?.length ? settings.footerNav : siteNav(settings);
   const year = new Date().getFullYear();
   const version = process.env.NEXT_PUBLIC_WHG_VERSION;
   /*

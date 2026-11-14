@@ -2,6 +2,7 @@ import type { CollectionConfig } from 'payload';
 
 import { generateAccessCode, normalizeAccessCode } from '../lib/video/access-code';
 import { codeExpiry, codeRules, type VideoCodeSettings } from '../lib/video/code-rules';
+import { editorsOnly } from '../lib/access/editors';
 
 /**
  * Код - одноразовый пароль к доступу: кто его получил, тот получил и право.
@@ -40,7 +41,7 @@ export const MediaAccessCodes: CollectionConfig = {
   admin: {
     useAsTitle: 'code',
     defaultColumns: ['code', 'access', 'usedCount', 'expiresAt'],
-    group: 'Медиа',
+    group: 'Доступы',
     description:
       'Короткий код, который диктуют и переписывают. Превращается в обычное право доступа. Ссылки-приглашения живут отдельно — их присылают целиком.',
   },
@@ -220,9 +221,9 @@ export const MediaAccessCodes: CollectionConfig = {
   access: {
     // Читать коды может только тот, кто их выдаёт: список кодов — это список
     // ключей от закрытого.
-    read: ({ req: { user } }) => Boolean(user),
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => Boolean(user),
+    read: editorsOnly,
+    create: editorsOnly,
+    update: editorsOnly,
+    delete: editorsOnly,
   },
 };

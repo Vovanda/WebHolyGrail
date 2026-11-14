@@ -1,4 +1,5 @@
 import type { CollectionConfig } from 'payload';
+import { editorsOnly } from '../lib/access/editors';
 
 /**
  * SocialPosts — коллекция социал-постов (R5++). Источник через поле
@@ -178,8 +179,8 @@ export const SocialPosts: CollectionConfig = {
   ],
   access: {
     read: () => true,
-    create: ({ req: { user } }) => Boolean(user),
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => Boolean(user),
+    create: editorsOnly,
+    update: editorsOnly,
+    delete: editorsOnly,
   },
 };

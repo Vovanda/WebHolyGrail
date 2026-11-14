@@ -19,7 +19,10 @@ import { engineCollections } from './collections/engine';
 // эти коллекции пустой груз, и синк папку domain не обходит.
 import { engineTasks } from './jobs/engine';
 import { previewPath, siteUrl } from './lib/preview';
+import { warmCatalog } from './lib/shop/catalog-shared';
 import { withAutoSlug } from './lib/slug';
+import { withModule } from './lib/modules/collection';
+import { watchModules } from './lib/modules/enabled';
 import { engineEndpoints } from './endpoints/engine';
 // Своё этого сайта - коллекции, ручки, задания, глобалы. Файл принадлежит
 // сайту и обновлением не трогается; сам конфиг общий и приезжает целиком.
@@ -93,6 +96,8 @@ function parseOrigins(csv: string | undefined, fallback: string): string[] {
 export default buildConfig({
   admin: {
     user: Users.slug,
+    // Умолчание Payload «MMMM do yyyy, h:mm a» по-русски читается «октября 23-е 2026, 5:54 ПП».
+    dateFormat: 'd MMMM yyyy, HH:mm',
     meta: {
       titleSuffix: process.env.SITE_NAME ? ` — ${process.env.SITE_NAME}` : ' — Holy Grail',
     },
@@ -125,6 +130,9 @@ export default buildConfig({
       beforeDashboard: ['/admin/components/ComplianceNotice#ComplianceNotice'],
       // Страница в панели предпросмотра идёт за прокруткой формы.
       providers: ['/admin/components/PreviewScrollSync#PreviewScrollSync'],
+      // Своё меню: порядок групп у пользователя, модули без ожидания сервера,
+      // смена темы внизу, как на сайте (#182).
+      Nav: '/admin/components/AdminNav#AdminNav',
       /*
         Канал одной страницей: записи и подборки участника вместе, как их видит
         посетитель. В медиатеке записи лежат вперемешку с картинками, подборки -
@@ -148,7 +156,7 @@ export default buildConfig({
 
     Порядок разделов админки задаёт сам набор движка; своё дописывается следом.
   */
-  collections: [...engineCollections, ...site.collections].map(withAutoSlug),
+  collections: [...engineCollections, ...site.collections].map(withAutoSlug).map(withModule),
   globals: [SiteSettings, ...site.globals],
   /*
     Ручки движка приходят набором целиком, своё дописывается следом. Тот же
@@ -175,6 +183,13 @@ export default buildConfig({
     */
     const own = await adoptSystemToggles(payload).catch(() => 0);
     if (own > 0) payload.logger.info(`Заведено переключателей движка: ${own}`);
+
+    // Снимок модулей - после заведения переключателей, чтобы первый же снимок
+    // видел записи модулей.
+    watchModules(payload);
+
+    // Индекс каталога - в фоне: запуск его не ждёт, первый покупатель тоже.
+    void warmCatalog(payload);
   },
   /**
    * Jobs Queue — admin UI на /admin/collections/payload-jobs. Template поставляет
@@ -183,7 +198,7 @@ export default buildConfig({
    * `pnpm payload jobs:run` или встроенный autoRun (см. whg-payload-jobs skill).
    *
    * jobsCollectionOverrides — кастомизация admin UI коллекции payload-jobs:
-   * русские labels + group 'Администрирование', чтобы downstream видел "Задачи"
+   * русские labels + group 'Настройки', чтобы downstream видел "Задачи"
    * рядом с "Редакторы" вместо скрытой технической collection.
    */
   jobs: {
@@ -199,7 +214,7 @@ export default buildConfig({
       admin: {
         ...defaultJobsCollection.admin,
         hidden: false,
-        group: 'Администрирование',
+        group: 'Настройки',
         description:
           'Фоновые задачи. Template не поставляет tasks из коробки — downstream добавляет свои в payload.config.jobs.tasks. См. whg-payload-jobs skill.',
       },

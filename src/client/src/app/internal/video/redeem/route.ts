@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+import { forwardedFor } from '@/lib/forwarded-for';
+
 /**
  * Погашение кода доступа с своего же домена.
  *
@@ -26,6 +28,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     headers: {
       'Content-Type': 'application/json',
       ...(cookie ? { cookie } : {}),
+      ...forwardedFor(request),
     },
     body,
   }).catch(() => null);

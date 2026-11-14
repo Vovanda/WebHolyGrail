@@ -53,15 +53,18 @@ Details — [`whg/32-structure.md`](whg/32-structure.md).
 
 ## Docs
 
-| File                                             | What                                                   |
-| ------------------------------------------------ | ------------------------------------------------------ |
-| [`00-overview.md`](whg/00-overview.md)           | Category, the problem it addresses, what's in the box  |
-| [`15-vision.md`](whg/15-vision.md)               | Stack rationale: why these choices                     |
-| [`30-philosophy.md`](whg/30-philosophy.md)       | R-rules R1-R9                                          |
-| [`32-structure.md`](whg/32-structure.md)         | Monorepo layout, growth models, project types          |
-| [`37-scaffolding.md`](whg/37-scaffolding.md)     | Scaffolding a new site (gh template → Infisical → dev) |
-| [`45-data-location.md`](whg/45-data-location.md) | Where values live — Payload / Infisical / code         |
-| [`stack/`](stack/)                               | Per-component reference                                |
+| File                                               | What                                                   |
+| -------------------------------------------------- | ------------------------------------------------------ |
+| [`00-overview.md`](whg/00-overview.md)             | Category, the problem it addresses, what's in the box  |
+| [`15-vision.md`](whg/15-vision.md)                 | Stack rationale: why these choices                     |
+| [`30-philosophy.md`](whg/30-philosophy.md)         | R-rules R1-R9                                          |
+| [`32-structure.md`](whg/32-structure.md)           | Monorepo layout, growth models, project types          |
+| [`37-scaffolding.md`](whg/37-scaffolding.md)       | Scaffolding a new site (gh template → Infisical → dev) |
+| [`43-shop.md`](whg/43-shop.md)                     | Shop: offers, cart, orders, flags                      |
+| [`44-catalog-search.md`](whg/44-catalog-search.md) | Draft: catalog filters and search                      |
+| [`45-data-location.md`](whg/45-data-location.md)   | Where values live — Payload / Infisical / code         |
+| [`47-forms-records.md`](whg/47-forms-records.md)   | Draft: owner-built forms and records                   |
+| [`stack/`](stack/)                                 | Per-component reference                                |
 
 ## License
 

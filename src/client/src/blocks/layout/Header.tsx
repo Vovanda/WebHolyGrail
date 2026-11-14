@@ -1,19 +1,26 @@
 import Link from 'next/link';
 import { Github } from 'lucide-react';
-import type { BlockNode, SiteSettings } from 'contracts';
+import {
+  type BlockNode,
+  isModuleEnabled,
+  shopSettings,
+  siteNav,
+  type SiteSettings,
+} from 'contracts';
 
 import { ThemeToggle } from './ThemeToggle';
 import { BrandMark } from '@/blocks/primitives/BrandMark';
+import { HeaderCart } from '@/blocks/primitives/Shop/HeaderCart';
 
 /**
  * Header — шапка сайта: знак, меню и кнопки.
  *
  * @remarks
  * Композиция (desktop):
- *   [Wordmark (mark + siteName)] — [mainNav центр] — [GitHub · ThemeToggle · CTA]
+ *   [Wordmark (mark + siteName)] — [mainNav центр] — [GitHub · заказы · корзина · ThemeToggle · CTA]
  *
  * Композиция (mobile):
- *   [Wordmark] — [ThemeToggle · CTA] (nav уходит в NavDrawer если он сконфигурирован
+ *   [Wordmark] — [заказы · корзина · ThemeToggle] (nav уходит в NavDrawer если он сконфигурирован
  *   в SiteSettings.layout, бургер живёт в самом NavDrawer-блоке).
  *
  * Опциональные поля из `node.data` (per-block override):
@@ -22,6 +29,7 @@ import { BrandMark } from '@/blocks/primitives/BrandMark';
  *     справа от ThemeToggle (если нет — кнопки нет).
  *
  * SiteSettings.theme.userToggle контролирует видимость ThemeToggle (по умолчанию true).
+ * Заказы и корзина - когда включён модуль магазина (`HeaderCart`).
  */
 
 export interface HeaderData {
@@ -37,11 +45,13 @@ export function Header({
   readonly settings: SiteSettings;
 }) {
   const data = node.data ?? {};
-  const nav = settings.mainNav ?? [];
+  // Пункт каталога появляется сам, пока магазин включён (siteNav).
+  const nav = siteNav(settings);
   const showThemeToggle = settings.theme?.userToggle ?? true;
   const sticky = settings.header?.sticky ?? false;
   const githubUrl = data.githubUrl;
   const cta = data.primaryCta;
+  const shop = isModuleEnabled(settings.toggles ?? {}, 'shop');
 
   return (
     /*
@@ -92,7 +102,7 @@ export function Header({
           ))}
         </nav>
 
-        {/* Right — GitHub · ThemeToggle · CTA */}
+        {/* Right — GitHub · заказы · корзина · ThemeToggle · CTA */}
         <div className="ml-auto lg:ml-0 flex items-center gap-1 md:gap-2">
           {githubUrl && (
             <a
@@ -105,6 +115,7 @@ export function Header({
               <Github size={18} />
             </a>
           )}
+          {shop && <HeaderCart cartHref={shopSettings(settings.shop).cartHref} />}
           {showThemeToggle && <ThemeToggle />}
           {cta && (
             <Link

@@ -1,4 +1,6 @@
-import { getSiteSettings, listArticles } from '@/lib/api-client';
+import { isModuleEnabled } from 'contracts';
+
+import { getSiteSettings, getToggles, listArticles } from '@/lib/api-client';
 
 /**
  * /blog/rss.xml — RSS 2.0 лента последних статей.
@@ -13,6 +15,8 @@ export const dynamic = 'force-dynamic';
 const FEED_LIMIT = 50;
 
 export async function GET() {
+  // Ручка не под разметкой раздела: выключенный блог проверяется здесь же.
+  if (!isModuleEnabled(await getToggles(), 'blog')) return new Response(null, { status: 404 });
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000').replace(/\/$/, '');
   const [settings, { docs }] = await Promise.all([
     getSiteSettings(),

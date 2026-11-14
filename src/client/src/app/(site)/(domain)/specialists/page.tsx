@@ -14,6 +14,7 @@ import { CatalogFilters } from '@/blocks/primitives/CatalogFilters';
 import { MediaImage } from '@/blocks/primitives/Media';
 import { RatingStars } from '@/blocks/primitives/RatingStars';
 import { CARD_PLACE, resolveMediaUrl } from '@/lib/media';
+import { jsonLd } from '@/lib/seo/json-ld';
 
 /**
  * /specialists — полный список специалистов с фильтром по городу.
@@ -98,7 +99,7 @@ function Card({ doc, cityName }: { readonly doc: SpecialistDoc; readonly cityNam
  * Отдаём только показанных — с учётом фильтров, как и посетителю.
  */
 function listJsonLd(people: readonly SpecialistDoc[]): string {
-  return JSON.stringify({
+  return jsonLd({
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     numberOfItems: people.length,

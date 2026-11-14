@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+import { forwardedFor } from '@/lib/forwarded-for';
+
 /**
  * Ключ отрезка со своего же домена.
  *
@@ -38,6 +40,7 @@ export async function GET(
     cache: 'no-store',
     headers: {
       ...(cookie ? { cookie } : {}),
+      ...forwardedFor(request),
       origin,
     },
   }).catch(() => null);

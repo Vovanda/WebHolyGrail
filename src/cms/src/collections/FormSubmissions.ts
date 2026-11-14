@@ -1,4 +1,6 @@
+import { fromAdmin } from '../lib/access/from-admin';
 import type { CollectionConfig } from 'payload';
+import { editorsOnly, adminsOnly, isEditor } from '../lib/access/editors';
 
 /**
  * FormSubmissions — заявки с любых форм сайта.
@@ -18,7 +20,9 @@ export const FormSubmissions: CollectionConfig = {
   admin: {
     useAsTitle: 'formType',
     defaultColumns: ['formType', 'status', 'createdAt', 'source'],
-    group: 'Обращения',
+    group: 'Формы',
+    description:
+      'Заявки приходят с сайта: посетитель заполняет форму на странице (блок «Форма заявки»), и запись появляется здесь сама. Вручную заявки не заводятся.',
   },
   hooks: {
     afterChange: [
@@ -101,9 +105,12 @@ export const FormSubmissions: CollectionConfig = {
     },
   ],
   access: {
-    read: ({ req: { user } }) => Boolean(user),
-    create: () => true, // публичная отправка с фронта.
-    update: ({ req: { user } }) => Boolean(user),
-    delete: ({ req: { user } }) => user?.role === 'admin',
+    read: editorsOnly,
+    // Заявка приходит с сайта, руками её не заводят: из админки редактору
+    // создание закрыто, и Payload прячет кнопку «Создать». С сайта заявку шлёт
+    // и вошедший редактор - кука у них общая, а форма сайта к админке не относится.
+    create: ({ req }) => !isEditor(req.user) || !fromAdmin(req),
+    update: editorsOnly,
+    delete: adminsOnly,
   },
 };

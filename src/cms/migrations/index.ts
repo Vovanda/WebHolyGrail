@@ -69,6 +69,25 @@ import * as migration_20260924_161302_gallery_without_tile_layout from './202609
 import * as migration_20260927_135202_page_background from './20260927_135202_page_background';
 import * as migration_20260927_151802_page_background_veil from './20260927_151802_page_background_veil';
 import * as migration_20260927_160018_hero_photo from './20260927_160018_hero_photo';
+import * as migration_20261022_224847_shop from './20261022_224847_shop';
+import * as migration_20261022_231116_shop_how_to_buy from './20261022_231116_shop_how_to_buy';
+import * as migration_20261022_231834_shop_deposit from './20261022_231834_shop_deposit';
+import * as migration_20261022_232708_shop_settings from './20261022_232708_shop_settings';
+import * as migration_20261023_110340_order_cancel_reason from './20261023_110340_order_cancel_reason';
+import * as migration_20261023_113302_checkout_phone_format from './20261023_113302_checkout_phone_format';
+import * as migration_20261023_120719_shop_drop_access from './20261023_120719_shop_drop_access';
+import * as migration_20261023_125752_shop_cart_href from './20261023_125752_shop_cart_href';
+import * as migration_20261023_131121_shop_catalog from './20261023_131121_shop_catalog';
+import * as migration_20261023_152014_shop_order_lines_invoice_extra from './20261023_152014_shop_order_lines_invoice_extra';
+import * as migration_20261023_153305_shop_offer_promo from './20261023_153305_shop_offer_promo';
+import * as migration_20261023_155955_shop_invoice_line_discount from './20261023_155955_shop_invoice_line_discount';
+import * as migration_20261023_161622_shop_menu_title from './20261023_161622_shop_menu_title';
+import * as migration_20261023_175436_shop_offer_sku from './20261023_175436_shop_offer_sku';
+import * as migration_20261023_181415_shop_offer_has_page from './20261023_181415_shop_offer_has_page';
+import * as migration_20261023_183057_catalog_quick_filter from './20261023_183057_catalog_quick_filter';
+import * as migration_20261023_190707_offer_search_words from './20261023_190707_offer_search_words';
+import * as migration_20261023_192508_search_misses from './20261023_192508_search_misses';
+import * as migration_20261023_200616_catalog_section_tree from './20261023_200616_catalog_section_tree';
 
 export const migrations = [
   {
@@ -425,5 +444,100 @@ export const migrations = [
     up: migration_20260927_160018_hero_photo.up,
     down: migration_20260927_160018_hero_photo.down,
     name: '20260927_160018_hero_photo',
+  },
+  {
+    up: migration_20261022_224847_shop.up,
+    down: migration_20261022_224847_shop.down,
+    name: '20261022_224847_shop',
+  },
+  {
+    up: migration_20261022_231116_shop_how_to_buy.up,
+    down: migration_20261022_231116_shop_how_to_buy.down,
+    name: '20261022_231116_shop_how_to_buy',
+  },
+  {
+    up: migration_20261022_231834_shop_deposit.up,
+    down: migration_20261022_231834_shop_deposit.down,
+    name: '20261022_231834_shop_deposit',
+  },
+  {
+    up: migration_20261022_232708_shop_settings.up,
+    down: migration_20261022_232708_shop_settings.down,
+    name: '20261022_232708_shop_settings',
+  },
+  {
+    up: migration_20261023_110340_order_cancel_reason.up,
+    down: migration_20261023_110340_order_cancel_reason.down,
+    name: '20261023_110340_order_cancel_reason',
+  },
+  {
+    up: migration_20261023_113302_checkout_phone_format.up,
+    down: migration_20261023_113302_checkout_phone_format.down,
+    name: '20261023_113302_checkout_phone_format',
+  },
+  {
+    up: migration_20261023_120719_shop_drop_access.up,
+    down: migration_20261023_120719_shop_drop_access.down,
+    name: '20261023_120719_shop_drop_access',
+  },
+  {
+    up: migration_20261023_125752_shop_cart_href.up,
+    down: migration_20261023_125752_shop_cart_href.down,
+    name: '20261023_125752_shop_cart_href',
+  },
+  {
+    up: migration_20261023_131121_shop_catalog.up,
+    down: migration_20261023_131121_shop_catalog.down,
+    name: '20261023_131121_shop_catalog',
+  },
+  {
+    up: migration_20261023_152014_shop_order_lines_invoice_extra.up,
+    down: migration_20261023_152014_shop_order_lines_invoice_extra.down,
+    name: '20261023_152014_shop_order_lines_invoice_extra',
+  },
+  {
+    up: migration_20261023_153305_shop_offer_promo.up,
+    down: migration_20261023_153305_shop_offer_promo.down,
+    name: '20261023_153305_shop_offer_promo',
+  },
+  {
+    up: migration_20261023_155955_shop_invoice_line_discount.up,
+    down: migration_20261023_155955_shop_invoice_line_discount.down,
+    name: '20261023_155955_shop_invoice_line_discount',
+  },
+  {
+    up: migration_20261023_161622_shop_menu_title.up,
+    down: migration_20261023_161622_shop_menu_title.down,
+    name: '20261023_161622_shop_menu_title',
+  },
+  {
+    up: migration_20261023_175436_shop_offer_sku.up,
+    down: migration_20261023_175436_shop_offer_sku.down,
+    name: '20261023_175436_shop_offer_sku',
+  },
+  {
+    up: migration_20261023_181415_shop_offer_has_page.up,
+    down: migration_20261023_181415_shop_offer_has_page.down,
+    name: '20261023_181415_shop_offer_has_page',
+  },
+  {
+    up: migration_20261023_183057_catalog_quick_filter.up,
+    down: migration_20261023_183057_catalog_quick_filter.down,
+    name: '20261023_183057_catalog_quick_filter',
+  },
+  {
+    up: migration_20261023_190707_offer_search_words.up,
+    down: migration_20261023_190707_offer_search_words.down,
+    name: '20261023_190707_offer_search_words',
+  },
+  {
+    up: migration_20261023_192508_search_misses.up,
+    down: migration_20261023_192508_search_misses.down,
+    name: '20261023_192508_search_misses',
+  },
+  {
+    up: migration_20261023_200616_catalog_section_tree.up,
+    down: migration_20261023_200616_catalog_section_tree.down,
+    name: '20261023_200616_catalog_section_tree',
   },
 ];

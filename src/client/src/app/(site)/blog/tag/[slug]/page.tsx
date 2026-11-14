@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getSiteSettings, getTagBySlug, listArticles } from '@/lib/api-client';
 import { blogColumn, resolveBlogSettings } from '@/lib/blog-settings';
 import { PostList } from '@/blocks/primitives/Blog/PostList';
-import { Pagination } from '@/blocks/primitives/Blog/Pagination';
+import { Pagination } from '@/blocks/primitives/Pagination';
 
 /**
  * /blog/tag/[slug] — статьи одного тега. SSR (R14).

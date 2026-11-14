@@ -13,6 +13,7 @@ import { renderBlockNode } from '@/layouts/site-layout';
 import { resolveMediaUrl } from '@/lib/media';
 import { pageShareImage } from '@/lib/share-image';
 import { Breadcrumbs } from '@/blocks/primitives/Breadcrumbs';
+import { jsonLd } from '@/lib/seo/json-ld';
 
 /**
  * Catchall публичный маршрут — рендерит страницу из Payload `Pages` по slug.
@@ -80,7 +81,7 @@ function siteJsonLd(settings: SiteSettings): string {
   const sameAs = (settings.social ?? []).map((s) => s.url).filter(Boolean);
   const { phone, email } = settings.contacts ?? {};
 
-  return JSON.stringify({
+  return jsonLd({
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: settings.siteName,
