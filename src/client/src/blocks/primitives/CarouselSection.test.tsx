@@ -37,7 +37,7 @@ vi.mock('@/lib/api-client', () => ({
   })),
 }));
 
-const { CarouselSection } = await import('./CarouselSection');
+const { CarouselSection, fromEditor } = await import('./CarouselSection');
 const { listArticles, getChannel } = await import('@/lib/api-client');
 
 function node(data: Record<string, unknown>) {
@@ -75,5 +75,47 @@ describe('CarouselSection', () => {
 
   it('видео без указанного канала лента не показывает', async () => {
     expect(await cardsOf({ sourceKind: 'videos' })).toBeNull();
+  });
+});
+
+/**
+ * Карточка из админки приходит плоской: документ медиатеки в `image`, ссылка
+ * строками. Лента ждёт `image.media` и объект `link` - без сборки карточка
+ * рисовалась без кадра и без ссылки.
+ */
+describe('fromEditor', () => {
+  it('документ медиатеки становится картинкой карточки', () => {
+    const media = { id: 95, url: '/media/shot.webp', width: 1440, height: 900 };
+    const card = fromEditor({
+      image: media,
+      title: 'veo55.ru',
+      text: 'Сайт питомника',
+    } as never);
+
+    expect(card.image?.media).toMatchObject({ id: 95 });
+    expect(card.image?.alt).toBe('veo55.ru');
+    expect(card.title).toBe('veo55.ru');
+  });
+
+  it('href и подпись ссылки становятся ссылкой карточки', () => {
+    const card = fromEditor({
+      title: 'veo55.ru',
+      href: '/@veo55',
+      linkLabel: 'Открыть',
+    } as never);
+
+    expect(card.link).toEqual({ href: '/@veo55', label: 'Открыть' });
+  });
+
+  it('подпись ссылки без своего текста берётся из заголовка', () => {
+    const card = fromEditor({ title: 'Сайт', href: '/site' } as never);
+    expect(card.link?.label).toBe('Сайт');
+  });
+
+  it('обёртка ImageRef остаётся картинкой карточки', () => {
+    const media = { id: 7, url: '/media/a.webp' };
+    const card = fromEditor({ image: { media, alt: 'Кадр' } } as never);
+    expect(card.image?.media).toMatchObject({ id: 7 });
+    expect(card.image?.alt).toBe('Кадр');
   });
 });
