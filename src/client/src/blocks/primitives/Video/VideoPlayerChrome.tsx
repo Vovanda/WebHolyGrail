@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { VideoGestures } from './VideoGestures';
 import { VideoMiniFrame } from './VideoMiniFrame';
 import { useMiniPlayer } from './useMiniPlayer';
+import { frameStyle } from './frame';
 import { DEFAULT_RATIO, useVideoRatio } from './useVideoRatio';
 import { useVideoResume } from './useVideoResume';
 
@@ -201,15 +202,11 @@ export function VideoPlayerChrome({
             preload="none"
             title={title}
             className="block h-full w-full"
-            style={{ aspectRatio: ratio }}
+            style={frameStyle(ratio)}
           />
         ) : (
           /* @ts-expect-error — веб-компоненты media-chrome не типизированы для JSX */
-          <media-controller
-            ref={controllerRef}
-            class="relative block w-full"
-            style={{ aspectRatio: ratio }}
-          >
+          <media-controller ref={controllerRef} class="relative block" style={frameStyle(ratio)}>
             {/*
             Собственную высоту видео не задаём: media-chrome раскладывает слот
             сам и кладёт панель управления поверх нижней кромки кадра. С
