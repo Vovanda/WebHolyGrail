@@ -102,43 +102,50 @@ export default async function VideoPage({
       значит оставить вокруг пустые поля. Текст же в широкой колонке нечитаем,
       поэтому ширины у них разные.
     */
-    <main className="mx-auto flex max-w-wide flex-col gap-8 px-4 py-8 md:gap-10 md:px-6 md:py-12">
+    <>
       {/*
-        Путь до записи: канал, плейлист, сама запись. Пришедший по прямой ссылке
-        иначе не понимает, где оказался и что рядом.
-      */}
-      <Breadcrumbs
-        items={[
-          { label: video.authorName ?? `@${channel}`, href: `/@${channel}` },
-          ...(set ? [{ label: set.title, href: `/@${channel}/p/${set.code ?? setCode}` }] : []),
-          { label: video.title },
-        ]}
-        copyLink
-      />
+        Путь до записи лежит в общей полосе страницы, как на /shop и в карточке
+        каталога. Внутри колонки с gap-8 крошки уезжали от шапки и мерили
+        отступы по-своему.
 
-      {playable && token ? (
-        <VideoPlayer
-          mini
-          watermark={watermark ?? undefined}
-          subtitles={video.subtitles}
-          storyboard={video.storyboard}
-          chapters={video.chapters}
-          durationSeconds={video.durationSeconds}
-          src={video.playlistUrl}
-          mediaId={video.id}
-          poster={video.poster?.url}
-          title={video.title}
+        Канал, плейлист, сама запись: пришедший по прямой ссылке иначе не
+        понимает, где оказался и что рядом.
+      */}
+      <div className="mx-auto max-w-wide px-4 pb-4 md:px-6 md:pb-6">
+        <Breadcrumbs
+          items={[
+            { label: video.authorName ?? `@${channel}`, href: `/@${channel}` },
+            ...(set ? [{ label: set.title, href: `/@${channel}/p/${set.code ?? setCode}` }] : []),
+            { label: video.title },
+          ]}
+          copyLink
         />
-      ) : (
-        <VideoNotice
-          poster={video.poster ?? null}
-          text={
-            video.status !== 'ready'
-              ? 'Видео готовится к показу'
-              : 'Видео открывается по коду доступа'
-          }
-        >
-          {/*
+      </div>
+
+      <main className="mx-auto flex max-w-wide flex-col gap-8 px-4 pb-8 md:gap-10 md:px-6 md:pb-12">
+        {playable && token ? (
+          <VideoPlayer
+            mini
+            watermark={watermark ?? undefined}
+            subtitles={video.subtitles}
+            storyboard={video.storyboard}
+            chapters={video.chapters}
+            durationSeconds={video.durationSeconds}
+            src={video.playlistUrl}
+            mediaId={video.id}
+            poster={video.poster?.url}
+            title={video.title}
+          />
+        ) : (
+          <VideoNotice
+            poster={video.poster ?? null}
+            text={
+              video.status !== 'ready'
+                ? 'Видео готовится к показу'
+                : 'Видео открывается по коду доступа'
+            }
+          >
+            {/*
             Код принимается прямо здесь: человек упёрся в замок именно тут,
             и отправлять его на другую страницу за тем же действием незачем.
 
@@ -147,88 +154,89 @@ export default async function VideoPage({
             по нему поле появлялось бы сразу у всех посетителей и всё равно
             не у того, кто держит код в руках.
           */}
-          {video.status === 'ready' && token && <AccessCodeForm />}
-        </VideoNotice>
-      )}
+            {video.status === 'ready' && token && <AccessCodeForm />}
+          </VideoNotice>
+        )}
 
-      <header className="flex max-w-content flex-col gap-2">
-        <h1 className="text-h2 font-display font-semibold tracking-tight text-ink text-balance">
-          {video.title}
-        </h1>
-        <p className="text-sm text-muted">
-          <a href={`/@${video.channel}`} className="hover:text-ink hover:underline">
-            @{video.channel}
-          </a>
-          {video.durationSeconds ? ` · ${formatDuration(video.durationSeconds)}` : ''}
-        </p>
-
-        {/* Поделиться с того места, где сейчас стоит запись. */}
-        <VideoShareTimecode />
-        {video.description && <VideoDescription text={video.description} />}
-      </header>
-
-      {set && set.items.length > 1 && (
-        <section className="flex flex-col gap-3">
-          <h2 className="text-body font-medium text-ink">
-            Из плейлиста «
-            <a
-              href={`/@${channel}/p/${set.code ?? setCode}`}
-              className="hover:underline underline-offset-4"
-            >
-              {set.title}
+        <header className="flex max-w-content flex-col gap-2">
+          <h1 className="text-h2 font-display font-semibold tracking-tight text-ink text-balance">
+            {video.title}
+          </h1>
+          <p className="text-sm text-muted">
+            <a href={`/@${video.channel}`} className="hover:text-ink hover:underline">
+              @{video.channel}
             </a>
-            »
-          </h2>
+            {video.durationSeconds ? ` · ${formatDuration(video.durationSeconds)}` : ''}
+          </p>
 
-          <VideoSetStrip
-            items={set.items}
-            channel={channel}
-            setCode={set.code ?? setCode}
-            currentCode={code}
-            className="hidden md:flex"
-          />
-        </section>
-      )}
+          {/* Поделиться с того места, где сейчас стоит запись. */}
+          <VideoShareTimecode />
+          {video.description && <VideoDescription text={video.description} />}
+        </header>
 
-      {/*
+        {set && set.items.length > 1 && (
+          <section className="flex flex-col gap-3">
+            <h2 className="text-body font-medium text-ink">
+              Из плейлиста «
+              <a
+                href={`/@${channel}/p/${set.code ?? setCode}`}
+                className="hover:underline underline-offset-4"
+              >
+                {set.title}
+              </a>
+              »
+            </h2>
+
+            <VideoSetStrip
+              items={set.items}
+              channel={channel}
+              setCode={set.code ?? setCode}
+              currentCode={code}
+              className="hidden md:flex"
+            />
+          </section>
+        )}
+
+        {/*
         Второй перечень отвечает на другой вопрос: частью чего ещё является это
         видео. Линия отделяет его от списка выше - без неё два перечня подряд
         читаются как один длинный.
       */}
-      {video.sets.length > 0 && (
-        <>
-          <hr className="border-border" />
-          <VideoSetLinks
-            sets={video.sets}
-            channel={channel}
-            currentSetCode={set?.code ?? setCode}
-          />
-        </>
-      )}
+        {video.sets.length > 0 && (
+          <>
+            <hr className="border-border" />
+            <VideoSetLinks
+              sets={video.sets}
+              channel={channel}
+              currentSetCode={set?.code ?? setCode}
+            />
+          </>
+        )}
 
-      {/*
+        {/*
         Разметка для поисковика. Без неё прямая ссылка выглядит в выдаче
         обычной страницей, без обложки и длительности — то есть видео
         практически не находится.
       */}
-      {video.access === 'public' && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: jsonLd({
-              '@context': 'https://schema.org',
-              '@type': 'VideoObject',
-              name: video.title,
-              description: video.description ?? video.title,
-              thumbnailUrl: video.poster?.url ? [video.poster.url] : undefined,
-              duration: video.durationSeconds ? toIsoDuration(video.durationSeconds) : undefined,
-              contentUrl: video.playlistUrl || undefined,
-              author: { '@type': 'Person', name: `@${video.channel}` },
-            }),
-          }}
-        />
-      )}
-    </main>
+        {video.access === 'public' && (
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{
+              __html: jsonLd({
+                '@context': 'https://schema.org',
+                '@type': 'VideoObject',
+                name: video.title,
+                description: video.description ?? video.title,
+                thumbnailUrl: video.poster?.url ? [video.poster.url] : undefined,
+                duration: video.durationSeconds ? toIsoDuration(video.durationSeconds) : undefined,
+                contentUrl: video.playlistUrl || undefined,
+                author: { '@type': 'Person', name: `@${video.channel}` },
+              }),
+            }}
+          />
+        )}
+      </main>
+    </>
   );
 }
 

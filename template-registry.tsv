@@ -167,6 +167,7 @@ overlay	docs/ux/primitives/media-image.md
 overlay	docs/ux/primitives/README.md
 overlay	docs/ux/primitives/tiles-notation.md
 overlay	docs/ux/primitives/tiles.md
+overlay	docs/ux/primitives/video-player.en.md
 overlay	docs/ux/primitives/video-player.md
 overlay	docs/ux/primitives/video-set.md
 overlay	docs/whg/00-overview.md
@@ -392,6 +393,8 @@ mirror	src/client/src/blocks/primitives/Video/backdrop-start.ts
 mirror	src/client/src/blocks/primitives/Video/backdrop-stream.ts
 mirror	src/client/src/blocks/primitives/Video/chapters-track.test.ts
 mirror	src/client/src/blocks/primitives/Video/chapters-track.ts
+mirror	src/client/src/blocks/primitives/Video/frame.test.ts
+mirror	src/client/src/blocks/primitives/Video/frame.ts
 mirror	src/client/src/blocks/primitives/Video/granted-items.test.ts
 mirror	src/client/src/blocks/primitives/Video/granted-items.ts
 mirror	src/client/src/blocks/primitives/Video/invite-path.test.ts

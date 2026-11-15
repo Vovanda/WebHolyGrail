@@ -70,16 +70,20 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
   const onDarkCover = playlist.coverIsDark !== false;
 
   return (
-    <main className="mx-auto flex max-w-wide flex-col gap-8 px-4 py-8 md:gap-10 md:px-6 md:py-12">
-      <Breadcrumbs
-        items={[
-          { label: playlist.authorName ?? `@${channel}`, href: `/@${channel}` },
-          { label: playlist.title },
-        ]}
-        copyLink
-      />
+    <>
+      {/* Путь до плейлиста - в общей полосе страницы, как на /shop: в колонке с gap-8 крошки мерили отступы по-своему. */}
+      <div className="mx-auto max-w-wide px-4 pb-4 md:px-6 md:pb-6">
+        <Breadcrumbs
+          items={[
+            { label: playlist.authorName ?? `@${channel}`, href: `/@${channel}` },
+            { label: playlist.title },
+          ]}
+          copyLink
+        />
+      </div>
 
-      {/*
+      <main className="mx-auto flex max-w-wide flex-col gap-8 px-4 pb-8 md:gap-10 md:px-6 md:pb-12">
+        {/*
         Обложка - фон заголовка, а не картинка над ним: полосой сверху она
         только отодвигала название вниз и ничего не говорила. Название, канал
         со счётом и описание лежат на ней; затемнение снизу держит текст
@@ -87,115 +91,118 @@ export default async function PlaylistPage({ params }: { params: Promise<Params>
 
         Без обложки остаётся тот же заголовок обычным блоком.
       */}
-      <header
-        className={cn(
-          'flex flex-col justify-start gap-4',
-          playlist.cover
-            ? 'relative min-h-[22rem] overflow-hidden rounded-xl p-8 pb-24 md:min-h-[28rem] md:p-12 md:pb-28'
-            : 'max-w-content',
-        )}
-      >
-        {playlist.cover && (
-          <>
-            {/* Обложка лежит фоном заголовка во всю ширину страницы - это же
+        <header
+          className={cn(
+            'flex flex-col justify-start gap-4',
+            playlist.cover
+              ? 'relative min-h-[22rem] overflow-hidden rounded-xl p-8 pb-24 md:min-h-[28rem] md:p-12 md:pb-28'
+              : 'max-w-content',
+          )}
+        >
+          {playlist.cover && (
+            <>
+              {/* Обложка лежит фоном заголовка во всю ширину страницы - это же
                 сказано показу, чтобы он взял вариант под неё, а не кадр целиком. */}
-            <MediaImage
-              media={playlist.cover}
-              place="100vw"
-              alt=""
-              zoom={false}
-              className="absolute inset-0 -z-10 h-full w-full object-cover"
-            />
-            <span
-              aria-hidden="true"
-              className={
-                onDarkCover
-                  ? 'absolute inset-0 -z-10 bg-gradient-to-b from-black/80 via-black/40 to-black/10'
-                  : 'absolute inset-0 -z-10 bg-gradient-to-b from-white/85 via-white/50 to-white/10'
-              }
-            />
-          </>
-        )}
+              <MediaImage
+                media={playlist.cover}
+                place="100vw"
+                alt=""
+                zoom={false}
+                className="absolute inset-0 -z-10 h-full w-full object-cover"
+              />
+              <span
+                aria-hidden="true"
+                className={
+                  onDarkCover
+                    ? 'absolute inset-0 -z-10 bg-gradient-to-b from-black/80 via-black/40 to-black/10'
+                    : 'absolute inset-0 -z-10 bg-gradient-to-b from-white/85 via-white/50 to-white/10'
+                }
+              />
+            </>
+          )}
 
-        {/*
+          {/*
           Размер и цвет заданы одной строкой, без слияния классов: слияние
           принимает `text-h1` за цвет и выбрасывает его следующим `text-white`,
           а заголовок молча падает до обычного текста.
         */}
-        <h1
-          className={
-            playlist.cover
-              ? onDarkCover
-                ? 'text-h1 font-display font-bold leading-tight tracking-tight text-balance text-white drop-shadow-[var(--shadow-text-on-dark)]'
-                : 'text-h1 font-display font-bold leading-tight tracking-tight text-balance text-black drop-shadow-[var(--shadow-text-on-light)]'
-              : 'text-h2 font-display font-semibold tracking-tight text-balance text-ink'
-          }
-        >
-          {playlist.title}
-        </h1>
-        <p
-          className={
-            playlist.cover
-              ? onDarkCover
-                ? 'text-body font-medium text-white/85 drop-shadow-[var(--shadow-text-on-dark-soft)]'
-                : 'text-body font-medium text-black/80 drop-shadow-[var(--shadow-text-on-light-soft)]'
-              : 'text-sm text-muted'
-          }
-        >
-          <a
-            href={`/@${playlist.channel ?? channel}`}
+          <h1
             className={
-              playlist.cover ? 'hover:text-white hover:underline' : 'hover:text-ink hover:underline'
+              playlist.cover
+                ? onDarkCover
+                  ? 'text-h1 font-display font-bold leading-tight tracking-tight text-balance text-white drop-shadow-[var(--shadow-text-on-dark)]'
+                  : 'text-h1 font-display font-bold leading-tight tracking-tight text-balance text-black drop-shadow-[var(--shadow-text-on-light)]'
+                : 'text-h2 font-display font-semibold tracking-tight text-balance text-ink'
             }
           >
-            {playlist.authorName ?? `@${playlist.channel ?? channel}`}
-          </a>
-          {` · ${playlist.items.length} ${plural(playlist.items.length, 'видео', 'видео', 'видео')}`}
-          {openCount < playlist.items.length
-            ? ` · ${openCount} ${plural(openCount, 'открытый', 'открытых', 'открытых')}`
-            : ''}
-        </p>
-        {playlist.description && (
+            {playlist.title}
+          </h1>
           <p
             className={
               playlist.cover
                 ? onDarkCover
-                  ? 'text-h4 max-w-content font-medium leading-relaxed text-white/90 drop-shadow-[var(--shadow-text-on-dark-soft)]'
-                  : 'text-h4 max-w-content font-medium leading-relaxed text-black/85 drop-shadow-[var(--shadow-text-on-light-soft)]'
-                : 'text-body max-w-content leading-relaxed text-ink/90'
+                  ? 'text-body font-medium text-white/85 drop-shadow-[var(--shadow-text-on-dark-soft)]'
+                  : 'text-body font-medium text-black/80 drop-shadow-[var(--shadow-text-on-light-soft)]'
+                : 'text-sm text-muted'
             }
           >
-            {playlist.description}
+            <a
+              href={`/@${playlist.channel ?? channel}`}
+              className={
+                playlist.cover
+                  ? 'hover:text-white hover:underline'
+                  : 'hover:text-ink hover:underline'
+              }
+            >
+              {playlist.authorName ?? `@${playlist.channel ?? channel}`}
+            </a>
+            {` · ${playlist.items.length} ${plural(playlist.items.length, 'видео', 'видео', 'видео')}`}
+            {openCount < playlist.items.length
+              ? ` · ${openCount} ${plural(openCount, 'открытый', 'открытых', 'открытых')}`
+              : ''}
           </p>
-        )}
-      </header>
+          {playlist.description && (
+            <p
+              className={
+                playlist.cover
+                  ? onDarkCover
+                    ? 'text-h4 max-w-content font-medium leading-relaxed text-white/90 drop-shadow-[var(--shadow-text-on-dark-soft)]'
+                    : 'text-h4 max-w-content font-medium leading-relaxed text-black/85 drop-shadow-[var(--shadow-text-on-light-soft)]'
+                  : 'text-body max-w-content leading-relaxed text-ink/90'
+              }
+            >
+              {playlist.description}
+            </p>
+          )}
+        </header>
 
-      {
-        /*
+        {
+          /*
           Плеер со списком чуть наезжают на низ обложки и кладут на неё тень:
           так видно, что это одна карточка, а не две полосы одна под другой.
           При прокрутке обложка уходит вверх, и нахлёст пропадает сам.
         */
-        <div
-          className={cn(
-            'relative z-10',
-            playlist.cover && '-mt-10 rounded-xl shadow-[var(--shadow-overlap-up)] md:-mt-14',
-          )}
-        >
-          {/*
+          <div
+            className={cn(
+              'relative z-10',
+              playlist.cover && '-mt-10 rounded-xl shadow-[var(--shadow-overlap-up)] md:-mt-14',
+            )}
+          >
+            {/*
             Вид выбирает зритель: это страница самого плейлиста, а не блок
             на чужой странице, где переключатель включает владелец.
           */}
-          <VideoSetPlayer
-            items={playlist.items}
-            channel={playlist.channel ?? channel}
-            setCode={playlist.code ?? code}
-            setId={playlist.id}
-            showViewSwitch
-          />
-        </div>
-      }
-    </main>
+            <VideoSetPlayer
+              items={playlist.items}
+              channel={playlist.channel ?? channel}
+              setCode={playlist.code ?? code}
+              setId={playlist.id}
+              showViewSwitch
+            />
+          </div>
+        }
+      </main>
+    </>
   );
 }
 

@@ -92,6 +92,14 @@ export interface CarouselDeckProps {
    */
   readonly pauseOnHover?: boolean;
   /**
+   * Останавливать ход, когда человек листает сам.
+   *
+   * @remarks
+   * Своя анимация и рука спорят за один трек: пока идёт автоплей, кадр уезжает
+   * из-под пальца. Ленте карточек это безразлично, а просмотрщику снимков - нет.
+   */
+  readonly pauseOnInteraction?: boolean;
+  /**
    * Лента идёт в обратную сторону: справа налево.
    *
    * @remarks
@@ -107,8 +115,8 @@ export interface CarouselDeckProps {
    * до края загруженного осталось несколько карточек. Нет обработчика - ничего.
    */
   readonly onIndexChange?: ((index: number, count: number) => void) | undefined;
-  /** Зазор между карточками. */
-  readonly gap?: 'sm' | 'md' | 'lg';
+  /** Зазор между карточками. `none` - кадр к кадру, для ленты из одного кадра в окне. */
+  readonly gap?: 'none' | 'sm' | 'md' | 'lg';
   /**
    * Чем сменяются кадры.
    *
@@ -125,6 +133,14 @@ export interface CarouselDeckProps {
    * разной длины и лента иначе прыгает при листании.
    */
   readonly height?: string | undefined;
+  /**
+   * Радиус кадра. Ставится окну ленты.
+   *
+   * @remarks
+   * Радиус нельзя вешать на внешнюю обёртку с `overflow-hidden`: она срезает
+   * стрелки, которые по умолчанию стоят за краем ленты.
+   */
+  readonly rounded?: string | undefined;
   /** Соотношение сторон кадра, например `16 / 9`. Работает вместо высоты. */
   readonly aspect?: string | undefined;
   /**
@@ -184,9 +200,11 @@ export function CarouselDeck({
   marquee = false,
   speed = 1,
   pauseOnHover = true,
+  pauseOnInteraction = false,
   reverse = false,
   onIndexChange,
   gap = 'md',
+  rounded,
   transition = 'slide',
   height,
   aspect,
@@ -210,15 +228,15 @@ export function CarouselDeck({
     else if (autoplay)
       list.push(
         Autoplay({
+          stopOnInteraction: pauseOnInteraction,
           delay: autoplayFirst
             ? (snaps: number[]) => snaps.map((_, i) => (i === 0 ? autoplayFirst : autoplay))
             : autoplay,
-          stopOnInteraction: false,
           stopOnMouseEnter: pauseOnHover,
         }),
       );
     return list;
-  }, [transition, marquee, speed, pauseOnHover, autoplay, autoplayFirst]);
+  }, [transition, marquee, speed, pauseOnHover, pauseOnInteraction, autoplay, autoplayFirst]);
 
   const options = useMemo(
     () => ({
@@ -338,6 +356,7 @@ export function CarouselDeck({
       <div
         data-part="carousel-viewport"
         className={cn('overflow-hidden', edge === 'gap' ? 'px-[var(--carousel-gap)]' : EDGE[edge])}
+        style={rounded ? { borderRadius: rounded } : undefined}
         ref={viewportRef}
         dir={reverse ? 'rtl' : undefined}
       >

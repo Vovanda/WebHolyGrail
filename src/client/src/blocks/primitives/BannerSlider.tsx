@@ -31,6 +31,7 @@ export function BannerSlider({ banners }: BannerSliderProps) {
       arrows={false}
       swipe
       heightFromFirstSlide
+      gap="none"
       place="100vw"
       zoom={false}
       background="var(--color-bg)"

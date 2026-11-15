@@ -47,6 +47,8 @@ function PhotoDeckInner({
   rounded,
   place = '100vw',
   zoom = true,
+  gap = 'sm',
+  pauseOnInteraction = false,
   onPick,
 }: CarouselProps & { readonly onPick?: (index: number) => void }) {
   if (slides.length === 0) return null;
@@ -71,7 +73,7 @@ function PhotoDeckInner({
       тот, кто ставит ленту, а потолок один для всех.
     */
     <div
-      className="relative overflow-hidden"
+      className="relative"
       style={{
         background,
         borderRadius: rounded,
@@ -91,7 +93,7 @@ function PhotoDeckInner({
           alt=""
           aria-hidden
           draggable={false}
-          className="block w-full select-none invisible pointer-events-none"
+          className="block w-full select-none invisible pointer-events-none max-h-[var(--media-single-max-h)]"
         />
       )}
 
@@ -105,7 +107,9 @@ function PhotoDeckInner({
         arrows={arrows}
         loop
         autoplay={period}
-        gap="sm"
+        gap={gap}
+        rounded={rounded}
+        pauseOnInteraction={pauseOnInteraction}
         className={byFirst ? 'absolute inset-0' : fixed ? 'h-full' : ''}
         height={byFirst || fixed ? '100%' : undefined}
       >
@@ -167,21 +171,30 @@ function Frame({
   readonly onPick?: () => void;
 }) {
   /*
-    Кадр вписывается в отведённое место целиком и не выше общего потолка:
-    вертикальный снимок иначе уходит за нижний край экрана, а стрелки - они
-    стоят по краям места - оказываются рядом с пустотой.
+    Два случая, и оба про одно: ширина поля не должна прыгать от кадра к кадру.
 
-    Упёршись в потолок, кадр уменьшается, а не кадрируется: ширина считается
-    от высоты по его же пропорции. Оттого он и уже места - и встаёт по центру,
-    поровну оставляя поля стрелкам слева и справа.
+    Высота или пропорция места задана - кадр заполняет её (`h-full w-full`),
+    поля вокруг одинаковы у всех слайдов, в них и стоят стрелки.
 
-    Потолок настройкой не открывается: место под ленту задаёт тот, кто её
-    ставит, а предел один на весь шаблон.
+    Место высотой не задано - кадр вписывается по своей пропорции под общий
+    потолок снимка: упёршись в него, он сужается и встаёт по центру. Потолок
+    висит на самом кадре, а не только на обёртке: у обёртки высота авто, и
+    процент от неё не считается - без явного предела вертикальный снимок
+    уходил бы за нижний край экрана.
   */
-  const shape = cn(
-    'relative mx-auto block max-h-full w-auto max-w-full select-none object-contain',
-    full ? 'h-full' : 'h-auto',
-  );
+  const filled = 'relative block select-none object-contain h-full w-full';
+
+  /*
+    Из медиатеки кадр приходит рамкой кубика: своей ширины у неё нет, и
+    «по содержимому» она сжимается в ноль. Ширину ей считает общий класс
+    одиночного кадра - из потолка и пропорции, которую кубик кладёт переменной.
+    У голого адреса такой переменной нет, зато пропорция есть у самой картинки:
+    она и сужается под потолок.
+  */
+  const framed = full ? filled : 'relative block select-none object-contain media-single';
+  const bare = full
+    ? filled
+    : 'relative block select-none object-contain mx-auto w-auto max-w-full max-h-[var(--media-single-max-h)]';
 
   const picture = slide.media ? (
     <MediaImage
@@ -189,7 +202,7 @@ function Frame({
       place={place}
       fit={fit}
       alt={slide.alt}
-      className={shape}
+      className={framed}
       zoom={zoom && !onPick}
     />
   ) : (
@@ -199,7 +212,7 @@ function Frame({
       src={slide.url ?? ''}
       alt={slide.alt}
       draggable={false}
-      className={shape}
+      className={bare}
     />
   );
 

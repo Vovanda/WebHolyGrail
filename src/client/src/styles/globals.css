@@ -1054,6 +1054,9 @@
     --carousel-gap: 0.75rem;
   }
 
+  :where([data-part='carousel'][data-gap='none']) {
+    --carousel-gap: 0px;
+  }
   :where([data-part='carousel'][data-gap='sm']) {
     --carousel-gap: 0.5rem;
   }
@@ -1067,6 +1070,9 @@
       --carousel-gap: 1rem;
     }
 
+    :where([data-part='carousel'][data-gap='none']) {
+      --carousel-gap: 0px;
+    }
     :where([data-part='carousel'][data-gap='sm']) {
       --carousel-gap: 0.5rem;
     }

@@ -103,7 +103,7 @@ async function collectCards(
   },
 ): Promise<ReadonlyArray<CarouselCardView>> {
   const kind = data.sourceKind ?? data.source?.kind ?? 'manual';
-  if (kind === 'manual') return data.cards ?? [];
+  if (kind === 'manual') return (data.cards ?? []).map(fromEditor);
 
   const limit = data.sourceLimit ?? data.source?.limit ?? 8;
 
@@ -134,6 +134,39 @@ async function collectCards(
     link: { href: `/blog/${article.slug}`, label: article.title },
     ...(article.cover ? { media: article.cover } : {}),
   }));
+}
+
+/**
+ * Карточка, заведённая в админке, в том виде, в каком её ждёт лента.
+ *
+ * @remarks
+ * Из админки карточка приходит плоской: картинка лежит документом медиатеки
+ * в `image`, ссылка - строками `href` и `linkLabel`. Лента ждёт `image.media` и
+ * объект `link`: без этой сборки карточка рисовалась без кадра и без ссылки,
+ * и заметно это было только на живой странице - поля в базе на месте.
+ */
+export function fromEditor(card: CarouselCard): CarouselCardView {
+  const raw = card as CarouselCard & { readonly href?: string; readonly linkLabel?: string };
+  // Из админки приходит сам документ медиатеки, из кода - обёртка `ImageRef`
+  // с ним внутри. Различить их проще по полю `media`: у документа его нет.
+  const image = raw.image as unknown as
+    | (MediaRef & { readonly media?: MediaRef; readonly alt?: string })
+    | undefined;
+  const media = image?.media ?? image;
+  // Подпись кадра своя у карточки, а иначе - её заголовок: пустой alt читалка
+  // пропускает, и карточка остаётся безымянной кнопкой.
+  const alt = image?.alt ?? raw.title;
+
+  return {
+    ...(raw.title ? { title: raw.title } : {}),
+    ...(raw.text ? { text: raw.text } : {}),
+    ...(media ? { image: { media, ...(alt ? { alt } : {}) } } : {}),
+    ...(raw.link
+      ? { link: raw.link }
+      : raw.href
+        ? { link: { href: raw.href, label: raw.linkLabel ?? raw.title ?? raw.href } }
+        : {}),
+  };
 }
 
 function CarouselCardView({

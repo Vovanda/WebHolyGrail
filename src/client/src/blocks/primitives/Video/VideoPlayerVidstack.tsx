@@ -24,6 +24,7 @@ import type {
 import { cn } from '@/lib/utils';
 
 import { chaptersTrackUrl } from './chapters-track';
+import { frameStyle } from './frame';
 import { watchSoloPlayback } from './solo-playback';
 import { VideoDenied } from './VideoDenied';
 import { VideoMiniFrame } from './VideoMiniFrame';
@@ -207,8 +208,9 @@ export function VideoPlayerVidstack({
       <VideoMiniFrame asMini={asMini} onDismiss={miniPlayer.dismiss}>
         <MediaPlayer
           data-part="frame"
-          className="video-vidstack w-full overflow-hidden rounded-xl border border-border"
+          className="video-vidstack overflow-hidden rounded-xl border border-border"
           aspectRatio={ratio ?? DEFAULT_RATIO}
+          style={frameStyle(ratio ?? DEFAULT_RATIO)}
           /*
             Разворот на весь экран не поворачивает телефон под запись: плеер по
             умолчанию просит горизонтальную ориентацию, и вертикальная запись
