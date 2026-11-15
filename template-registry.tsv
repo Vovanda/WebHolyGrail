@@ -6,6 +6,7 @@ mirror	.changeset/config.json
 mirror	.changeset/README.md
 overlay	.claude/skills/cms-migration/reference/PAYLOAD-FIELD-REFERENCE.md
 overlay	.claude/skills/cms-migration/SKILL.md
+overlay	.claude/skills/content-taste/SKILL.md
 overlay	.claude/skills/infisical-agent/references/agent-config.md
 overlay	.claude/skills/infisical-agent/references/deployment-examples.md
 overlay	.claude/skills/infisical-agent/references/template-functions.md
@@ -30,6 +31,10 @@ overlay	.claude/skills/infisical-terraform/references/provider-setup.md
 overlay	.claude/skills/infisical-terraform/references/resources-and-data-sources.md
 overlay	.claude/skills/infisical-terraform/references/terraform-cloud-oidc.md
 overlay	.claude/skills/infisical-terraform/SKILL.md
+overlay	.claude/skills/media-upload-chat/SKILL.md
+overlay	.claude/skills/payload-query/SKILL.md
+overlay	.claude/skills/payload-rest/SKILL.md
+overlay	.claude/skills/payload-versions/SKILL.md
 overlay	.claude/skills/payload/reference/ACCESS-CONTROL-ADVANCED.md
 overlay	.claude/skills/payload/reference/ACCESS-CONTROL.md
 overlay	.claude/skills/payload/reference/ADAPTERS.md

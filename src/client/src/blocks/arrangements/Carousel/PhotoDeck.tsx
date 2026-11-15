@@ -47,6 +47,8 @@ function PhotoDeckInner({
   rounded,
   place = '100vw',
   zoom = true,
+  gap = 'sm',
+  pauseOnInteraction = false,
   onPick,
 }: CarouselProps & { readonly onPick?: (index: number) => void }) {
   if (slides.length === 0) return null;
@@ -71,7 +73,7 @@ function PhotoDeckInner({
       тот, кто ставит ленту, а потолок один для всех.
     */
     <div
-      className="relative overflow-hidden"
+      className="relative"
       style={{
         background,
         borderRadius: rounded,
@@ -105,7 +107,9 @@ function PhotoDeckInner({
         arrows={arrows}
         loop
         autoplay={period}
-        gap="sm"
+        gap={gap}
+        rounded={rounded}
+        pauseOnInteraction={pauseOnInteraction}
         className={byFirst ? 'absolute inset-0' : fixed ? 'h-full' : ''}
         height={byFirst || fixed ? '100%' : undefined}
       >
@@ -178,9 +182,13 @@ function Frame({
     Потолок настройкой не открывается: место под ленту задаёт тот, кто её
     ставит, а предел один на весь шаблон.
   */
+  /*
+    Кадр заполняет рамку слайда, а не подгоняет её под себя: иначе ширина поля
+    прыгала от кадра к кадру, а в освободившейся полосе просвечивал сосед.
+  */
   const shape = cn(
-    'relative mx-auto block max-h-full w-auto max-w-full select-none object-contain',
-    full ? 'h-full' : 'h-auto',
+    'relative block select-none object-contain',
+    full ? 'h-full w-full' : 'mx-auto max-h-full w-auto max-w-full',
   );
 
   const picture = slide.media ? (
