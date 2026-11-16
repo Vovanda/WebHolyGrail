@@ -91,6 +91,8 @@ jobs:
           context: .
           file: src/cms/Dockerfile
           push: true
+          build-args: |
+            NEXT_PUBLIC_SITE_URL=${{ vars.PUBLIC_URL }}
           tags: |
             ${{ steps.meta.outputs.cms_image }}:${{ steps.meta.outputs.tag }}
             ${{ steps.meta.outputs.cms_image }}:latest
