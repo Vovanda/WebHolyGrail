@@ -41,6 +41,7 @@ let dryRun = false;
 let includeClaude = false;
 let force = false;
 let migrate = true;
+let noBranch = false;
 
 for (let i = 0; i < args.length; i++) {
   const arg = args[i];
@@ -49,6 +50,7 @@ for (let i = 0; i < args.length; i++) {
   else if (arg === '--dry-run') dryRun = true;
   else if (arg === '--force') force = true;
   else if (arg === '--no-migrate') migrate = false;
+  else if (arg === '--no-branch') noBranch = true;
   else if (arg === '--include-claude') includeClaude = true;
   else if (arg === '--help' || arg === '-h') {
     console.log(readHelp());
@@ -157,6 +159,28 @@ if (localGitSource) {
 const sourceSha = safeGit(['rev-parse', '--short', 'HEAD'], sourceDir) ?? 'unknown';
 console.log(`→ Source: ${sourceDir} @ ${ref} (${sourceSha})`);
 console.log(`→ Target: ${INSTANCE}`);
+
+/*
+  Ветка синка. Круг пишет файлы в сайт; если оставить их на main, следующий круг
+  поверх неотправленного смешает две пачки, а push утащит круг на прод без PR.
+  Имя по отпечатку источника: по нему видно, из какого шаблона приехало.
+  Незакоммиченные правки сайта - повод не трогать ветку: они не наши.
+*/
+if (!dryRun && !noBranch) {
+  const branch = `sync/whg-${sourceSha}`;
+  const current = safeGit(['rev-parse', '--abbrev-ref', 'HEAD'], INSTANCE);
+  const dirtyTree = safeGit(['status', '--porcelain'], INSTANCE);
+  if (current !== branch && (current === 'main' || current === 'master')) {
+    if (dirtyTree) {
+      console.log(
+        `! В сайте есть незакоммиченные правки: ветку ${branch} не завожу, круг идёт на ${current}`,
+      );
+    } else {
+      safeGit(['checkout', '-b', branch], INSTANCE);
+      console.log(`→ Ветка синка: ${branch}`);
+    }
+  }
+}
 
 // ─── Зоны ──────────────────────────────────────────────────────────────
 
@@ -273,6 +297,16 @@ const conflicts = [];
 const edited = [];
 /** Ваши файлы в наших папках: не трогаем, но говорим о них. */
 const foreign = [];
+
+/*
+  Сгенерированные файлы в зеркальных папках - не «ваши»: их пишут
+  generate:types и generate:importmap на каждом круге. В списке чужих они
+  выглядели ложной тревогой и требовали объяснения каждый раз.
+*/
+const GENERATED_FILES = new Set([
+  'src/cms/src/payload-types.ts',
+  'src/cms/src/app/(payload)/admin/importMap.js',
+]);
 
 /** Разведка идёт без записи: сперва узнаём о столкновениях, потом трогаем сайт. */
 let writing = false;
@@ -475,16 +509,18 @@ if (seamGaps.length > 0) {
 }
 
 if (foreign.length > 0) {
+  const ownFiles = foreign.filter((rel) => !GENERATED_FILES.has(rel));
+  const generated = foreign.length - ownFiles.length;
   console.log(`
-→ Ваши файлы в наших папках (${foreign.length}, не тронуты):
-`);
-  for (const rel of foreign.slice(0, 20)) console.log(`   ${rel}`);
-  if (foreign.length > 20) console.log(`   … и ещё ${foreign.length - 20}`);
-  console.log(
-    `
+→ Ваши файлы в наших папках (${ownFiles.length}, не тронуты):`);
+  for (const rel of ownFiles.slice(0, 20)) console.log(`   ${rel}`);
+  if (ownFiles.length > 20) console.log(`   … и ещё ${ownFiles.length - 20}`);
+  if (generated > 0) {
+    console.log(`   (${generated} сгенерированных - типы CMS и карта админки - не в счёт)`);
+  }
+  console.log(`
   Место рискованное: при следующем обновлении это имя может занять наш файл.
-  Надёжнее держать своё в доменной папке - её синк не обходит вовсе.`,
-  );
+  Надёжнее держать своё в доменной папке - её синк не обходит вовсе.`);
 }
 
 /*
@@ -615,6 +651,12 @@ if (writing && (brought.size > 0 || touchedPackages || touchedSchema)) {
       'Смотрите: pnpm --filter cms check:schema',
     );
   }
+
+  /*
+    Тесты гонялись руками на каждом круге и забывались. Дешёвый шаг: если он
+    красный, коммитить нечего - правка шаблона добралась до сайта с поломкой.
+  */
+  runStep('тесты зелёные', 'pnpm -r --no-bail run test', 'Смотрите: pnpm -r test');
 }
 
 /*
@@ -625,8 +667,8 @@ if (writing && (brought.size > 0 || touchedPackages || touchedSchema)) {
 if (writing && (stats.copied > 0 || stats.deleted > 0)) {
   runStep(
     'реестр зон пересобран',
-    'node scripts/zones.mjs',
-    'Сделайте сами: node scripts/zones.mjs',
+    'node scripts/zones.mjs --all',
+    'Сделайте сами: node scripts/zones.mjs --all',
   );
 }
 
