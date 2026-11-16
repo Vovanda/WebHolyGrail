@@ -104,6 +104,7 @@ overlay	docs/ux/extending.md
 overlay	docs/ux/layout/panels.md
 overlay	docs/ux/layout/README.md
 overlay	docs/ux/primitives/aspect-rows.md
+overlay	docs/ux/primitives/carousel.en.md
 overlay	docs/ux/primitives/carousel.md
 overlay	docs/ux/primitives/media-image.md
 overlay	docs/ux/primitives/README.md
