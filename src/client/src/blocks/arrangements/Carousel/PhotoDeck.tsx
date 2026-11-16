@@ -73,7 +73,7 @@ function PhotoDeckInner({
       тот, кто ставит ленту, а потолок один для всех.
     */
     <div
-      className="relative"
+      className="relative min-w-0"
       style={{
         background,
         borderRadius: rounded,
